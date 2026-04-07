@@ -8,11 +8,11 @@
   <meta name="description" content="Meet the team behind Gleyo — the community growth and retention platform built by people who felt the problem first." />
   <meta name="author" content="Okiri Donald" />
   <meta name="robots" content="index, follow" />
-  <link rel="canonical" href="https://gleyo.app/about" />
+  <link rel="canonical" href="https://gleyo.app/about-us" />
   <link rel="shortcut icon" href="https://gleyo.app/static/my_logo.png" />
 
   <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://gleyo.app/about" />
+  <meta property="og:url" content="https://gleyo.app/about-us" />
   <meta property="og:title" content="About Us — Gleyo" />
   <meta property="og:description" content="Meet Okiri Donald and Olaide Mayowa, the founders behind Gleyo's community growth and retention platform." />
   <meta property="og:site_name" content="Gleyo" />
@@ -27,7 +27,7 @@
   {
     "@context": "https://schema.org",
     "@type": "AboutPage",
-    "url": "https://gleyo.app/about",
+    "url": "https://gleyo.app/about-us",
     "name": "About Us — Gleyo",
     "description": "Meet the founders behind Gleyo, a community growth and retention platform.",
     "publisher": {
@@ -35,17 +35,19 @@
       "name": "Gleyo",
       "url": "https://gleyo.app",
       "logo": "https://gleyo.app/static/my_logo.png",
-      "founder": [git push https://okiridonald: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@github.com/okiridonald/gleyo.git
+      "founder": [
         {
           "@type": "Person",
           "name": "Okiri Donald",
-          "jobTitle": "Founder & CEO"
+          "jobTitle": "Founder & CEO",
+          "sameAs": ["https://x.com/okiridonald", "https://linkedin.com/in/okiridonald"]
         },
         {
           "@type": "Person",
           "name": "Olaide Mayowa",
           "jobTitle": "Co-Founder",
-          "alumniOf": "Rivers State University"
+          "alumniOf": "Rivers State University",
+          "sameAs": ["https://x.com/mayowa-olaide", "https://linkedin.com/in/mayowa-olaide"]
         }
       ]
     }
@@ -56,9 +58,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet" />
 
-
-
-   <style>
+  <style>
     :root {
       --bg: #0b0b12;
       --glass: rgba(34, 34, 54, 0.45);
@@ -84,7 +84,9 @@
 
     a { color: inherit; text-decoration: none; }
 
-    /* NAV */
+    ::selection { background: #4effcd29; color: var(--text); }
+    ::-moz-selection { background: #4effcd29; color: var(--text); }
+
     nav {
       display: flex;
       justify-content: space-between;
@@ -92,22 +94,10 @@
       padding: 24px 8%;
     }
 
-    .logo {
-      font-family: 'Syne', sans-serif;
-      font-weight: 700;
-      font-size: 18px;
-    }
+    .logo { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 18px; }
+    .nav-link { font-size: 13px; color: var(--muted); }
 
-    .nav-link {
-      font-size: 13px;
-      color: var(--muted);
-    }
-
-    .container {
-      max-width: 900px;
-      margin: 0 auto;
-      padding: 0 20px 60px;
-    }
+    .container { max-width: 900px; margin: 0 auto; padding: 0 20px 60px; }
 
     .hero {
       text-align: center;
@@ -139,11 +129,7 @@
       margin-bottom: 1rem;
     }
 
-    .hero p {
-      font-size: 16px;
-      color: var(--muted);
-      line-height: 1.75;
-    }
+    .hero p { font-size: 16px; color: var(--muted); line-height: 1.75; }
 
     .section-label {
       font-size: 11px;
@@ -164,22 +150,10 @@
       margin-bottom: 24px;
     }
 
-    .mission p {
-      font-size: 16px;
-      line-height: 1.8;
-      color: var(--text);
-    }
+    .mission p { font-size: 16px; line-height: 1.8; color: var(--text); }
+    .mission p span { font-weight: 600; color: #c7d2fe; }
 
-    .mission p span {
-      font-weight: 600;
-      color: #c7d2fe;
-    }
-
-    .origin {
-      display: flex;
-      gap: 18px;
-      align-items: flex-start;
-    }
+    .origin { display: flex; gap: 18px; align-items: flex-start; }
 
     .origin-icon {
       flex-shrink: 0;
@@ -193,25 +167,10 @@
       justify-content: center;
     }
 
-    .origin-content h3 {
-      font-family: 'Syne', sans-serif;
-      font-size: 15px;
-      font-weight: 700;
-      margin-bottom: 8px;
-    }
+    .origin-content h3 { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+    .origin-content p { font-size: 14px; color: var(--muted); line-height: 1.75; }
 
-    .origin-content p {
-      font-size: 14px;
-      color: var(--muted);
-      line-height: 1.75;
-    }
-
-    .team-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      margin-bottom: 24px;
-    }
+    .team-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
 
     .team-card {
       background: var(--glass);
@@ -224,24 +183,7 @@
       overflow: hidden;
     }
 
-    .team-card-accent {
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 3px;
-    }
-
-    
-    ::selection {
-      background: #4effcd29; 
-      color: var(--text-main);        
-    }
-
-    ::-moz-selection {
-      background: #4effcd29; 
-      color: var(--text-main);        
-    }
-
-
+    .team-card-accent { position: absolute; top: 0; left: 0; right: 0; height: 3px; }
     .accent-founder   { background: #6366f1; }
     .accent-cofounder { background: #14b8a6; }
 
@@ -270,47 +212,16 @@
       margin-bottom: 8px;
     }
 
-    .badges {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-bottom: 14px;
-    }
+    .badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
 
-    .badge {
-      font-size: 11px;
-      font-weight: 500;
-      padding: 3px 10px;
-      border-radius: 100px;
-    }
+    .badge { font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 100px; }
+    .badge-purple { background: rgba(99,102,241,0.15); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.25); }
+    .badge-teal   { background: rgba(20,184,166,0.12); color: #5eead4; border: 1px solid rgba(20,184,166,0.22); }
 
-    .badge-purple {
-      background: rgba(99,102,241,0.15);
-      color: #a5b4fc;
-      border: 1px solid rgba(99,102,241,0.25);
-    }
-
-    .badge-teal {
-      background: rgba(20,184,166,0.12);
-      color: #5eead4;
-      border: 1px solid rgba(20,184,166,0.22);
-    }
-
-    .team-card p {
-      font-size: 13px;
-      color: var(--muted);
-      line-height: 1.75;
-      margin-bottom: 10px;
-    }
-
+    .team-card p { font-size: 13px; color: var(--muted); line-height: 1.75; margin-bottom: 10px; }
     .team-card p:last-of-type { margin-bottom: 0; }
 
-    .pills {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-top: 14px;
-    }
+    .pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
 
     .pill {
       display: inline-flex;
@@ -324,12 +235,30 @@
       border-radius: 100px;
     }
 
-    .values-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 14px;
-      margin-bottom: 24px;
+    /* SOCIAL LINKS */
+    .socials { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+
+    .social-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--muted);
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      padding: 6px 12px;
+      border-radius: 100px;
+      transition: color 0.2s, border-color 0.2s, background 0.2s;
     }
+
+    .social-btn:hover {
+      color: var(--text);
+      border-color: var(--accent);
+      background: rgba(99,102,241,0.08);
+    }
+
+    .values-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 24px; }
 
     .value-card {
       background: var(--glass);
@@ -340,48 +269,13 @@
       -webkit-backdrop-filter: blur(12px);
     }
 
-    .value-icon {
-      width: 36px;
-      height: 36px;
-      border-radius: 9px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 12px;
-    }
+    .value-icon { width: 36px; height: 36px; border-radius: 9px; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
+    .value-card h4 { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+    .value-card p { font-size: 13px; color: var(--muted); line-height: 1.65; }
 
-    .value-card h4 {
-      font-family: 'Syne', sans-serif;
-      font-size: 14px;
-      font-weight: 700;
-      margin-bottom: 6px;
-    }
-
-    .value-card p {
-      font-size: 13px;
-      color: var(--muted);
-      line-height: 1.65;
-    }
-
-    /* CTA */
-    .cta {
-      text-align: center;
-      padding: 44px 20px;
-    }
-
-    .cta h2 {
-      font-family: 'Syne', sans-serif;
-      font-size: 26px;
-      font-weight: 800;
-      letter-spacing: -0.5px;
-      margin-bottom: 10px;
-    }
-
-    .cta p {
-      font-size: 15px;
-      color: var(--muted);
-      margin-bottom: 24px;
-    }
+    .cta { text-align: center; padding: 44px 20px; }
+    .cta h2 { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 10px; }
+    .cta p { font-size: 15px; color: var(--muted); margin-bottom: 24px; }
 
     .cta-btn {
       display: inline-block;
@@ -398,34 +292,20 @@
 
     .cta-btn:hover { opacity: 0.85; }
 
-    /* FOOTER */
-    footer {
-      text-align: center;
-      padding: 40px 20px;
-      color: var(--muted);
-      font-size: 13px;
-    }
+    footer { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 13px; }
 
     @media (max-width: 768px) {
       nav { padding: 20px 5%; }
-
       .hero { padding: 44px 16px 32px; }
       .hero h1 { font-size: 32px; letter-spacing: -0.5px; }
-      .hero p  { font-size: 15px; }
-
+      .hero p { font-size: 15px; }
       .container { padding: 0 16px 48px; }
-
       .card { padding: 20px; }
-
       .origin { flex-direction: column; gap: 12px; }
-
-      .team-grid  { grid-template-columns: 1fr; gap: 14px; }
-      .team-card  { padding: 20px; }
-
+      .team-grid { grid-template-columns: 1fr; gap: 14px; }
+      .team-card { padding: 20px; }
       .values-grid { grid-template-columns: 1fr; gap: 12px; }
-
       .mission p { font-size: 15px; }
-
       .cta { padding: 32px 16px; }
       .cta h2 { font-size: 22px; }
     }
@@ -473,6 +353,7 @@
     <div class="section-label">The team</div>
     <div class="team-grid">
 
+      <!-- OKIRI -->
       <div class="team-card">
         <div class="team-card-accent accent-founder"></div>
         <div class="avatar avatar-founder">OD</div>
@@ -493,8 +374,19 @@
             Ex Zealy community manager
           </span>
         </div>
+        <div class="socials">
+          <a class="social-btn" href="https://x.com/okiridonald" target="_blank" rel="noopener">
+            <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M12.6.75h2.454l-5.36 6.142L16 15.25h-4.937l-3.867-5.07-4.425 5.07H.316l5.733-6.57L0 .75h5.063l3.495 4.633L12.601.75Zm-.86 13.028h1.36L4.323 2.145H2.865z"/></svg>
+            @okiridonald
+          </a>
+          <a class="social-btn" href="https://linkedin.com/in/okiridonald" target="_blank" rel="noopener">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg>
+            LinkedIn
+          </a>
+        </div>
       </div>
 
+      <!-- OLAIDE -->
       <div class="team-card">
         <div class="team-card-accent accent-cofounder"></div>
         <div class="avatar avatar-cofounder">OM</div>
@@ -510,6 +402,16 @@
             Rivers State University, Nigeria
           </span>
           <span class="pill">Chemical Engineering</span>
+        </div>
+        <div class="socials">
+          <a class="social-btn" href="https://x.com/mayowa-olaide" target="_blank" rel="noopener">
+            <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M12.6.75h2.454l-5.36 6.142L16 15.25h-4.937l-3.867-5.07-4.425 5.07H.316l5.733-6.57L0 .75h5.063l3.495 4.633L12.601.75Zm-.86 13.028h1.36L4.323 2.145H2.865z"/></svg>
+            @mayowa-olaide
+          </a>
+          <a class="social-btn" href="https://linkedin.com/in/mayowa-olaide" target="_blank" rel="noopener">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg>
+            LinkedIn
+          </a>
         </div>
       </div>
 

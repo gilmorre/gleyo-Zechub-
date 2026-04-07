@@ -170,7 +170,7 @@ if not redis_url:
 app.secret_key = os.getenv("SECRET_KEY")
 app.config.update(
     SESSION_TYPE="filesystem",
-    SESSION_COOKIE_NAME="gleyo_session",
+    SESSION_COOKIE_NAME="redis",
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SECURE=True,
     SESSION_COOKIE_SAMESITE="Lax",

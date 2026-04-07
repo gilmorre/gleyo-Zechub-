@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 CLIENT_KEY = "sbawpr21vljf9i8dmm"
 CLIENT_SECRET = "V0XqijH3qK2OhdDOUKfGcMQTpjb6RX7g" 
-REDIRECT_URI = "https://unleisured-zariyah-subsensuously.ngrok-free.dev/tiktok/callback"
+REDIRECT_URI = "https://gleyo.app/tiktok/callback"
 SCOPES = "user.info.basic,video.list"
 
 # CLIENT_KEY = "aw2z9nfn66q06ugv"

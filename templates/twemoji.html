@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Upload Cancel Spinner</title>
+
+  <style>
+    body {
+      background: #0f0f0f;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      font-family: system-ui, sans-serif;
+    }
+
+    .upload-cancel {
+      width: 72px;
+      height: 72px;
+      position: relative;
+    }
+
+    /* SVG BASE */
+    svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg); /* start from top */
+    }
+
+    /* SPINNER CIRCLE */
+    .progress-circle {
+      fill: none;
+      stroke: #4cafef;
+      stroke-width: 4;
+      stroke-linecap: round;
+      stroke-dasharray: 0 283;
+      animation: grow-circle 1.8s ease-in-out infinite;
+    }
+
+    /* BACKGROUND RING */
+    .bg-circle {
+      fill: none;
+      stroke: rgba(255,255,255,0.15);
+      stroke-width: 4;
+    }
+
+    /* X ICON */
+    .x-icon {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .x-icon svg {
+      width: 26px;
+      height: 26px;
+      transform: rotate(0deg);
+    }
+
+    .x-line {
+      stroke: #ffffff;
+      stroke-width: 3;
+      stroke-linecap: round;
+    }
+
+    /* ANIMATION */
+    @keyframes grow-circle {
+      0% {
+        stroke-dasharray: 0 283;
+        opacity: 0.4;
+      }
+      50% {
+        stroke-dasharray: 140 283;
+        opacity: 1;
+      }
+      100% {
+        stroke-dasharray: 283 283;
+        opacity: 0.8;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="upload-cancel">
+
+    <!-- CIRCLE SPINNER -->
+    <svg viewBox="0 0 100 100">
+      <circle class="bg-circle" cx="50" cy="50" r="45" />
+      <circle class="progress-circle" cx="50" cy="50" r="45" />
+    </svg>
+
+    <!-- CENTER X -->
+    <div class="x-icon">
+      <svg viewBox="0 0 24 24">
+        <line class="x-line" x1="4" y1="4" x2="20" y2="20" />
+        <line class="x-line" x1="20" y1="4" x2="4" y2="20" />
+      </svg>
+    </div>
+
+  </div>
+
+</body>
+</html>

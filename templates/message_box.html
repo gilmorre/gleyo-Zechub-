@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WhatsApp UI</title>
+  <link rel="stylesheet" href="style.css">
+<style>
+/* Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: Arial, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+ 
+
+.app {
+  width: 360px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.chats, .requests{
+  flex: 1;
+  overflow-y: auto;
+}
+
+.bottom-nav {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-around;
+  background: #f8f8f8;
+  padding: 10px 0;
+  border-top: 1px solid #ddd;
+}
+
+/* Header */
+.top-bar {
+  background: #4285f4; /* brand blue */
+  color: white;
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.top-bar .icons {
+  display: flex;
+  gap: 12px;
+}
+
+.top-bar svg {
+  width: 20px;
+  height: 20px;
+  stroke: white;
+  cursor: pointer;
+}
+
+.search {
+  position: relative;
+  background: #f0f0f0;
+  padding: 8px;
+}
+
+.search svg {
+  position: absolute;
+  top: 50%;
+  left: 20px;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  stroke: #666;
+  pointer-events: none;
+}
+
+.search input {
+  width: 100%;
+  padding: 8px 12px 8px 40px;
+  border-radius: 20px;
+  border: none;
+  outline: none;
+  background: #fff;
+  font-size: 14px;
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  overflow-x: auto;
+  background: #fff;
+  border-bottom: 1px solid #ddd;
+}
+.tabs button {
+  flex: 1;
+  padding: 11px;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+.tabs .active {
+  border-bottom: 2px solid #4285f4; /* blue underline */
+  font-weight: bold;
+}
+
+/* Chats */
+.chats {
+  background: #fff;
+}
+.chat {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+}
+.avatar {
+  width: 40px;
+  height: 40px;
+  background: #ddd;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 10px;
+}
+.avatar svg {
+  width: 22px;
+  height: 22px;
+  stroke: #333;
+}
+.details {
+  flex: 1;
+}
+.details h3 {
+  font-size: 14px;
+  margin-bottom: 3px;
+}
+.details p {
+  font-size: 12px;
+  color: gray;
+}
+.time, .badge {
+  font-size: 12px;
+  color: gray;
+}
+.badge {
+  background: #4285f4; /* blue badge */
+  color: white;
+  padding: 3px 6px;
+  border-radius: 10px;
+}
+
+/* Bottom Navigation */
+.bottom-nav {
+  display: flex;
+  justify-content: space-around;
+  background: #f8f8f8;
+  padding: 10px 0;
+  border-top: 1px solid #ddd;
+}
+.bottom-nav button {
+  background: none;
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.bottom-nav svg {
+  width: 20px;
+  height: 20px;
+  margin-bottom: 2px;
+}
+.bottom-nav .active {
+  color: #4285f4; /* active blue */
+  font-weight: bold;
+}
+
+/* Dark Mode */
+body.dark {
+  background: #121212;
+  color: #eee;
+}
+body.dark .app {
+  border: 1px solid #333;
+}
+body.dark .top-bar {
+  background: #3367d6; /* darker blue for dark mode */
+}
+body.dark .search {
+  background: #222;
+}
+body.dark .search input {
+  background: #333;
+  color: #fff;
+}
+body.dark .tabs {
+  background: #1e1e1e;
+  border-bottom: 1px solid #333;
+}
+body.dark .chats {
+  background: #121212;
+}
+body.dark .chat {
+  border-bottom: 1px solid #333;
+}
+body.dark .details p, 
+body.dark .time {
+  color: #aaa;
+}
+body.dark .bottom-nav {
+  background: #1e1e1e;
+  border-top: 1px solid #333;
+}
+body.dark .bottom-nav .active {
+  color: #4285f4;
+}
+
+
+.dark-toggle {
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
+  background: #4285f4; /* light mode blue */
+  color: white;
+  border: none;
+  border-radius: 50%;
+  padding: 12px;
+  cursor: pointer;
+  font-size: 18px;
+  transition: background 0.3s, transform 0.15s;
+}
+.dark-toggle svg {
+  width: 20px;
+  height: 20px;
+  stroke: white;
+}
+
+/* When in dark mode, change button color */
+body.dark .dark-toggle {
+  background: #ff9800; /* orange in dark mode */
+}
+
+/* Click (press) effect */
+.dark-toggle:active {
+  transform: scale(0.9);
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  body {
+    padding: 0;
+  }
+  .app {
+    width: 100%;
+    border-radius: 0;
+    height: 100vh;
+    overflow: hidden;
+  }
+}
+
+/* Tabs in dark mode */
+body.dark .tabs button {
+  color: #eee; /* white text */
+}
+body.dark .tabs .active {
+  color: #4285f4; /* active tab stays blue */
+}
+
+ 
+body.dark .bottom-nav svg {
+  stroke: #eee; /* white icons */
+}
+body.dark .bottom-nav .active {
+  color: #4285f4; /* active stays blue */
+}
+
+/* Bottom navigation in dark mode */
+body.dark .bottom-nav button {
+  color: #eee; /* text white */
+}
+body.dark .bottom-nav svg {
+  stroke: #eee; /* icons white by default */
+}
+body.dark .bottom-nav .active {
+  color: #4285f4; /* active text blue */
+}
+body.dark .bottom-nav .active svg {
+  stroke: #4285f4; /* active icon blue */
+}
+
+
+@media (max-width: 768px) {
+
+ 
+
+  body {
+    margin: 0 !important;
+    height: 100% !important;
+    padding: 0;
+    overflow-x: hidden; /* Ensure horizontal scrolling is disabled */
+  }
+
+  .app {
+    max-width: 100%;
+    width: 100% !important;
+    height: 100dvh !important; /* Ensure the container fills the screen */
+    overflow: hidden; /* Prevent scrolling within the body */
+  }
+}
+
+.no-results {
+  display: none;
+  color: gray;
+  text-align: center;
+  font-size: 16px;
+  font-weight: bold;
+
+  /* Centering */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+
+  width: 100%;
+}
+
+.no-request{
+  display: none;
+  color: gray;
+  text-align: center;
+  font-size: 16px;
+  font-weight: bold;
+
+  /* Centering */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+
+  width: 100%   
+}
+
+.requests .request {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  border-bottom: 1px solid #ddd;
+
+}
+body.dark .requests .request  {
+  border-bottom: 1px solid #333;
+
+}
+.requests .details {
+  flex: 1;
+}
+
+.requests .actions {
+  display: flex;
+  gap: 5px;
+}
+
+.requests .actions button {
+  padding: 5px 10px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.requests .actions .accept {
+  background: #4caf50;
+  color: white;
+}
+
+.requests .actions .decline {
+  background: #f44336;
+  color: white;
+}
+
+</style>
+</head>
+<body>
+  <div class="app">
+    <!-- Header -->
+    <header class="top-bar">
+      <h1 class="tab-init">Chat</h1>
+      <div class="icons">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+        </svg>
+      </div>
+    </header>
+
+    <div class="search">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="7"></circle>
+        <line x1="16.65" y1="16.65" x2="21" y2="21"></line>
+      </svg>
+      <input type="text" class="serch-input" placeholder="Search">
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="active">All</button>
+      <button>Unread 17</button>
+    </div>
+ 
+<!-- Chats -->
+<div class="chats">
+  <div class="all-chats">
+    <div class="chat">
+      <div class="avatar">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+        </svg>
+      </div>
+      <div class="details">
+        <h3>OFFIXIA’s GADGETS</h3>
+        <p>Announcements</p>
+      </div>
+      <span class="badge">70</span>
+    </div>
+
+    <div class="chat">
+      <div class="avatar">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <rect x="7" y="9" width="10" height="6" rx="1"></rect>
+          <circle cx="9" cy="12" r="1"></circle>
+          <circle cx="15" cy="12" r="1"></circle>
+        </svg>
+      </div>
+      <div class="details">
+        <h3>Meta AI</h3>
+        <p>AI Assistant</p>
+      </div>
+    </div>
+            
+  <div class="no-results no-results-all">
+    No results found
+  </div>
+</div>
+
+  <div class="unread-chats" style="display:none;">
+    <div class="chat">
+      <div class="avatar">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <circle cx="12" cy="8" r="4"></circle>
+        </svg>
+      </div>
+      <div class="details">
+        <h3>Gilmore (You)</h3>
+        <p>Unread message here...</p>
+      </div>
+      <span class="time">17:06</span>
+    </div>
+        <div class="no-results no-results-unread"  >
+            No results found
+        </div>
+  </div>
+</div>
+
+
+    <!-- Requests list (hidden by default) -->
+<div class="requests" style="display:none;">
+  <div class="request">
+    <div class="avatar">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10"></circle>
+        <path d="M12 16v.01"></path>
+        <path d="M12 8v4"></path>
+      </svg>
+    </div>
+    <div class="details">
+      <h3>John Doe</h3>
+      <p>wants to connect with you</p>
+    </div>
+    <div class="actions">
+      <button class="accept">Accept</button>
+      <button class="decline">Decline</button>
+    </div>
+  </div>
+
+  <div class="no-request">
+    No requests found
+  </div>
+</div>
+
+
+
+    <!-- Bottom Nav -->
+    <nav class="bottom-nav">
+      <button class="active">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        </svg>
+        Chats
+      </button>
+
+      <button>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 
+                  1.79-4 4 1.79 4 4 4z"></path>
+          <path d="M6 20c0-2.21 3.58-4 6-4s6 1.79 6 4"></path>
+        </svg>
+        Requests
+      </button>
+    
+
+    </nav>
+  </div>
+
+  <button class="dark-toggle" onclick="document.body.classList.toggle('dark')">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"></path>
+    </svg>
+  </button>
+
+
+<script>
+const navButtons = document.querySelectorAll('.bottom-nav button');
+const headerTitle = document.querySelector('.tab-init');
+const chatsSection = document.querySelector('.chats');
+const requestsSection = document.querySelector('.requests');
+const tabs = document.querySelector('.tabs');
+const tabButtons = document.querySelectorAll('.tabs button');
+
+const allChats = document.querySelector('.all-chats');
+const unreadChats = document.querySelector('.unread-chats');
+
+navButtons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    navButtons.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    if (btn.textContent.includes('Chats')) {
+      headerTitle.textContent = 'Chat';
+      chatsSection.style.display = 'block';
+      requestsSection.style.display = 'none';
+      tabs.style.display = 'flex';
+    } else if (btn.textContent.includes('Requests')) {
+      headerTitle.textContent = 'Requests';
+      chatsSection.style.display = 'none';
+      requestsSection.style.display = 'block';
+      tabs.style.display = 'none';
+    }
+  });
+});
+
+tabButtons.forEach(tab => {
+  tab.addEventListener('click', () => {
+    tabButtons.forEach(b => b.classList.remove('active'));
+    tab.classList.add('active');
+
+    if (tab.textContent.includes('All')) {
+      allChats.style.display = 'block';
+      unreadChats.style.display = 'none';
+    } else if (tab.textContent.includes('Unread')) {
+      allChats.style.display = 'none';
+      unreadChats.style.display = 'block';
+    }
+  });
+});
+
+const searchInput = document.querySelector('.serch-input');
+const noResultsAll = document.querySelector('.no-results-all');
+const noResultsUnread = document.querySelector('.no-results-unread');
+const noRequests = document.querySelector('.no-request');
+
+searchInput.addEventListener('input', () => {
+  const query = searchInput.value.toLowerCase();
+
+  let activeSection, noResults;
+
+  if (chatsSection.style.display !== "none") {
+    // Chats tab
+    if (allChats.style.display !== "none") {
+      activeSection = allChats;
+      noResults = noResultsAll;
+    } else {
+      activeSection = unreadChats;
+      noResults = noResultsUnread;
+    }
+  } else if (requestsSection.style.display !== "none") {
+    // Requests tab
+    activeSection = requestsSection;
+    noResults = noRequests;
+  }
+
+  const chats = activeSection.querySelectorAll('.chat');
+  let anyVisible = false;
+
+  chats.forEach(chat => {
+    const nameElem = chat.querySelector('.details h3');
+    if (nameElem) {
+      const name = nameElem.textContent.toLowerCase();
+      if (name.includes(query)) {
+        chat.style.display = "flex";
+        anyVisible = true;
+      } else {
+        chat.style.display = "none";
+      }
+    }
+  });
+
+  noResults.style.display = anyVisible ? "none" : "block";
+});
+
+</script>
+
+
+
+</body>
+</html>

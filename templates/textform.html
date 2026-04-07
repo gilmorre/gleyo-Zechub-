@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz</title>
+
+<style>
+*{
+  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+
+}
+
+/* Make both containers same width */
+.text-task,
+.popup-container {
+    width: 480px;
+    box-sizing: border-box;
+}
+
+ @media (max-width: 991px){
+
+.text-task,
+.popup-container {
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+ }
+
+/* Outer container */
+.text-task{
+    position: relative;
+    border: 1.5px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    padding: 50px 20px 20px;
+}
+
+/* Floating label above */
+.ylabeled {
+    position: absolute;
+    top: -16px;
+    left: 20px;
+    background: #6c757d; 
+    color: white;
+    font-size: 14px;
+    padding: 6px 16px;
+    border-radius: 50px;
+    display: flex;
+    align-items: center;
+    font-weight: bold;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+.ylabeled i {
+    margin-right: 6px;
+}
+
+
+
+
+
+/* Popup container */
+.popup-container {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 18px;
+    padding: 20px 20px 30px;
+    position: relative;
+    color: white;
+}
+
+/* Upward arrow above container */
+.popup-container::before {
+    content: "";
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-bottom: 12px solid #222;
+}
+
+.popup-header {
+    display: flex;
+    align-items: center;
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-bottom: 16px;
+    gap: 10px;
+}
+
+.popup-header .uiconquiz {
+    background: #6c757d; /* purple for quiz */
+    padding: 6px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.popup-header .uiconquiz i {
+    color: white;
+    font-size: 18px;
+}
+
+.popup-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 15px;
+}
+
+.popup-actions button {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: #ccc;
+    font-size: 18px;
+}
+
+.popup-actions button:hover {
+    color: white;
+}
+
+.custom-radio {
+   font-size: 0.9rem;
+   font-weight: bold;
+    margin-top: 14px;
+    display: block;
+    margin-bottom: 0;
+}
+
+#textter {
+    width: 90%;
+    padding: 10px 14px;
+    border-radius: 14px;
+    margin-left: 6px;
+    color: white;
+    font-size: 1rem;
+}
+
+
+
+
+
+.liners {
+    height: 0.5px;
+    background-color: #2e65ff;
+    border-radius: 1px;
+    margin: 8px -20px; /* matches container's horizontal padding */
+}
+
+.youtubeCircle {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background-color: #ff0000;  /* blue circle always visible */
+  margin: 10px auto;
+  position: relative;
+  overflow: hidden;
+}
+
+.youtubeCircle img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: none; /* hide image by default */
+}
+#YoulinkInput,
+  #YourTextArea {
+    background-color: transparent;
+    border: none;           /* Remove border */
+    outline: none;          /* Remove focus outline */
+    font-size: 16px;
+    padding: 8px;
+    width: 100%;
+    resize: none;           /* For textarea: remove resize handle if desired */
+  }
+
+  /* Optional: placeholder style */
+  #YoulinkInput::placeholder,
+  #YourTextArea::placeholder {
+    color: #888;            /* Light gray placeholder text */
+  }
+
+  /* Optional: remove autofill background (Chrome) */
+  input:-webkit-autofill {
+    background-color: transparent !important;
+    -webkit-box-shadow: 0 0 0px 1000px transparent inset;
+    -webkit-text-fill-color: #000;
+  }
+
+  #YoulinkInput {
+    background-color: transparent;
+    border: none;
+    outline: none;
+    font-size: 16px;
+    padding: 8px;
+    width: 100%;
+    color: aliceblue; /* text color when user types */
+  }
+
+  /* Make placeholder look like normal text */
+  #YoulinkInput::placeholder {
+    color: aliceblue;       /* same color as normal text */
+    opacity: 1;        /* ensure placeholder is fully visible */
+  }
+
+  
+    .options {
+      margin-top: 15px;
+      gap: 10px;
+    }
+
+    .option {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .option input {
+      flex: 1;
+      margin-right: 8px;
+    }
+
+    .add-option {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      background: #333;
+      border: none;
+      color: #aaa;
+      font-size: 14px;
+      padding: 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .add-option:hover {
+      background: #444;
+      color: #fff;
+    }
+.spacinelement {
+  display: flex;
+  flex-direction: column;
+  gap: 5px; /* spaces between each .mutiplespacing */
+}
+
+
+.mutiplespacing {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+}
+
+.mutiplespacing .text .title {
+    font-weight: bold;
+    font-size: 12px;
+}
+
+.mutiplespacing .text .description {
+    font-size: 13px;
+    color: #888;
+    margin-top: 3px;
+}
+
+/* Toggle switch styles */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 20px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #ccc;
+  transition: 0.3s;
+  border-radius: 20px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: #4caf50;
+}
+
+input:checked + .slider:before {
+  transform: translateX(20px);
+}
+
+.optn::placeholder {
+  color: aliceblue;       /* same color as normal text */
+  opacity: 1;        /* ensure placeholder is fully visible */
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+  position: relative; /* <-- this fixes it */
+}
+
+.remove-option {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  border: none;
+  background: none;
+  color: #aaa;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.remove-option:hover {
+  color: red;
+}
+.polltit{
+  font-weight: bold;
+  font-size: 15px;
+  color: aliceblue;
+
+}
+.polldesc{
+  color: #787878;
+
+}
+
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8;
+  width: 100%; /* or any fixed width you want */
+  font-family: Arial, sans-serif;
+}
+
+.custom-radio {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  border: 0.1px solid #cccccc57;
+  border-radius: 12px;
+  background-color: transparent; /* dark background */
+  color: #fff;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+  position: relative;
+}
+
+.custom-radio:hover {
+  border-color: #888;
+}
+
+.custom-radio input {
+  display: none; /* hide default radio button */
+}
+
+</style>
+</head>
+<body>
+<div style="outline: none; display: flex; justify-content: center; align-items: center;  flex-direction: column;">
+
+<div class="outer-box text-task" data-type="text" >
+  <div class="ylabeled" style="display: flex; gap: 8px;">
+<svg fill="#fff" width="16" height="16"  viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <g transform="translate(0,0) scale(0.0629)">
+    <path d="M34.249,246.497l63.655,25.155V5.1c0-2.818,2.29-5.094,5.103-5.1h51.022c2.811,0.006,5.096,2.282,5.096,5.094v266.559 
+      l63.658-25.155c2.134-0.824,4.569-0.147,5.943,1.675c1.39,1.839,1.378,4.36-0.022,6.178l-96.136,125.057 
+      c-0.971,1.261-2.466,1.994-4.053,1.998c-1.573,0-3.074-0.737-4.041-1.998L28.333,254.35c-0.705-0.92-1.058-2.019-1.053-3.106 
+      c0-1.063,0.336-2.157,1.021-3.082C29.682,246.35,32.115,245.66,34.249,246.497z 
+      M354.125,244.402h-21.907l-12.364-29.736h-37.228l-12.027,29.736h-21.407l41.452-99.561h21.861L354.125,244.402z 
+      M314.653,200.095l-9.91-23.779c-1.412-3.374-2.571-6.58-3.599-9.677c-1.144,3.429-2.266,6.528-3.405,9.476l-9.948,23.974h26.862V200.095z 
+      M340.509,267.006h-83.718V282.3h56.287l-61.786,73.763v10.518h90.071v-15.289h-62.305l61.438-73.472v-10.813H340.509z"/>
+  </g>
+</svg> Text
+  </div>
+
+  <div class="polltit"></div>
+  <div class="polldesc"></div>
+  <input type="text" class="js-text-input" id="textter" style="background-color: transparent; border: 0.1px solid #cccccc57; margin-top: 40px;">
+</div>
+
+<div class="popup-container" role="dialog" aria-label="Visit link">
+  <div class="popup-header">
+    <div class="uiconquiz">
+        ${SVG}
+    </div>
+    <div class="title">Text</div>
+    <div class="popup-actions">
+      <button title="Copy link">
+        <i class="far fa-clipboard"></i>
+      </button>
+      <button title="Delete link">
+        <i class="fas fa-trash-alt"></i>
+      </button>
+    </div>
+  </div>
+  <div class="liners"></div>
+
+  <!-- Title input -->
+  <input id="YoulinkInput" class="js-title-input" style="color: aliceblue;" type="text" placeholder="Enter the title of your poll..." />
+
+  <!-- Description input -->
+  <textarea id="YourTextArea" class="js-desc-input" style="color: #787878;" placeholder="Type your poll description..."></textarea>
+
+  <div class="mutiplespacing">
+    <div class="text">
+      <div class="title">Automatic validation</div>
+      <div class="description">Once submitted, the claim is auto-validated and skips review.</div>
+    </div>
+    <label class="switch">
+      <input type="checkbox" class="js-auto-validate">
+      <span class="slider"></span>
+    </label>
+  </div>
+</div>  
+</div>
+
+
+<script>
+(root => {
+  // Title live preview
+  const titleInput   = root.querySelector(".js-title-input");
+  const titlePreview = root.querySelector(".polltit");
+
+  if (titleInput && titlePreview) {
+    titlePreview.textContent = titleInput.value || "";
+    titleInput.addEventListener("input", () => {
+      titlePreview.textContent = titleInput.value;
+    });
+  }
+
+  // Description live preview
+  const descInput   = root.querySelector(".js-desc-input");
+  const descPreview = root.querySelector(".polldesc");
+
+  if (descInput && descPreview) {
+    descPreview.textContent = descInput.value || "";
+    descInput.addEventListener("input", () => {
+      descPreview.textContent = descInput.value;
+    });
+  }
+
+  // Optional text input (if you want behavior on it later)
+  const textInput = root.querySelector(".js-text-input");
+  const autoToggle = root.querySelector(".js-auto-validate");
+
+  if (autoToggle) {
+    autoToggle.addEventListener("change", () => {
+      console.log("Auto validation:", autoToggle.checked);
+    });
+  }
+})(root);
+</script>

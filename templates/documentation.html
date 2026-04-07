@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- PRIMARY SEO -->
+<title>Gleyo Docs — Quests, Tasks, Rewards & Community Platform Guide</title>
+
+<meta name="description" content="Learn how Gleyo works — quests, tasks, rewards, and community features. Complete guide for participants and creators on Gleyo.">
+<link rel="shortcut icon" href="https://gleyo.app/static/my_logo.png">
+
+<meta name="keywords" content="Gleyo, quests platform, task rewards, community quests, earn rewards online, quest app, user engagement platform">
+
+<meta name="author" content="Gleyo">
+
+<meta property="og:title" content="Gleyo Documentation — Complete Guide">
+<meta property="og:description" content="Everything about Gleyo — quests, tasks, rewards, and community system.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://gleyo.app/docs">
+<meta property="og:image" content="https://gleyo.app/static/my_logo.png">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Gleyo Documentation">
+<meta name="twitter:description" content="Complete guide to using Gleyo.">
+
+<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Gleyo",
+  "applicationCategory": "BusinessApplication",
+  "operatingSystem": "Web",
+  "description": "Gleyo is a platform where users join communities, complete quests, perform tasks, and earn rewards.",
+  "url": "https://gleyo.app",
+  "featureList": [
+    "Quests and tasks system",
+    "Community chat and engagement",
+    "Reward distribution (points, USDT, vouchers)",
+    "Proof submission and review system"
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "FAQPage",
+ "mainEntity": [
+  {
+   "@type": "Question",
+   "name": "Is Gleyo free to use?",
+   "acceptedAnswer": {
+     "@type": "Answer",
+     "text": "Yes, creating an account and joining quests is free."
+   }
+  },
+  {
+   "@type": "Question",
+   "name": "What devices does Gleyo work on?",
+   "acceptedAnswer": {
+     "@type": "Answer",
+     "text": "Gleyo works in any modern browser on desktop or mobile."
+   }
+  }
+ ]
+}
+</script>
+
+<!-- CANONICAL -->
+<link rel="canonical" href="https://gleyo.app/docs">
+<title>Gleyo Docs</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,600;12..96,700&family=Lora:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg-sidebar:#11111b;
+  --bg-sidebar-mob:#11111b92;
+  --bg-hover:#23233a;
+  --border:#2a2a40;
+  --text-main:#f1f5f9;
+  --text-muted:#9ca3af;
+  --accent:#6366f1;
+  --accent-soft:rgba(99,102,241,0.12);
+  --sidebar-w:270px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  display:flex;
+  background:radial-gradient(circle at 20% 10%,#151528,#0b0b12);
+  color:var(--text-main);
+  font-family:'Lora',Georgia,serif;
+  min-height:100vh;
+}
+
+.topbar{
+  display:none;
+  position:fixed;top:0;left:0;right:0;
+  height:56px;
+  background:var(--bg-sidebar-mob);
+  backdrop-filter:blur(6px);
+  border-bottom:1px solid var(--border);
+  z-index:300;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 18px;
+}
+.topbar-logo{font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:18px;color:#fff;}
+.topbar-logo span{color:var(--accent);}
+.hamburger{background:none;border:none;cursor:pointer;padding:6px;display:flex;flex-direction:column;gap:5px;}
+.shortest{width:11px !important;margin-left:auto;}
+.hamburger span{display:block;width:22px;height:2px;background:var(--text-main);border-radius:2px;transition:.3s;}
+.hamburger.open span:nth-child(1){transform:translateY(7px) rotate(45deg);}
+.hamburger.open span:nth-child(2){opacity:0;}
+.hamburger.open span:nth-child(3){transform:translateY(-0.6px) rotate(-45deg);width:22px !important;margin-left:0 !important;}
+
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:250;backdrop-filter:blur(2px);}
+.overlay.active{display:block;}
+
+aside{
+  width:var(--sidebar-w);height:100vh;
+  background:var(--bg-sidebar);
+  border-right:1px solid var(--border);
+  position:fixed;top:0;left:0;
+  padding:24px 20px;
+  overflow-y:auto;
+  z-index:260;
+  transition:transform .3s cubic-bezier(.4,0,.2,1);
+}
+.logo{font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:22px;letter-spacing:-0.5px;margin-bottom:30px;color:#fff;}
+.logo span{color:var(--accent);}
+.nav-group{margin-bottom:20px;}
+.nav-header{
+  display:flex;justify-content:space-between;align-items:center;
+  cursor:pointer;font-size:11px;font-family:'Bricolage Grotesque',sans-serif;
+  text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);
+  margin-bottom:8px;padding:0 4px;user-select:none;
+}
+.chevron{transition:.3s;font-size:9px;}
+.nav-group.open .chevron{transform:rotate(90deg);}
+.nav-links{display:none;}
+.nav-group.open .nav-links{display:block;}
+.nav a{
+  display:block;padding:8px 12px;border-radius:8px;text-decoration:none;
+  color:var(--text-muted);font-size:13.5px;font-family:'Bricolage Grotesque',sans-serif;
+  font-weight:400;transition:.2s;
+}
+.nav a:hover{background:var(--bg-hover);color:#fff;}
+.nav a.active{background:var(--accent-soft);color:#a5b4fc;}
+
+main{margin-left:var(--sidebar-w);padding:64px 72px;max-width:900px;width:100%;}
+
+h1{font-family:'Bricolage Grotesque',sans-serif;font-size:42px;font-weight:700;letter-spacing:-1px;line-height:1.1;margin-bottom:14px;color:#fff;}
+h2{font-family:'Bricolage Grotesque',sans-serif;font-size:26px;font-weight:600;letter-spacing:-0.4px;margin-top:56px;margin-bottom:18px;color:#e2e8f0;padding-bottom:10px;border-bottom:1px solid var(--border);}
+h3{font-family:'Bricolage Grotesque',sans-serif;font-size:17px;font-weight:600;margin-top:28px;margin-bottom:10px;color:#c7d2fe;}
+.intro{font-family:'Lora',serif;font-size:16px;color:var(--text-muted);line-height:1.75;margin-bottom:48px;max-width:600px;}
+p{font-family:'Lora',serif;font-size:15px;color:var(--text-muted);line-height:1.85;margin-bottom:16px;}
+section{margin-bottom:60px;}
+
+/* VIDEO BLOCK */
+.video-block{background:linear-gradient(135deg,#1a1a2e,#16162a);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin:24px 0 32px;}
+.video-wrapper{position:relative;width:100%;aspect-ratio:16/9;background:#0d0d1a;}
+
+/* Placeholder overlay */
+.video-placeholder{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:14px;
+  background:linear-gradient(160deg,#12122a 0%,#0e0e1e 100%);
+  cursor:pointer;
+  transition:opacity .5s ease;
+  z-index:2;
+}
+.video-placeholder.hidden{opacity:0;pointer-events:none;}
+
+/* Play button + ring animation */
+.play-btn-wrap{position:relative;display:flex;align-items:center;justify-content:center;width:72px;height:72px;}
+.play-btn{
+  width:60px;height:60px;
+  background:var(--accent);
+  border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;
+  box-shadow:0 0 30px rgba(99,102,241,0.4);
+  transition:transform .2s, box-shadow .2s;
+  position:relative;z-index:1;
+}
+.video-placeholder:hover .play-btn{transform:scale(1.08);box-shadow:0 0 44px rgba(99,102,241,0.6);}
+
+/* Pulsing ring — appears on click, disappears when video shows */
+.ring{
+  position:absolute;
+  inset:-6px;
+  border-radius:50%;
+  border:2.5px solid var(--accent);
+  opacity:0;
+  transform:scale(1);
+  pointer-events:none;
+}
+.ring.animate{
+  animation:ringPulse 0.7s ease-out infinite;
+}
+@keyframes ringPulse{
+  0%  {opacity:0.9;transform:scale(1);}
+  100%{opacity:0;transform:scale(1.8);}
+}
+
+.video-label{font-family:'Bricolage Grotesque',sans-serif;font-size:13px;color:var(--text-muted);}
+
+/* The actual video / iframe — hidden until activated */
+.video-embed{
+  position:absolute;inset:0;
+  width:100%;height:100%;
+  border:none;
+  display:block;
+  opacity:0;
+  transition:opacity .4s ease .1s;
+  z-index:1;
+}
+.video-embed.visible{opacity:1;}
+
+.video-caption{
+  padding:14px 18px;
+  font-family:'Bricolage Grotesque',sans-serif;
+  font-size:13px;color:#64748b;
+  border-top:1px solid var(--border);
+  display:flex;align-items:center;gap:8px;
+}
+.video-caption::before{
+  content:"";display:inline-block;
+  width:14px;height:14px;
+  background:url("data:image/svg+xml,%3Csvg viewBox='9 3640 10 15' xmlns='http://www.w3.org/2000/svg' fill='%236366f1'%3E%3Cpath d='M18.074,3650.7335 L12.308,3654.6315 C10.903,3655.5815 9,3654.5835 9,3652.8985 L9,3645.1015 C9,3643.4155 10.903,3642.4185 12.308,3643.3685 L18.074,3647.2665 C19.306,3648.0995 19.306,3649.9005 18.074,3650.7335'/%3E%3C/svg%3E") no-repeat center;
+  background-size:contain;
+  position:relative;top:-2px;margin-right:6px;
+}
+
+code{font-family:'JetBrains Mono',monospace;background:#0f0f1e;padding:3px 8px;border-radius:6px;color:#c7d2fe;font-size:13px;border:1px solid #2a2a40;}
+.code-flow{font-family:'JetBrains Mono',monospace;background:#0f0f1e;border:0.9px solid var(--border);border-radius:20px;padding:20px 22px;font-size:14px;color:#a5b4fc;margin:20px 0;letter-spacing:1px;}
+
+.page-header{padding-bottom:40px;border-bottom:1px solid var(--border);}
+.badge{display:inline-block;font-family:'Bricolage Grotesque',sans-serif;font-size:11px;background:var(--accent-soft);color:#a5b4fc;border:1px solid rgba(99,102,241,0.3);padding:4px 10px;border-radius:20px;margin-bottom:18px;letter-spacing:0.5px;text-transform:uppercase;}
+
+.faq-q{font-family:'Bricolage Grotesque',sans-serif;font-size:14.5px;font-weight:600;color:var(--text-main);margin-top:22px;margin-bottom:6px;}
+.faq-section-title{font-family:'Bricolage Grotesque',sans-serif;font-size:17px;font-weight:600;color:#c7d2fe;margin-top:36px;margin-bottom:10px;}
+
+@media(max-width:768px){
+  .topbar{display:flex;}
+  aside{transform:translateX(-100%);padding-top:40px;top:56px;position:fixed;padding-bottom:144px !important;}
+  aside.open{transform:translateX(0);}
+  main{margin-left:0;padding:76px 20px 48px;max-width:100%;}
+  h1{font-size:28px;letter-spacing:-0.5px;}
+  h2{font-size:21px;margin-top:40px;}
+  h3{font-size:16px;}
+  .intro{font-size:14px;margin-bottom:28px;}
+  p{font-size:14px;}
+  #sidebar .logo{display:none !important;}
+  .code-flow{font-size:12px;padding:12px 14px;}
+  html,body{scroll-padding-top:76px;}
+}
+@media(max-width:400px){
+  main{padding:72px 14px 40px;}
+  h1{font-size:23px;}
+}
+
+.faq-item{border-bottom:0.3px solid var(--border);padding-bottom:10px;margin-bottom:10px;}
+.faq-q{display:flex;justify-content:space-between;align-items:center;cursor:pointer;}
+.faq-chevron{display:flex;transition:transform .25s ease;}
+.faq-item.open .faq-chevron{transform:rotate(90deg);}
+.faq-a{max-height:0;overflow:hidden;transition:max-height .3s ease;}
+.faq-item.open .faq-a{max-height:200px;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-logo">Gleyo <span>Docs</span></div>
+  <button class="hamburger" id="hamburger" aria-label="Toggle menu">
+    <span></span>
+    <span style="display:none"></span>
+    <span class="shortest"></span>
+  </button>
+</div>
+
+<div class="overlay" id="overlay"></div>
+
+<aside id="sidebar">
+  <div class="logo">Gleyo <span>Docs</span></div>
+  <div class="nav">
+
+    <div class="nav-group open">
+      <div class="nav-header">Getting Started <span class="chevron">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24">
+        <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span></div>
+      <div class="nav-links">
+        <a href="#create">Create Account</a>
+        <a href="#first-quest">First Quest</a>
+        <a href="#flow">Basic Flow</a>
+      </div>
+    </div>
+
+    <div class="nav-group open">
+      <div class="nav-header">Features <span class="chevron">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24">
+        <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span></div>
+      <div class="nav-links">
+        <a href="#quests">Quests</a>
+        <a href="#tasks">Tasks</a>
+        <a href="#uploads">Uploads</a>
+        <a href="#rewards">Rewards</a>
+      </div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-header">Task Management <span class="chevron">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24">
+        <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span></div>
+      <div class="nav-links">
+        <a href="#create-task">Creating a Task</a>
+        <a href="#review-task">Reviewing Tasks</a>
+        <a href="#task-settings">Task Settings</a>
+      </div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-header">Community <span class="chevron">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24">
+        <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span></div>
+      <div class="nav-links">
+        <a href="#community-overview">Overview</a>
+        <a href="#community-chat">Community Chat</a>
+        <a href="#community-setup">Setting Up</a>
+      </div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-header">Guides <span class="chevron">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24">
+        <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span></div>
+      <div class="nav-links">
+        <a href="#complete">Complete Quest</a>
+        <a href="#submit">Submit Proof</a>
+        <a href="#invite">Invite Team</a>
+      </div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-header">Troubleshooting <span class="chevron">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24">
+        <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span></div>
+      <div class="nav-links">
+        <a href="#upload-issue">Upload Failed</a>
+        <a href="#task-issue">Task Issue</a>
+        <a href="#account-issue">Account Issue</a>
+      </div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-header">FAQ <span class="chevron">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24">
+        <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span></div>
+      <div class="nav-links">
+        <a href="#faq-general">General</a>
+        <a href="#faq-quests">Quests & Tasks</a>
+        <a href="#faq-rewards">Rewards</a>
+        <a href="#faq-community">Community</a>
+      </div>
+    </div>
+
+  </div>
+</aside>
+
+<main>
+
+  <div class="page-header">
+    <div class="badge">Documentation</div>
+    <h1>Gleyo — Quests, Tasks, Rewards & Community Platform Documentation</h1>
+    <p class="intro">
+    Gleyo is a quest-based platform where users join communities, complete structured tasks, submit proof, and earn rewards like points, vouchers, and USDT. This documentation explains how Gleyo works for both participants and creators — from account setup to task management and community engagement.
+    </p>
+  </div>
+
+  <section id="create">
+    <h2>Getting Started</h2>
+
+    <h3>Create an Account</h3>
+    <p>Getting started with Gleyo takes less than two minutes. Head to the Gleyo homepage and click <strong>Create Account</strong>. Enter your email address to begin — you'll receive a 4-digit verification code in your inbox.</p>
+    <p>Enter the code to verify your email. Once verified, you'll be prompted to choose your username and set a secure passcode for your account.</p>
+    <p>After completing setup, you'll be redirected back to the homepage. From there, you can log in anytime using your email and a fresh verification code — no traditional password required.</p>
+    <p>No credit card required. Once you're in, your account is ready to go and you can start exploring immediately.</p>
+
+    <!-- REAL YOUTUBE VIDEO — lazy loaded via srcdoc trick -->
+    <div class="video-block">
+      <div class="video-wrapper">
+        <div class="video-placeholder" data-videosrc="https://xpcqiovfesvllsljxhac.supabase.co/storage/v1/object/public/uploads/Creating_acct_sec.mp4" id="vp-account">
+          <div class="play-btn-wrap">
+            <div class="ring" id="ring-account"></div>
+            <div class="play-btn">
+              <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 122.88 122.88" style="enable-background:new 0 0 122.88 122.88;width:36px;height:36px;" xml:space="preserve"><style type="text/css">.st0{fill-rule:evenodd;clip-rule:evenodd;fill:var(--accent);} .st1{fill-rule:evenodd;clip-rule:evenodd;fill:#FFFFFF;}</style><g><path class="st0" d="M61.44,0c33.93,0,61.44,27.51,61.44,61.44s-27.51,61.44-61.44,61.44S0,95.37,0,61.44S27.51,0,61.44,0L61.44,0z"/><path class="st1" d="M84.32,65.41c3.31-2.13,3.3-4.51,0-6.4L50.13,39.36c-2.7-1.69-5.51-0.7-5.43,2.82l0.11,39.7c0.23,3.82,2.41,4.86,5.62,3.1L84.32,65.41z"/></g></svg>
+            </div>
+          </div>
+          <div class="video-label">Watch: Account creation walkthrough</div>
+        </div>
+        <!-- iframe injected lazily on click -->
+      </div>
+      <div class="video-caption">Account creation walkthrough.</div>
+    </div>
+
+    <h3 id="first-quest">Start Your First Quest</h3>
+    <p>Once you log in, you'll be redirected to the homepage. Scroll down to the <strong>Community</strong> section, where you'll see a list of verified communities along with their descriptions.</p>
+    <p>Click on any community that interests you to view more details and explore the quests it offers. Once inside, you can join the community to unlock and access its available quests.</p>
+    <p>Each quest shows a brief description, how many tasks are involved, and the reward you'll earn on completion. Hit <strong>Join Quest</strong> to get started — your progress saves automatically as you go.</p>
+
+    <h3 id="flow">Basic Flow</h3>
+    <p>Gleyo is built around community and continuous progress — every action follows a simple loop. Join a community, stay engaged, take on quests, and earn rewards as you grow.</p>
+    <div class="code-flow">Join → Engage → Grow → Earn</div>
+  </section>
+
+  <section id="quests">
+    <h2>Features</h2>
+
+    <h3>Quests</h3>
+    <p>Quests are one of the key parts of Gleyo — structured missions with a clear goal, a set of tasks, and a defined reward. Quests vary in complexity: some take minutes, while others unfold over multiple sessions. You can explore available quests inside each community.</p>
+
+    <h3 id="tasks">Tasks</h3>
+    <p>Each quest breaks down into individual tasks — step-by-step actions like watching a video, filling out a form, or completing a specific action. You move through them in order, and your progress is tracked automatically.</p>
+
+    <h3 id="uploads">Uploads</h3>
+    <p>Some tasks require proof of completion — a screenshot, photo, or file. Gleyo supports common image formats as well as PDFs and documents. Use the <strong>Upload File</strong> button on the task screen, select your file, and submit. Your upload is reviewed before the task is marked complete.</p>
+
+    <h3 id="rewards">Rewards</h3>
+    <p>When you complete all tasks and submissions are verified, your reward is credited to your account. Rewards can include points, vouchers, USDT, or other incentives depending on the quest.</p>
+    <p>Points contribute to your overall progress and level within the platform, while rewards like vouchers and USDT are managed through your Reward Hub.</p>
+  </section>
+
+  <section id="create-task">
+    <h2>Task Management</h2>
+
+    <h3>Creating a Task</h3>
+    <p>Tasks are the building blocks of every quest. Navigate to your community, go to the <strong>Quests</strong> section, and select a quest from the list. Once inside, click <strong>Add Task</strong>. Give it a name, write a clear description of what the participant needs to do, and choose a task type — a simple action, form submission, or proof upload.</p>
+    <p>Be specific in your instructions. The clearer the description, the easier it is to complete correctly — and the less time you spend reviewing unclear submissions. You can also set whether proof is required, add a reference link, and mark the task optional or required.</p>
+
+    <div class="video-block">
+      <div class="video-wrapper">
+        <div class="video-placeholder" data-videosrc="https://xpcqiovfesvllsljxhac.supabase.co/storage/v1/object/public/uploads/Creating_task_sec.mp4" id="vp-create-task">
+          <div class="play-btn-wrap">
+            <div class="ring" id="ring-create-task"></div>
+            <div class="play-btn">
+              <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 122.88 122.88" style="enable-background:new 0 0 122.88 122.88;width:36px;height:36px;" xml:space="preserve"><style type="text/css">.st0{fill-rule:evenodd;clip-rule:evenodd;fill:var(--accent);} .st1{fill-rule:evenodd;clip-rule:evenodd;fill:#FFFFFF;}</style><g><path class="st0" d="M61.44,0c33.93,0,61.44,27.51,61.44,61.44s-27.51,61.44-61.44,61.44S0,95.37,0,61.44S27.51,0,61.44,0z"/><path class="st1" d="M84.32,65.41c3.31-2.13,3.3-4.51,0-6.4L50.13,39.36c-2.7-1.69-5.51-0.7-5.43,2.82l0.11,39.7c0.23,3.82,2.41,4.86,5.62,3.1L84.32,65.41z"/></g></svg>
+            </div>
+          </div>
+          <div class="video-label">Watch: How to create a task in Gleyo</div>
+        </div>
+      </div>
+      <div class="video-caption">Task creation walkthrough · ~4 min</div>
+    </div>
+
+    <h3 id="review-task">Reviewing Tasks</h3>
+    <p>When a participant submits proof, it appears in your review queue. You can access this from the <strong>Reviews</strong> tab in your community sidebar, alongside sections like Dashboard and Quests. Each submission shows the participant's name, the task, and any uploaded files or screenshots.</p>
+    <p><strong>Approve</strong> to mark it complete and move the participant forward, or <strong>Reject</strong> to send it back with a note explaining what needs correcting. Participants are notified either way.</p>
+
+    <div class="video-block">
+      <div class="video-wrapper">
+        <div class="video-placeholder" data-videosrc="https://xpcqiovfesvllsljxhac.supabase.co/storage/v1/object/public/uploads/reviewsec.mp4" id="vp-review-task">
+          <div class="play-btn-wrap">
+            <div class="ring" id="ring-review-task"></div>
+            <div class="play-btn">
+              <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 122.88 122.88" style="enable-background:new 0 0 122.88 122.88;width:36px;height:36px;" xml:space="preserve"><style type="text/css">.st0{fill-rule:evenodd;clip-rule:evenodd;fill:var(--accent);} .st1{fill-rule:evenodd;clip-rule:evenodd;fill:#FFFFFF;}</style><g><path class="st0" d="M61.44,0c33.93,0,61.44,27.51,61.44,61.44s-27.51,61.44-61.44,61.44S0,95.37,0,61.44S27.51,0,61.44,0z"/><path class="st1" d="M84.32,65.41c3.31-2.13,3.3-4.51,0-6.4L50.13,39.36c-2.7-1.69-5.51-0.7-5.43,2.82l0.11,39.7c0.23,3.82,2.41,4.86,5.62,3.1L84.32,65.41z"/></g></svg>
+            </div>
+          </div>
+          <div class="video-label">Watch: Reviewing and approving task submissions</div>
+        </div>
+      </div>
+      <div class="video-caption">Task review walkthrough · ~2.3 min</div>
+    </div>
+
+    <h3 id="task-settings">Task Settings</h3>
+    <p>Each task has a settings panel where you can set a deadline, limit resubmissions, or mark a task as auto-approved so it skips manual review. These settings let you control how tightly each step of your quest is managed.</p>
+  </section>
+
+  <section id="community-overview">
+    <h2>Community</h2>
+
+    <h3>Overview</h3>
+    <p>Gleyo's community features let you build a space where participants can connect, ask questions, share progress, and support each other. Communities are automatically attached to quests — when a participant completes a quest, they're instantly part of its community.</p>
+    <p>Everything stays in sync automatically. When a new quest or task is published, participants receive notifications directly within the platform and in the <strong>quest-alert</strong> channel, so there's no need for manual announcements.</p>
+
+    <h3 id="community-chat">Community Chat</h3>
+    <p>The community chat is a real-time space for participants and quest creators to talk. Conversations are organised by channel — there's a general channel by default, and you can add channels like feedback. For support or issues, participants can use the ticket system instead.</p>
+    <p>As a quest creator, you can pin messages, moderate conversations, and guide discussions when needed. Participants can react to messages and tag each other directly, making collaboration easy and interactive.</p>
+
+    <div class="video-block">
+      <div class="video-wrapper">
+        <div class="video-placeholder" id="vp-community-chat">
+          <div class="play-btn-wrap">
+            <div class="ring" id="ring-community-chat"></div>
+            <div class="play-btn">
+              <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 122.88 122.88" style="enable-background:new 0 0 122.88 122.88;width:36px;height:36px;" xml:space="preserve"><style type="text/css">.st0{fill-rule:evenodd;clip-rule:evenodd;fill:var(--accent);} .st1{fill-rule:evenodd;clip-rule:evenodd;fill:#FFFFFF;}</style><g><path class="st0" d="M61.44,0c33.93,0,61.44,27.51,61.44,61.44s-27.51,61.44-61.44,61.44S0,95.37,0,61.44S27.51,0,61.44,0z"/><path class="st1" d="M84.32,65.41c3.31-2.13,3.3-4.51,0-6.4L50.13,39.36c-2.7-1.69-5.51-0.7-5.43,2.82l0.11,39.7c0.23,3.82,2.41,4.86,5.62,3.1L84.32,65.41z"/></g></svg>
+            </div>
+          </div>
+          <div class="video-label">Watch: Using community chat as a creator and participant</div>
+        </div>
+      </div>
+      <div class="video-caption">Community chat walkthrough · ~4 min</div>
+    </div>
+
+    <h3 id="community-setup">Setting Up Your Community</h3>
+    <p>Community features are tied to quests and can be configured from the quest settings. You can customise the community name, and organise channels based on your needs.</p>
+    <p>A good welcome message helps participants understand the space and get started quickly. All settings can be updated at any time without disrupting active participants.</p>
+  </section>
+
+  <section id="faq-general">
+    <h2>FAQ</h2>
+
+    <div class="faq-section-title">General</div>
+    <div class="faq-item">
+      <p class="faq-q">Is Gleyo free to use?<span class="faq-chevron"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span></p>
+      <p class="faq-a">Yes — creating an account and joining quests is free. Some advanced creator features may require a paid plan. Check the pricing page for details.</p>
+    </div>
+    <div class="faq-item">
+      <p class="faq-q">What devices does Gleyo work on?<span class="faq-chevron"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span></p>
+      <p class="faq-a">Gleyo works in any modern browser on desktop or mobile. No app to install — just open your browser and go.</p>
+    </div>
+    <div class="faq-item">
+      <p class="faq-q">Can I use Gleyo in my own language?<span class="faq-chevron"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span></p>
+      <p class="faq-a">The platform defaults to English, but you can write quest content in any language. Full localisation is on the roadmap.</p>
+    </div>
+
+    <div class="faq-section-title" id="faq-quests">Quests &amp; Tasks</div>
+    <div class="faq-item">
+      <p class="faq-q">How many tasks can a quest have?<span class="faq-chevron"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span></p>
+      <p class="faq-a">Each quest can include up to 5 tasks. We recommend keeping tasks focused and meaningful to maximize participant completion.</p>
+    </div>
+    <div class="faq-item">
+      <p class="faq-q">Can participants redo a completed task?<span class="faq-chevron"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span></p>
+      <p class="faq-a">No. Completed tasks are locked and can only be redone if they are marked as failed.</p>
+    </div>
+    <div class="faq-item">
+      <p class="faq-q">What happens if a review is rejected?<span class="faq-chevron"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span></p>
+      <p class="faq-a">The participant is notified with your feedback and can resubmit if no cooldown is active. The task remains incomplete until approved or the quest ends.</p>
+    </div>
+
+    <div class="faq-section-title" id="faq-rewards">Rewards</div>
+    <div class="faq-item">
+      <p class="faq-q">How long does it take to receive a reward?<span class="faq-chevron"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span></p>
+      <p class="faq-a">Points are credited instantly after approval. USDT rewards are distributed by Gleyo within 24 hours.</p>
+    </div>
+    <div class="faq-item">
+      <p class="faq-q">Can rewards expire?<span class="faq-chevron"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span></p>
+      <p class="faq-a">That depends on how the creator configured the reward. Expiry dates are always shown clearly before you join a quest.</p>
+    </div>
+
+    <div class="faq-section-title" id="faq-community">Community</div>
+    <div class="faq-item">
+      <p class="faq-q">Who can see the community chat?<span class="faq-chevron"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span></p>
+      <p class="faq-a">The community chat is visible to anyone logged into Gleyo. However, you will only see and access communities that you are a member of.</p>
+    </div>
+    <div class="faq-item">
+      <p class="faq-q">Can I leave a community?<span class="faq-chevron"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span></p>
+      <p class="faq-a">Yes — you can leave a community at any time without affecting your quest progress.<br>To do this, open the community, tap or click the <strong>info (ℹ️) icon</strong>, and select <strong>Leave Community</strong>.</p>
+    </div>
+    <div class="faq-item">
+      <p class="faq-q">How do I report someone in the chat?<span class="faq-chevron"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span></p>
+      <p class="faq-a">Right-click a message on desktop or press and hold on mobile, then select <strong>Report</strong>. Reports are sent to the quest creator and Gleyo's moderation team and are handled confidentially.</p>
+    </div>
+  </section>
+
+</main>
+
+<script>
+/* ── SIDEBAR ── */
+const hamburger = document.getElementById('hamburger');
+const sidebar   = document.getElementById('sidebar');
+const overlay   = document.getElementById('overlay');
+
+function openSidebar(){sidebar.classList.add('open');overlay.classList.add('active');hamburger.classList.add('open');document.body.style.overflow='hidden';}
+function closeSidebar(){sidebar.classList.remove('open');overlay.classList.remove('active');hamburger.classList.remove('open');document.body.style.overflow='';}
+
+hamburger.addEventListener('click',()=>sidebar.classList.contains('open')?closeSidebar():openSidebar());
+overlay.addEventListener('click',closeSidebar);
+document.querySelectorAll('.nav a').forEach(a=>{a.addEventListener('click',()=>{if(window.innerWidth<=768)closeSidebar();});});
+document.querySelectorAll('.nav-header').forEach(h=>{h.addEventListener('click',()=>h.parentElement.classList.toggle('open'));});
+
+/* ── ACTIVE NAV ── */
+const links=document.querySelectorAll('.nav a');
+const allIds=document.querySelectorAll('[id]');
+window.addEventListener('scroll',()=>{
+  let cur='';
+  allIds.forEach(el=>{if(scrollY>=el.offsetTop-160)cur=el.id;});
+  links.forEach(a=>{a.classList.remove('active');if(a.getAttribute('href')==='#'+cur)a.classList.add('active');});
+},{passive:true});
+
+/* ── FAQ ── */
+document.querySelectorAll('.faq-item').forEach(item=>{
+  item.querySelector('.faq-q').addEventListener('click',()=>item.classList.toggle('open'));
+});
+
+/* ── LAZY VIDEO PLAYER ── */
+/*
+  Flow:
+  1. User clicks placeholder → ring animation starts
+  2. After 2 s delay → iframe/video injected (lazy load), placeholder fades out
+  3. Outside placeholder shows the native browser video controls
+
+  For the "account" video we use a real YouTube embed.
+  For other placeholders you supply the real src via data-videosrc.
+  If no src is found we still dismiss the placeholder so nothing is broken.
+*/
+function activateVideo(placeholder, videoSrc, isYoutube) {
+  const wrapper   = placeholder.parentElement;
+  const ringEl    = placeholder.querySelector('.ring');
+
+  /* Start ring pulse */
+  ringEl.classList.add('animate');
+
+  /* After 2 s, inject the actual video */
+  setTimeout(()=>{
+    let embed;
+
+    if (isYoutube) {
+      embed = document.createElement('iframe');
+      embed.src = videoSrc + '?autoplay=1&rel=0';
+      embed.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+      embed.allowFullscreen = true;
+    } else if (videoSrc) {
+      embed = document.createElement('video');
+      embed.src    = videoSrc;
+      embed.controls = true;
+      embed.autoplay = true;
+    } else {
+      /* No src — just hide the placeholder gracefully */
+      placeholder.classList.add('hidden');
+      return;
+    }
+
+    embed.classList.add('video-embed');
+    wrapper.appendChild(embed);
+
+    /* Fade in embed */
+    requestAnimationFrame(()=>{
+      requestAnimationFrame(()=>embed.classList.add('visible'));
+    });
+
+    /* Fade out placeholder */
+    placeholder.classList.add('hidden');
+    ringEl.classList.remove('animate');
+
+  }, 2000);
+}
+
+
+/* All other placeholders — use data-videosrc or no src */
+document.querySelectorAll('.video-placeholder').forEach(vp=>{
+  vp.addEventListener('click', function handler(){
+    this.removeEventListener('click', handler);
+    const src = this.dataset.videosrc || null;
+    activateVideo(this, src, false);
+  });
+});
+</script>
+</body>
+</html>

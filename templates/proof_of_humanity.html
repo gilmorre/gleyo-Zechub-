@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trophy Quest - Proof of Humanity</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+ 
+    .poh-root,
+    .poh-popup {
+      width: 100% !important;
+      margin: 20px auto;
+    box-sizing: border-box !important;
+
+    }
+
+    /* Outer container */
+    .poh-root {
+      position: relative;
+      border: 1.5px solid rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      padding: 50px 20px 20px;
+      text-align: center;
+    }
+
+    /* Floating label above */
+    .poh-label {
+      background: linear-gradient(90deg, #2962ff, #1a237e);
+      position: absolute;
+      top: -16px;
+      left: 20px;
+      color: white;
+      font-size: 14px;
+      padding: 6px 16px;
+      border-radius: 50px;
+      display: flex;
+      align-items: center;
+      font-weight: bold;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    .poh-label i {
+      margin-right: 6px;
+    }
+
+    /* Join button */
+    .poh-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      background: linear-gradient(90deg, #2979ff, #1565c0);
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      border-radius: 20px;
+      padding: 14px;
+      text-decoration: none;
+      transition: background 0.3s ease;
+      margin-top: 16px;
+    }
+
+    .poh-btn:hover {
+      background: linear-gradient(90deg, #1565c0, #0d47a1);
+    }
+
+    /* Proof of Humanity circle */
+    .poh-circle {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: linear-gradient(90deg, #2979ff, #1565c0);
+      margin: 0 auto 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .poh-circle i {
+      color: white;
+      font-size: 28px;
+    }
+
+    /* Title + description */
+    .poh-title {
+      color: #fff;
+      margin: 6px 0 4px;
+      font-size: 1.1rem;
+      line-height: 1.3;
+    }
+
+    .poh-subtitle {
+      color: #c9c7c7;
+      font-size: 14px;
+      margin: 4px 0 0;
+    }
+
+    /* Popup container */
+    .poh-popup {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 18px;
+      padding: 20px 20px 30px;
+      position: relative;
+      color: white;
+      margin-top: 24px;
+    }
+
+    .poh-popup::before {
+      content: "";
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-left: 10px solid transparent;
+      border-right: 10px solid transparent;
+      border-bottom: 12px solid #222;
+    }
+
+    .popup-header {
+      display: flex;
+      align-items: center;
+      font-weight: 700;
+      font-size: 1.1rem;
+      margin-bottom: 16px;
+      gap: 10px;
+    }
+
+    .popup-header .poh-icon {
+      background: linear-gradient(90deg, #2979ff, #1565c0);
+      padding: 6px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .popup-header .poh-icon i {
+      color: white;
+      font-size: 18px;
+    }
+
+    .popup-actions {
+      margin-left: auto;
+      display: flex;
+      gap: 15px;
+    }
+
+    .popup-actions button {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: #ccc;
+      font-size: 18px;
+    }
+
+    .popup-actions button:hover {
+      color: white;
+    }
+
+    .liners {
+      height: 0.5px;
+      background-color: #2979ff;
+      border-radius: 1px;
+      margin: 8px -20px;
+    }
+  </style>
+</head>
+<body>
+<div style="outline: none; display: flex; justify-content: center; align-items: center;  flex-direction: column;">
+
+  <div class="outer-box poh-root"  data-type="p.o.h">
+    <div class="poh-label" style="display: flex; gap: 8px;">
+<svg class="icon-fix" fill="#fff" stroke="#fff" viewBox="0 0 24 24" width="16px" height="16px"
+     xmlns="http://www.w3.org/2000/svg">
+  <g transform="scale(0.2213)">
+    <path fill="#fff" stroke="#fff" d="M90.288,24.301l-9.181,3.078l1.054,3.144c-0.401-0.54-0.813-1.07-1.244-1.587l-1.727-5.15l4.583-1.535l-3.08-9.183 
+      l-9.182,3.078l2.014,6.003c-4.973-3.456-10.87-5.73-17.421-6.32c-0.078-0.007-0.146,0.003-0.222,0.002 
+      c-0.005,0-0.01-0.002-0.016-0.002c-21.993-0.762-45.111,12.02-43.113,36.752c0.008,0.1,0.033,0.189,0.051,0.282 
+      c-0.029,0.256-0.029,0.524,0.033,0.815c1.206,5.644-0.645,10.605-5.278,14.065c-0.212,0.159-0.375,0.34-0.517,0.528 
+      c-0.468,0.309-0.838,0.781-1.037,1.352c-0.869,2.494-0.209,5.033,1.784,6.768c0.329,0.287,0.709,0.48,1.105,0.586 
+      c1.287,0.711,2.632,1.184,4.029,1.514c-0.287,1.549-0.146,3.115,0.6,4.59c-1.393,2.715-0.468,5.71,2.282,7.346 
+      c0.155,0.092,0.31,0.161,0.462,0.217c0.467,0.555,0.512,1.446,0.34,2.306c-0.053,0.263-0.06,0.524-0.04,0.78 
+      c-0.012,0.232-0.005,0.47,0.04,0.707c0.725,3.804,3.973,5.902,7.69,5.971c0.2,0.004,0.385-0.016,0.559-0.051 
+      c0.172,0.006,0.352-0.004,0.538-0.033c5.969-0.967,12.765-0.428,15.007,6.129c0.448,1.311,1.646,1.754,2.719,1.581 
+      c0.362,0.271,0.838,0.426,1.438,0.384c10.816-0.756,21.537-2.327,32.276-3.77c0.38-0.051,0.709-0.174,0.993-0.348 
+      c1.302-0.404,2.354-1.863,1.513-3.434c-7.176-13.381,7.371-27.975,10.133-40.827c0.061-0.276,0.061-0.535,0.036-0.78 
+      c1.132-8.181-0.38-16.244-3.906-23.172l7.765-2.602L90.288,24.301z M79.442,15.456l1.808,5.39l-5.39,1.806l-1.808-5.389 
+      L79.442,15.456z M78.711,46.361l-5.389,1.807l-1.807-5.39l-5.39,1.807l-1.722-5.136l-5.389,1.807l-1.808-5.389l5.39-1.808 
+      l1.722,5.136l5.389-1.807l-1.722-5.135l5.389-1.808l-1.807-5.389l5.39-1.809l1.809,5.39l-5.392,1.808l1.809,5.39l-5.39,1.807 
+      l1.723,5.135l5.389-1.807l-1.665-4.967l5.39-1.807l1.808,5.389l-5.391,1.808L78.711,46.361z M85.455,33.885l-1.807-5.389 
+      l5.389-1.807l1.808,5.39L85.455,33.885z"></path>
+  </g>
+</svg>
+Proof of Humanity
+    </div>
+
+    <div class="poh-circle">
+      <i class="fa-solid fa-user-check"></i>
+    </div>
+
+    <div class="poh-title">Verify Your Humanity</div>
+    <div class="poh-subtitle">Click below to prove you’re real</div>
+
+    <a href="#" class="poh-btn">
+<svg class="icon-fix" fill="#fff" stroke="#fff" viewBox="0 0 24 24" width="16px" height="16px"
+     xmlns="http://www.w3.org/2000/svg">
+  <g transform="scale(0.2213)">
+    <path fill="#fff" stroke="#fff" d="M90.288,24.301l-9.181,3.078l1.054,3.144c-0.401-0.54-0.813-1.07-1.244-1.587l-1.727-5.15l4.583-1.535l-3.08-9.183 
+      l-9.182,3.078l2.014,6.003c-4.973-3.456-10.87-5.73-17.421-6.32c-0.078-0.007-0.146,0.003-0.222,0.002 
+      c-0.005,0-0.01-0.002-0.016-0.002c-21.993-0.762-45.111,12.02-43.113,36.752c0.008,0.1,0.033,0.189,0.051,0.282 
+      c-0.029,0.256-0.029,0.524,0.033,0.815c1.206,5.644-0.645,10.605-5.278,14.065c-0.212,0.159-0.375,0.34-0.517,0.528 
+      c-0.468,0.309-0.838,0.781-1.037,1.352c-0.869,2.494-0.209,5.033,1.784,6.768c0.329,0.287,0.709,0.48,1.105,0.586 
+      c1.287,0.711,2.632,1.184,4.029,1.514c-0.287,1.549-0.146,3.115,0.6,4.59c-1.393,2.715-0.468,5.71,2.282,7.346 
+      c0.155,0.092,0.31,0.161,0.462,0.217c0.467,0.555,0.512,1.446,0.34,2.306c-0.053,0.263-0.06,0.524-0.04,0.78 
+      c-0.012,0.232-0.005,0.47,0.04,0.707c0.725,3.804,3.973,5.902,7.69,5.971c0.2,0.004,0.385-0.016,0.559-0.051 
+      c0.172,0.006,0.352-0.004,0.538-0.033c5.969-0.967,12.765-0.428,15.007,6.129c0.448,1.311,1.646,1.754,2.719,1.581 
+      c0.362,0.271,0.838,0.426,1.438,0.384c10.816-0.756,21.537-2.327,32.276-3.77c0.38-0.051,0.709-0.174,0.993-0.348 
+      c1.302-0.404,2.354-1.863,1.513-3.434c-7.176-13.381,7.371-27.975,10.133-40.827c0.061-0.276,0.061-0.535,0.036-0.78 
+      c1.132-8.181-0.38-16.244-3.906-23.172l7.765-2.602L90.288,24.301z M79.442,15.456l1.808,5.39l-5.39,1.806l-1.808-5.389 
+      L79.442,15.456z M78.711,46.361l-5.389,1.807l-1.807-5.39l-5.39,1.807l-1.722-5.136l-5.389,1.807l-1.808-5.389l5.39-1.808 
+      l1.722,5.136l5.389-1.807l-1.722-5.135l5.389-1.808l-1.807-5.389l5.39-1.809l1.809,5.39l-5.392,1.808l1.809,5.39l-5.39,1.807 
+      l1.723,5.135l5.389-1.807l-1.665-4.967l5.39-1.807l1.808,5.389l-5.391,1.808L78.711,46.361z M85.455,33.885l-1.807-5.389 
+      l5.389-1.807l1.808,5.39L85.455,33.885z"></path>
+  </g>
+</svg>
+ Claim Verification
+    </a>
+  </div>
+
+  <div class="poh-popup" role="dialog" aria-label="Proof of Humanity details">
+    <div class="popup-header">
+      <div class="poh-icon">
+${svg}
+
+      </div>
+      <div class="title">Proof of Humanity</div>
+      <div class="popup-actions">
+        <button title="Copy link"><i class="far fa-clipboard"></i></button>
+        <button title="Delete link"><i class="fas fa-trash-alt"></i></button>
+      </div>
+    </div>
+
+    <div class="liners"></div>
+  </div>
+</div>
+</body>
+</html>

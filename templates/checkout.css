@@ -1,0 +1,67 @@
+body {
+  font-family: 'Inter', sans-serif;
+  background: #000;
+  color: #fff;
+  padding: 40px;
+}
+
+.pricing-table {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  border-bottom: 1px solid #333;
+  padding: 15px;
+  text-align: center;
+}
+
+thead th {
+  border-bottom: 2px solid #555;
+}
+
+thead th button {
+  background: #ff007a;
+  color: #fff;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  margin-top: 8px;
+  cursor: pointer;
+}
+
+thead th button.current {
+  background: transparent;
+  border: 1px solid #555;
+  cursor: default;
+}
+
+.price {
+  display: block;
+  font-size: 0.9em;
+  margin-top: 5px;
+}
+
+.section {
+  background: #111;
+  text-align: left;
+  padding-left: 20px;
+  font-weight: 600;
+  color: #ff007a;
+}
+
+td:first-child {
+  text-align: left;
+}
+
+td:empty {
+  color: #555;
+}
+
+td:contains('✔') {
+  color: #ff007a;
+}

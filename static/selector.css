@@ -1,0 +1,288 @@
+.kelcontainer {
+  width: 100%;
+  margin: 20px auto;
+}
+
+@media (max-width: 767px) {
+  .kelcontainer {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+  }
+}
+
+/* ─────────── UPLOAD BOX STYLING ─────────── */
+.outer-boxs {
+  position: relative;
+  width: 100%;
+  min-height: 300px;
+  padding: 10px;
+  box-sizing: border-box;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  background: #26263a;
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+.outer-boxs.dragover {
+  background-color: #333;
+  border-color: #4e73df;
+}
+
+.dragPrompt {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  white-space: nowrap;
+  color: #aaa;
+  font-size: 16px;
+  pointer-events: none;
+}
+
+.initialPrompt {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+/* ─────────── CHOSEN FILE DISPLAY ─────────── */
+.chosenFilesContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.chosenimg {
+  position: relative;
+  width: 100%;
+  height: 300px;
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: #1c1c1c;
+}
+
+.chosenimg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.file-icon {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #444;
+  color: #fff;
+  font-size: 16px;
+  text-align: center;
+}
+
+/* ─────────── FILE ACTIONS ─────────── */
+.removeFileBtn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.removeFileBtn:hover {
+  background: rgba(255, 0, 0, 0.8);
+}
+
+.progress-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 6px;
+  width: 0%;
+  background-color: #4e73df;
+  border-radius: 0 0 12px 12px;
+  transition: width 0.2s;
+}
+
+.file-preview {
+  margin-bottom: 10px;
+  font-size: 14px;
+  display: none;
+}
+
+/* ─────────── BUTTONS ─────────── */
+.custom-file-btn {
+  display: none;
+  padding: 10px 20px;
+  background: #4e73df;
+  color: #fff;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.3s ease;
+  margin-bottom: 10px;
+}
+.custom-file-btn:hover {
+  background: #2e59d9;
+}
+
+.textitems-btn {
+  background: #444;
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+}
+.textitems-btn i {
+  transition: transform 0.3s ease;
+}
+
+/* ─────────── CATEGORY GRID ─────────── */
+.category {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.category div {
+  background-color: #35354f;
+  border: 1px solid #3b3b57;
+  border-radius: 10px;
+  padding: 12px !important;
+  text-align: center;
+  font-size: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+.category div:hover {
+  background-color: #3f3f60;
+}
+.category div.selected,
+.category input[type="checkbox"]:checked + div {
+  background: #4e73df;
+  border-color: #4e73df !important;
+  color: #fff;
+}
+.category input[type="checkbox"] {
+  display: none;
+}
+.category i {
+  font-size: 20px;
+}
+
+.hidden {
+  display: none;
+}
+
+
+/* ─────────── INPUT GROUP ─────────── */
+.boxerstyle {
+  border: 1px solid #cccccc57;
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.input-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.input-group input[type="number"] {
+  width: 80px;
+  padding: 6px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+.input-group input[type="number"]:focus {
+  border-color: #6b46ff;
+}
+
+.input-group button {
+  background-color: #6b46ff;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.2s ease;
+}
+.input-group button:hover {
+  background-color: #5530cc;
+}
+.input-group button i {
+  pointer-events: none;
+}
+
+/* ─────────── POPUP STYLING ─────────── */
+.popup-container {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 18px;
+  padding: 20px 20px 30px;
+  margin-top: 20px;
+}
+
+/* ─────────── UTILITY ─────────── */
+.hidden {
+  display: none;
+}
+
+@media (max-width: 991px) {
+.category {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.category div {
+  background-color: #35354f;
+  border: 1px solid #3b3b57;
+  border-radius: 10px;
+  text-align: center;
+  font-size: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+  padding-top: 12px !important;
+  padding-right: 12px !important;
+  padding-bottom: 20px !important;
+  padding-left: 12px !important;
+}
+.category div:hover {
+  background-color: #3f3f60;
+}
+.category div.selected,
+.category input[type="checkbox"]:checked + div {
+  background: #4e73df;
+  border-color: #4e73df !important;
+  color: #fff;
+}
+.category input[type="checkbox"] {
+  display: none;
+}
+.category i {
+  font-size: 20px;
+}
+}

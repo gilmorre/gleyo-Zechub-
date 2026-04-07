@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Youtube Join Button</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+
+/* Make both containers same width */
+.youtube-root, .popup-container{
+width: 100% !important;
+box-sizing: border-box !important; 
+}
+
+ @media (max-width: 991px){
+
+.youtube-root,
+.popup-container {
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+ }
+
+/* Outer container */
+.youtube-root{
+    position: relative;
+    border: 1.5px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    padding: 50px 20px 20px;
+}
+
+/* Floating label above */
+.youtlabel {
+    background: red;
+    
+    position: absolute;
+    top: -16px;
+    left: 20px;
+
+    color: white;
+    font-size: 14px;
+    padding: 6px 16px;
+    border-radius: 50px;
+    display: flex;
+    align-items: center;
+    font-weight: bold;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+.youtlabel i {
+    margin-right: 6px;
+}
+
+/* Join button */
+.youjoin-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: linear-gradient(90deg, red, rgba(255, 0, 0, 0.707));
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    border-radius: 20px;
+    padding: 18px;
+    text-decoration: none;
+    transition: background 0.3s ease;
+}
+
+
+
+/* Popup container */
+.popup-container {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 18px;
+    padding: 20px 20px 30px;
+    position: relative;
+    color: white;
+}
+
+/* Upward arrow above container */
+.popup-container::before {
+    content: "";
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-bottom: 12px solid #222;
+}
+
+.popup-header {
+    display: flex;
+    align-items: center;
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-bottom: 16px;
+    gap: 10px;
+}
+
+.popup-header .youticon {
+    background: red;
+    padding: 6px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.popup-header .youticon i {
+    color: white;
+    font-size: 18px;
+}
+
+.popup-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 15px;
+}
+
+.popup-actions button {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: #ccc;
+    font-size: 18px;
+}
+
+.popup-actions button:hover {
+    color: white;
+}
+
+label {
+   font-size: 0.7rem;
+    margin-top: 23px;
+    display: block;
+    margin-bottom: 6px;
+}
+
+.inputy {
+    width: 90%;
+    padding: 10px 14px;
+    border-radius: 14px;
+    margin-left: 6px;
+    border: 1.5px solid #555;
+    background: #121212;
+    color: white;
+    font-size: 1rem;
+}
+
+
+
+input[type="text"]:focus {
+    outline-color: #2e65ff;
+    border-color: #2e65ff;
+}
+
+input[type="text"].error {
+    border-color: #ff3b3b;
+}
+
+.error-message {
+    color: #ff3b3b;
+    font-size: 0.85rem;
+    margin-top: 6px;
+    font-weight: 600;
+}
+
+
+.liners {
+    height: 0.5px;
+    background-color: #2e65ff;
+    border-radius: 1px;
+    margin: 8px -20px; /* matches container's horizontal padding */
+}
+
+.youtubeCircle {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background-color: #ff0000;  /* blue circle always visible */
+  margin: 10px auto;
+  position: relative;
+  overflow: hidden;
+}
+
+.youtubeCircle img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: none; /* hide image by default */
+}
+
+
+
+</style>
+</head>
+<body>
+<div style="outline: none; display: flex; justify-content: center; align-items: center;  flex-direction: column;">
+
+ 
+<div data-type="youtube" class="outer-box youtube-root">
+  <div class="youtlabel" style="display: flex ; gap: 10px;">
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+    <path d="M12.076 2.999h.134c1.233.004 7.48.05 9.165.503a3.015 3.015 0 0 1 2.123 2.13c.151.57.258 1.325.33 2.104l.015.156.033.39.012.156c.098 1.37.11 2.655.111 2.935v.113c-.002.291-.015 1.662-.123 3.09l-.012.158-.013.156c-.075.857-.186 1.711-.353 2.337a3.015 3.015 0 0 1-2.123 2.13c-1.74.468-8.354.501-9.27.502h-.213c-.464 0-2.38-.009-4.39-.078l-.255-.009-.131-.006-.256-.01-.256-.01c-1.665-.073-3.25-.192-3.981-.39a3.015 3.015 0 0 1-2.123-2.13c-.166-.626-.277-1.48-.353-2.337l-.012-.156-.012-.158A46.5 46.5 0 0 1 0 11.52v-.185c.003-.322.015-1.437.096-2.667l.011-.154.005-.078.012-.156.033-.39.015-.156c.072-.78.179-1.535.33-2.104a3.015 3.015 0 0 1 2.123-2.13c.73-.195 2.315-.315 3.981-.39l.256-.01.258-.009.13-.004.256-.01A150 150 0 0 1 11.787 3zM9.6 7.813v7.227l6.236-3.612z"/>
+  </svg> Youtube
+  </div>
+  <div class="youtubeCircle">
+    <img class="youtubeCircleImg" alt="Profile picture" class="fallback-letter" />
+    <span class="youtubeFallback fallback-letter"></span>
+  </div>
+  <a href="#" class="youjoin-btn js-subscribe">
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+    <path d="M12.076 2.999h.134c1.233.004 7.48.05 9.165.503a3.015 3.015 0 0 1 2.123 2.13c.151.57.258 1.325.33 2.104l.015.156.033.39.012.156c.098 1.37.11 2.655.111 2.935v.113c-.002.291-.015 1.662-.123 3.09l-.012.158-.013.156c-.075.857-.186 1.711-.353 2.337a3.015 3.015 0 0 1-2.123 2.13c-1.74.468-8.354.501-9.27.502h-.213c-.464 0-2.38-.009-4.39-.078l-.255-.009-.131-.006-.256-.01-.256-.01c-1.665-.073-3.25-.192-3.981-.39a3.015 3.015 0 0 1-2.123-2.13c-.166-.626-.277-1.48-.353-2.337l-.012-.156-.012-.158A46.5 46.5 0 0 1 0 11.52v-.185c.003-.322.015-1.437.096-2.667l.011-.154.005-.078.012-.156.033-.39.015-.156c.072-.78.179-1.535.33-2.104a3.015 3.015 0 0 1 2.123-2.13c.73-.195 2.315-.315 3.981-.39l.256-.01.258-.009.13-.004.256-.01A150 150 0 0 1 11.787 3zM9.6 7.813v7.227l6.236-3.612z"/>
+  </svg> 
+  </a>
+</div>
+
+<div class="popup-container" role="dialog" aria-label="Visit link">
+  <div class="popup-header">
+    <div class="youticon">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+      <path d="M12.076 2.999h.134c1.233.004 7.48.05 9.165.503a3.015 3.015 0 0 1 2.123 2.13c.151.57.258 1.325.33 2.104l.015.156.033.39.012.156c.098 1.37.11 2.655.111 2.935v.113c-.002.291-.015 1.662-.123 3.09l-.012.158-.013.156c-.075.857-.186 1.711-.353 2.337a3.015 3.015 0 0 1-2.123 2.13c-1.74.468-8.354.501-9.27.502h-.213c-.464 0-2.38-.009-4.39-.078l-.255-.009-.131-.006-.256-.01-.256-.01c-1.665-.073-3.25-.192-3.981-.39a3.015 3.015 0 0 1-2.123-2.13c-.166-.626-.277-1.48-.353-2.337l-.012-.156-.012-.158A46.5 46.5 0 0 1 0 11.52v-.185c.003-.322.015-1.437.096-2.667l.011-.154.005-.078.012-.156.033-.39.015-.156c.072-.78.179-1.535.33-2.104a3.015 3.015 0 0 1 2.123-2.13c.73-.195 2.315-.315 3.981-.39l.256-.01.258-.009.13-.004.256-.01A150 150 0 0 1 11.787 3zM9.6 7.813v7.227l6.236-3.612z"/>
+    </svg>
+    </div>
+    <div class="title">Youtube</div>
+    <div class="liner"></div>
+    <div class="popup-actions">
+      <button title="Copy link">
+        <i class="far fa-clipboard"></i>
+      </button>
+      <button title="Delete link">
+        <i class="fas fa-trash-alt"></i>
+      </button>
+    </div>
+  </div>
+  <div class="liners"></div>
+
+  <label class="linkInput">Link you want your users to visit</label>
+  <input name="youtube_link" class="js-link-input inputy" type="text" placeholder="https://www.youtube.com/channel/CHANNEL_ID" />
+  <div class="js-error-message error-message" style="display:none; color: red;">Invalid URL</div>
+</div>
+</div>
+<script>
+/* loader runs with: new Function("root", code)(wrapper) */
+const API_KEY = "AIzaSyAOKDPRvVGKrRzlNgvTsd4tfEM4NluyPcs";
+
+const subscribeBtn     = root.querySelector(".js-subscribe");
+const input            = root.querySelector(".js-link-input");
+const errorMessage     = root.querySelector(".js-error-message");
+const youtubeCircleImg = root.querySelector(".youtubeCircleImg");
+const youtubeFallback  = root.querySelector(".youtubeFallback");
+
+async function fetchChannelInfo(channelIdentifier, type = "channelId") {
+  let url = "";
+  if (type === "channelId") {
+    url = `https://www.googleapis.com/youtube/v3/channels?part=snippet&id=${channelIdentifier}&key=${API_KEY}`;
+  } else if (type === "forUsername") {
+    url = `https://www.googleapis.com/youtube/v3/channels?part=snippet&forUsername=${channelIdentifier}&key=${API_KEY}`;
+  }
+
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("API error");
+    const data = await res.json();
+    if (data.items && data.items.length > 0) {
+      const snippet = data.items[0].snippet;
+      return {
+        title: snippet.title,
+        thumbnail: snippet.thumbnails.default.url
+      };
+    }
+    throw new Error("Channel not found");
+  } catch (err) {
+    console.error(err);
+    return null;
+  }
+}
+
+async function updateSubscribeText() {
+  const url = input.value.trim();
+  errorMessage.style.display = "none";
+
+  // Remove any previously added text (preserve SVG)
+  [...subscribeBtn.childNodes].forEach((n) => {
+    if (n.nodeType === Node.TEXT_NODE) n.remove();
+  });
+
+  let buttonText = " Subscribe to channel";
+
+  // Match channel patterns
+  const channelIdMatch = url.match(/youtube\.com\/channel\/([a-zA-Z0-9_-]+)/i);
+  const userMatch      = url.match(/youtube\.com\/user\/([a-zA-Z0-9_-]+)/i);
+  const customMatch    = url.match(/youtube\.com\/c\/([a-zA-Z0-9_-]+)/i);
+
+  let channelInfo = null;
+  let fallbackName = null;
+
+  if (channelIdMatch) {
+    channelInfo = await fetchChannelInfo(channelIdMatch[1], "channelId");
+  } else if (userMatch) {
+    channelInfo = await fetchChannelInfo(userMatch[1], "forUsername");
+  } else if (customMatch) {
+    fallbackName = customMatch[1];
+    buttonText = ` Subscribe to ${fallbackName}`;
+  }
+
+  if (channelInfo) {
+    buttonText = ` Subscribe to ${channelInfo.title}`;
+
+    if (channelInfo.thumbnail) {
+      youtubeCircleImg.src = channelInfo.thumbnail;
+      youtubeCircleImg.style.display = "block";
+      youtubeFallback.style.display = "none";
+    } else {
+      youtubeCircleImg.style.display = "none";
+      youtubeFallback.textContent = channelInfo.title.charAt(0).toUpperCase();
+      youtubeFallback.style.display = "block";
+    }
+  } else if (url !== "" && !customMatch) {
+    errorMessage.style.display = "block";
+    youtubeCircleImg.style.display = "none";
+    youtubeFallback.style.display = "none";
+  } else if (!channelInfo && customMatch) {
+    youtubeCircleImg.style.display = "none";
+    if (fallbackName) {
+      youtubeFallback.textContent = fallbackName.charAt(0).toUpperCase();
+      youtubeFallback.style.display = "block";
+    } else {
+      youtubeFallback.style.display = "none";
+    }
+  }
+
+  // Append text AFTER the SVG
+  subscribeBtn.appendChild(document.createTextNode(buttonText));
+}
+
+input.addEventListener("input", updateSubscribeText);
+
+subscribeBtn.addEventListener("click", function(e) {
+  e.preventDefault();
+  const url = input.value.trim();
+  errorMessage.style.display = "none";
+
+  const channelIdMatch = url.match(/youtube\.com\/channel\/([a-zA-Z0-9_-]+)/i);
+  const userMatch      = url.match(/youtube\.com\/user\/([a-zA-Z0-9_-]+)/i);
+  const customMatch    = url.match(/youtube\.com\/c\/([a-zA-Z0-9_-]+)/i);
+
+  let subUrl = null;
+
+  if (channelIdMatch) {
+    subUrl = `https://www.youtube.com/channel/${channelIdMatch[1]}?sub_confirmation=1`;
+  } else if (userMatch) {
+    subUrl = `https://www.youtube.com/user/${userMatch[1]}?sub_confirmation=1`;
+  } else if (customMatch) {
+    subUrl = `https://www.youtube.com/c/${customMatch[1]}?sub_confirmation=1`;
+  }
+
+  if (subUrl) {
+    window.open(subUrl, "_blank");
+  } else {
+    errorMessage.style.display = "block";
+  }
+});
+
+// Initialize
+updateSubscribeText();
+</script>
+
+
+
+</body>
+</html>

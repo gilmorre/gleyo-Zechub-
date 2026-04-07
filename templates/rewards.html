@@ -1,0 +1,287 @@
+
+<title>RewardsPay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+ <link rel="stylesheet" href="{{ url_for('static', filename='rewards.css') }}">
+
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+
+
+<div class="reward-conte-inner" data-tfa-enabled="{{ 'true' if tfa_enabled else 'false' }}">
+  <div class="reward-conte-inner-sideline">
+
+  <!-- TOP NAV -->
+    <nav class="topnav-reward">
+      <div class="nav-logo">
+        <div class="nav-mark">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M7 1L12 4V10L7 13L2 10V4L7 1Z" stroke="white" stroke-width="1.5" fill="none"/>
+            <circle cx="7" cy="7" r="2" fill="white"/>
+          </svg>
+        </div>
+        RewardsPay
+      </div>
+      <div class="net-badge"><div class="pulse"></div>Polygon</div>
+    </nav>
+
+    <!-- MAIN PAGE -->
+    <div class="page">
+      <div class="desktop-grid">
+
+        <!-- LEFT -->
+        <div>
+          <div class="wallet">
+            <div class="w-head">
+              <div class="w-user">
+
+                {% if user.profile_pic %}
+                <div class="w-avatar no-backgorund">
+                  <img src="{{ user.profile_pic}}" alt="pp" style="width: 100%; height: 100%; object-fit: cover">
+                </div>
+                {% else %}
+                <div class="w-avatar">
+                    {{ user.username[:2] }}
+                </div>
+                {% endif %}
+                <div>
+                  <div class="w-name">{{ user.username }}</div>
+                  <div class="w-id">
+                    Participant · 
+                    <span class="id-wrap" onclick="revealID(this)">
+                      <span class="id-cover"></span>
+                      <span class="id-text">P-{{ current_user.get_admin_identifier() }}</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div class="usdc-tag">
+                <div class="usdc-circle">
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M5 1.5C3.07 1.5 1.5 3.07 1.5 5S3.07 8.5 5 8.5 8.5 6.93 8.5 5 6.93 1.5 5 1.5zm.5 5.3v.6h-.9v-.6c-.8-.1-1.3-.55-1.3-1.2h.85c0 .3.22.5.55.5.33 0 .52-.17.52-.43 0-.26-.17-.38-.62-.5-.75-.18-1.13-.5-1.13-1.1 0-.57.43-.97 1.13-1.07v-.5h.9v.5c.74.1 1.18.55 1.18 1.17H6.3c0-.3-.2-.5-.52-.5-.3 0-.48.15-.48.4 0 .24.17.36.65.49.78.2 1.1.52 1.1 1.13 0 .6-.43 1-.95 1.11z" fill="white"/></svg>
+                </div>
+                USDC
+              </div>
+            </div>
+            <div class="w-bal-lbl">Available Balance</div>
+            <div class="w-bal">0.00 <em>USDC</em></div>
+            <div class="w-usd">≈ $0.00 USD · <b>on Polygon</b></div>
+            <div class="w-addr">
+              <div>
+                <div class="wa-lbl">Wallet Address</div>
+                <div class="wa-val" data-full="{{ wallet_address if wallet_address else '' }}">
+                {% if wallet_address %}
+                  {{ wallet_address[:6] }}…{{ wallet_address[-4:] }}
+                {% else %}
+                  Not connected
+                {% endif %}                
+                </div>
+              </div>
+              <button class="copy" id="copyBtn" onclick="doCopy(this)">
+                <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><rect x="3.5" y="3.5" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.1"/><path d="M1.5 7.5V2C1.5 1.72 1.72 1.5 2 1.5H7.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
+                Copy
+              </button>
+            </div>
+          </div>
+
+          <div class="stats">
+            <div class="stat g" onclick="openAll()">
+              <div class="stat-icon-wrap"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1.5L12.5 4.5V9.5L7 12.5L1.5 9.5V4.5L7 1.5Z" stroke="#12d87a" stroke-width="1.2" fill="none"/><path d="M5 7H9M7 5V9" stroke="#12d87a" stroke-width="1.2" stroke-linecap="round"/></svg></div>
+              <div class="stat-lbl">Total Earned</div>
+              <div class="stat-val">1,140</div>
+              <div class="stat-note">USDC · Q2 2026</div>
+            </div>
+            <div class="stat a" onclick="openAll()">
+              <div class="stat-icon-wrap"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1.5" y="3" width="11" height="8.5" rx="1.5" stroke="#f5a623" stroke-width="1.2" fill="none"/><path d="M4 3V2M10 3V2" stroke="#f5a623" stroke-width="1.2" stroke-linecap="round"/><path d="M4 7H10M4 9.5H7.5" stroke="#f5a623" stroke-width="1.1" stroke-linecap="round"/></svg></div>
+              <div class="stat-lbl">Transactions</div>
+              <div class="stat-val">4</div>
+              <div class="stat-note">3 in · 1 pending</div>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button class="btn btn-p" onclick="openWithdraw()">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 10V2M3 6L7 2L11 6" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 12H12" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>
+              Withdraw
+            </button>
+            <button class="btn btn-s" onclick="openAll()">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1.5" y="2.5" width="11" height="9" rx="1.5" stroke="currentColor" stroke-width="1.2" fill="none"/><path d="M4 6H10M4 8.5H7.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
+              History
+            </button>
+          </div>
+        </div>
+
+        <!-- RIGHT -->
+        <div class="tx-section">
+          <div class="sec-head">
+            <span class="sec-title">Transactions</span>
+            <button class="see-all" onclick="openAll()">View all →</button>
+          </div>
+          <div class="tx-card">
+            <div class="tx-row" onclick="openTx('tx1')">
+              <div class="tx-dot in"><svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M7.5 2V11M3.5 7L7.5 11L11.5 7" stroke="#12d87a" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="tx-info"><div class="tx-desc">Reward Payment · Q2 Final</div><div class="tx-time">Mar 15, 2026 · 10:42 AM</div></div>
+              <div class="tx-right"><div class="tx-amt in">+500.00 USDC</div><div class="tx-usd">≈ $500.00</div></div>
+              <svg class="chevron" width="6" height="10" viewBox="0 0 6 10" fill="none"><path d="M1 1L5 5L1 9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="tx-row" onclick="openTx('tx2')">
+              <div class="tx-dot in"><svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M7.5 2V11M3.5 7L7.5 11L11.5 7" stroke="#12d87a" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="tx-info"><div class="tx-desc">Reward Payment · Q2 Mid</div><div class="tx-time">Mar 01, 2026 · 09:15 AM</div></div>
+              <div class="tx-right"><div class="tx-amt in">+400.00 USDC</div><div class="tx-usd">≈ $400.00</div></div>
+              <svg class="chevron" width="6" height="10" viewBox="0 0 6 10" fill="none"><path d="M1 1L5 5L1 9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="tx-row" onclick="openTx('tx3')">
+              <div class="tx-dot in"><svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M7.5 2V11M3.5 7L7.5 11L11.5 7" stroke="#12d87a" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="tx-info"><div class="tx-desc">Reward Payment · Q2 Start</div><div class="tx-time">Feb 15, 2026 · 08:00 AM</div></div>
+              <div class="tx-right"><div class="tx-amt in">+240.00 USDC</div><div class="tx-usd">≈ $240.00</div></div>
+              <svg class="chevron" width="6" height="10" viewBox="0 0 6 10" fill="none"><path d="M1 1L5 5L1 9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="tx-row" onclick="openTx('tx4')">
+              <div class="tx-dot pend"><svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="5" stroke="#f5a623" stroke-width="1.3"/><path d="M7.5 4.5V7.5L9.5 9" stroke="#f5a623" stroke-width="1.3" stroke-linecap="round"/></svg></div>
+              <div class="tx-info"><div class="tx-desc">Deduction · Platform Fee</div><div class="tx-time">Mar 15, 2026 · 10:42 AM</div></div>
+              <div class="tx-right"><div class="tx-amt pend">−60.00 USDC</div><div class="tx-usd">≈ $60.00</div></div>
+              <svg class="chevron" width="6" height="10" viewBox="0 0 6 10" fill="none"><path d="M1 1L5 5L1 9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+
+    <!-- WITHDRAW OVERLAY -->
+    <div class="overlay" id="wOv" onclick="bgClose(event,'wOv')">
+      <div class="sheet">
+        <div class="handle"></div>
+        <div id="w1">
+          <div class="s-title">Withdraw Funds</div>
+          <div class="s-sub">Send USDC to an external wallet</div>
+          <div class="steps">
+            <div class="s-step on"><div class="s-num">1</div> Amount</div>
+            <div class="s-line"></div>
+            <div class="s-step"><div class="s-num">2</div> Confirm</div>
+            <div class="s-line"></div>
+            <div class="s-step"><div class="s-num">3</div> Done</div>
+          </div>
+          <div class="b-disp"><div class="b-lbl">Available</div><div class="b-amt">0.00 <em>USDC</em></div></div>
+          <div class="ig">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+              <label class="il" style="margin:0">Amount</label>
+              <span class="bal-remain" id="balRemain">Balance: 0.00 USDC</span>
+            </div>
+            <div class="iw">
+              <input type="number" id="amtIn" placeholder="0.00" oninput="calcFee()"/>
+              <button class="maxbtn" onclick="setMax()">MAX</button>
+              <span class="isuf">USDC</span>
+            </div>
+            <div class="amt-err" id="amtErr"></div>
+          </div>
+          <div class="ig">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+              <label class="il" style="margin:0">Destination Address</label>
+              <span class="req-badge">Required</span>
+            </div>
+            <div class="iw">
+              <input type="text" id="destIn" placeholder="0x… paste or type wallet address" style="padding-right:14px" oninput="calcFee()"/>
+            </div>
+            <div class="addr-err" id="addrErr"></div>
+          </div>
+          <div class="fbox">
+            <div class="fr"><span class="fr-k">Network Fee</span><span class="fr-v">~0.01 MATIC</span></div>
+            <div class="fr"><span class="fr-k">Remaining Balance</span><span class="fr-v" id="remainAfter">—</span></div>
+            <div class="fr"><span class="fr-k">You Receive</span><span class="fr-v g" id="rcv">—</span></div>
+          </div>
+          <button class="cta" id="procBtn" onclick="toW2()" disabled>Continue <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7H11M7 3L11 7L7 11" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        </div>
+        <div id="w2" style="display:none">
+          <div class="s-title">Confirm</div>
+          <div class="s-sub">Review then broadcast to Polygon</div>
+          <div class="steps">
+            <div class="s-step done"><div class="s-num">✓</div> Amount</div>
+            <div class="s-line"></div>
+            <div class="s-step on"><div class="s-num">2</div> Confirm</div>
+            <div class="s-line"></div>
+            <div class="s-step"><div class="s-num">3</div> Done</div>
+          </div>
+          <div class="dg">
+            <div class="dr"><span class="dk">Amount</span><span class="dv g" id="cAmt">—</span></div>
+            <div class="dr"><span class="dk">Destination</span><span class="dv" id="cDest">—</span></div>
+            <div class="dr"><span class="dk">Network</span><span class="dv">Polygon Mainnet</span></div>
+            <div class="dr"><span class="dk">Est. Fee</span><span class="dv">~0.01 MATIC</span></div>
+            <div class="dr"><span class="dk">You Receive</span><span class="dv g" id="cRcv">—</span></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;">
+            <button class="cta cta-ghost" style="margin:0" onclick="toW1()">
+            <svg xmlns="http://www.w3.org/2000/svg" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                width="16"
+                height="16"
+                stroke="currentColor" 
+                stroke-width="2" 
+                stroke-linecap="round" 
+                stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+              Back
+            </button>
+            <button class="cta" style="margin:0" onclick="doSend()">Confirm & Send</button>
+          </div>
+        </div>
+        <div id="w3" style="display:none">
+          <div class="suc">
+            <div class="suc-ring"><svg width="26" height="26" viewBox="0 0 26 26" fill="none"><path d="M6 13L10.5 17.5L20 8" stroke="#12d87a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div class="suc-t">Withdrawal Sent!</div>
+            <div class="suc-s">Your USDC is on its way.<br>Polygon confirms in ~2–5 seconds.</div>
+            <div class="hash-box" id="txHashBox">Tx: —</div>
+            <button class="cta" onclick="closeW()">Done</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- 2FA OVERLAY -->
+    <div class="tfa-overlay" id="tfaOv">
+      <div class="tfa-box" id="tfaBlocked" style="display:none">
+        <div class="tfa-block-icon"><svg width="26" height="26" viewBox="0 0 26 26" fill="none"><rect x="5" y="11" width="16" height="11" rx="2.5" stroke="#f05070" stroke-width="1.6" fill="none"/><path d="M9 11V8.5C9 6.57 10.57 5 12.5 5V5C14.43 5 16 6.57 16 8.5V11" stroke="#f05070" stroke-width="1.6" stroke-linecap="round"/><circle cx="13" cy="16.5" r="1.5" fill="#f05070"/><path d="M13 16.5V19" stroke="#f05070" stroke-width="1.4" stroke-linecap="round"/></svg></div>
+        <div class="tfa-title">2FA Required</div>
+        <div class="tfa-desc">Two-factor authentication must be enabled before you can withdraw.</div>
+        <button class="tfa-settings-btn" onclick="goToSettings()">
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="2.2" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="M7.5 1.5V3M7.5 12V13.5M13.5 7.5H12M3 7.5H1.5M11.7 3.3L10.6 4.4M4.4 10.6L3.3 11.7M11.7 11.7L10.6 10.6M4.4 4.4L3.3 3.3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+          Go to Settings to enable 2FA
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="margin-left:auto"><path d="M2.5 6H9.5M6.5 3L9.5 6L6.5 9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="tfa-actions single" style="margin-top:12px">
+          <button class="cta cta-ghost" onclick="closeTFA()">Cancel</button>
+        </div>
+      </div>
+      <div class="tfa-box" id="tfaVerify" style="display:none">
+        <div class="tfa-verify-icon"><svg width="26" height="26" viewBox="0 0 26 26" fill="none"><rect x="4" y="10" width="18" height="13" rx="3" stroke="#6c63ff" stroke-width="1.6" fill="none"/><path d="M8 10V8C8 5.79 9.79 4 12 4H14C16.21 4 18 5.79 18 8V10" stroke="#6c63ff" stroke-width="1.6" stroke-linecap="round"/><circle cx="13" cy="16.5" r="1.8" fill="#6c63ff"/><path d="M13 18V20" stroke="#6c63ff" stroke-width="1.4" stroke-linecap="round"/></svg></div>
+        <div class="tfa-title">Verify Identity</div>
+        <div class="tfa-desc">Enter the 6-digit code from your authenticator app to authorise this withdrawal.</div>
+        <div class="otp-row">
+          <input class="otp-cell" inputmode="numeric" autocomplete="one-time-code" id="otp0">
+          <input class="otp-cell" maxlength="1" inputmode="numeric" id="otp1"/>
+          <input class="otp-cell" maxlength="1" inputmode="numeric" id="otp2"/>
+          <input class="otp-cell" maxlength="1" inputmode="numeric" id="otp3"/>
+          <input class="otp-cell" maxlength="1" inputmode="numeric" id="otp4"/>
+          <input class="otp-cell" maxlength="1" inputmode="numeric" id="otp5"/>
+        </div>
+        <div class="otp-hint">Code refreshes every 30 seconds</div>
+        <div class="otp-err" id="otpErr"></div>
+        <div class="tfa-actions" style="display: flex; align-items: center; justify-content: flex-end;">
+          <button class="cta cta-ghost" style="margin:0" onclick="closeTFA()">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- TX DETAIL OVERLAY -->
+    <div class="overlay" id="txOv" onclick="bgClose(event,'txOv')">
+      <div class="sheet"><div class="handle"></div><div id="txContent"></div></div>
+    </div>
+
+
+
+  </div>
+</div>
+

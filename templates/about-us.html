@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>About Us — Gleyo</title>
+  <meta name="description" content="Meet the team behind Gleyo — the community growth and retention platform built by people who felt the problem first." />
+  <meta name="author" content="Okiri Donald" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://gleyo.app/about" />
+  <link rel="shortcut icon" href="https://gleyo.app/static/my_logo.png" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://gleyo.app/about" />
+  <meta property="og:title" content="About Us — Gleyo" />
+  <meta property="og:description" content="Meet Okiri Donald and Olaide Mayowa, the founders behind Gleyo's community growth and retention platform." />
+  <meta property="og:site_name" content="Gleyo" />
+  <meta property="og:image" content="https://gleyo.app/static/my_logo.png" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="About Us — Gleyo" />
+  <meta name="twitter:description" content="Meet the team behind Gleyo — built by people who felt the community problem first." />
+  <meta name="twitter:image" content="https://gleyo.app/static/my_logo.png" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "AboutPage",
+    "url": "https://gleyo.app/about",
+    "name": "About Us — Gleyo",
+    "description": "Meet the founders behind Gleyo, a community growth and retention platform.",
+    "publisher": {
+      "@type": "Organization",
+      "name": "Gleyo",
+      "url": "https://gleyo.app",
+      "logo": "https://gleyo.app/static/my_logo.png",
+      "founder": [git push https://okiridonald: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@github.com/okiridonald/gleyo.git
+        {
+          "@type": "Person",
+          "name": "Okiri Donald",
+          "jobTitle": "Founder & CEO"
+        },
+        {
+          "@type": "Person",
+          "name": "Olaide Mayowa",
+          "jobTitle": "Co-Founder",
+          "alumniOf": "Rivers State University"
+        }
+      ]
+    }
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet" />
+
+
+
+   <style>
+    :root {
+      --bg: #0b0b12;
+      --glass: rgba(34, 34, 54, 0.45);
+      --border: #2f2f4a;
+      --border-light: #1e1e30;
+      --text: #e5e7eb;
+      --muted: #a1a1aa;
+      --hint: #52526e;
+      --accent: #6366f1;
+      --radius: 18px;
+      --radius-sm: 12px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: radial-gradient(circle at 20% 10%, #151528 0%, #0b0b12 65%);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    /* NAV */
+    nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 24px 8%;
+    }
+
+    .logo {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 18px;
+    }
+
+    .nav-link {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 20px 60px;
+    }
+
+    .hero {
+      text-align: center;
+      padding: 64px 20px 48px;
+      max-width: 680px;
+      margin: 0 auto;
+    }
+
+    .tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      background: rgba(99,102,241,0.1);
+      border: 1px solid rgba(99,102,241,0.25);
+      color: #a5b4fc;
+      padding: 5px 14px;
+      border-radius: 100px;
+      margin-bottom: 1.25rem;
+    }
+
+    .hero h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: 48px;
+      font-weight: 800;
+      line-height: 1.12;
+      letter-spacing: -1px;
+      margin-bottom: 1rem;
+    }
+
+    .hero p {
+      font-size: 16px;
+      color: var(--muted);
+      line-height: 1.75;
+    }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--hint);
+      margin-bottom: 14px;
+    }
+
+    .card {
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      margin-bottom: 24px;
+    }
+
+    .mission p {
+      font-size: 16px;
+      line-height: 1.8;
+      color: var(--text);
+    }
+
+    .mission p span {
+      font-weight: 600;
+      color: #c7d2fe;
+    }
+
+    .origin {
+      display: flex;
+      gap: 18px;
+      align-items: flex-start;
+    }
+
+    .origin-icon {
+      flex-shrink: 0;
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: rgba(99,102,241,0.12);
+      border: 1px solid rgba(99,102,241,0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .origin-content h3 {
+      font-family: 'Syne', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .origin-content p {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.75;
+    }
+
+    .team-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .team-card {
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .team-card-accent {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+    }
+
+    
+    ::selection {
+      background: #4effcd29; 
+      color: var(--text-main);        
+    }
+
+    ::-moz-selection {
+      background: #4effcd29; 
+      color: var(--text-main);        
+    }
+
+
+    .accent-founder   { background: #6366f1; }
+    .accent-cofounder { background: #14b8a6; }
+
+    .avatar {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Syne', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      border: 1px solid var(--border);
+    }
+
+    .avatar-founder   { background: rgba(99,102,241,0.15); color: #a5b4fc; }
+    .avatar-cofounder { background: rgba(20,184,166,0.12); color: #5eead4; }
+
+    .team-card h3 {
+      font-family: 'Syne', sans-serif;
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      margin-bottom: 8px;
+    }
+
+    .badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+
+    .badge {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 100px;
+    }
+
+    .badge-purple {
+      background: rgba(99,102,241,0.15);
+      color: #a5b4fc;
+      border: 1px solid rgba(99,102,241,0.25);
+    }
+
+    .badge-teal {
+      background: rgba(20,184,166,0.12);
+      color: #5eead4;
+      border: 1px solid rgba(20,184,166,0.22);
+    }
+
+    .team-card p {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.75;
+      margin-bottom: 10px;
+    }
+
+    .team-card p:last-of-type { margin-bottom: 0; }
+
+    .pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 14px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      color: var(--hint);
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border-light);
+      padding: 4px 10px;
+      border-radius: 100px;
+    }
+
+    .values-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+
+    .value-card {
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 20px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .value-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 12px;
+    }
+
+    .value-card h4 {
+      font-family: 'Syne', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .value-card p {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    /* CTA */
+    .cta {
+      text-align: center;
+      padding: 44px 20px;
+    }
+
+    .cta h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-bottom: 10px;
+    }
+
+    .cta p {
+      font-size: 15px;
+      color: var(--muted);
+      margin-bottom: 24px;
+    }
+
+    .cta-btn {
+      display: inline-block;
+      background: var(--accent);
+      color: #fff;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 12px 28px;
+      border-radius: 100px;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .cta-btn:hover { opacity: 0.85; }
+
+    /* FOOTER */
+    footer {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    @media (max-width: 768px) {
+      nav { padding: 20px 5%; }
+
+      .hero { padding: 44px 16px 32px; }
+      .hero h1 { font-size: 32px; letter-spacing: -0.5px; }
+      .hero p  { font-size: 15px; }
+
+      .container { padding: 0 16px 48px; }
+
+      .card { padding: 20px; }
+
+      .origin { flex-direction: column; gap: 12px; }
+
+      .team-grid  { grid-template-columns: 1fr; gap: 14px; }
+      .team-card  { padding: 20px; }
+
+      .values-grid { grid-template-columns: 1fr; gap: 12px; }
+
+      .mission p { font-size: 15px; }
+
+      .cta { padding: 32px 16px; }
+      .cta h2 { font-size: 22px; }
+    }
+
+    @media (max-width: 400px) {
+      .hero h1 { font-size: 26px; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <nav>
+    <div class="logo">Gleyo</div>
+    <a class="nav-link" href="https://gleyo.app">gleyo.app</a>
+  </nav>
+
+  <div class="hero">
+    <div class="tag">About us</div>
+    <h1>Built by people who felt the problem first</h1>
+    <p>We weren't outsiders looking in. We were community members watching engagement die — and decided to do something about it.</p>
+  </div>
+
+  <div class="container">
+
+    <div class="section-label">Our mission</div>
+    <div class="card mission">
+      <p>We believe every community deserves more than a follower count. Gleyo exists to give founders, creators, and teams the <span>tools to build communities that actually last</span> — where members stay, contribute, and grow together over time.</p>
+    </div>
+
+    <div class="card">
+      <div class="origin">
+        <div class="origin-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="#818cf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="origin-content">
+          <h3>Where it started</h3>
+          <p>Okiri and Olaide both came up as Zealy users — grinding quests, earning points, watching communities spike then go quiet. Okiri went deeper, managing one of the communities on Zealy himself, and saw firsthand how the tools fell short for anyone serious about long-term retention. That gap is exactly what Gleyo was built to close.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label">The team</div>
+    <div class="team-grid">
+
+      <div class="team-card">
+        <div class="team-card-accent accent-founder"></div>
+        <div class="avatar avatar-founder">OD</div>
+        <h3>Okiri Donald</h3>
+        <div class="badges">
+          <span class="badge badge-purple">Founder</span>
+          <span class="badge badge-purple">CEO</span>
+        </div>
+        <p>Okiri is a software developer who didn't just theorize about community problems — he lived them. As both a Zealy user and a manager of one of its communities, he saw exactly where engagement systems break down and what builders actually need.</p>
+        <p>That experience gave him the blueprint for Gleyo. He leads the company as CEO, driving product vision and engineering with the rare advantage of having been on both sides: the builder and the member.</p>
+        <div class="pills">
+          <span class="pill">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M16 18l6-6-6-6M8 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Software developer
+          </span>
+          <span class="pill">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Ex Zealy community manager
+          </span>
+        </div>
+      </div>
+
+      <div class="team-card">
+        <div class="team-card-accent accent-cofounder"></div>
+        <div class="avatar avatar-cofounder">OM</div>
+        <h3>Olaide Mayowa</h3>
+        <div class="badges">
+          <span class="badge badge-teal">Co-Founder</span>
+        </div>
+        <p>A chemical engineering graduate from Rivers State University, Nigeria, Olaide brings a builder's mindset to everything — systems thinking, precision, and an eye for what actually holds together under pressure.</p>
+        <p>Having used Zealy firsthand, he joined Okiri knowing the problem was real. At Gleyo, he shapes the operational backbone that makes everything the platform promises actually deliverable.</p>
+        <div class="pills">
+          <span class="pill">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" stroke="currentColor" stroke-width="2"/></svg>
+            Rivers State University, Nigeria
+          </span>
+          <span class="pill">Chemical Engineering</span>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="section-label">What we stand for</div>
+    <div class="values-grid">
+
+      <div class="value-card">
+        <div class="value-icon" style="background: rgba(99,102,241,0.12);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#818cf8" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h4>Structure over noise</h4>
+        <p>We replace short-term spikes with systems built for real, lasting engagement.</p>
+      </div>
+
+      <div class="value-card">
+        <div class="value-icon" style="background: rgba(20,184,166,0.1);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" stroke="#2dd4bf" stroke-width="2"/>
+            <path d="M12 6v6l4 2" stroke="#2dd4bf" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h4>Retention first</h4>
+        <p>Growth means nothing if members leave. We obsess over what keeps communities alive.</p>
+      </div>
+
+      <div class="value-card">
+        <div class="value-icon" style="background: rgba(251,191,36,0.1);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M9 11l3 3L22 4" stroke="#fbbf24" stroke-width="2" stroke-linecap="round"/>
+            <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" stroke="#fbbf24" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h4>Measurable results</h4>
+        <p>Every feature we build has to move a number that matters to the people using it.</p>
+      </div>
+
+    </div>
+
+    <div class="card cta">
+      <h2>Want to build with us?</h2>
+      <p>We're offering early access to communities ready to grow differently.</p>
+      <a class="cta-btn" href="/pricing">Get early access</a>
+    </div>
+
+  </div>
+
+  <footer>
+    &copy; {{ current_year }} Gleyo. All rights reserved.
+  </footer>
+
+</body>
+</html>

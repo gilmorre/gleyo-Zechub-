@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Telegram Join Button</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+
+
+/* Make both containers same width */
+.outer-box,
+.popup-container {
+    width: 100% !important;
+    box-sizing: border-box;
+}
+
+ @media (max-width: 991px){
+
+.outer-box,
+.popup-container {
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+ }
+/* Outer container */
+.outer-box {
+    position: relative;
+    border: 1.5px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    padding: 50px 20px 20px;
+}
+
+/* Floating label above */
+.tellabel {
+    position: absolute;
+    top: -16px;
+    left: 20px;
+    background: #00c3ff;
+    color: white;
+    font-size: 14px;
+    padding: 6px 16px;
+    border-radius: 50px;
+    display: flex;
+    align-items: center;
+    font-weight: bold;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+.tellabel i {
+    margin-right: 6px;
+}
+
+/* Join button */
+.teljoin-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: linear-gradient(90deg, #00c3ff, #007bff);
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    border-radius: 20px;
+    padding: 18px;
+    text-decoration: none;
+    transition: background 0.3s ease;
+}
+
+
+/* Popup container */
+.popup-container {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 18px;
+    padding: 20px 20px 30px;
+    position: relative;
+    color: white;
+}
+
+/* Upward arrow above container */
+.popup-container::before {
+    content: "";
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-bottom: 12px solid #222;
+}
+
+.popup-header {
+    display: flex;
+    align-items: center;
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-bottom: 16px;
+    gap: 10px;
+}
+
+.popup-header .telicon {
+    background: #00c3ff;
+    padding: 6px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.popup-header .telicon i {
+    color: white;
+    font-size: 18px;
+}
+
+.popup-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 15px;
+}
+
+.popup-actions button {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: #ccc;
+    font-size: 18px;
+}
+
+.popup-actions button:hover {
+    color: white;
+}
+
+.labeltesting {
+   font-size: 0.7rem;
+    margin-top: 23px;
+    display: block;
+    margin-bottom: 6px;
+}
+
+.telinput {
+    width: 90%;
+    padding: 10px 14px;
+    border-radius: 14px;
+    margin-left: 6px;
+    border: 1.5px solid #555;
+    background: #121212;
+    color: white;
+    font-size: 1rem;
+}
+
+
+
+input[type="text"]:focus {
+    outline-color: #2e65ff;
+    border-color: #2e65ff;
+}
+
+input[type="text"].error {
+    border-color: #ff3b3b;
+}
+
+.error-message {
+    color: #ff3b3b;
+    font-size: 0.85rem;
+    margin-top: 6px;
+    font-weight: 600;
+}
+
+
+.liners {
+    height: 0.5px;
+    background-color: #2e65ff;
+    border-radius: 1px;
+    margin: 8px -20px; /* matches container's horizontal padding */
+}
+
+.telegarmCircle {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background-color: #00c3ff; /* blue circle always visible */
+  margin: 10px auto;
+  position: relative;
+  overflow: hidden;
+}
+
+.telegarmCircle img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: none; /* hide image by default */
+}
+
+.telegramFallback {
+  width: 100%;
+  height: 100%;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 20px;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+</style>
+</head>
+<body>
+<div style="outline: none; display: flex; justify-content: center; align-items: center;  flex-direction: column;">
+
+
+<div data-type="telegram" class="outer-box telegram-root">
+  <div class="tellabel" style="display: flex; gap: 8px;">
+<svg xmlns="http://www.w3.org/2000/svg" 
+     width="16" height="16" 
+     fill="currentColor" 
+     viewBox="0 0 24 24">
+  <path d="M24 12A12 12 0 1 1 0 12a12 12 0 0 1 24 0m-11.568-3.141q-1.752.729-7 3.015-.85.337-.893.662c-.045.364.412.509 1.035.705l.263.083c.612.2 1.437.432 1.864.44q.585.015 1.302-.48 4.903-3.309 5.061-3.345c.075-.018.18-.039.249.024s.063.18.056.212c-.045.194-1.841 1.861-2.769 2.725-.29.27-.495.46-.537.504a12 12 0 0 1-.282.279c-.57.549-.996.96.022 1.632.491.324.883.589 1.274.857.426.292.852.58 1.404.944q.21.138.404.28c.497.354.945.672 1.496.621.32-.03.652-.33.821-1.23.398-2.125 1.179-6.729 1.36-8.627a2.1 2.1 0 0 0-.02-.473.51.51 0 0 0-.171-.326.8.8 0 0 0-.465-.14c-.45.008-1.144.249-4.476 1.635"/>
+</svg> Telegram
+  </div>
+  <div class="telegarmCircle">
+    <img class="telegramCircleImg" alt="Profile picture" />
+    <div class="telegramFallback"></div>
+  </div>
+  <a href="#" class="teljoin-btn js-telegram-join">
+<svg xmlns="http://www.w3.org/2000/svg" 
+     width="16" height="16" 
+     fill="currentColor" 
+     viewBox="0 0 24 24">
+  <path d="M24 12A12 12 0 1 1 0 12a12 12 0 0 1 24 0m-11.568-3.141q-1.752.729-7 3.015-.85.337-.893.662c-.045.364.412.509 1.035.705l.263.083c.612.2 1.437.432 1.864.44q.585.015 1.302-.48 4.903-3.309 5.061-3.345c.075-.018.18-.039.249.024s.063.18.056.212c-.045.194-1.841 1.861-2.769 2.725-.29.27-.495.46-.537.504a12 12 0 0 1-.282.279c-.57.549-.996.96.022 1.632.491.324.883.589 1.274.857.426.292.852.58 1.404.944q.21.138.404.28c.497.354.945.672 1.496.621.32-.03.652-.33.821-1.23.398-2.125 1.179-6.729 1.36-8.627a2.1 2.1 0 0 0-.02-.473.51.51 0 0 0-.171-.326.8.8 0 0 0-.465-.14c-.45.008-1.144.249-4.476 1.635"/>
+</svg> Join the Telegram channel
+  </a>
+</div>
+
+<div class="popup-container" role="dialog" aria-label="Visit link">
+  <div class="popup-header">
+    <div class="telicon">
+<svg xmlns="http://www.w3.org/2000/svg" 
+     width="16" height="16" 
+     fill="currentColor" 
+     viewBox="0 0 24 24">
+  <path d="M24 12A12 12 0 1 1 0 12a12 12 0 0 1 24 0m-11.568-3.141q-1.752.729-7 3.015-.85.337-.893.662c-.045.364.412.509 1.035.705l.263.083c.612.2 1.437.432 1.864.44q.585.015 1.302-.48 4.903-3.309 5.061-3.345c.075-.018.18-.039.249.024s.063.18.056.212c-.045.194-1.841 1.861-2.769 2.725-.29.27-.495.46-.537.504a12 12 0 0 1-.282.279c-.57.549-.996.96.022 1.632.491.324.883.589 1.274.857.426.292.852.58 1.404.944q.21.138.404.28c.497.354.945.672 1.496.621.32-.03.652-.33.821-1.23.398-2.125 1.179-6.729 1.36-8.627a2.1 2.1 0 0 0-.02-.473.51.51 0 0 0-.171-.326.8.8 0 0 0-.465-.14c-.45.008-1.144.249-4.476 1.635"/>
+</svg>
+    </div>
+    <div class="title">Telegram</div>
+    <div class="liner"></div>
+    <div class="popup-actions">
+      <button title="Copy link">
+        <i class="far fa-clipboard"></i>
+      </button>
+      <button title="Delete link">
+        <i class="fas fa-trash-alt"></i>
+      </button>
+    </div>
+  </div>
+  <div class="liners"></div>
+
+  <label class="linkInput labeltesting">Link you want your users to visit</label>
+  <input name="telegram_link" class="js-telegram-input telinput" type="text" placeholder="https://t.me" />
+  <div class="js-telegram-error error-message" style="display:none; color:red;">Invalid url</div>
+</div>
+</div>
+<script>
+/* loader runs with: new Function("root", code)(wrapper) */
+window.telegramInfoCache = null;
+const telegramJoinBtn   = root.querySelector(".js-telegram-join");
+const telegramInput     = root.querySelector(".js-telegram-input");
+const telegramCircleImg = root.querySelector(".telegramCircleImg");
+const telegramFallback  = root.querySelector(".telegramFallback");
+const telegramError     = root.querySelector(".js-telegram-error");
+
+function extractTelegramUsername(url) {
+  const match = url.match(/t\.me\/(?:joinchat\/)?([a-zA-Z0-9_]+)/i);
+  return match ? match[1] : null;
+}
+
+async function fetchTelegramInfo(username) {
+  try {
+    const res = await fetch(`/api/telegram_info?username=${encodeURIComponent(username)}`);
+    const data = await res.json();
+    if (!res.ok) {
+      console.error("Telegram API error:", data.error);
+      return null;
+    }
+    return data;
+  } catch (err) {
+    console.error("Error fetching Telegram info:", err);
+    return null;
+  }
+}
+
+async function updateTelegramJoin() {
+  const url = telegramInput.value.trim();
+  const username = extractTelegramUsername(url);
+
+  telegramError.style.display = "none";
+  telegramCircleImg.style.display = "none";
+  telegramFallback.style.display = "none";
+  telegramJoinBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" 
+     width="16" height="16" 
+     fill="currentColor" 
+     viewBox="0 0 24 24">
+  <path d="M24 12A12 12 0 1 1 0 12a12 12 0 0 1 24 0m-11.568-3.141q-1.752.729-7 3.015-.85.337-.893.662c-.045.364.412.509 1.035.705l.263.083c.612.2 1.437.432 1.864.44q.585.015 1.302-.48 4.903-3.309 5.061-3.345c.075-.018.18-.039.249.024s.063.18.056.212c-.045.194-1.841 1.861-2.769 2.725-.29.27-.495.46-.537.504a12 12 0 0 1-.282.279c-.57.549-.996.96.022 1.632.491.324.883.589 1.274.857.426.292.852.58 1.404.944q.21.138.404.28c.497.354.945.672 1.496.621.32-.03.652-.33.821-1.23.398-2.125 1.179-6.729 1.36-8.627a2.1 2.1 0 0 0-.02-.473.51.51 0 0 0-.171-.326.8.8 0 0 0-.465-.14c-.45.008-1.144.249-4.476 1.635"/>
+</svg> Join Telegram`;
+
+  if (!username) {
+    telegramInfoCache = null;
+    return;
+  }
+
+  const info = await fetchTelegramInfo(username);
+  console.log("Telegram info response:", info);
+
+  window.telegramInfoCache = info;
+
+  if (info && info.title) {
+    let cleanTitle = info.title.trim();
+    const lowerTitle = cleanTitle.toLowerCase();
+    if (lowerTitle.endsWith(" channel")) {
+      cleanTitle = cleanTitle.slice(0, -8).trim();
+    } else if (lowerTitle.endsWith(" community")) {
+      cleanTitle = cleanTitle.slice(0, -10).trim();
+    }
+
+    telegramJoinBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" 
+     width="16" height="16" 
+     fill="currentColor" 
+     viewBox="0 0 24 24">
+  <path d="M24 12A12 12 0 1 1 0 12a12 12 0 0 1 24 0m-11.568-3.141q-1.752.729-7 3.015-.85.337-.893.662c-.045.364.412.509 1.035.705l.263.083c.612.2 1.437.432 1.864.44q.585.015 1.302-.48 4.903-3.309 5.061-3.345c.075-.018.18-.039.249.024s.063.18.056.212c-.045.194-1.841 1.861-2.769 2.725-.29.27-.495.46-.537.504a12 12 0 0 1-.282.279c-.57.549-.996.96.022 1.632.491.324.883.589 1.274.857.426.292.852.58 1.404.944q.21.138.404.28c.497.354.945.672 1.496.621.32-.03.652-.33.821-1.23.398-2.125 1.179-6.729 1.36-8.627a2.1 2.1 0 0 0-.02-.473.51.51 0 0 0-.171-.326.8.8 0 0 0-.465-.14c-.45.008-1.144.249-4.476 1.635"/>
+</svg> Join ${cleanTitle} ${info.type || ""}`;
+
+    if (info.photo) {
+        telegramCircleImg.src = info.photo;  // static URL from /static/telegram/
+        telegramCircleImg.style.display = "block";
+    } else {
+        telegramFallback.textContent = cleanTitle.charAt(0).toUpperCase();
+        telegramFallback.style.display = "flex";
+    }
+  } else {
+    telegramError.style.display = "block";
+  }
+}
+
+
+telegramInput.addEventListener("input", updateTelegramJoin);
+
+telegramJoinBtn.addEventListener("click", e => {
+  e.preventDefault();
+  const username = extractTelegramUsername(telegramInput.value.trim());
+  if (username) {
+    window.open(`https://t.me/${username}`, "_blank");
+  } else {
+    telegramError.style.display = "block";
+  }
+});
+
+// Initialize
+updateTelegramJoin();
+</script>
+
+
+</body>
+</html>

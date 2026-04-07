@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Token Logo Fetcher</title>
+<style>
+  body {
+    font-family: "Inter", sans-serif;
+    background: #0e0f12;
+    color: #eee;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px;
+  }
+  select {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+    color: #fff;
+    padding: 10px;
+    margin: 10px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  select:focus {
+    outline: none;
+    border-color: #7c5cff;
+  }
+  #logo {
+    margin-top: 20px;
+    padding: 15px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 120px;
+    min-height: 120px;
+    text-align: center;
+  }
+  #logo img {
+    max-width: 100px;
+    max-height: 100px;
+  }
+</style>
+</head>
+<body>
+
+  <h2>Choose Blockchain & Token</h2>
+
+  <label>
+    Blockchain:
+    <select id="blockchain">
+      <option value="ethereum">Ethereum</option>
+      <option value="smartchain">BNB Chain</option>
+      <option value="aptos">Aptos</option>
+    </select>
+  </label>
+
+  <label>
+    Token:
+    <select id="token">
+      <!-- Ethereum tokens -->
+      <option value="ethereum:info">ETH (native)</option>
+      <option value="ethereum:0xdAC17F958D2ee523a2206206994597C13D831ec7">USDT</option>
+      <option value="ethereum:0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48">USDC</option>
+
+      <!-- BNB Chain tokens -->
+      <option value="smartchain:info">BNB (native)</option>
+      <option value="smartchain:0xe9e7cea3dedca5984780bafc599bd69add087d56">BUSD</option>
+
+      <!-- Aptos (no TrustWallet logos, will fail gracefully) -->
+      <option value="aptos:info">APT (native)</option>
+    </select>
+  </label>
+
+  <div id="logo">Logo will appear here</div>
+
+<script>
+  const tokenSelect = document.getElementById("token");
+  const logoDiv = document.getElementById("logo");
+
+  tokenSelect.addEventListener("change", () => {
+    const value = tokenSelect.value;
+    const [chain, address] = value.split(":");
+
+    let url = "";
+
+    if (address === "info") {
+      // Native coin logos
+      url = `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/${chain}/info/logo.png`;
+    } else {
+      // Contract-based tokens
+      url = `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/${chain}/assets/${address}/logo.png`;
+    }
+
+    // Create image element
+    const img = document.createElement("img");
+    img.src = url;
+    img.alt = "Token Logo";
+    img.onerror = () => {
+      logoDiv.innerHTML = "Logo not found";
+    };
+
+    logoDiv.innerHTML = "";
+    logoDiv.appendChild(img);
+  });
+</script>
+
+</body>
+</html>

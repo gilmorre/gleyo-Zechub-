@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voice Message</title>
+
+<style>
+
+.voice-message-box {
+  display: inline-flex;   
+  align-items: center;
+  gap: 12px;
+  background: #4285F4;
+  border-radius: 16px;
+  padding: 12px 14px;
+  color: #fff;
+  width: auto;             
+  max-width: 90%;            
+  position: relative;
+  overflow: hidden;
+}
+
+.voice-play-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  justify-content: center;
+  cursor: pointer;
+  background: rgba(255,255,255,0.15);
+  border: 2px solid rgba(255,255,255,0.3);
+}
+
+.voice-icon {
+  font-size: 20px;
+  z-index: 5;
+}
+
+.voice-duration {
+  font-size: 13px;
+  
+  opacity: 0.9;
+  white-space: nowrap;
+}
+
+audio {
+  display: none;
+}
+
+.voice-main {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.voice-wave {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4px;
+}
+
+.voice-bar {
+  width: 3px;
+  background: rgba(255,255,255,0.55);
+  border-radius: 50px;
+  height: var(--bar-height);
+  overflow: hidden;
+  position: relative;
+}
+
+.voice-bar::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0%;
+  height: 100%;
+  background: #fff;
+  transition: width 0.1s linear;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="voice-message-box">
+    
+    <div class="voice-play-btn paused">
+        <div class="voice-icon">
+          
+        </div>
+    </div>
+
+    <div class="voice-main">
+
+        <div class="voice-wave">
+            <div class="voice-bar" style="--bar-height: 14px"></div>
+            <div class="voice-bar" style="--bar-height: 9px"></div>
+        </div>
+
+    </div>
+
+    <div class="voice-duration">00:00</div>
+
+    <audio src="yourfile.mp3" preload="metadata"></audio>
+
+</div>
+
+</body>
+</html>

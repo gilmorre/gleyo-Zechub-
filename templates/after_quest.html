@@ -1,0 +1,189 @@
+{% extends "your_community.html" %}
+{% block content %}
+
+<title>Mod Dashboard</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #1e1e2f;
+      color: white;
+    }
+
+    .app-container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    .header {
+      background-color: #29293d;
+      padding: 16px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #3e3e50;
+    }
+
+    .brand {
+      font-size: 1.3rem;
+      font-weight: 600;
+    }
+
+    .quest-count {
+      background-color: #3d3d55;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+    }
+
+    .actions {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .icon-button {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 1.3rem;
+      cursor: pointer;
+    }
+
+    .dropdown {
+      position: absolute;
+      top: 48px;
+      right: 0;
+      background-color: #2f2f45;
+      border: 1px solid #444;
+      border-radius: 8px;
+      display: none;
+      min-width: 180px;
+      z-index: 100;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.25);
+    }
+
+    .dropdown.show {
+      display: block;
+    }
+
+    .dropdown-item {
+      padding: 12px 16px;
+      cursor: pointer;
+      color: #ddd;
+    }
+
+    .dropdown-item:hover {
+      background-color: #444;
+    }
+
+    .main-panel {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      padding: 40px;
+      overflow-y: auto;
+    }
+
+    .quest-board {
+      width: 100%;
+      max-width: 720px;
+      background-color: #2a2a3d;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 0 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .quest-board h2 {
+      font-size: 1.1rem;
+      margin-bottom: 20px;
+      border-bottom: 1px solid #444;
+      padding-bottom: 8px;
+    }
+
+    .quest-item {
+      background-color: #3a3a55;
+      padding: 14px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      color: #eee;
+      font-size: 0.95rem;
+    }
+
+    .fab {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      background-color: #6c5ce7;
+      color: white;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      cursor: pointer;
+      box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+      transition: background-color 0.2s ease;
+    }
+
+    .fab:hover {
+      background-color: #7d6ef3;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <header class="header">
+      <div class="left">
+        <span class="brand">Untitled Mod</span>
+        <span class="quest-count">0 quests</span>
+      </div>
+      <div class="actions">
+        <button class="icon-button" id="menu-btn">⋯</button>
+        <div class="dropdown" id="dropdown-menu">
+          <div class="dropdown-item">Settings</div>
+          <div class="dropdown-item">Archive</div>
+          <div class="dropdown-item">Delete mod</div>
+        </div>
+      </div>
+    </header>
+
+    <div class="main-panel">
+      <div class="quest-board">
+        <h2>Quests</h2>
+        <!-- Dynamic quest items will go here -->
+        <div class="quest-item">+ New quest</div>
+      </div>
+    </div>
+
+    <div class="fab" id="fab">+</div>
+  </div>
+
+  <script>
+    const menuBtn = document.getElementById('menu-btn');
+    const dropdown = document.getElementById('dropdown-menu');
+    const fab = document.getElementById('fab');
+
+    menuBtn.addEventListener('click', () => {
+      dropdown.classList.toggle('show');
+    });
+
+    window.addEventListener('click', (e) => {
+      if (!menuBtn.contains(e.target) && !dropdown.contains(e.target)) {
+        dropdown.classList.remove('show');
+      }
+    });
+
+    fab.addEventListener('click', () => {
+      alert("Create a new quest"); // Replace this with your modal or redirect
+    });
+  </script>
+</body>
+
+
+{% endblock %}
+

@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trophy Quest</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body {
+      background-color: #1e1e2f;
+      font-family: Arial, sans-serif;
+    }
+
+  
+    
+
+            .quest-partner-root,
+    .quest-partner-popup-container {
+    width: 100% !important;
+    box-sizing: border-box;
+    }
+ 
+
+    /* Outer container */
+    .quest-partner-root {
+      position: relative;
+      border: 1.5px solid rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      padding: 50px 20px 20px;
+      text-align: center;
+    }
+
+    /* Floating label above */
+    .quest-partner-label {
+      background: #1e1e2f;
+
+      position: absolute;
+      top: -16px;
+      left: 20px;
+      color: white;
+      font-size: 14px;
+
+    }
+
+    .quest-lee{
+      background: linear-gradient(90deg, rgba(255, 217, 0, 0.827), rgba(255, 193, 7, 0.87));
+      padding: 6px 16px;
+      border-radius: 50px;
+      display: flex;
+      align-items: center;
+      font-weight: bold;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    .quest-partner-label i {
+      margin-right: 6px;
+    }
+
+    /* Join button */
+    .quest-partner-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      background: linear-gradient(90deg, rgba(255, 217, 0, 0.827), rgba(255, 193, 7, 0.87));
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      border-radius: 20px;
+      padding: 14px;
+      text-decoration: none;
+      transition: background 0.3s ease;
+      margin-top: 16px;
+    }
+
+.quest-partner-btn:hover {
+  background: linear-gradient(90deg, #e9be31, #d0a12c);
+}
+
+    /* Quest circle */
+    .quest-partnerCircle {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: linear-gradient(90deg, rgba(255, 217, 0, 0.827), rgba(255, 193, 7, 0.87));
+      margin: 0 auto 8px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .quest-partnerCircle i {
+      color: white;
+      font-size: 28px;
+    }
+
+    /* Title + description */
+    .quest-community_name {
+      color: #fff;
+      margin: 6px 0 4px;
+      font-size: 1.1rem;
+      line-height: 1.3;
+    }
+
+    .sub-quest-name {
+      color: #c9c7c7;
+      font-size: 14px;
+      margin: 4px 0 0;
+    }
+
+    /* Popup container */
+    .quest-partner-popup-container {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 18px;
+      padding: 20px 20px 30px;
+      position: relative;
+      color: white;
+      margin-top: 24px;
+    }
+
+    .quest-partner-popup-container::before {
+      content: "";
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-left: 10px solid transparent;
+      border-right: 10px solid transparent;
+      border-bottom: 12px solid #222;
+    }
+
+    .popup-header {
+      display: flex;
+      align-items: center;
+      font-weight: 700;
+      font-size: 1.1rem;
+      margin-bottom: 16px;
+      gap: 10px;
+    }
+
+    .popup-header .quest-partner-icon {
+      background: linear-gradient(90deg, rgba(255, 217, 0, 0.827), rgba(255, 193, 7, 0.87));
+      padding: 6px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .popup-header .quest-partner-icon i {
+      color: white;
+      font-size: 18px;
+    }
+
+    .popup-actions {
+      margin-left: auto;
+      display: flex;
+      gap: 15px;
+    }
+
+    .popup-actions button {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: #ccc;
+      font-size: 18px;
+    }
+
+    .popup-actions button:hover {
+      color: white;
+    }
+
+    .liners {
+      height: 0.5px;
+      background-color: #388e3c;
+      border-radius: 1px;
+      margin: 8px -20px;
+    }
+
+    .input-wrapper {
+      display: flex;
+      align-items: center;
+      width: 90%;
+      margin-left: 6px;
+      border: 1.5px solid #555;
+      border-radius: 14px;
+      background: #121212;
+      overflow: hidden;
+    }
+
+    .quest-partner-input {
+      flex: 1;
+      padding: 10px 14px;
+      border: none;
+      background: transparent;
+      color: white;
+      font-size: 1rem;
+    }
+
+ 
+    .quest-partnerCircle img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+      position: absolute;
+      top: 0;
+      left: 0;
+      display: none; /* hide image by default */
+    }
+
+    @media (max-width: 991px){
+        .quest-partner-root,
+    .quest-partner-popup-container {
+    width: 100%;
+    box-sizing: border-box;
+    }
+    }
+  </style>
+</head>
+<body>
+<div style="outline: none; display: flex; justify-content: center; align-items: center;  flex-direction: column;">
+
+  <div class="outer-box quest-partner-root" data-type="partnership_quest">
+
+<div class="quest-partner-label">
+  <div class="quest-lee">
+    <i class="fa-solid fa-crown"></i>  Partnership Quest
+  </div> 
+</div>
+
+
+    <div class="quest-partnerCircle">
+         <img class="quest-partnerCircleImg" alt="Profile picture" class="fallback-letter" />
+      <span class="partnerFallback"></span>
+    </div>
+
+    
+
+    <h2 class="quest-community_name"> </h2>
+    <div class="sub-quest-name" style="color: #c0bebe;"></div>
+    <div data-community_id_quest="" hidden></div>
+
+    <a href="#" class="quest-partner-btn">
+       <i class="fa-solid fa-crown"></i>  Claim Quest
+    </a>
+  </div>
+
+  <div class="quest-partner-popup-container" role="dialog" aria-label="Visit link">
+    <div class="popup-header">
+      <div class="quest-partner-icon">
+         <i class="fa-solid fa-crown"></i> 
+      </div>
+      <div class="title">Trophy Quest</div>
+      <div class="popup-actions">
+        <button title="Copy link"><i class="far fa-clipboard"></i></button>
+        <button title="Delete link"><i class="fas fa-trash-alt"></i></button>
+      </div>
+    </div>
+
+    <div class="liners"></div>
+
+    <label class="linkInput">Quest URL</label>
+    <div class="input-wrapper">
+      <input id="partnerInputquest" class="quest-partner-input"
+             type="text" placeholder="http://127.0.0.1:8000/"/>
+    </div>
+    <div class="js-error-message error-message" style="display:none; color: red;">Invalid URL</div>
+  </div>
+</div>
+  
+<script>
+document.querySelectorAll('.outer-box.quest-partner-root').forEach(root => {
+  // Try to get the popup as the next sibling
+  let popup = root.nextElementSibling && root.nextElementSibling.classList.contains('quest-partner-popup-container')
+    ? root.nextElementSibling
+    : root.querySelector('.quest-partner-popup-container');
+
+  if (!popup) {
+    popup = document.querySelector('.quest-partner-popup-container');
+  }
+  if (!popup) return;
+
+  const input = popup.querySelector('.quest-partner-input');
+  const prefix = 'http://127.0.0.1:8000/';
+  const imgEl = root.querySelector('.quest-partnerCircleImg');
+  const commName = root.querySelector('.quest-community_name');
+  const subquestName = root.querySelector('.sub-quest-name');
+  const claimBtn = root.querySelector('.quest-partner-btn');
+                  const hiddenDiv = root.querySelector('[data-community_id_quest]');
+
+  const errorMsg = popup.querySelector('.js-error-message');
+  const copyBtn = popup.querySelector('.js-copy');
+  let questUrl = '';
+
+  // Toggle popup on claim button click
+  if (claimBtn) {
+    claimBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      popup.style.display = popup.style.display === 'block' ? 'none' : 'block';
+    });
+  }
+
+  // Prevent clicks inside popup from propagating
+  popup.addEventListener('click', e => e.stopPropagation());
+
+  // Prefix enforcement & input logic
+  if (input) {
+    input.addEventListener('input', () => {
+      if (!input.value.startsWith(prefix)) {
+        const userPart = input.value.replace(prefix, '');
+        input.value = prefix + userPart;
+      }
+    });
+
+    input.addEventListener('focus', () => {
+      setTimeout(() => {
+        try {
+          if (input.selectionStart < prefix.length) {
+            input.setSelectionRange(prefix.length, prefix.length);
+          }
+        } catch (err) {}
+      }, 0);
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if ((e.key === 'Backspace' || e.key === 'ArrowLeft') && input.selectionStart <= prefix.length) {
+        e.preventDefault();
+      }
+    });
+
+    // Fetch quest info only when clicking outside the input
+    document.addEventListener('click', (e) => {
+      if (!popup.contains(e.target) && e.target !== input) {
+        const raw = input.value.replace(prefix, '').trim();
+        const cleaned = raw.replace(/^\/+|\/+$/g, '');
+        const parts = cleaned.split('/');
+        if (parts.length >= 4 && parts[1] === 'quest') {
+          const community_slug = parts[0];
+          const quest_uuid = parts[2];
+          const subquest_uuid = parts[3];
+
+          fetch(`/api/quest/${community_slug}/${quest_uuid}/${subquest_uuid}`)
+            .then(res => res.json())
+            .then(data => {
+              if (data.error) {
+                commName.textContent = 'Not found';
+                subquestName.innerHTML = '';
+                imgEl && (imgEl.style.display = 'none');
+                questUrl = '';
+                claimBtn && claimBtn.setAttribute('href', '#');
+                if (hiddenDiv) hiddenDiv.setAttribute('data-community_id_quest', '');
+                if (hiddenDiv) hiddenDiv.setAttribute('data-community_id_quest', '');
+                errorMsg.style.display = 'block';
+              } else {
+                commName.textContent = data.community_name || '';
+                subquestName.innerHTML = `Claim <span style="color:#fff;">"${(data.subquest_name||'')}"</span> in ${data.community_name || ''}`;
+                if (imgEl && data.community_logo) {
+                  imgEl.src = data.community_logo;
+                  imgEl.style.display = 'block';
+                }
+                  if (hiddenDiv && data.community_id) {
+                    hiddenDiv.setAttribute('data-community_id_quest', data.community_id);
+                    
+                  }
+                questUrl = data.quest_url || '';
+                claimBtn && claimBtn.setAttribute('href', questUrl || '#');
+                errorMsg.style.display = 'none';
+              }
+            })
+            .catch(err => {
+              console.error(err);
+              commName.textContent = '';
+              subquestName.innerHTML = '';
+              imgEl && (imgEl.style.display = 'none');
+              questUrl = '';
+              if (hiddenDiv) hiddenDiv.setAttribute('data-community_id_quest', '');
+              errorMsg.style.display = 'block';
+              
+              
+            });
+        } else {
+          // invalid format
+          commName.textContent = '';
+          subquestName.innerHTML = '';
+          imgEl && (imgEl.style.display = 'none');
+          questUrl = '';
+          errorMsg.style.display = 'block';
+        }
+      }
+    });
+  }
+
+  // Claim / redirect
+  if (claimBtn) {
+    claimBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (questUrl) {
+        window.location.href = questUrl;
+      } else {
+        alert('Please enter a valid quest link.');
+      }
+    });
+  }
+
+  // Copy link inside popup
+  if (copyBtn) {
+    copyBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (input && navigator.clipboard) {
+        navigator.clipboard.writeText(input.value).then(() => {
+          copyBtn.textContent = 'Copied';
+          setTimeout(() => { copyBtn.innerHTML = '<i class="far fa-clipboard"></i>'; }, 1000);
+        });
+      }
+    });
+  }
+});
+</script>
+
+
+
+
+
+
+
+
+</body>
+</html>

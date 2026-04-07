@@ -1,0 +1,11 @@
+<!-- templates/subquest_view.html -->
+{% extends "your_community.html" %}
+
+{% block title %}Subquest Detail{% endblock %}
+
+{% block content %}
+<h1>{{ subquest.name or "Untitled Subquest" }}</h1>
+<p>UUID: {{ subquest.uuid }}</p>
+<p>Quest: {{ quest.title }}</p>
+<p>Community: {{ community_slug }}</p>
+{% endblock %}

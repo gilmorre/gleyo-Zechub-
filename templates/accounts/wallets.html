@@ -1,0 +1,142 @@
+<link rel="stylesheet" href="{{ url_for('static', filename='settings/wallet.css') }}?v=2">
+<title>Wallet</title>
+
+<div class="shell">
+  <div class="card-wall">
+    <div class="card-header">
+      <h1>Wallet</h1>
+      <p style="font-size: 13px; line-height: 1.4;">Connect your wallet to continue. Required for withdrawals and account verification.</p>
+    </div>
+
+    
+
+
+    <div id="state-nc" class="state {% if not wallet or not wallet.is_active %}active{% endif %}">
+      <button class="connect-btn" onclick="openModal()" id="connect-btn">Connect Wallet</button>
+      <div class="note">Ethereum · BNB Chain · Polygon supported</div>
+    </div>
+
+
+    <div id="state-c" class="state {% if wallet and wallet.is_active %}active{% endif %}">
+
+      <div class="info-box">
+        
+        <!-- CONNECTION -->
+        <div class="row">
+          <span class="lbl">Connection</span>
+`
+        </div>
+
+        <!-- WALLET -->
+        <div class="row">
+          <span class="lbl">Wallet</span>
+          <span id="conn-wallet-lbl" style="font-size:13px;font-weight: 550;">
+            {{ wallet.chain|capitalize if wallet and wallet.chain else "—" }}
+          </span>
+        </div>
+
+        <!-- ADDRESS -->
+        <div class="row">
+          <span class="lbl">Address</span>
+          <span id="conn-addr" class="addr">
+            {% if wallet and wallet.address %}
+              {{ wallet.address[:6] }}...{{ wallet.address[-4:] }}
+            {% else %}
+              —
+            {% endif %}
+          </span>
+        </div>
+
+        <!-- SIGNATURE STATUS -->
+        <div class="row">
+          <span class="lbl">Signature</span>
+          <span id="conn-sig-status"
+            style="font-size:11px;font-weight:550;
+            color:{% if wallet and wallet.last_signature %}var(--green){% else %}var(--muted){% endif %}">
+            {% if wallet and wallet.last_signature %}
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="16" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
+                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
+                </svg>  
+            Verified
+            {% else %}
+              Not verified
+            {% endif %}
+          </span>
+        </div>
+
+      </div>
+
+      <!-- SIGNATURE BOX (ALWAYS IN DOM, JUST HIDDEN) -->
+      <div id="sig-display" 
+          class="sig-box still-hide {% if not wallet or not wallet.last_signature %}hidden{% endif %}">
+        {% if wallet and wallet.last_signature %}
+          {{ wallet.last_signature[:12] }}...{{ wallet.last_signature[-8:] }}
+        {% endif %}
+      </div>
+
+      <!-- DISCONNECT -->
+      <button id="disc-btn"
+              class="disc-btn {% if not wallet or not wallet.is_active %}hidden{% endif %}"
+              onclick="disconnect()">
+        Disconnect
+      </button>
+
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-overlay" onclick="overlayClick(event)">
+  <div class="sheet" id="sheet">
+    <div class="sheet-handle"></div>
+
+    <div id="view-list" class="view active">
+      <div class="err-bar" id="err-bar"></div>
+      <div class="sheet-head">
+        <h2>Connect a wallet</h2>
+        <button class="close-btn" onclick="closeModal()">&#215;</button>
+      </div>
+      <div class="sheet-sub">Choose your wallet to get started</div>
+      <div class="wallet-list" id="wallet-list-container">
+        <!-- Populated dynamically by buildWalletList() -->
+      </div>
+    </div>
+
+    <div id="view-connecting" class="view flex-view" style="padding:44px 24px 36px;gap:0;text-align:center">
+      <div class="conn-logo-wrap">
+        <div class="conn-ring-outer"></div>
+        <div class="conn-ring"></div>
+        <div class="conn-logo-bg" id="conn-logo-bg" style="background-color: var(--text-main);"></div>
+      </div>
+      <div class="conn-wallet-name" id="conn-name"></div>
+      <div class="conn-status" id="conn-status">Waiting for wallet approval…</div>
+      <span class="cancel-link" onclick="backToList()">Cancel</span>
+    </div>
+
+    <div id="view-sign" class="view flex-view" style="padding:32px 24px 28px;gap:12px;text-align:center">
+      <div class="sign-icon">✍️</div>
+      <div class="conn-wallet-name" id="sign-name"></div>
+      <div class="sign-note">Sign this message in your wallet to verify ownership. No gas fee required.</div>
+      <div class="sign-preview" id="sign-preview"></div>
+      <div class="mini-spin"></div>
+      <span class="cancel-link" onclick="backToList()">Cancel</span>
+    </div>
+
+    <div id="view-qr" class="view flex-view" style="padding:22px 24px 28px;gap:13px;text-align:center">
+      <button class="back-btn" onclick="backToList()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+        Back
+      </button>
+      <h2 id="qr-title">Scan with any wallet</h2>
+      <p id="qr-desc">Open your wallet app and scan this QR code to connect via WalletConnect</p>
+      <div class="qr-wrap" style="background-color:var(--surface-lighter) !important;">
+        <canvas id="qr-canvas" width="220" height="220"></canvas>
+      </div>
+      <div class="qr-uri-text" id="qr-uri-text"></div>
+      <button class="deep-link-btn" id="deep-link-btn" style="display:none" onclick="openDeepLink()">Open in Wallet App</button>
+      <span class="cancel-link" onclick="closeModal()">Cancel</span>
+    </div>
+
+  </div>
+</div>
+
+

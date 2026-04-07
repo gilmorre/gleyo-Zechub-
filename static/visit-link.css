@@ -1,0 +1,134 @@
+/* Make both containers same width */
+.outer-box,
+.popup-container {
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+/* Outer container */
+/* Outer container */
+.outer-box {
+    position: relative;
+    border: 1.5px solid rgba(255, 255, 255, 0.2);
+    cursor: pointer;
+    min-height: 5vh;
+    border-radius: 12px; /* slightly smaller rounding for a neater look */
+    padding: 10px 12px;  /* reduced padding */
+    background: rgba(255, 255, 255, 0.03); /* optional soft background */
+}
+
+.outer-box:hover {
+    background: rgba(0, 123, 255, 0.08);
+    border-color: rgba(0, 123, 255, 0.4);
+}
+
+
+ 
+
+
+
+/* Popup container */
+.popup-container {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 18px;
+    padding: 20px 20px 30px;
+    position: relative;
+    color: white;
+}
+
+/* Upward arrow above container */
+.popup-container::before {
+    content: "";
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-bottom: 12px solid #222;
+}
+
+.popup-header {
+    display: flex;
+    align-items: center;
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-bottom: 16px;
+    gap: 10px;
+}
+
+.popup-header .gicon {
+    background: #2563eb;
+    padding: 6px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.popup-header .gicon i {
+    color: white;
+    font-size: 18px;
+}
+
+.popup-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 15px;
+}
+
+.popup-actions button {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: #ccc;
+    font-size: 18px;
+}
+
+.popup-actions button:hover {
+    color: white;
+}
+
+label {
+   font-size: 0.7rem;
+    margin-top: 23px;
+    display: block;
+    margin-bottom: 6px;
+}
+
+.js-link-input {
+    width: 90%;
+    padding: 10px 14px;
+    border-radius: 14px;
+    margin-left: 6px;
+    border: 1.5px solid #555;
+    background: #121212;
+    color: white;
+    font-size: 1rem;
+}
+
+
+
+.js-link-input:focus {
+    outline-color: #2e65ff;
+    border-color: #2e65ff;
+}
+
+.js-link-input.error {
+    border-color: #ff3b3b;
+}
+
+.error-message {
+    color: #ff3b3b;
+    font-size: 0.85rem;
+    margin-top: 6px;
+    font-weight: 600;
+}
+
+
+.liners {
+    height: 0.5px;
+    background-color: #2e65ff;
+    border-radius: 1px;
+    margin: 8px -20px; /* matches container's horizontal padding */
+}

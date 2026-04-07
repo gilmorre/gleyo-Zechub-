@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Complete Setup</title>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='setup1.css') }}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+</head>
+<body>
+
+<div class="royal-card-conatiner-init setup-container">
+
+    <h1 class="interger">Complete your setup</h1>
+
+    <p class="subtext" style="font-weight: 550;">
+        Bravo. Your community draft has been created.
+        Now personalize it so members instantly know they’re in the right place.
+    </p>
+
+    <span class="fragment-title">Link your project social channels</span>
+
+    <div class="link-cards">
+
+        {% if not discord_connected %}
+        <a href="{{ url_for('discord_bot.invite_bot', community_id=community.id) }}" class="discord-btn">
+            <i class="fab fa-discord"></i> Invite Bot
+        </a>
+        {% else %}
+        <button class="linked-btn">
+            <i class="fab fa-discord"></i> Bot connected successfully 
+        </button>
+        {% endif %}
+
+        {% if community.twitter_account and community.twitter_account.action == "connected" %}
+        <button class="linked-btn">
+            <i class="fa-brands fa-x-twitter"></i> Twitter connected successfully 
+        </button>
+        {% else %}
+        <a href="{{ url_for('community_twitter.community_twitter_login', community_id=community.id) }}" class="google-btn">
+            <i class="fa-brands fa-x-twitter"></i> Connect your Twitter
+        </a>
+        {% endif %}
+
+    </div>
+
+    <div class="progress-lines">
+        <div class="line active"></div>
+        <div class="line"></div>
+        <div class="line"></div>
+    </div>
+
+    <a id="nextLink"
+       href="{{ url_for('next', community_slug=community_slug) }}" 
+       class="main-login-btn valid-email"  onclick="event.preventDefault(); navigateTo(this.href);">
+        Next
+    </a>
+
+</div>
+
+
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

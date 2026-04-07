@@ -1,0 +1,32 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environment
+venv/
+
+# Environment variables
+.env
+
+# Flask session files
+flask_session/
+
+# Local database
+*.db
+*.exe
+# OS junk
+.DS_Storex
+Thumbs.db
+# Elastic Beanstalk Files
+.elasticbeanstalk/app_versions/
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml
+*.mov
+*.avi
+*.mkv
+emoji/
+
+*.webm
+*.zip

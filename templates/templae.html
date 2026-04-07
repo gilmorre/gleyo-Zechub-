@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Invited Friends Modal</title>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #111;
+      color: #fff;
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    /* Overlay background */
+    .invite-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* Modal box */
+    .invite-modal {
+      background: #1a1a1a;
+      border-radius: 16px;
+      padding: 20px;
+      width: 19%;
+      max-width: 19%;
+      min-height: 60%;
+      max-width: 60%;
+      max-height: 60%;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      position: relative;
+    }
+
+    .invite-modal h2 {
+      margin: 0 0 20px;
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    /* Close button */
+    .invite-close-btn {
+      position: absolute;
+      right: 15px;
+      top: 15px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      border-radius: 50%;
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease-in-out;
+      color: #888;
+    }
+
+    .invite-close-btn:hover {
+      background: #333;
+      color: #fff;
+      transform: scale(1.1);
+    }
+
+    .invite-close-btn svg {
+      width: 20px;
+      height: 20px;
+      stroke: currentColor;
+    }
+
+    /* Tabs */
+    .invite-tabs {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .invite-tab {
+      padding: 8px 16px;
+      border-radius: 12px;
+      background: transparent;
+      color: #aaa;
+      cursor: pointer;
+      font-weight: 500;
+      border: none;
+    }
+    .invite-tab.invite-active {
+      background: #2a2a2a;
+      color: #fff;
+    }
+
+    /* Content */
+    .invite-content {
+      text-align: center;
+      color: #aaa;
+      font-size: 14px;
+      padding: 10px 0;
+      min-height: 150px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    /* Custom scrollbar */
+    .invite-content::-webkit-scrollbar {
+      width: 6px;
+    }
+    .invite-content::-webkit-scrollbar-thumb {
+      background: #444;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="invite-overlay">
+  <div class="invite-modal">
+    <button class="invite-close-btn" id="closeModalBtn">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" 
+           viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+      </svg>
+    </button>
+    <h2>Invited friends</h2>
+    <div class="invite-tabs">
+      <button class="invite-tab invite-active" data-url="/active_invite">Active</button>
+      <button class="invite-tab" data-url="/pending_invite">Pending</button>
+      <button class="invite-tab" data-url="/consumed_invite">Consumed</button>
+    </div>
+    <div class="invite-content">
+      Loading invites...
+    </div>
+  </div>
+</div>
+
+<script>
+  const inviteTabs = document.querySelectorAll('.invite-tab');
+  const inviteContent = document.querySelector('.invite-content');
+  const closeModalBtn = document.getElementById("closeModalBtn");
+  const overlay = document.querySelector(".invite-overlay");
+
+  async function loadInviteContent(url, tab) {
+    inviteContent.innerHTML = "Loading...";
+    try {
+      let response = await fetch(url);
+      let data = await response.text();
+      inviteContent.innerHTML = data;
+    } catch (err) {
+      inviteContent.innerHTML = "Error loading invites.";
+    }
+
+    inviteTabs.forEach(t => t.classList.remove('invite-active'));
+    tab.classList.add('invite-active');
+  }
+
+  inviteTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      let url = tab.getAttribute('data-url');
+      loadInviteContent(url, tab);
+    });
+  });
+
+  // Close modal when clicking the close button
+  closeModalBtn.addEventListener("click", () => {
+    overlay.style.display = "none";
+  });
+
+  loadInviteContent("/active_invite", inviteTabs[0]);
+</script>
+
+</body>
+</html>

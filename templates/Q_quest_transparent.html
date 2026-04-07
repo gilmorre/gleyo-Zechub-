@@ -1,0 +1,264 @@
+
+
+
+
+
+
+          {% for subquest in quest.visible_subquests %}
+            <div
+            class="preview-box
+                  {% if subquest.id in completed_subquests %} completed{% endif %}
+                  
+                  {% if (subquest.conditions and subquest.conditions|length > 0) 
+                        and not subquest.all_conditions_met 
+                        and subquest.id not in completed_subquests %}
+                    locked
+                  {% endif %} {% if subquest.id in pending_subquests %} pending{% endif %}"
+            data-quest="{{ quest.uuid }}"
+            data-subquest="{{ subquest.uuid }}">
+                <div class="preview-text {% if (subquest.conditions and subquest.conditions|length > 0) 
+                        and not subquest.all_conditions_met 
+                        and subquest.id not in completed_subquests %} task-locked{% endif %}">
+                  <div class="subquest-name">{{ subquest.name }}</div>
+                  <div class="preview-dec">{{ subquest.description or '' }}</div>
+
+                  <!-- Render task icons -->
+                  <div class="task-icons ">
+                    {% set max_icons = 2 %}
+                    {% set total = subquest.tasks|length %}
+
+                    {% for task in subquest.tasks[:max_icons] %}
+                      {% set icon_data = task|task_icon %}
+                    <div class="task-icon" style="background: {{ icon_data.color }}">
+                        {{ icon_data.icon | safe }}
+                        {% if loop.last and total > max_icons %}
+                          <span class="more-icons">+{{ total - max_icons }}</span>
+                        {% endif %}
+                    </div>
+
+                    {% endfor %}
+                    {% if subquest.recurrence and subquest.recurrence != "None" %}
+                    <span style="display: inline-flex; align-items: center; gap: 4px; margin-left: 5px; border-radius: 12px; background: #32324b; padding: 4px;">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12"
+                          viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                          stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0
+                                3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25
+                                0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/>
+                      </svg>
+                      <span style="font-size: 11px; font-weight: 630;">
+                        {{ subquest.recurrence }}
+                      </span>
+                    </span>
+
+                    {% endif %}
+
+                  </div>
+                </div>
+
+                <!-- Rewards -->
+                <div class="badge-container  {% if (subquest.conditions and subquest.conditions|length > 0) 
+                    and not subquest.all_conditions_met 
+                    and subquest.id not in completed_subquests %} badge-locked{% endif %}">
+                  {% set max_rewards = 3 %}
+                  {% for reward in subquest.rewards[:max_rewards] %}
+                    {% set reward_data = reward.reward_data_parsed %}
+                    {% set icon = reward|reward_icon %}
+
+                    <div class="badge-wrapper">
+                      <div class="
+                        {% if reward.reward_type == 'xp' %} badge-xp
+                        {% elif reward.reward_type == 'role' %} badge-role
+                        {% elif reward.reward_type == 'token' %} badge-token
+                        {% elif reward.reward_type == 'custom' %} badge-custom
+                        {% endif %}">
+                        
+                        <div class="badge-inner">
+                          {% if reward.reward_type == 'xp' %}
+                            <div class="xp" style="  font-family: 'Segoe UI', Tahoma, sans-serif !important;">XP</div>
+                            <div class="points"><span>{{ reward_data.amount or 0 }}</span></div>
+                          {% elif reward.reward_type == 'role' %}
+                            <img src="{{ url_for('static', filename='discord_reward.png') }}" loading="lazy" decoding="async">
+                            <div class="points"><span>{{ reward_data.role or '' }}</span></div>
+                          {% elif reward.reward_type == 'token' %}
+                            <div class="points"><span>{{ reward_data.amount_per_winner or '' }} {{ reward_data.symbol or '' }}</span></div>
+                          {% elif reward.reward_type == 'custom' %}
+                            <div class="points"><span>{{ reward_data.text or 'Custom' }}</span></div>
+                          {% endif %}
+                          <div class="sparkle one"></div>
+                          <div class="sparkle two"></div>
+                          <div class="sparkle three"></div>
+                        </div>
+                      </div>
+                      <div class="setup-icon">{{ icon.svg|safe }}</div>
+
+                    </div>
+                  {% endfor %}
+                </div>
+                  {% if subquest.id in completed_subquests %}
+                    <div class="complete-main">
+                      <div class="complete-container">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                            width="11" height="11" fill="none" stroke="#22c55e"
+                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M5 12l5 5L20 7"/>
+                        </svg>
+                        <span class="completed-subquest">Completed</span>
+                      </div>
+                    </div>
+
+                  {% endif %}
+
+
+                  {% if subquest.id in pending_subquests %}
+                  <div class="pending-reviews">
+                    <div class="pending-scount">
+                      <div class="preview-display" style="font-size:11px;font-weight:550;">
+                        in review
+                      </div>
+                    </div>
+                  </div>
+
+                  {% endif %}
+                  
+
+                  {% set remaining_seconds = subquest_remaining[subquest.id] or 0 %}
+                  {% set cooldown_until_ts = subquest_cooldowns[subquest.id] or 0 %}
+
+                  {% if remaining_seconds > 0 %}
+                  <div class="timer-main">
+                    <div class="timer-scount">
+                      <div class="cool-display" style="font-size:11px;font-weight:550;">
+                        Try again in:
+                        <span class="cooldown-retry" data-cooldown-until="{{ cooldown_until_ts }}">
+                          {{ remaining_seconds }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  {% endif %}
+
+
+
+                {% if (subquest.conditions and subquest.conditions|length > 0) 
+                  and not subquest.all_conditions_met 
+                  and subquest.id not in completed_subquests %}
+                <div class="lock-main">
+                  <div class="lock-scount" style="display:flex; align-items:center; gap:4px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" 
+                        width="11" height="11" 
+                        fill="none" 
+                        viewBox="0 0 24 24" 
+                        stroke-width="1.5" 
+                        stroke="currentColor"  
+                        style="flex-shrink:0;">
+                      <path stroke-linecap="round" stroke-linejoin="round" 
+                            d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 
+                              11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 
+                              2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 
+                              0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+                    </svg>
+                    <div class="lock-text">Locked</div>
+                  </div>
+                </div>
+                {% endif %}
+
+ 
+{% if subquest.parsed_conditions and subquest.parsed_conditions|length > 0 %}
+  <div class="condition-list" style="display:none;">
+    <div style="font-weight: 550; font-size: 14px; margin-bottom: 10px;">
+      How to unlock this quest?
+    </div>
+
+    {% for cond in subquest.parsed_conditions %}
+      <div class="condition-items">
+        
+        {% if cond.type == "Role" %}
+          <div class="condition-listers">
+            {% if not user_discord %}
+              <div class="discordbtnfor">
+                <i class="fab fa-discord" style="color: #5865F2; font-size: 14px;"></i>
+                Connect your Discord
+              </div>
+            {% else %}
+<div class="discord-role-check"
+     data-role="{{ cond.value }}" 
+     data-subquest-id="{{ subquest.id }}"
+     data-condition-id="{{ cond.id }}"
+     data-guild="{{ guild.guild_name if guild else 'Discord' }}">
+  <i class="fab fa-discord" style="color: #5865F2; margin-right: 6px; font-size: 14px;"></i>
+  You must have {{ cond.value or "" }} Role on {{ guild.guild_name if guild else 'Discord' }} Server
+  <span class="role-status">⏳</span>
+</div>
+
+            {% endif %}
+          </div>
+
+        {% elif cond.type == "Followers" %}
+          <div class="condition-listers">
+            {% if not user_twitter %}
+              <div class="twitterfor-btn">
+                <i class="fab fa-x-twitter" style="font-size: 14px;"></i>
+                Connect your Twitter
+              </div>
+            {% else %}
+<div class="twitter-condition"
+      data-required="{{ cond.value or 100 }}"
+     data-subquest-id="{{ subquest.id }}"
+     data-condition-id="{{ cond.id }}"
+     data-required="{{ cond.value or 100 }}"
+     style="font-size: 14px; font-weight: 550;">
+
+                <i class="fab fa-x-twitter" style="color:#000; margin-right: 6px; font-size: 14px;"></i>
+                Have greater than {{ cond.value or 100 }} followers on Twitter
+                <span class="twitter-status">⏳</span>
+              </div>
+            {% endif %}
+          </div>
+
+          {% elif cond.type == "Level" %}
+            <div class="condition-listers">
+              <div style="font-size: 14px; font-weight: 550;">
+                <i class="fa-solid fa-shield-halved" style="color:#3498db; margin-right: 6px; font-size: 14px;"></i>
+                Reach Level greater than {{ cond.value }}
+                {% if cond.is_completed %}
+                  ✅
+                {% else %}
+                  ❌
+                {% endif %}
+              </div>
+            </div>
+
+        {% elif cond.type == "Quest" %}
+          <div class="condition-listers">
+            <div style="font-size: 14px; font-weight: 550;">
+              <i class="fa-solid fa-scroll" style="color:#f39c12; margin-right: 6px; font-size: 14px;"></i>
+              Complete quest: <a class="quest-link" href="/{{ community.slug }}/quest/{{ cond.quest_uuid }}/{{ cond.subquest_uuid }}">
+                {{ cond.value }}
+              </a>
+              <span class="quest-status">
+                {% if cond.is_completed %}✅{% else %}❌{% endif %}
+              </span>
+            </div>
+          </div>
+
+        {% elif cond.type == "Date" %}
+          <div class="condition-listers">
+            <div style="font-size: 14px; font-weight: 550;">
+              <i class="fa-regular fa-calendar" style="color:#e74c3c; margin-right: 6px; font-size: 14px;"></i>
+              Unlocks on {{ cond.value }}
+              <span class="quest-status">{% if cond.is_completed %}✅{% else %}❌{% endif %}</span>
+            </div>
+          </div>
+        {% endif %}
+
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+
+
+            
+            </div>
+          {% endfor %}

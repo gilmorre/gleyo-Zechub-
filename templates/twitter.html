@@ -1,0 +1,1692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Discord Join Button</title>
+<!-- Font Awesome 6 Brands & Icons -->
+<link
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+  
+  rel="stylesheet"
+/>
+<style>
+
+
+/* Make both containers same width */
+.outer-box,
+.popup-container {
+   width: 100% !important;
+}
+
+
+ @media (max-width: 991px){
+
+.outer-box,
+.popup-container {
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+ }
+
+/* Outer container */
+.outer-box {
+    position: relative;
+    border: 1.5px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    padding: 50px 20px 20px;
+}
+
+/* Floating label above */
+.label {
+    position: absolute;
+    top: -16px;
+    left: 20px;
+    background-color: black; /* Background for X logo */       
+    color: white;
+    font-size: 14px;
+    padding: 6px 16px;
+    border-radius: 50px;
+    display: flex;
+    align-items: center;
+    font-weight: bold;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+.label i {
+    margin-right: 6px;
+}
+
+/* Join button */
+.join-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: linear-gradient(90deg, black, rgba(0, 0, 0, 0.678));
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    border-radius: 20px;
+    padding: 18px;
+    text-decoration: none;
+    transition: background 0.3s ease;
+}
+.Tweet{
+      display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: linear-gradient(90deg, black, rgba(0, 0, 0, 0.678));
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    border-radius: 20px;
+    padding: 18px;
+    text-decoration: none;
+    transition: background 0.3s ease;  
+}
+
+.join-btn:hover {
+    background-color: black; /* Background for X logo */
+}
+
+/* Popup container */
+.popup-container {
+    background: #222;
+    border-radius: 18px;
+    padding: 20px 20px 30px;
+    position: relative;
+    color: white;
+}
+
+/* Upward arrow above container */
+.popup-container::before {
+    content: "";
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-bottom: 12px solid #222;
+}
+
+.popup-header {
+    display: flex;
+    align-items: center;
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-bottom: 16px;
+    gap: 10px;
+}
+
+.popup-header .icon {
+    background-color: black; /* Background for X logo */
+    padding: 6px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.popup-header .icon i {
+    color: white;
+    font-size: 18px;
+}
+
+.popup-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 15px;
+}
+
+.popup-actions button {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: #ccc;
+    font-size: 18px;
+}
+
+.popup-actions button:hover {
+    color: white;
+}
+
+label {
+   font-size: 0.7rem;
+    margin-top: 23px;
+    display: block;
+    margin-bottom: 6px;
+}
+
+.telupput {
+    width: 90%;
+    padding: 10px 14px;
+    border-radius: 14px;
+    margin-left: 6px;
+    border: 1.5px solid #555;
+       background: #222;
+
+    color: white;
+    font-size: 1rem;
+}
+
+
+
+.telupput:focus {
+    outline-color: #2e65ff;
+
+    border-color: #2e65ff;
+}
+
+input[type="text"].error {
+    border-color: #ff3b3b;
+}
+
+.error-message {
+    color: #ff3b3b;
+    font-size: 0.85rem;
+    margin-top: 6px;
+    font-weight: 600;
+}
+
+
+.liners {
+    height: 0.5px;
+    background-color: #2e65ff;
+    border-radius: 1px;
+    margin: 8px -20px; /* matches container's horizontal padding */
+}
+.input-wrapper {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+.input-wrapper span {
+  position: absolute;
+  left: 8px;
+  margin-left: 3px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: aliceblue;
+  pointer-events: none; /* Clicks go to input */
+}
+
+.input-wrapper input {
+  padding-left: 20px; /* Make space for @ */
+}
+
+#linkInput {
+  padding-left: 25px; /* pushes text rightwards */
+}
+
+.tycon{
+    background-color: #222;
+    color: aliceblue;
+    min-height: 10vh;
+    font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+    height: auto;
+    bottom: 0.5px solid #cccccc57;
+    width: 97%;
+    border-radius: 14px;
+    
+  resize: none;
+}
+
+.tweet {
+  display: inline;            /* makes each button full-width in its container */
+  width: auto;               /* take full container width */
+  padding: 10px 15px;        /* comfortable padding */
+  margin-bottom: 10px;       /* spacing between buttons */
+  white-space: nowrap;
+  background: rgba(255, 255, 255, 0.05);
+  margin-top: 10px;
+  color: white;              /* white text */
+  border: none;              /* remove default' border */
+  border-radius: 6px;        /* rounded corners */
+  font-weight:  bold;
+  font-size: 12px;           /* readable font size */
+  cursor: pointer;           /* pointer on hover */
+  transition: background 0.2s ease-in-out; /* smooth hover effect */
+}
+
+.Tasktype{
+    color: aliceblue;
+    font-size: 11px;
+    margin-top: 20px;
+      display: flex;
+  justify-content: space-between; /* pushes children apart */
+  align-items: center;
+
+    font-weight: bolder;
+}
+.jagu {
+  display: flex;
+  align-items: center;     /* vertically align circle and text */
+  gap: 8px;                /* space between items */
+}
+
+.twitterreactCircle {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background-color: #2e65ff;
+  margin: 0;               /* remove vertical spacing that breaks alignment */
+  position: relative;
+  overflow: hidden;
+}
+
+.twitterreactCircle img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: none;
+}
+.likename{
+    color: aliceblue;
+    font-weight: bold;
+
+}
+
+.likeusernamename{
+    color: #878787;
+}
+.twitterCircle {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background-color: #2e65ff;  /* blue circle always visible */
+  margin: 10px auto;
+  position: relative;
+  overflow: hidden;
+}
+
+.twitterCircle img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: none; /* hide image by default */
+}
+
+
+.twitterName{
+    color: aliceblue;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.twtname{
+    color: aliceblue;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+
+input[type="checkbox"] {
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+  vertical-align: middle;
+  margin-right: 6px;
+  accent-color: #2e65ff; /* color of checkmark and border */
+
+  /* Reset native appearance */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+
+  border: 1px solid #cccccc57;
+  border-radius: 4px;
+      background: #222;
+
+  transition: background-color 0.3s, border-color 0.3s;
+}
+
+/* Checked state */
+input[type="checkbox"]:checked {
+  background-color: rgb(255, 255, 255);
+  border-color: 1px solid #cccccc57;
+}
+
+/* Show checkmark */
+input[type="checkbox"]:checked::after {
+  content: '';
+  display: block;
+  width: 6px;
+  height: 12px;
+  border: solid #4285f4;
+  border-width: 0 3px 3px 0;
+  transform: rotate(45deg);
+  position: relative;
+  left: 7px;
+  top: 2px;
+}
+
+.inpus{
+    font-size: 10px;
+}
+
+.input-with-icon {
+  position: relative;
+  display: inline-block;
+  width: 92%; /* adjust to your needs */
+}
+
+.input-with-icon input {
+  width: 100%;
+  padding-right: 40px; /* space for the icon */
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  padding: 8px;
+  font-size: 14px;
+}
+
+.input-with-icon .icon-btn {
+  position: absolute;
+  right: 0;
+  top: 10%;
+  height: 30px;
+  background: none;
+  border: none;
+  border-radius: 10px;
+  background-color: #cccccc57;
+  color: aliceblue;
+  cursor: pointer;
+  font-weight: bolder;
+  font-size: 12px;
+}
+.enterspace{
+  margin-left: 5px;
+}
+
+
+.input-with-icon .icon-btn:hover {
+  color: #1a3fb3;
+}
+
+.opty{
+    text-align: right;
+    color: #cccccc57;
+}
+
+.task-container {
+  margin-top: 20px;
+}
+
+.task-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.Tasktyp {
+  color: aliceblue;
+  font-size: 11px;
+  font-weight: bolder;
+}
+
+.Taskdesc {
+  color: #bbb;
+  font-size: 10px;
+  margin: 5px 0 0 0;
+}
+
+/* Switch container */
+.switch-row {
+  display: flex;
+  margin-top: 20px;
+  align-items: center;
+}
+
+.switch {
+  margin-left: auto; /* pushes the switch to the right */
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  right: 0;
+  height: 26px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* Slider track */
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #555;
+  transition: 0.4s;
+  border-radius: 26px;
+}
+
+/* Slider knob */
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.4s;
+  border-radius: 50%;
+}
+
+/* Checked state */
+.switch input:checked + .slider {
+  background-color: #2196F3;
+}
+
+.switch input:checked + .slider:before {
+  transform: translateX(24px);
+}
+.jag{
+    padding: 20px;
+    background-color: transparent;
+    margin-bottom: 10px;
+    box-sizing: border-box;
+    flex: 1;
+    margin-top: 10px;
+    border-radius: 12px;
+    border: 0.5px solid #cccccc57;  
+}
+.jagus{
+    padding: 20px;
+    background-color: transparent;
+    margin-bottom: 10px;
+    box-sizing: border-box;
+    border-radius: 12px;
+    border: 0.5px solid #cccccc57;
+}
+.spaceContent{
+    padding: 20px;
+    background-color: #1a3fb3;
+    margin-bottom: 10px;
+    box-sizing: border-box;
+    border-radius: 12px;
+}
+
+.spacebtn{
+
+    border: 0.5px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    box-sizing: border-box;
+    padding: 20px;
+    width: 100%;
+    color: #ccc;
+    background: #222;
+
+}
+.host {
+  display: inline-block;       /* makes padding & bg work better */
+  color: aliceblue;
+  margin-left: 5px;
+  margin-top: 2px;
+  background-color: #555;
+  border-radius: 3px;
+  padding: 1px 4px;            /* shorthand for top/bottom, left/right */
+  font-weight: bold;
+  font-size: 13px;
+}
+
+.merging{
+    display: inline-flex;
+}
+
+.moreoptions{
+    color: aliceblue;
+    margin-left: 5px;
+    margin-top: 8px;
+    margin-bottom: 12px;
+    font-size: 13px;
+}
+
+.reactions {
+  display: flex;
+  align-items: center;
+  gap: 25px;        /* <-- LARGE space between groups */
+  color: #ccc;
+  font-size: 14px;
+}
+
+.tweeticd{
+  color: aliceblue;
+  font-weight: bold;
+  font-size: 13px;
+}
+/* Each group (icon + text) */
+.septor {
+  display: flex;
+  margin-left: 20px;
+  align-items: center;
+  gap: 6px;         /* <-- SMALL space between icon and text */
+  cursor: pointer;
+}
+
+/* Optional: size icons and add hover color */
+.septor i {
+  font-size: 16px;
+  line-height: 1;
+}
+
+/* Hover effect per group */
+.septor:hover {
+  color: #1da1f2;   /* Twitter-blue on hover */
+}
+
+#twtdate{
+  color: #cccccc8d;
+  font-size: 10px;
+  margin-bottom: 15px;
+
+  margin-left: 5px;
+}
+
+
+.vert {
+  display: flex;
+  align-items: center; /* vertically centers icon and text */
+  gap: 8px; /* space between icon and text */
+}
+
+.vert i {
+  font-size: 1.2em; /* adjust icon size */
+  color: aliceblue;
+}
+
+#icontweet {
+  display: none;          /* hidden initially */
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 5px;
+  border-radius: 10px;
+  margin-top: 10px;
+  min-height: 40px;
+  background-color: transparent;
+  border: none;
+  transition: border 0.3s ease, background-color 0.3s ease;
+}
+
+/* When visible */
+  #icontweet.has-chips {
+    display: flex;
+    border: 0.5px solid #cccccc57;
+    background-color: #f9f9f9;
+  }
+
+      /* Show border & bg once chips exist */
+      #icontweet.has-chips {
+        border: 0.01px solid #cccccc57;
+        background-color: transparent;
+      }
+
+    /* Each chip style */
+    #icontweet span {
+      display: inline-flex;
+      align-items: center;
+      color: aliceblue;
+      padding: 5px 10px;
+      border: 0.001px solid #ccccccaa;
+      border-radius: 12px;
+      background-color: transparent;
+      font-size: 12px;
+      font-weight: bold;
+        user-select: none !important;
+  font-family: 'Outfit', sans-serif !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;    
+  -ms-user-select: none !important;     
+  user-select: none !important;
+
+  -webkit-touch-callout: none !important; 
+      cursor: default;
+    }
+
+    /* Remove button inside chip */
+    #icontweet span button {
+      margin-left: 8px;
+      background: none;
+      border: none;
+      font-weight: bold;
+      font-size: 16px;
+      line-height: 1;
+      color: #b6b6b6;
+      cursor: pointer;
+      padding: 0;
+        user-select: none !important;
+  font-family: 'Outfit', sans-serif !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;    
+  -ms-user-select: none !important;     
+  user-select: none !important;
+
+  -webkit-touch-callout: none !important; 
+    }
+
+    #icontweet span button:hover {
+      color: red;
+    }
+
+.entwords {
+  display: flex;
+  flex-wrap: wrap;      /* allow wrapping */
+  gap: 6px;             /* optional spacing between words */
+  max-width: 100%;      /* optional max width */
+}
+.entwords span.entword {
+  border: 0.0001px solid #cccccc57;
+  color: aliceblue;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  margin-bottom: 4px;   /* spacing vertically */
+}
+
+.mustbe{
+  font-size: 12px;
+}
+
+#yourplace{
+  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+}
+.textarea-wrapper {
+  position: relative;
+  width: 100%;  /* or a fixed width if you want */
+  display: inline-block;
+}
+
+.tycon {
+  width: 100%;
+  padding: 12px 32px 12px 12px; /* add right padding to make space for icon */
+  box-sizing: border-box;
+  font-size: 14px;
+}
+textarea {
+  resize: none;
+}
+
+.warning-icon {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  color: red;
+  pointer-events: none; /* so icon doesn't block clicking textarea */
+  font-size: 18px;
+}
+
+#spacename{
+  color: aliceblue;
+  font-size: 16px;
+  font-weight: bolder;
+  margin-bottom: 13px;
+}
+
+#spacedate{
+  color: aliceblue;
+  margin-bottom: 20px;
+  font-size: 10px;
+}
+
+#hostname{
+  color: aliceblue;
+  font-size: 14px;
+  margin-left: 2px;
+  margin-top: 5px;
+  font-weight: bolder;
+}
+
+#spacecombo{
+  display: flex;
+}
+
+
+.spacePP{
+    background-color: #2e65ff;
+    height: 25px;
+    width: 25px;
+    border-radius: 50%;
+}
+
+
+.spacePP img {
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  display: none; /* hide image by default */
+}
+#spacetik{
+  margin-left: 3px;
+  width: 16px;
+  height: 16px;
+}
+
+</style>
+</head>
+<div>
+<div style="outline: none; display: flex; justify-content: center; align-items: center;  flex-direction: column;">
+
+<div class="outer-box" data-type="twitter">
+    <div id="label1">
+        <div class="label"  >
+            <i class="fa-brands fa-x-twitter"></i> Twitter Follow
+        </div>
+        <div id="twitterCircle" class="twitterCircle">
+            <img id="twitterCircleImg" alt="Profile picture" />
+        </div>
+
+        <div id="twtname" class="twtname"></div>
+        <div id="twtusername" class="twitterName"></div>
+            
+        <a href="#" class="join-btn">
+            <i class="fa-brands fa-x-twitter"></i> Follow
+        </a>
+    </div>
+
+    <div id="label2">
+
+      <div class="label"  >
+          <i class="fa-brands fa-x-twitter"></i> Tweet Reaction
+      </div>
+      <div class="maxima" id="maxima">
+        <div class="jagus">
+            <div class="jagu">
+                <div id="twitterreactCircle" class="twitterreactCircle">
+                    <img id="twitterreactCircleImg" class="twitterreactCircleImg" alt="Profile picture" />
+                </div> <span id="likename" class="likename"> </span> <span id="likeusername" class="likeusernamename likeusername"></span>
+            </div>
+            <div class="moreoptions twtnote" id="twtnote"></div>
+            <div id="twtdate" class="twtdate"> </div>
+            <div class="reactions">
+              <div class="septor reply" id="reply">
+                <i class="fa-regular fa-comment"></i>
+                <span class="rpl">Reply</span>
+              </div>
+
+              <div class="septor retweet" id="retweet">
+                <i class="fa-solid fa-retweet"></i>
+                <span class="rpl">Retweet</span>
+              </div>
+
+              <div class="septor like" id="like">
+                  <i class="fa-regular fa-heart"></i>
+                  <span class="rpl">Like</span>
+              </div>
+            </div>
+        </div>
+
+        <div class="Tasktype">Reply URL</div>
+        <input type="text" class="telupput replyURL" name="" id="replyURL" style="margin-top: 5px;" placeholder="https://x.com/jijnjin/status/2124374362144354637487362537" />
+      </div>
+      </div>
+
+    <div id="label3">
+        <div class="label"  >
+            <i class="fa-brands fa-x-twitter"></i> Twitter
+        </div>
+
+        <a  id="alsotweet" href="#" class="alsotweet Tweet">
+            Tweet
+        </a>
+
+        <div class="jag">
+          <div class="vert">
+            <div class="circleInfo">
+              <i style="color: aliceblue;" class="fa-solid fa-circle-info"></i>
+
+            </div>
+            <div class="tweeticd">Include the following words in the tweet to complete the quest:<div class="entwords"></div></div>
+            
+          </div>
+
+        </div>
+
+        <div class="Tasktype">Tweet URL</div>
+        <input type="text"  class="telupput"  name="" id="" style="margin-top: 5px;" placeholder="https://x.com/jijnjin/status/2124374362144354637487362537" />
+    </div>
+
+    <div id="label4">
+        <div class="label"  >
+            <i class="fa-brands fa-x-twitter"></i>Space attendance
+        </div>
+        <div class="spaceContent">
+            <div class="merging">
+              <div class="spacecombo" id="spacecombo"> 
+                <div id="spacePP" class="spacePP">
+                    <img id="spacePPCircleImg" class="spacePPCircleImg" alt="Profile picture" />
+                </div> 
+                <div class="host-info">
+                  <span id="hostname" class="hostname"></span>
+                  <img id="hostbadge" class="hostbadge" alt="Verified Badge" 
+                      style="display:none; width:16px; height:16px; margin-left:4px; vertical-align:middle;" />
+                  <span class="host">Host</span>
+                </div>
+              </div>
+            </div>
+            <div id="spacename" class="spacename"></div>
+            <div id="spacedate" class="spacedate"></div>
+            <a  href="#" id="joinspace" class="joinspace join-btn">
+                <i class="fa-regular fa-bell"></i> set reminder
+            </a>
+        </div>
+        <button class="spacebtn" style="white-space: nowrap;">
+            <i class="fas fa-exclamation-circle"></i>
+
+            Attend this event when it takes place to automatically validate this quest.
+        </button>
+
+    </div>
+
+</div>
+
+<div class="popup-container" role="dialog" aria-label="Visit link">
+  <div class="popup-header">
+    <div class="icon">
+      <i class="fa-brands fa-x-twitter"></i>
+    </div>
+    <div class="title">Twitter</div>
+    <div class="liner"></div>
+    <div class="popup-actions">
+      <button title="Copy link">
+        <i class="far fa-clipboard"></i>
+      </button>
+      <button title="Delete link">
+        <i class="fas fa-trash-alt"></i>
+      </button>
+    </div>
+  </div>
+  <div class="liners"></div>
+  <div class="Tasktype">Task type</div>
+    <div class="twitterlist">
+    <button class="tweet" data-target="twt1">Twitter follow</button>
+    <button class="tweet" data-target="twt2">Tweet Reactions</button>
+    <button class="tweet" data-target="twt3">Tweet</button>
+    <button class="tweet" data-target="twt4">Twitter Space</button>
+    </div>
+
+    <div id="twt1" class="twt1">
+    <label class="linkInput" for="linkInput">Link you want your users to visit</label>
+    <div class="input-wrapper">
+        <span>@</span>
+        <input id="linkInput" type="text" class="telupput" placeholder="username" oninput="keepPrefix(this)">
+    </div>
+    <div id="errorMessage" class="error-message">Invalid url</div>
+    <div id="errorMsg" style="color: red; margin-top: 0.5em;"></div>
+    </div>
+
+    <div id="twt2" style="display:none;">
+        <div class="Tasktype">Tweet URL</div>
+        <input type="text" class="telupput replyhttp"  name=""   placeholder="https://x.com/jijnjin/status/2124374362144354637487362537" >
+        <span id="urlError" class="urlError" style="color: red; display: none;">Invalid X post URL</span>
+
+        
+        <div>
+    <div class="Tasktype">Actions</div>
+        <div style="display: flex; align-items: center; gap: 20px; margin-top: 2px;">
+            <label>
+            <input class="like1 actioninput" id="like1" type="checkbox" name="like" value="like" />
+            Like
+            </label>
+
+            <label>
+            <input type="checkbox" name="retweet" id="retweet1" class="retweet1" value="retweet"/>
+            Retweet
+            </label>
+
+            <label>
+            <input type="checkbox" name="reply" id="reply1" class="reply1" value="reply" />
+            Reply
+            </label>
+        </div>
+        </div>
+    </div>
+    <div id="twt3" style="display:none;">
+        <div class="Tasktype">Tweet words (can include mentions, hashtags, or any type of text)</div>
+        <div class="input-with-icon">
+            <input type="text" id="yourplace" class="yourplace" placeholder="@EmmanuelTcee100" />
+            <button class="icon-btn enterbtn" id="enterbtn" type="button">
+              <i class="fa-solid fa-level-down-alt"></i><span class="enterspace">Enter</span>
+            </button>
+
+            <div class="tweetsub">
+              <div id="icontweet" class="icontweet"></div>
+            </div>
+        </div>
+
+        <div class="Tasktype">Default tweet</div>
+        <div class="textarea-wrapper"  style="position: relative; display: inline-block; width: 100%;">
+          <textarea class="tycon" placeholder="Provide a default tweet for your members"></textarea>
+          
+          <!-- The icon positioned inside the textarea box -->
+          <i id="handleri" class="handleri fa-solid fa-triangle-exclamation warning-icon"></i>
+        </div>
+
+        <!-- The text warning below -->
+        <div id="mustbe" class="mustbe" style="color: red; margin-top: 4px;">
+          <div class="mustbe-text">All tweet words must be included in the default tweet</div>
+        </div>
+
+    </div>
+    <div id="twt4" style="display:none;">
+            <div class="Tasktype">Space</div>
+
+            <input class="spaceurl telupput"  id="spaceurl"type="text" name="like" placeholder="https://" />
+            <div class="Tasktype">Password <span class="opty">Optional</span></div>
+
+            <input class="spacepass linkInput" id="linkInput" type="text" name="like" placeholder="Enter password"  />
+            <div>
+            
+            
+            <div> 
+
+                <div class="switch-row">
+                <div class="switch-text">
+                    <span class="Tasktyp">Show after end</span>
+                    <p class="Tasktyp">Keep quest visible after space end</p>
+                </div>
+                <label class="switch">
+                    <input type="checkbox">
+                    <span class="slider"></span>
+                </label>
+                </div>
+
+                    
+            </div>
+
+
+        </label>
+
+    </div>
+</div>
+</div>
+
+
+
+<script>
+((root) => {
+  const linkInput = root.querySelector('.spaceurl');
+  const joinBtn = root.querySelector('.joinspace');
+  const nameDiv = root.querySelector('.spacename');
+  const dateDiv = root.querySelector('.spacedate');
+  const hostNameSpan = root.querySelector('.hostname');
+  const profileImg = root.querySelector('.spacePPCircleImg');
+  const hostBadge = root.querySelector('.hostbadge');
+
+  const cache = {}; // spaceId -> response cache
+  let fetchTimeout = null;
+
+  function extractSpaceId(input) {
+    const trimmed = input.trim();
+    if (!trimmed) return null;
+    if (/^[0-9a-zA-Z]+$/.test(trimmed) && trimmed.length >= 6) {
+      return trimmed;
+    }
+    try {
+      const parsedUrl = new URL(trimmed);
+      const parts = parsedUrl.pathname.split('/').filter(Boolean);
+      const spacesIndex = parts.indexOf('spaces');
+      if (spacesIndex !== -1 && parts[spacesIndex + 1]) {
+        return parts[spacesIndex + 1];
+      }
+    } catch {}
+    return null;
+  }
+
+  function formatDate(dateString) {
+    const date = new Date(dateString);
+    if (isNaN(date)) return '';
+    const now = new Date();
+    const sameDay = date.toDateString() === now.toDateString();
+    const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    if (sameDay) return `Today, ${timeStr}`;
+    const monthDay = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return `${monthDay}, ${timeStr} • ${date.getFullYear()}`;
+  }
+
+  function clearDetails(message = '') {
+    nameDiv.textContent = message;
+    dateDiv.textContent = '';
+    hostNameSpan.textContent = '';
+    profileImg.style.display = 'none';
+    hostBadge.style.display = 'none';
+  }
+
+  async function fetchSpaceDetails(spaceUrl) {
+    const spaceId = extractSpaceId(spaceUrl);
+    if (!spaceId) {
+      clearDetails('');
+      return;
+    }
+
+    if (cache[spaceId]) {
+      displayDetails(cache[spaceId]);
+      return;
+    }
+
+    nameDiv.textContent = 'Loading...';
+    dateDiv.textContent = '';
+    hostNameSpan.textContent = '';
+    profileImg.style.display = 'none';
+    hostBadge.style.display = 'none';
+
+    try {
+      const res = await fetch(`/lookup_space?space_id=${encodeURIComponent(spaceId)}`);
+      if (res.status === 429) {
+        clearDetails('Too many requests. Please try again later.');
+        return;
+      }
+      const data = await res.json();
+      if (data.error) {
+        clearDetails(data.error);
+        return;
+      }
+      cache[spaceId] = data;
+      displayDetails(data);
+    } catch (err) {
+      console.error(err);
+      clearDetails('Failed to load space details');
+    }
+  }
+
+  function displayDetails(data) {
+    nameDiv.textContent = data.title ? `Space: ${data.title}` : 'Untitled Space';
+    dateDiv.textContent = data.date ? formatDate(data.date) : '';
+    hostNameSpan.textContent = data.host_name || '';
+
+    if (data.profile_image_url) {
+      profileImg.src = data.profile_image_url;
+      profileImg.style.display = 'block';
+    }
+
+    if (data.verified_type) {
+      let badgeUrl = '';
+      if (data.verified_type === 'blue') badgeUrl = '/static/icons/verified-blue.svg';
+      else if (data.verified_type === 'gold') badgeUrl = '/static/icons/verified-gold.svg';
+      else if (data.verified_type === 'government') badgeUrl = '/static/icons/verified-government.svg';
+      else badgeUrl = '/static/icons/verified-generic.svg';
+      hostBadge.src = badgeUrl;
+      hostBadge.style.display = 'inline';
+    } else {
+      hostBadge.style.display = 'none';
+    }
+  }
+
+  linkInput.addEventListener('input', () => {
+    clearTimeout(fetchTimeout);
+    const spaceUrl = linkInput.value.trim();
+    if (spaceUrl) {
+      fetchTimeout = setTimeout(() => {
+        fetchSpaceDetails(spaceUrl);
+      }, 500);
+    } else {
+      clearDetails('');
+    }
+  });
+
+  joinBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    const spaceId = extractSpaceId(linkInput.value.trim());
+    if (spaceId) {
+      window.open(`https://twitter.com/i/spaces/${spaceId}`, '_blank');
+    }
+  });
+})(document.currentScript.closest('.task-wrapper'));
+</script>
+
+
+
+<script>
+((root) => {
+  const input = root.querySelector('.yourplace');
+  const enterBtn = root.querySelector('.enterbtn');
+  const icontweet = root.querySelector('.icontweet');
+  const entwords = root.querySelector('.entwords');
+  const mustbe = root.querySelector('.mustbe');
+  const handleri = root.querySelector('.handleri');
+  const tweetBtn = root.querySelector('.alsotweet');
+  const tweetTextarea = root.querySelector('.tycon');
+
+  function updateWarningsVisibility() {
+    const chips = [...icontweet.children].map(chip => chip.firstChild.textContent.toLowerCase());
+    const text = tweetTextarea.value.toLowerCase();
+
+    const allWordsPresent = chips.every(word => text.includes(word));
+
+    if (chips.length === 0 || allWordsPresent) {
+      mustbe.style.display = 'none';
+      handleri.style.display = 'none';
+    } else {
+      mustbe.style.display = 'flex';
+      handleri.style.display = 'flex';
+    }
+  }
+
+  function addChip(text) {
+    const chip = document.createElement('span');
+    chip.textContent = text;
+
+    const x = document.createElement('button');
+    x.type = 'button';
+    x.textContent = '×';
+
+    const wordSpan = document.createElement('span');
+    wordSpan.textContent = text;
+    wordSpan.className = 'entword';
+    entwords.appendChild(wordSpan);
+
+    x.addEventListener('click', () => {
+      chip.remove();
+      wordSpan.remove();
+      if (icontweet.children.length === 0) {
+        icontweet.classList.remove('has-chips');
+      }
+      updateWarningsVisibility();
+    });
+
+    chip.appendChild(document.createTextNode(' '));
+    chip.appendChild(x);
+    icontweet.appendChild(chip);
+
+    if (!icontweet.classList.contains('has-chips')) {
+      icontweet.classList.add('has-chips');
+    }
+
+    updateWarningsVisibility();
+    console.log('[tweetsub] added chip:', text);
+  }
+
+  function submitText() {
+    const raw = input.value.trim();
+    if (!raw) return;
+
+    const parts = raw.split(/[,\n]/).map(s => s.trim()).filter(Boolean);
+    parts.forEach(addChip);
+
+    input.value = '';
+    input.focus();
+  }
+
+  enterBtn.addEventListener('click', submitText);
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      submitText();
+    }
+  });
+
+  tweetTextarea.addEventListener('input', updateWarningsVisibility);
+
+  if (tweetBtn && tweetTextarea) {
+    tweetBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      updateWarningsVisibility();
+
+      if (mustbe.style.display !== 'none' || handleri.style.display !== 'none') {
+        alert('Please include all the tweet words in your default tweet before tweeting.');
+        return;
+      }
+
+      const text = tweetTextarea.value.trim();
+      if (!text) {
+        alert('Please enter some text to tweet.');
+        return;
+      }
+
+      const encodedText = encodeURIComponent(text);
+      const url = `https://x.com/intent/post?text=${encodedText}`;
+      window.open(url, '_blank');
+    });
+  }
+
+  mustbe.style.display = 'none';
+  if (handleri) handleri.style.display = 'none';
+
+  console.log('[tweetsub] wired (scoped):', { 
+    input: !!input, 
+    enterBtn: !!enterBtn, 
+    icontweet: !!icontweet, 
+    entwords: !!entwords,
+    tweetBtn: !!tweetBtn,
+    tweetTextarea: !!tweetTextarea,
+    mustbe: !!mustbe,
+    handleri: !!handleri
+  });
+})(document.currentScript.closest('.task-wrapper'));
+</script>
+
+
+
+<script>
+const textarea = document.querySelector('.tycon');
+
+function autoExpand() {
+  textarea.style.height = 'auto';
+  textarea.style.height = textarea.scrollHeight + 'px';
+}
+
+// Initialize height on page load
+autoExpand();
+
+// Adjust height on input
+textarea.addEventListener('input', autoExpand);
+</script>
+<script>
+  // Keep prefix globally
+  window.keepPrefix = function(input) {
+    input.value = input.value.replace(/^@+/, '');
+  };
+
+  // Lookup user globally
+  window.lookupUser = async function(username, root = document) {
+    const profileImg = root.querySelector('#twitterCircleImg');
+    const nameEl = root.querySelector('#twtname');
+    const usernameEl = root.querySelector('#twtusername');
+
+    if (!username) {
+      profileImg.src = "";
+      profileImg.alt = "";
+      profileImg.style.display = "none";
+      nameEl.textContent = "";
+      usernameEl.textContent = "";
+      return;
+    }
+
+    try {
+      const res = await fetch(`/lookup_user?username=${encodeURIComponent(username)}`);
+      if (!res.ok) throw new Error("User lookup failed");
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      if (data.profile_image_url) {
+        profileImg.src = data.profile_image_url;
+        profileImg.alt = data.name || "Profile image";
+        profileImg.style.background = "none";
+        profileImg.style.display = "block";
+      } else {
+        profileImg.src = "";
+        profileImg.alt = data.name ? data.name[0] : "";
+        profileImg.style.background = "#1DA1F2";
+        profileImg.style.display = "flex";
+      }
+
+      nameEl.textContent = data.name || "";
+      usernameEl.textContent = data.screen_name ? `@${data.screen_name}` : "";
+
+    } catch (err) {
+      console.error(err);
+      profileImg.src = "";
+      profileImg.alt = "";
+      profileImg.style.display = "none";
+      nameEl.textContent = "";
+      usernameEl.textContent = "";
+    }
+  };
+
+  // Initialize lookup — fetch only on blur, only once
+  window.initTwitterLookup = function(root = document) {
+    const linkInput = root.querySelector('#linkInput');
+    if (!linkInput) return;
+
+    let fetched = false; // ensures fetch happens only once
+
+    linkInput.addEventListener('input', () => {
+      keepPrefix(linkInput); // just clean the input, no fetch
+    });
+
+    linkInput.addEventListener('blur', () => {
+      if (!fetched && linkInput.value.trim()) {
+        lookupUser(linkInput.value.trim(), root);
+        fetched = true; // prevent further fetches
+      }
+    });
+  };
+</script>
+
+
+<script>
+  window.keepPrefix = function (input) {
+    input.value = input.value.replace(/^@+/, '');
+  };
+
+  window.initTwitterCard = function (root = document) {
+    const linkInput = root.getElementById?.('linkInput') || root.querySelector('#linkInput');
+    if (linkInput) {
+      let lookupTimeout;
+      linkInput.addEventListener('input', function () {
+        keepPrefix(this);
+        clearTimeout(lookupTimeout);
+        lookupTimeout = setTimeout(() => lookupUser(this.value.trim()), 5000); // 5s debounce
+      });
+    }
+
+    const buttons = root.querySelectorAll('.twitterlist .tweet');
+    const contentIds = ['twt1', 'twt2', 'twt3', 'twt4'];
+    const labelIds = ['label1', 'label2', 'label3', 'label4'];
+
+    if (!buttons.length) {
+      console.warn('No .tweet buttons found — check .twitterlist markup');
+      return;
+    }
+
+    function showTab(index) {
+      contentIds.forEach((id, i) => {
+        const el = root.getElementById?.(id) || root.querySelector(`#${id}`);
+        if (el) el.style.display = (i === index) ? 'block' : 'none';
+      });
+
+      labelIds.forEach((id, i) => {
+        const labelEl = root.getElementById?.(id) || root.querySelector(`#${id}`);
+        if (labelEl) labelEl.style.display = (i === index) ? 'block' : 'none';
+      });
+
+      buttons.forEach((btn, i) => btn.classList.toggle('active', i === index));
+    }
+
+    buttons.forEach((btn, idx) => {
+      btn.addEventListener('click', () => showTab(idx));
+    });
+
+    showTab(0);
+
+    const textarea = root.querySelector('.tycon');
+    if (textarea) {
+      const autoExpand = () => {
+        textarea.style.height = 'auto';
+        textarea.style.height = textarea.scrollHeight + 'px';
+      };
+      autoExpand();
+      textarea.addEventListener('input', autoExpand);
+    }
+  };
+</script>
+
+<style>
+  .tweet.active {
+    background-color: #2e65ff;
+    color: white;
+  }
+</style>
+
+<script>
+(root => {
+  window.keepPrefix = function (input) {
+    input.value = input.value.replace(/^@+/, '');
+  };
+
+  function initTwitterCard(root) {
+    const maxima = root.querySelector("#maxima");
+    const likeEl = root.querySelector("#like");
+    const retweetEl = root.querySelector("#retweet");
+    const replyEl = root.querySelector("#reply");
+    const replyURLEl = root.querySelector("#replyURL");
+    const replyHttpEl = root.querySelector(".replyhttp");
+    const urlError = root.querySelector("#urlError");
+
+    const profileImg = root.querySelector("#twitterreactCircleImg");
+    const nameEl = root.querySelector("#likename");
+    const usernameEl = root.querySelector("#likeusername");
+    const dateEl = root.querySelector("#twtdate");
+    const postNote = root.querySelector("#twtnote");
+
+    let fullPostText = "";
+    const MAX_WORDS = 20;
+    let showingFull = false;
+
+    // hide by default
+    if (maxima) maxima.style.display = "none";
+    if (likeEl) likeEl.style.display = "none";
+    if (retweetEl) retweetEl.style.display = "none";
+    if (replyEl) replyEl.style.display = "none";
+    if (replyURLEl) replyURLEl.style.display = "none";
+
+    function isValidXPost(url) {
+      const pattern = /^https?:\/\/(x\.com|twitter\.com)\/([^\/]+)\/status\/(\d+)/i;
+      return pattern.test(url.trim()) ? pattern.exec(url.trim()) : null;
+    }
+
+    function setInitialsAsAvatar(name) {
+      if (!name) return;
+      let parts = name.trim().split(/\s+/);
+      let initials = parts.length === 1 ? parts[0][0] : parts[0][0] + parts[1][0];
+      initials = initials.toUpperCase();
+      profileImg.src = "";
+      profileImg.alt = initials;
+      profileImg.style.background = "#1DA1F2";
+      profileImg.style.color = "#fff";
+      profileImg.style.fontWeight = "bold";
+      profileImg.style.display = "flex";
+      profileImg.style.alignItems = "center";
+      profileImg.style.justifyContent = "center";
+      profileImg.style.fontSize = "16px";
+      profileImg.textContent = initials;
+    }
+
+    function formatTweetDate(dateString) {
+      const dateObj = new Date(dateString);
+      const datePart = dateObj.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric"
+      });
+      const timePart = dateObj.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true
+      });
+      return `${datePart} • ${timePart}`;
+    }
+
+    function truncateText(text, wordLimit) {
+      const words = text.split(/\s+/);
+      if (words.length <= wordLimit) return text;
+      return words.slice(0, wordLimit).join(" ") + "… <span id='seeToggle' style='color:#B0B0B0;cursor:pointer;'>See more</span>";
+    }
+
+    function renderPostText() {
+      if (!fullPostText) {
+        postNote.innerHTML = "";
+        return;
+      }
+      if (showingFull) {
+        postNote.innerHTML = fullPostText + " <span id='seeToggle' style='color:#B0B0B0;cursor:pointer;'>See less</span>";
+      } else {
+        postNote.innerHTML = truncateText(fullPostText, MAX_WORDS);
+      }
+    }
+
+    async function fetchUserAndTweet(username, tweetId) {
+      try {
+        const res = await fetch(`/lookup_user?username=${encodeURIComponent(username)}&tweet_id=${encodeURIComponent(tweetId)}`);
+        if (!res.ok) throw new Error("Lookup failed");
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+
+        const info = Array.isArray(data) ? data[0] : data;
+
+        if (info.profile_image_url) {
+          profileImg.src = info.profile_image_url;
+          profileImg.textContent = "";
+          profileImg.style.background = "none";
+          profileImg.style.display = "block";
+        } else {
+          setInitialsAsAvatar(info.name);
+          profileImg.style.display = "flex";
+        }
+
+        nameEl.textContent = info.name || "";
+        usernameEl.textContent = info.screen_name ? `@${info.screen_name}` : "";
+        fullPostText = info.tweet_text || "";
+        showingFull = false;
+        renderPostText();
+        dateEl.textContent = info.tweet_date ? formatTweetDate(info.tweet_date) : "";
+
+        urlError.style.display = "none";
+      } catch (err) {
+        console.error("❌ Error loading tweet data:", err);
+        urlError.textContent = "⚠️ Could not load post";
+        urlError.style.display = "inline";
+        profileImg.src = "";
+        profileImg.textContent = "";
+        profileImg.style.background = "none";
+        nameEl.textContent = "";
+        usernameEl.textContent = "";
+        fullPostText = "";
+        postNote.innerHTML = "";
+        dateEl.textContent = "";
+      }
+    }
+
+    postNote?.addEventListener("click", (e) => {
+      if (e.target.id === "seeToggle") {
+        showingFull = !showingFull;
+        renderPostText();
+      }
+    });
+
+    function updateUI() {
+      const likeChecked = root.querySelector("#like1")?.checked;
+      const retweetChecked = root.querySelector("#retweet1")?.checked;
+      const replyChecked = root.querySelector("#reply1")?.checked;
+      const url = replyHttpEl?.value || "";
+
+      console.log("🔎 updateUI triggered with URL:", url);
+
+      const match = isValidXPost(url);
+      const urlValid = !!match;
+
+      urlError.style.display = url && !urlValid ? "inline" : "none";
+
+      if (urlValid) {
+        const username = match[2];
+        const tweetId = match[3];
+        fetchUserAndTweet(username, tweetId);
+      } else {
+        profileImg.src = "";
+        profileImg.textContent = "";
+        profileImg.style.background = "none";
+        nameEl.textContent = "";
+        usernameEl.textContent = "";
+        fullPostText = "";
+        postNote.innerHTML = "";
+        dateEl.textContent = "";
+      }
+
+      maxima.style.display = (urlValid && (likeChecked || retweetChecked || replyChecked)) ? "" : "none";
+      likeEl.style.display = likeChecked ? "" : "none";
+      retweetEl.style.display = retweetChecked ? "" : "none";
+      replyEl.style.display = replyChecked ? "" : "none";
+      replyURLEl.style.display = replyChecked ? "" : "none";
+    }
+
+    function goToIntent(type) {
+      const url = replyHttpEl.value.trim();
+      const match = isValidXPost(url);
+      if (!match) {
+        alert("Invalid tweet URL");
+        return;
+      }
+      const tweetId = match[3];
+      let intentUrl = "";
+      if (type === "like") intentUrl = `https://x.com/intent/like?tweet_id=${tweetId}`;
+      if (type === "retweet") intentUrl = `https://x.com/intent/retweet?tweet_id=${tweetId}`;
+      if (type === "reply") intentUrl = `https://x.com/intent/tweet?in_reply_to=${tweetId}`;
+
+      window.open(intentUrl, "_blank");
+      updateUI();
+    }
+
+    ["like1", "retweet1", "reply1"].forEach(id => {
+      const el = root.querySelector(`#${id}`);
+      if (el) el.addEventListener("change", updateUI);
+    });
+
+    likeEl?.addEventListener("click", () => goToIntent("like"));
+    retweetEl?.addEventListener("click", () => goToIntent("retweet"));
+    replyEl?.addEventListener("click", () => goToIntent("reply"));
+
+    if (!replyHttpEl) {
+      console.warn("⚠️ replyHttpEl (Replyhttp input) NOT found in", root);
+    } else {
+      console.log("✅ replyHttpEl found:", replyHttpEl);
+      let lookupTimeout;
+      replyHttpEl.addEventListener("input", (e) => {
+        const inputVal = e.target.value.trim();
+        console.log("📝 Typing in Replyhttp:", inputVal);
+        clearTimeout(lookupTimeout);
+        lookupTimeout = setTimeout(() => {
+          console.log("⏳ Calling updateUI after 5s with fixed value:", inputVal);
+          replyHttpEl.value = inputVal;
+          updateUI();
+        }, 5000);
+      });
+    }
+
+    const buttons = root.querySelectorAll('.twitterlist .tweet');
+    const contentIds = ['twt1', 'twt2', 'twt3', 'twt4'];
+    const labelIds = ['label1', 'label2', 'label3', 'label4'];
+
+    if (buttons.length) {
+      function showTab(index) {
+        contentIds.forEach((id, i) => {
+          const el = root.querySelector(`#${id}`);
+          if (el) el.style.display = (i === index) ? 'block' : 'none';
+        });
+        labelIds.forEach((id, i) => {
+          const labelEl = root.querySelector(`#${id}`);
+          if (labelEl) labelEl.style.display = (i === index) ? 'block' : 'none';
+        });
+        buttons.forEach((btn, i) => btn.classList.toggle('active', i === index));
+      }
+      buttons.forEach((btn, idx) => btn.addEventListener('click', () => showTab(idx)));
+      showTab(0);
+    }
+
+    const textarea = root.querySelector('.tycon');
+    if (textarea) {
+      const autoExpand = () => {
+        textarea.style.height = 'auto';
+        textarea.style.height = textarea.scrollHeight + 'px';
+      };
+      autoExpand();
+      textarea.addEventListener('input', autoExpand);
+    }
+
+    const linkInput = root.querySelector('#linkInput');
+    if (linkInput) {
+      let linkInputTimeout;
+      linkInput.addEventListener('input', function () {
+        window.keepPrefix(this);
+        clearTimeout(linkInputTimeout);
+      });
+    }
+  }
+
+  // initialize immediately on given root
+  initTwitterCard(root);
+
+})(document); // you can replace document with wrapper element if needed
+</script>
+
+
+
+</body>
+</html>

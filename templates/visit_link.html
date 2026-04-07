@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Youtube Join Button</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+
+
+ 
+.link-root,
+.popup-container {
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+.link-root {
+    position: relative;
+    border: 1.5px solid rgba(255, 255, 255, 0.2);
+    cursor: pointer;
+    min-height: 5vh;
+    border-radius: 12px; 
+    padding: 10px 12px; 
+    background: rgba(255, 255, 255, 0.03); 
+}
+
+.link-root:hover {
+    background: rgba(0, 123, 255, 0.08);
+    border-color: rgba(0, 123, 255, 0.4);
+}
+
+
+
+/* Popup container */
+.popup-container {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 18px;
+    padding: 20px 20px 30px;
+    position: relative;
+    color: white;
+}
+
+/* Upward arrow above container */
+.popup-container::before {
+    content: "";
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-bottom: 12px solid #222;
+}
+
+.popup-header {
+    display: flex;
+    align-items: center;
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-bottom: 16px;
+    gap: 10px;
+}
+
+.popup-header .gicon {
+    background: #2563eb;
+    padding: 6px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.popup-header .gicon i {
+    color: white;
+    font-size: 18px;
+}
+
+.popup-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 15px;
+}
+
+.popup-actions button {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: #ccc;
+    font-size: 18px;
+}
+
+.popup-actions button:hover {
+    color: white;
+}
+
+.label-visit {
+   font-size: 0.7rem;
+    margin-top: 23px;
+    display: block;
+    margin-bottom: 6px;
+}
+
+.js-link-input {
+    width: 90%;
+    padding: 10px 14px;
+    border-radius: 14px;
+    margin-left: 6px;
+    border: 1.5px solid #555;
+    background: #121212;
+    color: white;
+    font-size: 1rem;
+}
+
+
+
+.js-link-input:focus {
+    outline-color: #2e65ff;
+    border-color: #2e65ff;
+}
+
+.js-link-input.error {
+    border-color: #ff3b3b;
+}
+
+.error-message {
+    color: #ff3b3b;
+    font-size: 0.85rem;
+    margin-top: 6px;
+    font-weight: 600;
+}
+
+
+.liners {
+    height: 0.5px;
+    background-color: #2e65ff;
+    border-radius: 1px;
+    margin: 8px -20px; /* matches container's horizontal padding */
+}
+
+
+</style>
+</head>
+<body>
+<div style="outline: none; display: flex; justify-content: center; align-items: center;  flex-direction: column;">
+
+<div class="outer-box link-root" data-type="Visit link">
+  <div class="js-link-preview">
+    <div class="js-link-preview-inner" style="display:none; gap:10px; align-items:center;">
+      <img class="js-link-preview-img" src="" style="width:150px;height:150px;border-radius:6px;object-fit:cover;display:none;">
+      <div>
+        <div class="js-link-preview-title" style="font-weight:bold;color:white;"></div>
+        <div class="js-link-preview-desc" style="font-size:12px;color:gray;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="popup-container" role="dialog" aria-label="Visit link">
+  <div class="popup-header">
+    <div class="gicon">
+<svg fill="#fff" stroke="#fff" width="12" height="12" viewBox="0 0 54.971 54.971" xmlns="http://www.w3.org/2000/svg">
+  <g transform="translate(1,1) scale(0.96)">
+    <path d="M51.173,3.801c-5.068-5.068-13.315-5.066-18.384,0l-9.192,9.192c-0.781,0.781-0.781,2.047,0,2.828
+      c0.781,0.781,2.047,0.781,2.828,0l9.192-9.192c1.691-1.69,3.951-2.622,6.363-2.622c2.413,0,4.673,0.932,6.364,2.623
+      s2.623,3.951,2.623,6.364c0,2.412-0.932,4.672-2.623,6.363L36.325,31.379c-3.51,3.508-9.219,3.508-12.729,0
+      c-0.781-0.781-2.047-0.781-2.828,0s-0.781,2.048,0,2.828c2.534,2.534,5.863,3.801,9.192,3.801s6.658-1.267,9.192-3.801
+      l12.021-12.021c2.447-2.446,3.795-5.711,3.795-9.192C54.968,9.512,53.62,6.248,51.173,3.801z"
+      stroke="#ff" stroke-width="2"/>
+    <path d="M27.132,40.57l-7.778,7.778c-1.691,1.691-3.951,2.623-6.364,2.623c-2.412,0-4.673-0.932-6.364-2.623
+      c-3.509-3.509-3.509-9.219,0-12.728L17.94,24.306c1.691-1.69,3.951-2.622,6.364-2.622c2.412,0,4.672,0.932,6.363,2.622
+      c0.781,0.781,2.047,0.781,2.828,0s0.781-2.047,0-2.828c-5.067-5.067-13.314-5.068-18.384,0L3.797,32.793
+      c-2.446,2.446-3.794,5.711-3.794,9.192c0,3.48,1.348,6.745,3.795,9.191c2.446,2.447,5.711,3.795,9.191,3.795
+      c3.481,0,6.746-1.348,9.192-3.795l7.778-7.778c0.781-0.781,0.781-2.047,0-2.828S27.913,39.789,27.132,40.57z"
+      stroke="#fff" stroke-width="2"/>
+  </g>
+</svg>
+    </div>
+    <div class="title">Visit link</div>
+    <div class="popup-actions">
+      <button class="js-link-copy" title="Copy link">
+        <i class="far fa-clipboard"></i>
+      </button>
+      <button class="js-link-delete" title="Delete link">
+        <i class="fas fa-trash-alt"></i>
+      </button>
+    </div>
+  </div>
+  <div class="liners"></div>
+
+  <label class="label-visit">Link you want your users to visit</label>
+  <input class="js-link-input" type="text" placeholder="https://" />
+  <div class="js-link-error error-message" style="display:none; color:red; margin-top:5px;">Invalid url</div>
+</div>
+</div>
+<script>
+const linkInput      = root.querySelector(".js-link-input");
+const linkPreview    = root.querySelector(".js-link-preview-inner");
+const linkError      = root.querySelector(".js-link-error");
+const copyBtn        = root.querySelector(".js-link-copy");
+const deleteBtn      = root.querySelector(".js-link-delete");
+
+let currentUrl = "";
+
+// escape HTML
+function escapeHTML(str) {
+  return str
+    ? str.replace(/[&<>"']/g, (char) => (
+        { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]
+      ))
+    : "";
+}
+
+// Restore saved config if exists
+if (window.config && config.link) {
+  linkInput.value = config.link;
+  if (config.preview && (config.preview.title || config.preview.description || config.preview.image)) {
+    linkPreview.style.display = "flex";
+    linkPreview.querySelector('.js-link-preview-title').innerText = config.preview.title || "No title";
+    linkPreview.querySelector('.js-link-preview-desc').innerText = config.preview.description || "";
+    
+    const imgEl = linkPreview.querySelector('.js-link-preview-img');
+    if (config.preview.image) {
+      imgEl.src = config.preview.image;
+      imgEl.style.display = "block";
+    } else {
+      imgEl.style.display = "none";
+    }
+    currentUrl = config.link;
+  }
+}
+
+// Fetch new preview on input
+linkInput.addEventListener("input", async function () {
+  const url = linkInput.value.trim();
+  const urlPattern = /^(https?:\/\/)[^\s]+$/i;
+
+  if (!urlPattern.test(url)) {
+    linkError.style.display = "block";
+    linkPreview.style.display = "none";
+    currentUrl = "";
+    return;
+  }
+
+  linkError.style.display = "none";
+  linkPreview.style.display = "flex";
+  linkPreview.querySelector(".js-link-preview-title").innerText = "Loading preview…";
+  linkPreview.querySelector(".js-link-preview-desc").innerText = "";
+  linkPreview.querySelector(".js-link-preview-img").style.display = "none";
+
+  try {
+    const res = await fetch("/preview", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url })
+    });
+    const data = await res.json();
+
+    if (data.error) {
+      linkPreview.querySelector(".js-link-preview-title").innerText = data.error;
+      linkPreview.querySelector(".js-link-preview-desc").innerText = "";
+      linkPreview.querySelector(".js-link-preview-img").style.display = "none";
+      currentUrl = "";
+      return;
+    }
+
+    currentUrl = data.canonical || url;
+
+    linkPreview.querySelector(".js-link-preview-title").innerText = (data.title || "No title");
+    linkPreview.querySelector(".js-link-preview-desc").innerText =(data.description || "");
+
+    const imgEl = linkPreview.querySelector(".js-link-preview-img");
+    if (data.image) {
+      imgEl.src = data.image;
+      imgEl.style.display = "block";
+    } else {
+      imgEl.style.display = "none";
+    }
+
+  } catch (err) {
+    linkPreview.querySelector(".js-link-preview-title").innerText = "Could not load preview.";
+    linkPreview.querySelector(".js-link-preview-desc").innerText = "";
+    linkPreview.querySelector(".js-link-preview-img").style.display = "none";
+    currentUrl = "";
+  }
+});
+
+// Click to open link
+root.addEventListener("click", function () {
+  if (currentUrl) window.open(currentUrl, "_blank");
+});
+
+// Copy button
+copyBtn.addEventListener("click", () => {
+  if (currentUrl) navigator.clipboard.writeText(currentUrl).then(() => alert("Link copied!"));
+});
+
+// Delete button
+deleteBtn.addEventListener("click", () => {
+  linkInput.value = "";
+  linkPreview.style.display = "none";
+  linkPreview.querySelector('.js-link-preview-title').innerText = "";
+  linkPreview.querySelector('.js-link-preview-desc').innerText = "";
+  linkPreview.querySelector('.js-link-preview-img').style.display = "none";
+  currentUrl = "";
+});
+</script>
+
+</body>
+</html>

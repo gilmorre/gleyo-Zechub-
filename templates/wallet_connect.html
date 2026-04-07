@@ -1,0 +1,37 @@
+<h2>Connect Wallet</h2>
+<p>Please sign this message to prove ownership:</p>
+<pre id="nonce">{{ nonce }}</pre>
+
+<button id="connectBtn">Sign & Connect</button>
+
+<script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
+<script>
+document.getElementById("connectBtn").addEventListener("click", async () => {
+    if (!window.ethereum) {
+        alert("Please install MetaMask!");
+        return;
+    }
+
+    const web3 = new Web3(window.ethereum);
+    await ethereum.request({ method: "eth_requestAccounts" });
+
+    const accounts = await web3.eth.getAccounts();
+    const address = accounts[0];
+    const nonce = document.getElementById("nonce").innerText;
+
+    const signature = await web3.eth.personal.sign(nonce, address);
+
+    const res = await fetch("/wallet/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address, signature })
+    });
+
+    const data = await res.json();
+    if (data.status === "connected") {
+        window.location.href = "/profile";  // back to profile page
+    } else {
+        alert("Error: " + data.error);
+    }
+});
+</script>

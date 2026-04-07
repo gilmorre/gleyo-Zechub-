@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multi-Type File Upload (Root + Classes)</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+/* ─────────── CONTAINER LAYOUT ─────────── */
+.kelcontainer {
+  width: 100%;
+  margin: 20px auto;
+}
+
+@media (max-width: 767px) {
+  .kelcontainer {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+  }
+}
+
+/* ─────────── UPLOAD BOX STYLING ─────────── */
+.outer-boxs {
+  position: relative;
+  width: 100%;
+  min-height: 300px;
+  padding: 10px;
+  box-sizing: border-box;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  background: #26263a;
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+.outer-boxs.dragover {
+  background-color: #333;
+  border-color: #4e73df;
+}
+
+.dragPrompt {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  white-space: nowrap;
+  color: #aaa;
+  font-size: 16px;
+  pointer-events: none;
+}
+
+.initialPrompt {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+/* ─────────── CHOSEN FILE DISPLAY ─────────── */
+.chosenFilesContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.chosenimg {
+  position: relative;
+  width: 100%;
+  height: 300px;
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: #1c1c1c;
+}
+
+.chosenimg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.file-icon {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #444;
+  color: #fff;
+  font-size: 16px;
+  text-align: center;
+}
+
+/* ─────────── FILE ACTIONS ─────────── */
+.removeFileBtn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.removeFileBtn:hover {
+  background: rgba(255, 0, 0, 0.8);
+}
+
+.progress-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 6px;
+  width: 0%;
+  background-color: #4e73df;
+  border-radius: 0 0 12px 12px;
+  transition: width 0.2s;
+}
+
+.file-preview {
+  margin-bottom: 10px;
+  font-size: 14px;
+  display: none;
+}
+
+/* ─────────── BUTTONS ─────────── */
+.custom-file-btn {
+  display: none;
+  padding: 10px 20px;
+  background: #4e73df;
+  color: #fff;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.3s ease;
+  margin-bottom: 10px;
+}
+.custom-file-btn:hover {
+  background: #2e59d9;
+}
+
+.textitems-btn {
+  background: #444;
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+}
+.textitems-btn i {
+  transition: transform 0.3s ease;
+}
+
+/* ─────────── CATEGORY GRID ─────────── */
+.category {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.category div {
+  background-color: #35354f;
+  border: 1px solid #3b3b57;
+  border-radius: 10px;
+  padding: 12px;
+  text-align: center;
+  font-size: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+.category div:hover {
+  background-color: #3f3f60;
+}
+.category div.selected,
+.category input[type="checkbox"]:checked + div {
+  background: #4e73df;
+  border-color: #4e73df !important;
+  color: #fff;
+}
+.category input[type="checkbox"] {
+  display: none;
+}
+.category i {
+  font-size: 20px;
+}
+
+/* ─────────── INPUT GROUP ─────────── */
+.boxerstyle {
+  border: 1px solid #cccccc57;
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.input-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.input-group input[type="number"] {
+  width: 80px;
+  padding: 6px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+.input-group input[type="number"]:focus {
+  border-color: #6b46ff;
+}
+
+.input-group button {
+  background-color: #6b46ff;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.2s ease;
+}
+.input-group button:hover {
+  background-color: #5530cc;
+}
+.input-group button i {
+  pointer-events: none;
+}
+
+/* ─────────── POPUP STYLING ─────────── */
+.popup-container {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 18px;
+  padding: 20px 20px 30px;
+  margin-top: 20px;
+}
+
+/* ─────────── UTILITY ─────────── */
+.hidden {
+  display: none;
+}
+
+
+@media (max-width: 991px) {
+
+}
+.hidden {
+  display: none;
+}
+
+</style>
+
+
+</head>
+<body>
+
+<!-- Root uploader container -->
+<div class="kelcontainer uploader-root"  data-type="File Upload">
+    <div class="outer-boxs">
+        <div class="dragPrompt">
+          <span class="initialPrompt">Choose a file </span><span>or </span><strong>drag & drop here</strong>
+        </div>
+        <div class="divers">
+            <div class="chosenFilesContainer"></div>
+            <div class="file-preview"></div>
+            <label class="custom-file-btn">Choose File</label>
+            <input type="file" class="fileUpload" multiple disabled style="display:none;"> 
+        </div>
+    </div>
+
+    <div class="popup-container">
+        <div class="upload-container">
+            <h2>Upload Your File(s)</h2>
+            <div style="margin-bottom:15px; display: flex; align-items: center; gap: 8px;">
+                <label>Number of files:</label> 
+                <div class="input-group">
+                    <input type="number" class="fileCount" min="1" max="20" value="1">
+                          <button class="textitems-btn">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="chevron-down"
+                          width="20" height="20" viewBox="0 0 24 24"
+                          fill="none" stroke="currentColor" stroke-width="2"
+                          stroke-linecap="round" stroke-linejoin="round"
+                          style="vertical-align: middle; position: relative; top: -1px;">
+                        <path d="M6 9l6 6 6-6"/>
+                      </svg>
+                        <svg class="chevron-up hidden" xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                          viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                          stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; position: relative; top: -1px;">
+                        <path d="M18 15l-6-6-6 6"/>
+                      </svg>
+                          </button>
+
+                </div>
+            </div>
+            <div class="categoryBox category">
+                <div><input type="checkbox" class="doc" value=".doc,.txt">
+        
+                  Document</div>
+                                  <div><input type="checkbox" class="ppt" value=".ppt"> 
+                  Presentation</div>
+                                  <div><input type="checkbox" class="xls" value=".xls"> 
+                  Spreadsheet</div>
+                                  <div><input type="checkbox" class="img" value=".png,.jpg,.gif">< 
+                  Image</div>
+                <div><input type="checkbox" class="draw" value=".psd,.ai,.eps"> 
+              Drawing</div>
+                <div><input type="checkbox" class="vid" value=".mp4,.mov,.avi"> 
+                    Video</div>
+                <div><input type="checkbox" class="aud" value=".mp3,.wav"><svg xmlns="http://www.w3.org/2000/svg" 
+                      viewBox="0 0 24 24" 
+                     width="22" height="22"
+                      fill="currentColor">
+                    <path transform="scale(0.0375)" d="M128 128C128 92.7 156.7 64 192 64L341.5 64C358.5 64 374.8 70.7 386.8 82.7L493.3 189.3C505.3 201.3 512 217.6 512 234.6L512 512C512 547.3 483.3 576 448 576L192 576C156.7 576 128 547.3 128 512L128 128zM336 122.5L336 216C336 229.3 346.7 240 360 240L453.5 240L336 122.5zM389.8 307.7C380.7 301.4 368.3 303.6 362 312.7C355.7 321.8 357.9 334.2 367 340.5C390.9 357.2 406.4 384.8 406.4 416C406.4 447.2 390.8 474.9 367 491.5C357.9 497.8 355.7 510.3 362 519.3C368.3 528.3 380.8 530.6 389.8 524.3C423.9 500.5 446.4 460.8 446.4 416C446.4 371.2 424 331.5 389.8 307.7zM208 376C199.2 376 192 383.2 192 392L192 440C192 448.8 199.2 456 208 456L232 456L259.2 490C262.2 493.8 266.8 496 271.7 496L272 496C280.8 496 288 488.8 288 480L288 352C288 343.2 280.8 336 272 336L271.7 336C266.8 336 262.2 338.2 259.2 342L232 376L208 376zM336 448.2C336 458.9 346.5 466.4 354.9 459.8C367.8 449.5 376 433.7 376 416C376 398.3 367.8 382.5 354.9 372.2C346.5 365.5 336 373.1 336 383.8L336 448.3z"/>
+                  </svg>
+                  Audio</div>
+                <div><input type="checkbox" class="zip" value=".zip">
+                  <svg xmlns="http://www.w3.org/2000/svg" 
+                      viewBox="0 0 24 24" 
+                      width="22" height="22" 
+                      fill="currentColor">
+                    <path transform="scale(0.0375)" d="M128 128C128 92.7 156.7 64 192 64H341.5C358.5 64 374.8 70.7 386.8 82.7L493.3 189.3C505.3 201.3 512 217.6 512 234.6V512C512 547.3 483.3 576 448 576H192C156.7 576 128 547.3 128 512V128zM336 122.5V216C336 229.3 346.7 240 360 240H453.5L336 122.5zM272 320C263.2 320 256 327.2 256 336V352H240C231.2 352 224 359.2 224 368V384C224 392.8 231.2 400 240 400H256V416H240C231.2 416 224 423.2 224 432V448C224 456.8 231.2 464 240 464H256V480C256 488.8 263.2 496 272 496H304C312.8 496 320 488.8 320 480V464C320 455.2 312.8 448 304 448H288V432H304C312.8 432 320 424.8 320 416V400C320 391.2 312.8 384 304 384H288V368H304C312.8 368 320 360.8 320 352V336C320 327.2 312.8 320 304 320H272z"/>
+                  </svg>
+
+                Archive</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Multi-instance uploader using root
+document.querySelectorAll('.uploader-root').forEach(root => {
+    if (root.dataset.initialized) return; // already done
+    root.dataset.initialized = "true";
+    const outerBox = root.querySelector('.outer-boxs');
+    const dragPrompt = root.querySelector('.dragPrompt');
+    const fileInput = root.querySelector('.fileUpload');
+    const fileBtn = root.querySelector('.custom-file-btn');
+    const chosenFilesContainer = root.querySelector('.chosenFilesContainer');
+    const fileCountInput = root.querySelector('.fileCount');
+    const textBtn = root.querySelector('.textitems-btn');
+    const categoryBox = root.querySelector('.categoryBox');
+    const icon = textBtn.querySelector('i');
+    const checkboxes = categoryBox.querySelectorAll('input[type="checkbox"]');
+
+    let selectedFiles = [];
+
+    function updateUI() {
+        const limit = parseInt(fileCountInput.value, 10) || 0;
+        dragPrompt.style.display = selectedFiles.length > 0 ? "none" : "block";
+        const hasImage = selectedFiles.some(file => file.type.startsWith('image/'));
+        fileBtn.style.display = (hasImage && selectedFiles.length < limit) ? "inline-block" : "none";
+    }
+
+    function updateFileInput() {
+        const dt = new DataTransfer();
+        selectedFiles.forEach(file => dt.items.add(file));
+        fileInput.files = dt.files;
+    }
+
+    function addFileElement(file, index) {
+        const boxerDiv = document.createElement('div');
+        boxerDiv.classList.add('boxerstyle');
+        boxerDiv.dataset.index = index;
+
+        const previewBox = document.createElement('div');
+        previewBox.classList.add('chosenimg');
+
+        const removeBtn = document.createElement('button');
+        removeBtn.classList.add('removeFileBtn');
+        removeBtn.innerHTML = "&times;";
+        removeBtn.onclick = () => removeFile(index, boxerDiv);
+
+        const progressBar = document.createElement('div');
+        progressBar.classList.add('progress-bar');
+
+        if(file.type.startsWith('image/')) {
+            const img = document.createElement('img');
+            img.src = URL.createObjectURL(file);
+            previewBox.appendChild(img);
+        } else {
+            const div = document.createElement('div');
+            div.className = 'file-icon';
+            div.textContent = file.name;
+            previewBox.appendChild(div);
+        }
+
+        previewBox.appendChild(removeBtn);
+        previewBox.appendChild(progressBar);
+        boxerDiv.appendChild(previewBox);
+        chosenFilesContainer.appendChild(boxerDiv);
+
+        let percent = 0;
+        const interval = setInterval(() => {
+            percent += 5;
+            progressBar.style.width = percent + "%";
+            if(percent >= 100){
+                clearInterval(interval);
+                progressBar.style.backgroundColor = "#1cc88a";
+            }
+        }, 100);
+    }
+
+    function removeFile(index, element){
+        selectedFiles.splice(index, 1);
+        element.remove();
+        updateFileInput();
+        updateUI();
+    }
+
+    function handleFiles(files){
+        const limit = parseInt(fileCountInput.value, 10);
+        const remainingSlots = limit - selectedFiles.length;
+        if(remainingSlots <= 0) return alert("File limit reached");
+        files.slice(0, remainingSlots).forEach(file => {
+            selectedFiles.push(file);
+            addFileElement(file, selectedFiles.length -1);
+        });
+        updateFileInput();
+        updateUI();
+    }
+
+    // Events
+checkboxes.forEach(box => {
+    const wrapper = box.closest('div');
+
+    // Make entire div clickable
+    wrapper.addEventListener('click', e => {
+        if (e.target !== box) { // avoid double toggle when directly clicking the checkbox
+            box.checked = !box.checked;
+            box.dispatchEvent(new Event('change'));
+        }
+    });
+
+    // Handle visual + logic updates
+    box.addEventListener('change', () => {
+        wrapper.classList.toggle('selected', box.checked);
+
+        const selectedTypes = Array.from(checkboxes)
+            .filter(cb => cb.checked)
+            .map(cb => cb.value)
+            .join(',');
+
+        fileInput.disabled = selectedTypes.length === 0;
+        fileInput.setAttribute('accept', selectedTypes);
+    });
+});
+
+
+
+    fileCountInput.addEventListener('input', () => {
+        const count = parseInt(fileCountInput.value, 10);
+        if(count>1) fileInput.setAttribute('multiple','multiple');
+        else fileInput.removeAttribute('multiple');
+        updateUI();
+    });
+
+    fileBtn.addEventListener('click', () => {
+        if(!fileInput.disabled) fileInput.click();
+        else alert('Please select at least one file type.');
+    });
+
+    dragPrompt.addEventListener('click', () => {
+        if(!fileInput.disabled) fileInput.click();
+        else alert('Please select at least one file type.');
+    });
+
+    outerBox.addEventListener('dragover', e=>{ e.preventDefault(); outerBox.classList.add('dragover'); });
+    outerBox.addEventListener('dragleave', e=>{ e.preventDefault(); outerBox.classList.remove('dragover'); });
+    outerBox.addEventListener('drop', e=>{
+        e.preventDefault();
+        outerBox.classList.remove('dragover');
+        handleFiles(Array.from(e.dataTransfer.files));
+    });
+
+    fileInput.addEventListener('change', ()=> handleFiles(Array.from(fileInput.files)));
+
+    // Toggle category box
+    // Toggle category box per root
+const chevronDown = textBtn.querySelector('.chevron-down');
+const chevronUp = textBtn.querySelector('.chevron-up');
+ 
+
+let isOpen = !categoryBox.classList.contains("hidden");
+
+textBtn.addEventListener("click", () => {
+  isOpen = !isOpen;
+  categoryBox.classList.toggle("hidden", !isOpen);
+  chevronDown.classList.toggle("hidden", isOpen);
+  chevronUp.classList.toggle("hidden", !isOpen);
+});
+
+
+
+});
+</script>
+</body>
+</html>

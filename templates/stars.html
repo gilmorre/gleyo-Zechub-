@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stars </title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+*{
+  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+
+}
+
+
+/* Make both containers same width */
+.star-root,
+.popup-container {
+    width: 100% !important;
+    box-sizing: border-box;
+}
+
+
+ @media (max-width: 991px){
+
+.star-root,
+.popup-container {
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+ }
+
+/* Outer container */
+.star-root {
+    position: relative;
+    border: 1.5px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    padding: 50px 20px 20px;
+}
+
+/* Floating label above */
+.clabeled {
+    position: absolute;
+    top: -16px;
+    left: 20px;
+    background: linear-gradient(135deg, #34d399, #10b981);
+    color: white;
+    font-size: 14px;
+    padding: 6px 16px;
+    border-radius: 50px;
+    display: flex;
+    align-items: center;
+    font-weight: bold;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+.clabeled i {
+    margin-right: 6px;
+}
+
+.js-star-count{
+  background-color: transparent;
+  border: 0.1px solid #cccccc57;
+  border-radius: 11px;
+  padding: 10px;
+  display: flex !important;
+  color: aliceblue;
+  gap: 10px;
+  width: 100%;
+}
+
+
+.js-stars-container {
+  display: flex;
+
+  gap: 6px;
+
+}
+
+.js-stars-container svg {
+  cursor: pointer;
+}
+
+
+.js-stars-container svg:hover path {
+  fill: #797979ae; 
+}
+
+
+
+.js-stars-container {
+  display: flex;
+
+  gap: 6px; /* spacing between stars */
+  flex-wrap: nowrap; /* optional, allows wrapping if too many stars */
+}
+
+
+
+.js-stars-container svg path {
+  fill: #555; /* default gray */
+  transition: fill 0.2s ease, stroke 0.2s ease;
+}
+
+/* Hovered stars (from JS logic) */
+.js-stars-container svg.hover path {
+  fill: #797979ae; /* hover color for group */
+  transition: fill 0.2s ease;
+}
+
+/* Active (clicked) stars */
+.js-stars-container svg.active path {
+  fill: #facc15;
+  stroke-width: 1.5;
+}
+
+
+
+
+
+.yourtaketitle{
+  font-weight: bold;
+  margin-bottom: 5px;
+  font-size: 12px;
+    margin-top: 20px;
+
+}
+
+
+/* Popup container */
+.popup-container {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 18px;
+    padding: 20px 20px 30px;
+    position: relative;
+    color: white;
+}
+
+/* Upward arrow above container */
+.popup-container::before {
+    content: "";
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-bottom: 12px solid #222;
+}
+
+.popup-header {
+    display: flex;
+    align-items: center;
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-bottom: 16px;
+    gap: 10px;
+}
+
+.popup-header .liconquiz {
+    background: linear-gradient(135deg, #34d399, #10b981);
+    padding: 6px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.popup-header .liconquiz i {
+    color: white;
+    font-size: 18px;
+}
+
+.popup-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 15px;
+}
+
+.popup-actions button {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: #ccc;
+    font-size: 18px;
+}
+
+.popup-actions button:hover {
+    color: white;
+}
+
+
+
+
+
+.liners {
+    height: 0.5px;
+    background-color: #2e65ff;
+    border-radius: 1px;
+    margin: 8px -20px; /* matches container's horizontal padding */
+}
+
+#YoulinkInput,
+  #YourTextArea {
+    background-color: transparent;
+    border: none;           /* Remove border */
+    outline: none;          /* Remove focus outline */
+    font-size: 16px;
+    padding: 8px;
+    width: 100%;
+    resize: none;           /* For textarea: remove resize handle if desired */
+  }
+
+  /* Optional: placeholder style */
+  #YoulinkInput::placeholder,
+  #YourTextArea::placeholder {
+    color: #888;            /* Light gray placeholder text */
+  }
+
+  /* Optional: remove autofill background (Chrome) */
+  input:-webkit-autofill {
+    background-color: transparent !important;
+    -webkit-box-shadow: 0 0 0px 1000px transparent inset;
+
+  }
+
+  
+    .options {
+      margin-top: 15px;
+      gap: 10px;
+    }
+
+    .option {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .option input {
+      flex: 1;
+      margin-right: 8px;
+    }
+
+.spacinelement {
+  display: flex;
+  flex-direction: column;
+  gap: 5px; /* spaces between each .mutiplespacing */
+}
+
+
+.mutiplespacing {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+}
+
+.mutiplespacing .text .title {
+    font-weight: bold;
+    font-size: 12px;
+}
+
+
+.polltits{
+  font-weight: bold;
+  font-size: 15px;
+  color: aliceblue;
+
+}
+.polldescs{
+  color: #787878;
+
+}
+
+
+.stars {
+  margin-top: 10px;
+  font-size: 0;         /* remove inline-block gaps */
+  line-height: 40px;    /* extra vertical space between wrapped rows */
+}
+
+.stars i {
+  display: inline-block;
+  font-size: 40px;
+  color: gray;
+  cursor: pointer;
+  margin: 0 2px;        /* horizontal spacing */
+}
+
+
+.js-star-count {
+  -webkit-appearance: none;
+  margin: 0;
+
+  -moz-appearance: textfield;
+
+}
+
+
+
+</style>
+</head>
+<body>
+<div style="outline: none; display: flex; justify-content: center; align-items: center;  flex-direction: column;">
+
+<div class="outer-box star-root" data-type="Optionscale(star)">
+  <div class="clabeled" style="display: flex; gap: 8px;">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="#fff"> 
+  <path d="M12.81 1.69c-0.16-0.3-0.41-0.47-0.75-0.47s-0.59 0.17-0.75 0.47L8.44 7.09 2.43 7.99c-0.34 0.05-0.63 0.19-0.74 0.45-0.11 0.26-0.02 0.55 0.08 0.77l3.81 4.66-0.85 6.22c-0.05 0.34 0.01 0.68 0.13 0.91 0.12 0.23 0.32 0.42 0.55 0.51 0.23 0.09 0.48 0.11 0.71 0.05L12 18.06l5.88 3.81c0.23 0.15 0.48 0.17 0.71 0.05s0.43-0.28 0.55-0.51c0.12-0.23 0.18-0.57 0.13-0.91l-0.85-6.22 3.81-4.66c0.1-0.22 0.19-0.51 0.08-0.77s-0.4-0.4-0.74-0.45l-6.01-0.9L12.81 1.69z"/>
+</svg> Star Take
+  </div>
+
+  <div class="polltit"></div>
+  <div class="polldesc"></div>
+  <div class="stars js-stars-container"></div>
+</div>
+
+<div class="popup-container" role="dialog" aria-label="Visit link">
+  <div class="popup-header">
+    <div class="liconquiz">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="#fff"> 
+  <path d="M12.81 1.69c-0.16-0.3-0.41-0.47-0.75-0.47s-0.59 0.17-0.75 0.47L8.44 7.09 2.43 7.99c-0.34 0.05-0.63 0.19-0.74 0.45-0.11 0.26-0.02 0.55 0.08 0.77l3.81 4.66-0.85 6.22c-0.05 0.34 0.01 0.68 0.13 0.91 0.12 0.23 0.32 0.42 0.55 0.51 0.23 0.09 0.48 0.11 0.71 0.05L12 18.06l5.88 3.81c0.23 0.15 0.48 0.17 0.71 0.05s0.43-0.28 0.55-0.51c0.12-0.23 0.18-0.57 0.13-0.91l-0.85-6.22 3.81-4.66c0.1-0.22 0.19-0.51 0.08-0.77s-0.4-0.4-0.74-0.45l-6.01-0.9L12.81 1.69z"/>
+</svg>
+    </div>
+    <div class="title">Star Take</div>
+    <div class="popup-actions">
+      <button title="Copy link">
+        <i class="far fa-clipboard"></i>
+      </button>
+      <button title="Delete link">
+        <i class="fas fa-trash-alt"></i>
+      </button>
+    </div>
+  </div>
+  <div class="liners"></div>
+
+  <!-- Title input -->
+  <input id="YoulinkInput" class="js-title-input" style="color: aliceblue;" type="text" placeholder="Enter the title of your poll..." />
+
+  <!-- Description input -->
+  <textarea id="YourTextArea" class="js-desc-input" style="color: #787878;" placeholder="Type your poll description..."></textarea>
+
+  <div>
+    <div class="yourtaketitle">Star count</div>
+    <input type="url" class="js-star-count" value="5" min="1" max="10">
+  </div>
+</div>
+</div>
+<script>
+/* loader will run it as: new Function("root", code)(wrapper) */
+const titleInput   = root.querySelector(".js-title-input");
+const titlePreview = root.querySelector(".polltit");
+if (titleInput && titlePreview) {
+  titlePreview.textContent = titleInput.value || "";
+  titleInput.addEventListener("input", () => {
+    titlePreview.textContent = titleInput.value;
+  });
+}
+
+const descInput   = root.querySelector(".js-desc-input");
+const descPreview = root.querySelector(".polldesc");
+if (descInput && descPreview) {
+  descPreview.textContent = descInput.value || "";
+  descInput.addEventListener("input", () => {
+    descPreview.textContent = descInput.value;
+  });
+}
+
+const starInput = root.querySelector(".js-star-count");
+const starsContainer = root.querySelector(".js-stars-container");
+
+function renderStars(count) {
+  if (!starsContainer) return;
+  starsContainer.innerHTML = "";
+
+  for (let i = 0; i < count; i++) {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("width", "40");
+    svg.setAttribute("height", "40");
+    svg.setAttribute("fill", "#555");
+    svg.classList.add("star-icon");
+
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", "M12.81 1.69c-0.16-0.3-0.41-0.47-0.75-0.47s-0.59 0.17-0.75 0.47L8.44 7.09 2.43 7.99c-0.34 0.05-0.63 0.19-0.74 0.45-0.11 0.26-0.02 0.55 0.08 0.77l3.81 4.66-0.85 6.22c-0.05 0.34 0.01 0.68 0.13 0.91 0.12 0.23 0.32 0.42 0.55 0.51 0.23 0.09 0.48 0.11 0.71 0.05L12 18.06l5.88 3.81c0.23 0.15 0.48 0.17 0.71 0.05s0.43-0.28 0.55-0.51c0.12-0.23 0.18-0.57 0.13-0.91l-0.85-6.22 3.81-4.66c0.1-0.22 0.19-0.51 0.08-0.77s-0.4-0.4-0.74-0.45l-6.01-0.9L12.81 1.69z");
+    svg.appendChild(path);
+
+svg.addEventListener("mouseenter", () => {
+  const stars = starsContainer.querySelectorAll("svg");
+  stars.forEach((s, idx) => {
+    if (idx <= i) {
+      s.classList.add("hover");
+    } else {
+      s.classList.remove("hover");
+    }
+  });
+});
+
+svg.addEventListener("mouseleave", () => {
+  const stars = starsContainer.querySelectorAll("svg");
+  stars.forEach(s => s.classList.remove("hover"));
+});
+
+svg.addEventListener("click", () => {
+  const stars = starsContainer.querySelectorAll("svg");
+  stars.forEach((s, idx) => {
+    if (idx <= i) {
+      s.classList.add("active");
+    } else {
+      s.classList.remove("active");
+    }
+  });
+});
+
+
+    starsContainer.appendChild(svg);
+  }
+}
+
+if (starInput) {
+  let count = parseInt(starInput.value) || 5;
+  renderStars(count);
+  starInput.addEventListener("input", () => {
+    let count = parseInt(starInput.value) || 0;
+    if (count < 1) count = 1;
+    if (count > 10) count = 10;
+    renderStars(count);
+  });
+}
+
+</script>

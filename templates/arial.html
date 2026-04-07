@@ -1,0 +1,1201 @@
+ 
+
+
+
+<title>{{ subquest.name }}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.4/dist/confetti.browser.min.js"  defer></script>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='arial.css') }}">
+
+
+
+  <div class="quest-creator {% if settingsinfo_visible %}settings-collapsed{% else %} {% endif %}" data-idsinit="{{ quest.uuid }}" dataset-ids="{{ subquest.uuid }}">
+    <div class="quest-left">
+
+    <header> 
+
+      <div class="quest-header">
+        <div class="logo">✨ Quest Creator</div>
+          <button id="sidePanelToggle" aria-label="Toggle Quest Settings">
+            <span class="bar-quest bar-top hide-side-q"></span>
+            <span class="bar-quest bar-bottom hide-side-q"></span>
+
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" class="show-side-q"
+              viewBox="0 0 24 24" fill="none" stroke="#4285f4" 
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+          </button>
+        <div class="header-actions">
+          <span class="preview-mobile preview-btn" onclick="previewSubquest()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M1.5 12s3.75-7.5 10.5-7.5S22.5 12 22.5 12 18.75 19.5 12 19.5 1.5 12 1.5 12z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+
+        
+          </span>
+
+          <div style="display: flex; gap: 5px;">
+            <button class="preview-desktop preview-btn" onclick="previewSubquest()">Preview</button>
+            <button class="publish-btn" id="publishBtn" onclick="publishSubquest();">Publish</button>          
+          </div>
+
+
+
+
+
+          <div class="show-settings-info"  style="padding: 0; margin: 0; cursor: e-resize;"  data-tooltip="Show Settings info ">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18.5" height="18.5" viewBox="0 0 24 24" aria-hidden="true" role="img">
+              <rect x="2" y="4" width="17.5" height="15" rx="4" ry="4"
+                      fill="none" stroke="currentColor" stroke-width="1.5"/>
+
+              <rect x="7" y="4" width="1.5" height="15" rx="0.6" ry="0.6"
+                      fill="currentColor" stroke="none"/>
+              </svg>
+          </div>   
+        </div>
+
+
+
+
+      </div>
+    </header>
+    
+
+    <main class="quest-main">
+      <div class="kontainer">
+        <div class="task-builder">
+          <input type="text" id="hintname" placeholder="Untitle quest" autocomplete="off" class="quest-title geninput" value="{{ subquest.name }}"/>
+
+  
+            <div class="main-text-area">
+                <div class="text-block" id="first-text-block" contenteditable="true" data-placeholder="Tell adventurers what they must do to complete this quest.."></div>
+
+
+              <svg class="image-picker" id="pickMedia"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none">
+                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 2v3m0 3V5m0 0h3m-3 0h-3"/><path fill="currentColor" fill-rule="evenodd" d="M13 2H5a3 3 0 0 0-3 3v10.5c0 .086.011.17.032.25A1 1 0 0 0 2 16v3a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3v-7a1 1 0 0 0-.032-.25A1 1 0 0 0 22 11.5V11h-2v.016c-4.297.139-7.4 1.174-9.58 2.623.826.293 1.75.71 2.656 1.256 1.399.84 2.821 2.02 3.778 3.583a1 1 0 1 1-1.706 1.044c-.736-1.203-1.878-2.178-3.102-2.913-1.222-.734-2.465-1.192-3.327-1.392a15.466 15.466 0 0 0-3.703-.386h-.022c-.348.005-.68.02-.994.045V5a1 1 0 0 1 1-1h8V2zM8.5 6a2.68 2.68 0 0 0-1.522.488C6.408 6.898 6 7.574 6 8.5c0 .926.408 1.601.978 2.011A2.674 2.674 0 0 0 8.5 11c.41 0 1.003-.115 1.522-.489.57-.41.978-1.085.978-2.011 0-.926-.408-1.601-.978-2.012A2.674 2.674 0 0 0 8.5 6z" clip-rule="evenodd"/>
+              </svg>
+            </div>
+
+
+  
+
+
+              <input
+                type="file"
+                id="fileInput"
+                accept="image/*,video/*"
+                hidden
+              />
+          <div class="uniqueitems" id="uniqueItems" style="box-sizing: border-box;">
+            
+
+          </div>
+
+          <script>
+              // Pass saved tasks into JS as JSON
+            </script>
+            
+        <div class="task-list" id="taskList">
+            <button class="add-task-btn" id="addTaskBtn">
+              <div class="add-icon">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 256 256"
+                  fill="currentColor"
+                >
+                  <path d="M228,128a12,12,0,0,1-12,12H140v76a12,12,0,0,1-24,0V140H40a12,12,0,0,1,0-24h76V40a12,12,0,0,1,24,0v76h76A12,12,0,0,1,228,128Z" />
+                </svg>
+
+              </div>
+              <div class="add-text">
+                <div class="title">Add task <span>(0 / 5)</span></div>
+                <small>Question, visit link, file upload...</small>
+              </div>
+            </button>
+          </div>
+        
+        </div>
+      </div>
+      <!-- Popup -->
+
+      
+
+    </main>
+    </div>
+
+
+    <aside class="side-panel">
+      <div class="contain-all-side">
+
+
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 0; margin: 0">
+        <h2 style="color: var(--text-main); font-size: 17px !important;">Quest Settings</h2>
+        <div class="hide-settings-info" data-tooltip="Close Quest Settings" >
+          <svg xmlns="http://www.w3.org/2000/svg" width="18.5" height="18.5" viewBox="0 0 24 24">
+            <rect x="2" y="4" width="17.5" height="15" rx="4" ry="4" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            <rect x="7" y="4" width="1.5" height="15" rx="0.6" ry="0.6" fill="currentColor"/>
+          </svg>
+        </div>
+      </div>
+      <div class="tabs">
+        <button class="tab active">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+            <path d="M8.5 3.75a3.25 3.25 0 0 0-3.154 2.5H3a.75.75 0 0 0 0 1.5h2.346a3.246 3.246 0 1 0 3.154-4Zm0 5A1.75 1.75 0 1 1 10.25 7 1.752 1.752 0 0 1 8.5 8.75ZM14.25 7A.75.75 0 0 1 15 6.25h6a.75.75 0 0 1 0 1.5h-6a.75.75 0 0 1-.75-.75ZM21 16.25h-2.346a3.25 3.25 0 1 0 0 1.5H21a.75.75 0 0 0 0-1.5Zm-5.5 2.5A1.75 1.75 0 1 1 17.25 17a1.752 1.752 0 0 1-1.75 1.75ZM9.75 17a.75.75 0 0 1-.75.75H3a.75.75 0 0 1 0-1.5h6a.75.75 0 0 1 .75.75Z"/>
+          </svg>
+
+          Properties
+        </button>
+        <button class="tab">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path
+              fill-rule="evenodd"
+              clip-rule="evenodd"
+              d="M11.9426 1.25H12.0574C14.3658 1.24999 16.1748 1.24998 17.5863 1.43975C19.031 1.63399 20.1711 2.03933 21.0659 2.93414C21.9607 3.82895 22.366 4.96897 22.5603 6.41371C22.75 7.82519 22.75 9.63423 22.75 11.9426V12.0574C22.75 14.3658 22.75 16.1748 22.5603 17.5863C22.366 19.031 21.9607 20.1711 21.0659 21.0659C20.1711 21.9607 19.031 22.366 17.5863 22.5603C16.1748 22.75 14.3658 22.75 12.0574 22.75H11.9426C9.63423 22.75 7.82519 22.75 6.41371 22.5603C4.96897 22.366 3.82895 21.9607 2.93414 21.0659C2.03933 20.1711 1.63399 19.031 1.43975 17.5863C1.24998 16.1748 1.24999 14.3658 1.25 12.0574V11.9426C1.24999 9.63423 1.24998 7.82519 1.43975 6.41371C1.63399 4.96897 2.03933 3.82895 2.93414 2.93414C3.82895 2.03933 4.96897 1.63399 6.41371 1.43975C7.82519 1.24998 9.63423 1.24999 11.9426 1.25ZM6.61358 2.92637C5.33517 3.09825 4.56445 3.42514 3.9948 3.9948C3.42514 4.56445 3.09825 5.33517 2.92637 6.61358C2.75159 7.91356 2.75 9.62178 2.75 12C2.75 14.3782 2.75159 16.0864 2.92637 17.3864C3.09825 18.6648 3.42514 19.4355 3.9948 20.0052C4.56445 20.5749 5.33517 20.9018 6.61358 21.0736C7.91356 21.2484 9.62177 21.25 12 21.25C14.3782 21.25 16.0864 21.2484 17.3864 21.0736C18.6648 20.9018 19.4355 20.5749 20.0052 20.0052C20.5749 19.4355 20.9018 18.6648 21.0736 17.3864C21.2484 16.0864 21.25 14.3782 21.25 12C21.25 9.62178 21.2484 7.91356 21.0736 6.61358C20.9018 5.33517 20.5749 4.56445 20.0052 3.9948C19.4355 3.42514 18.6648 3.09825 17.3864 2.92637C16.0864 2.75159 14.3782 2.75 12 2.75C9.62177 2.75 7.91356 2.75159 6.61358 2.92637ZM15.3588 8.64124C15.6517 8.93414 15.6517 9.40901 15.3588 9.7019L10.9822 14.0784L13.4142 14.0784C13.8284 14.0784 14.1642 14.4142 14.1642 14.8284C14.1642 15.2426 13.8284 15.5784 13.4142 15.5784L9.17157 15.5784C8.75736 15.5784 8.42157 15.2426 8.42157 14.8284V10.5858C8.42157 10.1716 8.75736 9.83579 9.17157 9.83579C9.58579 9.83579 9.92157 10.1716 9.92157 10.5858V13.0178L14.2981 8.64124C14.591 8.34835 15.0659 8.34835 15.3588 8.64124Z"
+              fill="currentColor"
+            />
+          </svg>
+
+          Results
+        </button>
+      </div>
+      <div class="settings-container">
+        <div class="setting" style="display: flex !important; align-items: center; justify-content: space-between !important;">
+          <label style="display: flex;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+            </svg>
+            Recurrence
+          </label>
+
+          <div class="custom-dropdown recurrence-label">
+            <div class="selected">
+              <span>{{ subquest.recurrence or 'None' }}</span>
+              <span class="arro">
+              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <polyline
+                  points="5 8.5 12 15.5 19 8.5"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="setting"  style="display: flex !important; align-items: center; justify-content: space-between !important;">
+          <label style="display: flex; align-items: center;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+
+            Cooldown
+          </label>
+          <div class="custom-drop">
+            <div class="selected">
+              <span>{{ subquest.cooldown or 'None' }}</span>
+              <span class="arro">
+              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <polyline
+                  points="5 8.5 12 15.5 19 8.5"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+
+
+              </span>
+            </div>
+
+          </div>
+
+        </div>
+
+
+
+        <div class="setting column-setting">
+          <label style="display: flex; align-items: center;">
+            <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 256 256" enable-background="new 0 0 256 256" xml:space="preserve" width="14" height="14">
+            <g><g><path fill="currentColor" d="M69,10c-19.5,0-35.4,15.9-35.4,35.4c0,4.1,0.9,8.1,2.2,11.8h-2.2c-13,0-23.6,10.6-23.6,23.6V128h106.2V57.2h23.6V128H246V80.8c0-13-10.6-23.6-23.6-23.6h-2.2c1.3-3.7,2.2-7.7,2.2-11.8c0-19.5-15.9-35.4-35.4-35.4c-16.7,0-32.9,11.4-45.3,23.6h-27.3C101.9,21.4,85.7,10,69,10z M69,33.6c10.6,0,24.1,11.3,35,23.6H69c-6.5,0-11.8-5.3-11.8-11.8S62.5,33.6,69,33.6z M187,33.6c6.5,0,11.8,5.3,11.8,11.8s-5.3,11.8-11.8,11.8h-35C162.6,45.3,176.2,33.6,187,33.6z M10,151.6v70.8c0,13,10.6,23.6,23.6,23.6h82.6v-94.4H10z M139.8,151.6V246h82.6c13,0,23.6-10.6,23.6-23.6v-70.8H139.8z"/></g></g>
+            </svg>
+            Reward
+          </label>
+
+          <div id="rewardContainerParent" style="display: none; flex-direction: column; gap: 10px; display: flex; margin-bottom: 20px;">
+            {% if not subquest.has_rewards_before %}
+            <div class="rewardContainerWrapper"  data-dynamic="true" data-reward-type="xp">
+                <div style="display:block;">
+                  <div style="font-size: 14px; font-weight: bold;" id="rewardContainer" class="rewardsec reward-actions">
+                    <div class="reward-wrapper reward-item" >
+                      <span class="rewardDisplay" style="gap: 3px;">
+                        <svg viewBox="0 0 24 24" width="16" height="16"  style="margin-right: 5px;"  xmlns="http://www.w3.org/2000/svg" stroke="#4285f4" fill="#4285f4" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M9.15316 5.40838C10.4198 3.13613 11.0531 2 12 2C12.9469 2 13.5802 3.13612 14.8468 5.40837L15.1745 5.99623C15.5345 6.64193 15.7144 6.96479 15.9951 7.17781C16.2757 7.39083 16.6251 7.4699 17.3241 7.62805L17.9605 7.77203C20.4201 8.32856 21.65 8.60682 21.9426 9.54773C22.2352 10.4886 21.3968 11.4691 19.7199 13.4299L19.2861 13.9372C18.8096 14.4944 18.5713 14.773 18.4641 15.1177C18.357 15.4624 18.393 15.8341 18.465 16.5776L18.5306 17.2544C18.7841 19.8706 18.9109 21.1787 18.1449 21.7602C17.3788 22.3417 16.2273 21.8115 13.9243 20.7512L13.3285 20.4768C12.6741 20.1755 12.3469 20.0248 12 20.0248C11.6531 20.0248 11.3259 20.1755 10.6715 20.4768L10.0757 20.7512C7.77268 21.8115 6.62118 22.3417 5.85515 21.7602C5.08912 21.1787 5.21588 19.8706 5.4694 17.2544L5.53498 16.5776C5.60703 15.8341 5.64305 15.4624 5.53586 15.1177C5.42868 14.773 5.19043 14.4944 4.71392 13.9372L4.2801 13.4299C2.60325 11.4691 1.76482 10.4886 2.05742 9.54773C2.35002 8.60682 3.57986 8.32856 6.03954 7.77203L6.67589 7.62805C7.37485 7.4699 7.72433 7.39083 8.00494 7.17781C8.28555 6.96479 8.46553 6.64194 8.82547 5.99623L9.15316 5.40838Z" />
+                        </svg>
+                        <span class="identifyerxp">100</span><span>XP</span>
+                      </span>
+                    </div>
+
+                    <span class="divider"></span>
+
+                    <span class="reward-item" id="rewardtype">
+
+                    <svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#4285f4">
+                      <path
+                        d="M232,128.00037A104.11767,104.11767,0,0,0,128.042,24.00086L128,23.96423l-.042.03663a103.99952,103.99952,0,0,0-.001,207.999l.043.0376.043-.0376A104.11763,104.11763,0,0,0,232,128.00037Zm-16.36768-8h-39.853c-1.5918-29.637-12.01123-57.01758-29.5044-78.08643A88.1919,88.1919,0,0,1,215.63232,120.00037Zm-119.37353,16h63.48242C157.93164,164.75623,146.44678,191.703,128,210.44177,109.55322,191.703,98.06836,164.75623,96.25879,136.00037Zm0-16C98.06836,91.24353,109.55322,64.29675,128,45.559c18.44678,18.73779,29.93164,45.68457,31.74121,74.44141Zm50.01562,94.08642c17.49317-21.06933,27.9126-48.45044,29.50489-78.08642h39.853A88.19181,88.19181,0,0,1,146.27441,214.08679Z"
+                        fill="#4285f4"
+                      />
+                    </svg>
+                      <span style=" margin-left: 6px;">All</span>
+                    </span>
+
+                    <span class="divider"></span>
+
+                    <span class="reward-item delete-reward" style="color:var(--text-muted);cursor:pointer;">
+                      <svg width="16" height="16" class="triggerDeletePopup" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Trash lid -->
+                        <path d="M20.5 6H3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+
+                        <!-- Trash body -->
+                        <path d="M6.5 6C6.55588 6 6.58382 6 6.60915 5.99936C7.43259 5.97849 8.15902 5.45491 8.43922 4.68032C8.44784 4.65649 8.45667 4.62999 8.47434 4.57697L8.57143 4.28571C8.65431 4.03708 8.69575 3.91276 8.75071 3.8072C8.97001 3.38607 9.37574 3.09364 9.84461 3.01877C9.96213 3 10.0932 3 10.3553 3H13.6447C13.9068 3 14.0379 3 14.1554 3.01877C14.6243 3.09364 15.03 3.38607 15.2493 3.8072C15.3043 3.91276 15.3457 4.03708 15.4286 4.28571L15.5257 4.57697C15.5433 4.62992 15.5522 4.65651 15.5608 4.68032C15.841 5.45491 16.5674 5.97849 17.3909 5.99936C17.4162 6 17.4441 6 17.5 6" stroke="currentColor" stroke-width="1.5"></path>
+
+                        <!-- Trash handle/body curve -->
+                        <path d="M18.3735 15.3991C18.1965 18.054 18.108 19.3815 17.243 20.1907C16.378 21 15.0476 21 12.3868 21H11.6134C8.9526 21 7.6222 21 6.75719 20.1907C5.89218 19.3815 5.80368 18.054 5.62669 15.3991L5.16675 8.5M18.8334 8.5L18.6334 11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+
+                        <!-- Two vertical bars -->
+                        <line x1="10" y1="9" x2="10" y2="17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></line>
+                        <line x1="14" y1="9" x2="14" y2="17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></line>
+                      </svg>
+                    </span>
+
+                  
+
+
+
+
+                  </div>
+                </div>
+            </div>
+              {% endif %}                          
+
+          </div>
+
+
+          <div class="reward-space-conatiner">
+            <button style="display: none; white-space: nowrap;"  id="clearAllRewards" class="clear-all-btn" title="Clear All Rewards" >
+            <svg width="15" height="15" class="triggerDeletePopup" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <!-- Trash lid -->
+              <path d="M20.5 6H3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+
+              <!-- Trash body -->
+              <path d="M6.5 6C6.55588 6 6.58382 6 6.60915 5.99936C7.43259 5.97849 8.15902 5.45491 8.43922 4.68032C8.44784 4.65649 8.45667 4.62999 8.47434 4.57697L8.57143 4.28571C8.65431 4.03708 8.69575 3.91276 8.75071 3.8072C8.97001 3.38607 9.37574 3.09364 9.84461 3.01877C9.96213 3 10.0932 3 10.3553 3H13.6447C13.9068 3 14.0379 3 14.1554 3.01877C14.6243 3.09364 15.03 3.38607 15.2493 3.8072C15.3043 3.91276 15.3457 4.03708 15.4286 4.28571L15.5257 4.57697C15.5433 4.62992 15.5522 4.65651 15.5608 4.68032C15.841 5.45491 16.5674 5.97849 17.3909 5.99936C17.4162 6 17.4441 6 17.5 6" stroke="currentColor" stroke-width="1.5"></path>
+
+              <!-- Trash handle/body curve -->
+              <path d="M18.3735 15.3991C18.1965 18.054 18.108 19.3815 17.243 20.1907C16.378 21 15.0476 21 12.3868 21H11.6134C8.9526 21 7.6222 21 6.75719 20.1907C5.89218 19.3815 5.80368 18.054 5.62669 15.3991L5.16675 8.5M18.8334 8.5L18.6334 11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+
+              <!-- Two vertical bars -->
+              <line x1="10" y1="9" x2="10" y2="17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></line>
+              <line x1="14" y1="9" x2="14" y2="17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></line>
+            </svg> Clear All
+            </button>
+
+
+
+            <div class="shifted"> 
+              <div class="shift" style="font-size: 14px !important;" >
+                <!-- Plus Icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" fill="currentColor" style="margin-right: 4px;">
+                  <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Add a Reward
+              </div>
+
+
+
+            </div>
+      
+          </div>
+          
+        
+
+
+        </div>
+
+
+
+
+
+        <div class="setting  column-setting">
+          <label style="display: flex; align-items: center;">
+            <svg xmlns="http://www.w3.org/2000/svg" 
+                width="14" height="14" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                stroke-width="2" 
+                stroke-linecap="round" 
+                stroke-linejoin="round" 
+                class="feather feather-check-circle">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+            Condition
+          </label>
+
+
+          <div id="conditionContainerParent"  class="conditionContainerWrapper" style="display: none; flex-direction: column; gap: 10px; display: flex; margin-bottom: 20px;">
+
+          </div>
+
+          <div style="display: flex !important;  gap: 50px;">
+
+          <button id="clearAllCondition" class="clear-all-btn" title="Clear All Condition" style="white-space: nowrap;">
+            <svg width="15" height="15" class="triggerDeletePopup" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <!-- Trash lid -->
+              <path d="M20.5 6H3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+
+              <!-- Trash body -->
+              <path d="M6.5 6C6.55588 6 6.58382 6 6.60915 5.99936C7.43259 5.97849 8.15902 5.45491 8.43922 4.68032C8.44784 4.65649 8.45667 4.62999 8.47434 4.57697L8.57143 4.28571C8.65431 4.03708 8.69575 3.91276 8.75071 3.8072C8.97001 3.38607 9.37574 3.09364 9.84461 3.01877C9.96213 3 10.0932 3 10.3553 3H13.6447C13.9068 3 14.0379 3 14.1554 3.01877C14.6243 3.09364 15.03 3.38607 15.2493 3.8072C15.3043 3.91276 15.3457 4.03708 15.4286 4.28571L15.5257 4.57697C15.5433 4.62992 15.5522 4.65651 15.5608 4.68032C15.841 5.45491 16.5674 5.97849 17.3909 5.99936C17.4162 6 17.4441 6 17.5 6" stroke="currentColor" stroke-width="1.5"></path>
+
+              <!-- Trash handle/body curve -->
+              <path d="M18.3735 15.3991C18.1965 18.054 18.108 19.3815 17.243 20.1907C16.378 21 15.0476 21 12.3868 21H11.6134C8.9526 21 7.6222 21 6.75719 20.1907C5.89218 19.3815 5.80368 18.054 5.62669 15.3991L5.16675 8.5M18.8334 8.5L18.6334 11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+
+              <!-- Two vertical bars -->
+              <line x1="10" y1="9" x2="10" y2="17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></line>
+              <line x1="14" y1="9" x2="14" y2="17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></line>
+            </svg> Clear All
+          </button>
+
+
+          <div class="shifted condtion">
+            <div class="conshift" style="font-size: 13px !important ; font-weight: 600;color: #F5F5F5 !important; ">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="#27ae60" style="vertical-align:middle;">
+                <path d="M12 5v14m7-7H5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Add condition
+            </div>
+
+
+          </div>
+
+        </div>
+
+        </div>
+        
+        <div class="setting"  style="display: flex !important; align-items: center; justify-content: space-between !important;">
+          <label style="display: flex; align-items: center;">
+          <svg xmlns="http://www.w3.org/2000/svg"  width="14" height="14"  fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6.429 9.75 2.25 12l4.179 2.25m0-4.5 5.571 3 5.571-3m-11.142 0L2.25 7.5 12 2.25l9.75 5.25-4.179 2.25m0 0L21.75 12l-4.179 2.25m0 0 4.179 2.25L12 21.75 2.25 16.5l4.179-2.25m11.142 0-5.571 3-5.571-3" />
+          </svg>
+            Module
+          </label>
+          <div class="modulepanate">{{ quest.title }}</div>
+        </div>
+
+
+        <div class="setting">
+          <label style="display: flex; align-items: center;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 8.689c0-.864.933-1.406 1.683-.977l7.108 4.061a1.125 1.125 0 0 1 0 1.954l-7.108 4.061A1.125 1.125 0 0 1 3 16.811V8.69ZM12.75 8.689c0-.864.933-1.406 1.683-.977l7.108 4.061a1.125 1.125 0 0 1 0 1.954l-7.108 4.061a1.125 1.125 0 0 1-1.683-.977V8.69Z" />
+            </svg>
+            Sprint
+          </label>
+          <div class="shift sprint-list" data-initr="{{ subquest.sprint_id }}">
+            {% if subquest.sprint_name %}
+              Sprint: {{ subquest.sprint_name }}
+            {% else %}
+              Add to sprint
+            {% endif %}
+          </div>
+        </div>
+
+
+
+
+
+        <div class="setting"  style="display: flex !important; align-items: center; justify-content: space-between !important;">
+          <label style="display: flex; align-items: center;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 50 50">
+            
+              <line x1="5" y1="40" x2="5" y2="10" stroke="white" stroke-width="3" />
+              <line x1="15" y1="40" x2="15" y2="10" stroke="white" stroke-width="3" />
+              <line x1="25" y1="40" x2="25" y2="10" stroke="white" stroke-width="3" />
+              <line x1="35" y1="40" x2="35" y2="10" stroke="white" stroke-width="3" />
+
+              <line x1="0" y1="10" x2="40" y2="40" stroke="white" stroke-width="3" />
+            </svg>            
+            Max Claims
+          </label>
+
+          <div class="number-input-wrapper">
+            <input 
+              type="number"
+              name="max_claim"
+              inputmode="numeric"
+              pattern="[0-9]*"
+              value="{{ subquest.max_claim if subquest.max_claim is not none else '' }}"
+              min="0">
+
+            <button class="clear" onclick="clearValue(this)"style="height: 100%;">×</button>
+            <div class="spinner" style="height: 100%;">
+              <button onclick="stepValue(this, 1)">▲</button>
+              <button onclick="stepValue(this, -1)">▼</button>
+            </div>
+          </div>
+
+        </div>
+
+
+
+        <div class="setting" style="width: 100%;"> 
+          <label class="toggle-row" style="display: flex; align-items: center; justify-content: space-between; width: 100%; ">
+
+            <div style="display: flex; gap: 4px; position: relative !important;">
+
+            
+            <svg xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 100 125"
+                fill="currentColor"
+                width="26"
+                height="26"
+                style="bottom: -6px; left: -7px; position: absolute;">
+              
+              <g id="main">
+                <path d="m33.03,32.8c5-4.88,11.6-7.56,18.58-7.56s13.13,2.51,18.05,7.06c4.9,4.53,7.91,10.67,8.46,17.29.09,1.12,1.03,1.97,2.14,1.97.06,0,.12,0,.18,0,1.18-.1,2.06-1.14,1.96-2.32-.65-7.69-4.14-14.82-9.83-20.08-5.2-4.8-11.81-7.64-18.82-8.13v-3.41h3.01c1.19,0,2.15-.96,2.15-2.15s-.96-2.15-2.15-2.15h-10.3c-1.19,0-2.15.96-2.15,2.15s.96,2.15,2.15,2.15h3.01v3.41c-7.31.5-14.14,3.55-19.44,8.71-.85.83-.87,2.19-.04,3.04.83.85,2.19.87,3.04.04Z"/>
+
+                <path d="m64.63,38.82c-.79-.79-2.05-.84-2.9-.12l-8.43,7.13c-.54-.15-1.1-.23-1.68-.23-3.44,0-6.24,2.8-6.24,6.24s2.8,6.24,6.24,6.24,6.24-2.8,6.24-6.24c0-.56-.07-1.1-.21-1.62l7.12-8.51c.72-.85.66-2.11-.13-2.9Z"/>
+
+                <path d="m58.19,77.64c-2.14.54-4.35.82-6.58.82-6.96,0-13.55-2.67-18.54-7.52-.85-.83-2.21-.81-3.04.04-.83.85-.81,2.21.04,3.04,5.8,5.63,13.45,8.73,21.53,8.73,2.58,0,5.15-.32,7.63-.95,1.15-.29,1.84-1.46,1.55-2.61-.29-1.15-1.46-1.84-2.61-1.55Z"/>
+              </g>
+
+              <g id="controls">
+                <path d="m13.76,41.35h16.07c1.19,0,2.15-.96,2.15-2.15s-.96-2.15-2.15-2.15H13.76c-1.19,0-2.15.96-2.15,2.15s.96,2.15,2.15,2.15Z"/>
+                <path d="m28.76,51.85c0-1.19-.96-2.15-2.15-2.15H8.15c-1.19,0-2.15.96-2.15,2.15s.96,2.15,2.15,2.15h18.47c1.19,0,2.15-.96,2.15-2.15Z"/>
+                <path d="m31.97,64.5c0-1.19-.96-2.15-2.15-2.15H13.76c-1.19,0-2.15.96-2.15,2.15s.96,2.15,2.15,2.15h16.07c1.19,0,2.15-.96,2.15-2.15Z"/>
+              </g>
+
+              <g id="badge">
+                <path d="m89.27,59.12c-3.05-3.05-7.1-4.73-11.42-4.73s-8.37,1.68-11.42,4.73c-3.05,3.05-4.73,7.1-4.73,11.42s1.68,8.37,4.73,11.42,7.1,4.73,11.42,4.73,8.37-1.68,11.42-4.73c3.05-3.05,4.73-7.1,4.73-11.42s-1.68-8.37-4.73-11.42Zm-11.42,23.27c-6.54,0-11.85-5.32-11.85-11.85s5.32-11.85,11.85-11.85,11.85,5.32,11.85,11.85-5.32,11.85-11.85,11.85Z"/>
+                <path d="m81.72,65.21l-6.29,6.29-1.61-1.61c-.84-.84-2.2-.84-3.04,0-.84.84-.84,2.2,0,3.04l3.12,3.12c.42.42.97.63,1.52.63s1.1-.21,1.52-.63l7.8-7.8c.84-.84.84-2.2,0-3.04-.84-.84-2.2-.84-3.04,0Z"/>
+              </g>
+
+            </svg>
+
+            <span class="toggle-label" style="position: relative; left: 25px">Instant Approval</span>
+            </div>
+
+            <div class="toggle-switch {{ 'on' if subquest.autovalidation else '' }}"
+                data-value="{{ 1 if subquest.autovalidation else 0 }}">
+              <div class="toggle-knob"></div>
+            </div>
+
+            <input type="hidden" name="autovalidation"
+                  value="{{ 1 if subquest.autovalidation else 0 }}">
+          </label>
+        </div>
+
+
+
+      </div>
+      </div>
+    </aside>
+  </div>
+
+
+
+      <template id="roleSelectTemplate">
+        <div class="role-select">
+          <div class="role-panel">
+            <div class="search-box" type="text">
+              <svg viewBox="0 0 24 24" fill="none">
+                <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
+                <path d="M20 20L16.65 16.65" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+              <input 
+                type="search" 
+                class="serachesing" 
+                style="background-color: transparent; border: none;" 
+                placeholder="Search role..." 
+              />
+            </div>
+            <div class="role-divider"></div>
+
+            <!-- Placeholder for roles -->
+            <ul class="role-list">
+              <li class="role-item disabled">Loading roles...</li>
+            </ul>
+          </div>
+        </div>
+      </template>
+
+
+      <template id="customTemplate">
+        <div class="custombody" style="font-size: 12px; font-weight: bold;">
+          <div style="color: var(--text-muted); opacity: 1; font-weight: 520; margin-bottom: 5px;">Brief description of the reward</div>
+          <textarea class="customtext" placeholder="A ticket for an upcoming event"></textarea>
+        </div>
+      </template>
+
+
+
+
+      <template id="questSelectTemplate">
+        <div class="quest-select">
+          <div class="quest-panel">
+            <div class="search-box" type="text">
+              <svg viewBox="0 0 24 24" fill="none">
+                <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
+                <path d="M20 20L16.65 16.65" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+              <input type="search" class="searchQuest" style="background-color: transparent; border: none;" placeholder="Search quest..." />
+            </div>
+            <div class="quest-divider"></div>
+              <ul class="quest-list">
+                {% for quest in quests %}
+                  {% set other_subquests = quest['subquests'] | selectattr('uuid', 'ne', subquest.uuid) | list %}
+                  {% if other_subquests|length > 0 %}
+                    <li class="quest-item">
+                      {{ quest['title'] }}
+                      <ul class="subquest-list">
+                        {% for subquest in other_subquests %}
+                            <input type="hidden" class="selected-subquest-uuid" value="">
+
+                          <li class="subquest-item" data-subquest-id="{{ subquest['uuid'] }}">
+                            {{ subquest['name'] }}
+                          </li>
+                        {% endfor %}
+                      </ul>
+                    </li>
+                  {% endif %}
+                {% else %}
+                  <li class="quest-item disabled">No quests found</li>
+                {% endfor %}
+              </ul>
+
+
+          </div>
+        </div>
+      </template>
+
+    <div class="panel-select-init">
+      <div class="quest-panel">
+        <div class="search-box" type="text">
+          <svg viewBox="0 0 24 24" fill="none">
+            <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
+            <path d="M20 20L16.65 16.65" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <input type="search" class="searchQuest" style="background-color: transparent; border: none;" placeholder="Search quest..." />
+        </div>
+        <div class="quest-divider"></div>
+          <ul class="quest-list">
+            {% for quest in quests %}
+              {% set other_subquests = quest['subquests'] | selectattr('uuid', 'ne', current_subquest_uuid) | list %}
+              {% if other_subquests|length > 0 %}
+                <li class="quest-item">
+                  {{ quest['title'] }}
+                  <ul class="subquest-list">
+                    {% for subquest in other_subquests %}
+                        <input type="hidden" class="selected-subquest-uuid" value="">
+
+                      <li class="subquest-item" data-subquest-id="{{ subquest['uuid'] }}">
+                        {{ subquest['name'] }}
+                      </li>
+                    {% endfor %}
+                  </ul>
+                </li>
+              {% endif %}
+            {% else %}
+              <li class="quest-item disabled">No quests found</li>
+            {% endfor %}
+          </ul>
+
+
+      </div>
+    </div>
+
+
+  <div class="tokencontain">
+    <!-- Network -->
+    <label class="tokensel">Network</label>
+    <div class="dropdown-input">
+      <input type="text" id="networkInput"readonly placeholder="Select a network">
+      <span class="arrow">▼</span>
+      <div class="dropdown-panel" id="networkPanel"  style="box-sizing: border-box !important; margin: 0 !important;" >
+        <div class="token-box">
+          <svg viewBox="0 0 24 24" fill="none">
+            <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
+            <path d="M20 20L16.65 16.65" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <input type="search" id="networkSearch" placeholder="Search network...">
+        </div>
+        <ul id="networkList"></ul>
+      </div>
+    </div>
+
+    <!-- Token -->
+    <label class="tokensel">Token</label>
+    <div class="dropdown-input">
+      <input type="text" style="box-sizing: border-box !important; margin: 0 !important;" id="tokenInput" readonly placeholder="Select a token">
+      <span class="arrow">▼</span>
+      <div class="dropdown-panel" id="tokenPanel">
+        <div class="token-box">
+          <svg viewBox="0 0 24 24" fill="none">
+            <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
+            <path d="M20 20L16.65 16.65" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <input type="search" id="tokenSearch" placeholder="Search token...">
+        </div>
+        <ul id="tokenList"></ul>
+      </div>
+    </div>
+
+    <label class="tokensel">Amount per winner</label>
+    <input type="number" id="tokennumber">
+    <p style="font-size: 12px; color: grey;">You need to distribute the rewards manually after winners have been decided</p>
+  </div>
+
+  <div class="options recurrence">
+    <div class="option">None</div>
+    <div class="option">Daily</div>
+    <div class="option">Weekly</div>
+    <div class="option">Monthly</div>
+  </div>
+
+
+  <div id="sprintModal" class="modal">
+    <div class="modal-content">
+      <span class="close-sprint">
+        <svg
+          viewBox="0 0 24 24" width="15" height="15"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="currentColor"
+        >
+          <path
+            fill-rule="evenodd"
+            clip-rule="evenodd"
+            d="M5.29289 5.29289C5.68342 4.90237 6.31658 4.90237 6.70711 5.29289L12 10.5858L17.2929 5.29289C17.6834 4.90237 18.3166 4.90237 18.7071 5.29289C19.0976 5.68342 19.0976 6.31658 18.7071 6.70711L13.4142 12L18.7071 17.2929C19.0976 17.6834 19.0976 18.3166 18.7071 18.7071C18.3166 19.0976 17.6834 19.0976 17.2929 18.7071L12 13.4142L6.70711 18.7071C6.31658 19.0976 5.68342 19.0976 5.29289 18.7071C4.90237 18.3166 4.90237 17.6834 5.29289 17.2929L10.5858 12L5.29289 6.70711C4.90237 6.31658 4.90237 5.68342 5.29289 5.29289Z"
+          />
+        </svg>
+
+      </span>
+      <h3>Select Sprint</h3>
+      {% if current_sprint %}
+        <p>Latest Ongoing Sprint: <strong style="color: var(--text-muted) !important; font-weight: 550; font-size: 13px !important;">{{ current_sprint.title }}</strong></p>
+        <button id="selectSprintBtn" 
+                data-sprint-id="{{ current_sprint.id }}" 
+                data-sprint-name="{{ current_sprint.title }}">
+          {% if subquest.sprint_id == current_sprint.id %}
+            Undo
+          {% else %}
+            Select
+          {% endif %}
+        </button>
+      {% else %}
+        <p>No ongoing sprint for this community.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="options cooldown">
+    <div class="option">None</div>
+    <div class="option">1 minutes</div>
+    <div class="option">5 minutes</div>
+    <div class="option">15 minutes</div>
+    <div class="option">30 minutes</div>
+    <div class="option">1 hour</div>
+    <div class="option">1 Week</div>
+    <div class="option">1 month</div>
+    <div class="option">No retry</div>
+  </div>
+
+
+  <div class="reward-dropdown">
+
+  <!-- XP -->
+  <div class="option" data-icon="fas fa-star" data-color="#297bff" data-text="XP" style="font-size: 13px !important;">
+  <svg viewBox="0 0 24 24" width="15" height="15"    xmlns="http://www.w3.org/2000/svg" stroke="#297bff" fill="#297bff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 5px;">
+    <path d="M9.15316 5.40838C10.4198 3.13613 11.0531 2 12 2C12.9469 2 13.5802 3.13612 14.8468 5.40837L15.1745 5.99623C15.5345 6.64193 15.7144 6.96479 15.9951 7.17781C16.2757 7.39083 16.6251 7.4699 17.3241 7.62805L17.9605 7.77203C20.4201 8.32856 21.65 8.60682 21.9426 9.54773C22.2352 10.4886 21.3968 11.4691 19.7199 13.4299L19.2861 13.9372C18.8096 14.4944 18.5713 14.773 18.4641 15.1177C18.357 15.4624 18.393 15.8341 18.465 16.5776L18.5306 17.2544C18.7841 19.8706 18.9109 21.1787 18.1449 21.7602C17.3788 22.3417 16.2273 21.8115 13.9243 20.7512L13.3285 20.4768C12.6741 20.1755 12.3469 20.0248 12 20.0248C11.6531 20.0248 11.3259 20.1755 10.6715 20.4768L10.0757 20.7512C7.77268 21.8115 6.62118 22.3417 5.85515 21.7602C5.08912 21.1787 5.21588 19.8706 5.4694 17.2544L5.53498 16.5776C5.60703 15.8341 5.64305 15.4624 5.53586 15.1177C5.42868 14.773 5.19043 14.4944 4.71392 13.9372L4.2801 13.4299C2.60325 11.4691 1.76482 10.4886 2.05742 9.54773C2.35002 8.60682 3.57986 8.32856 6.03954 7.77203L6.67589 7.62805C7.37485 7.4699 7.72433 7.39083 8.00494 7.17781C8.28555 6.96479 8.46553 6.64194 8.82547 5.99623L9.15316 5.40838Z" />
+  </svg>
+    XP
+  </div>
+
+  <!-- Role -->
+  <div class="option" data-icon="fab fa-discord" data-color="#5865F2" data-text="Role" style="font-size: 13px !important;">
+    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="#5865F2" viewBox="0 0 24 24" style="margin-right: 5px;">
+      <path d="M20.318 4.36a19.8 19.8 0 0 0-4.885-1.517.075.075 0 0 0-.078.038c-.212.375-.445.866-.609 1.25a18.3 18.3 0 0 0-5.487 0 12 12 0 0 0-.618-1.25.075.075 0 0 0-.078-.038 19.9 19.9 0 0 0-4.885 1.517.06.06 0 0 0-.031.027C.534 9.036-.32 13.57.1 18.048q.005.033.032.056a19.9 19.9 0 0 0 5.992 3.03.075.075 0 0 0 .084-.028q.695-.945 1.227-1.994a.075.075 0 0 0-.016-.089l-.027-.017a13.5 13.5 0 0 1-1.872-.892.075.075 0 0 1-.03-.1l.022-.028q.191-.143.372-.292a.075.075 0 0 1 .077-.01c3.928 1.794 8.181 1.794 12.062 0a.075.075 0 0 1 .08.01q.181.149.372.292a.075.075 0 0 1-.006.127 12 12 0 0 1-1.873.891.075.075 0 0 0-.045.045.075.075 0 0 0 .004.062c.36.697.773 1.363 1.226 1.994a.075.075 0 0 0 .084.028 19.8 19.8 0 0 0 6.001-3.03.075.075 0 0 0 .032-.056c.501-5.176-.839-9.673-3.55-13.658a.045.045 0 0 0-.03-.029m-12.297 10.96c-1.184 0-2.157-1.085-2.157-2.419s.956-2.419 2.157-2.419c1.21 0 2.176 1.095 2.157 2.419 0 1.333-.956 2.419-2.157 2.419m7.974 0c-1.183 0-2.157-1.085-2.157-2.419s.956-2.419 2.157-2.419c1.21 0 2.177 1.095 2.157 2.419 0 1.333-.947 2.419-2.157 2.419"/>
+    </svg>
+    Role
+  </div>
+
+  <!-- Custom -->
+  <div class="option" data-icon="fas fa-edit" data-color="var(--text-muted)" data-text="Custom" style="font-size: 13px !important;">
+    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15"
+        fill="none" stroke="var(--text-muted)" stroke-width="2"
+        viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 5px;">
+      <path d="M11 4H5a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3h12a3 3 0 0 0 3-3v-7"/>
+      <path d="M18.2 2.8a2 2 0 0 1 2.8 2.8L12 14.8l-3.5.9.9-3.5L18.2 2.8z"/>
+    </svg>
+    Custom
+  </div>
+
+  <!-- Token -->
+  <div class="option" data-icon="fas fa-coins" data-color="#F7931A" data-text="Token" style="font-size: 13px !important;">
+  <svg xmlns="http://www.w3.org/2000/svg" 
+  viewBox="0 0 24 24" width="15" height="15" style="margin-right: 5px;"
+  fill="#F7931A">
+  <path transform="scale(0.046875)" d="M128 96l0-16c0-44.2 86-80 192-80S512 35.8 512 80l0 16c0 30.6-41.3 57.2-102 70.7-2.4-2.8-4.9-5.5-7.4-8-15.5-15.3-35.5-26.9-56.4-35.5-41.9-17.5-96.5-27.1-154.2-27.1-21.9 0-43.3 1.4-63.8 4.1-.2-1.3-.2-2.7-.2-4.1zM432 353l0-46.2c15.1-3.9 29.3-8.5 42.2-13.9 13.2-5.5 26.1-12.2 37.8-20.3l0 15.4c0 26.8-31.5 50.5-80 65zm0-96l0-33c0-4.5-.4-8.8-1-13 15.5-3.9 30-8.6 43.2-14.2s26.1-12.2 37.8-20.3l0 15.4c0 26.8-31.5 50.5-80 65zM0 240l0-16c0-44.2 86-80 192-80s192 35.8 192 80l0 16c0 44.2-86 80-192 80S0 284.2 0 240zm384 96c0 44.2-86 80-192 80S0 380.2 0 336l0-15.4c11.6 8.1 24.5 14.7 37.8 20.3 41.9 17.5 96.5 27.1 154.2 27.1s112.3-9.7 154.2-27.1c13.2-5.5 26.1-12.2 37.8-20.3l0 15.4zm0 80.6l0 15.4c0 44.2-86 80-192 80S0 476.2 0 432l0-15.4c11.6 8.1 24.5 14.7 37.8 20.3 41.9 17.5 96.5 27.1 154.2 27.1s112.3-9.7 154.2-27.1c13.2-5.5 26.1-12.2 37.8-20.3z"/>
+  </svg>
+
+  Token
+  </div>
+
+  </div>
+
+
+
+  <div class="condition">
+    <!-- Quest -->
+    <div class="option" style="font-size: 13px !important; display: flex; gap: 5px !important">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="15" height="15" fill="#f39c12"style="margin-right: 5px;">
+        <g transform="scale(0.0416667)">
+          <path d="M0 112C0 70.5 31.6 36.4 72 32.4l0-.4 280 0c53 0 96 43 96 96l0 176-176 0c-39.8 0-72 32.2-72 72l0 60c0 24.3-19.7 44-44 44s-44-19.7-44-44l0-228-64 0c-26.5 0-48-21.5-48-48l0-48zM236.8 480c7.1-13.1 11.2-28.1 11.2-44l0-60c0-13.3 10.7-24 24-24l248 0c13.3 0 24 10.7 24 24l0 24c0 44.2-35.8 80-80 80l-227.2 0zM80 80c-17.7 0-32 14.3-32 32l0 48 64 0 0-48c0-17.7-14.3-32-32-32z"/>
+        </g>
+      </svg>
+      Quest
+    </div>
+
+    <!-- Level -->
+    <div class="option"  style="font-size: 13px !important; display: flex; gap: 5px !important">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="15" height="15" style="color:#3498db; margin-right: 5px">
+        <g transform="scale(0.046875)">
+          <path fill="currentColor" d="M256 0c4.6 0 9.2 1 13.4 2.9L457.8 82.8c22 9.3 38.4 31 38.3 57.2-.5 99.2-41.3 280.7-213.6 363.2-16.7 8-36.1 8-52.8 0-172.4-82.5-213.1-264-213.6-363.2-.1-26.2 16.3-47.9 38.3-57.2L242.7 2.9C246.9 1 251.4 0 256 0zm0 66.8l0 378.1c138-66.8 175.1-214.8 176-303.4l-176-74.6 0 0z"/>
+        </g>
+      </svg>
+      Level
+    </div>
+
+    <!-- Role -->
+    <div class="option"  style="font-size: 13px !important; display: flex; gap: 5px !important">
+      <svg xmlns="http://www.w3.org/2000/svg"width="15" height="15" viewBox="0 0 24 24" fill="#5865F2" style="margin-right: 5px;">
+        <path d="M20.318 4.36a19.8 19.8 0 0 0-4.885-1.517.075.075 0 0 0-.078.038c-.212.375-.445.866-.609 1.25a18.3 18.3 0 0 0-5.487 0 12 12 0 0 0-.618-1.25.075.075 0 0 0-.078-.038 19.9 19.9 0 0 0-4.885 1.517.06.06 0 0 0-.031.027C.534 9.036-.32 13.57.1 18.048q.005.033.032.056a19.9 19.9 0 0 0 5.992 3.03.075.075 0 0 0 .084-.028q.695-.945 1.227-1.994a.075.075 0 0 0-.016-.089l-.027-.017a13.5 13.5 0 0 1-1.872-.892.075.075 0 0 1-.03-.1l.022-.028q.191-.143.372-.292a.075.075 0 0 1 .077-.01c3.928 1.794 8.181 1.794 12.062 0a.075.075 0 0 1 .08.01q.181.149.372.292a.075.075 0 0 1-.006.127 12 12 0 0 1-1.873.891.075.075 0 0 0-.045.045.075.075 0 0 0 .004.062c.36.697.773 1.363 1.226 1.994a.075.075 0 0 0 .084.028 19.8 19.8 0 0 0 6.001-3.03.075.075 0 0 0 .032-.056c.501-5.176-.839-9.673-3.55-13.658a.045.045 0 0 0-.03-.029m-12.297 10.96c-1.184 0-2.157-1.085-2.157-2.419s.956-2.419 2.157-2.419c1.21 0 2.176 1.095 2.157 2.419 0 1.333-.956 2.419-2.157 2.419m7.974 0c-1.183 0-2.157-1.085-2.157-2.419s.956-2.419 2.157-2.419c1.21 0 2.177 1.095 2.157 2.419 0 1.333-.947 2.419-2.157 2.419"/>
+      </svg>
+      Role
+    </div>
+
+    <!-- Date -->
+    <div class="option" style="font-size: 13px !important; display: flex; gap: 5px !important">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" width="15" height="15"
+          stroke="currentColor" stroke-width="2" style="color:#e74c3c; margin-right: 5px;"
+          stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="17" rx="4" ry="4"/>
+        <line x1="7.25" y1="2.5" x2="7.25" y2="5.5" />
+        <line x1="15.25" y1="2.5" x2="15.25" y2="5.5" />
+        <line x1="6" y1="9" x2="18" y2="9" />
+        <circle cx="8" cy="13" r="0.4" fill="currentColor"/>
+        <circle cx="12" cy="13" r="0.4" fill="currentColor"/>
+        <circle cx="16" cy="13" r="0.4" fill="currentColor"/>
+        <circle cx="8" cy="16.5" r="0.4" fill="currentColor"/>
+        <circle cx="12" cy="16.5" r="0.4" fill="currentColor"/>
+        <circle cx="16" cy="16.5" r="0.4" fill="currentColor"/>
+      </svg>
+      Date
+    </div>
+
+    <!-- Followers -->
+    <div class="option" style="font-size: 13px !important; display: flex; gap: 5px !important">
+      <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="currentColor" viewBox="0 0 24 24" style="color:#000000; margin-right: 5px">
+        <path d="M18.9 1.125h3.681l-8.04 9.213L24 22.875h-7.405l-5.8-7.605-6.637 7.605H.474l8.6-9.855L0 1.125h7.595l5.243 6.95L18.901 1.125Zm-1.29 19.542h2.04L6.484 3.217H4.297z"/>
+      </svg>
+      Followers
+    </div>
+  </div>
+
+
+
+
+  <div id="highlight-toolbar">
+    <div class="tb-btn" data-action="bold"></div>
+    <div class="tb-divider"></div>
+
+    <div class="tb-btn" data-action="italic"></div>
+    <div class="tb-divider"></div>
+
+    <div class="tb-btn" data-action="underline"></div>
+    <div class="tb-divider"></div>
+
+    <div class="tb-btn" data-action="strike"></div>
+
+    <div class="tb-divider vertical"></div>
+
+    <div class="tb-btn link-btn" data-action="link"></div>
+  </div>
+
+
+
+
+
+<!-- Move this OUTSIDE aside, right before </body> -->
+   
+
+
+<!-- Dropdown Template (kept hidden, cloned per condition) -->
+<template id="levelDropdownTemplate">
+  <div class="level-dropdown">
+    <input type="number" placeholder="Enter level">
+  </div>
+</template>
+
+<!-- Custom Popup Modal -->
+<div class="custom-popup-modal" id="discordPopup">
+  <div class="custom-popup-content">
+    <h3>Discord Connection Required</h3>
+    <p>To unlock this reward, link your Discord server in <a href="{{ url_for('settings_integrations_discord', community_slug=community_slug) }}" target="_blank" class="target-link-into" style="text-decoration: none; color: curentColor; border-bottom: 1px solid currentColor ;">Settings</a></p>
+  </div>
+</div>
+
+
+  <div id="xpInputWrapper">
+    <input type="text" class="termsin">
+  </div>
+    <div class="popup" id="popup">
+      <div class="popup-content" style="position: relative;">
+        <div class="the-main-the-main">
+          <div class="popup-header-close">
+            <span class="close" id="closePopup">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd" clip-rule="evenodd"
+                  d="M5.29289 5.29289C5.68342 4.90237 6.31658 4.90237 6.70711 5.29289L12 10.5858L17.2929 5.29289C17.6834 4.90237 18.3166 4.90237 18.7071 5.29289C19.0976 5.68342 19.0976 6.31658 18.7071 6.70711L13.4142 12L18.7071 17.2929C19.0976 17.6834 19.0976 18.3166 18.7071 18.7071C18.3166 19.0976 17.6834 19.0976 17.2929 18.7071L12 13.4142L6.70711 18.7071C6.31658 19.0976 5.68342 19.0976 5.29289 18.7071C4.90237 18.3166 4.90237 17.6834 5.29289 17.2929L10.5858 12L5.29289 6.70711C4.90237 6.31658 4.90237 5.68342 5.29289 5.29289Z"
+                  fill="currentColor"/>
+              </svg>
+
+            </span>
+          </div>
+        </div>
+        <div class="task-container">
+          
+          <!-- Left Column -->
+          <div class="task-column">
+            <div class="section-title">Actions</div>
+            <div data-file="visit_link" class="task-item"><span class="icon blue"><svg fill="#fff" stroke="#fff" width="12" height="12" viewBox="0 0 54.971 54.971" xmlns="http://www.w3.org/2000/svg">
+              <g transform="translate(1,1) scale(0.96)">
+                <path d="M51.173,3.801c-5.068-5.068-13.315-5.066-18.384,0l-9.192,9.192c-0.781,0.781-0.781,2.047,0,2.828
+                  c0.781,0.781,2.047,0.781,2.828,0l9.192-9.192c1.691-1.69,3.951-2.622,6.363-2.622c2.413,0,4.673,0.932,6.364,2.623
+                  s2.623,3.951,2.623,6.364c0,2.412-0.932,4.672-2.623,6.363L36.325,31.379c-3.51,3.508-9.219,3.508-12.729,0
+                  c-0.781-0.781-2.047-0.781-2.828,0s-0.781,2.048,0,2.828c2.534,2.534,5.863,3.801,9.192,3.801s6.658-1.267,9.192-3.801
+                  l12.021-12.021c2.447-2.446,3.795-5.711,3.795-9.192C54.968,9.512,53.62,6.248,51.173,3.801z"
+                  stroke="#ff" stroke-width="2"/>
+                <path d="M27.132,40.57l-7.778,7.778c-1.691,1.691-3.951,2.623-6.364,2.623c-2.412,0-4.673-0.932-6.364-2.623
+                  c-3.509-3.509-3.509-9.219,0-12.728L17.94,24.306c1.691-1.69,3.951-2.622,6.364-2.622c2.412,0,4.672,0.932,6.363,2.622
+                  c0.781,0.781,2.047,0.781,2.828,0s0.781-2.047,0-2.828c-5.067-5.067-13.314-5.068-18.384,0L3.797,32.793
+                  c-2.446,2.446-3.794,5.711-3.794,9.192c0,3.48,1.348,6.745,3.795,9.191c2.446,2.447,5.711,3.795,9.191,3.795
+                  c3.481,0,6.746-1.348,9.192-3.795l7.778-7.778c0.781-0.781,0.781-2.047,0-2.828S27.913,39.789,27.132,40.57z"
+                  stroke="#fff" stroke-width="2"/>
+              </g>
+            </svg></span><div class="task-text"><div class="task-title">Visit link</div><div class="task-desc">Check out a specific link</div></div></div>
+            <div data-file="invite" data-community="{{ community.slug }}" class="task-item"><span class="icon green"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="#fff">
+            <path fill="#ffffff" transform="scale(0.0375)" d="M112 128C85.5 128 64 149.5 64 176C64 191.1 71.1 205.3 83.2 214.4L291.2 370.4C308.3 383.2 331.7 383.2 348.8 370.4L556.8 214.4C568.9 205.3 576 191.1 576 176C576 149.5 554.5 128 528 128L112 128zM64 260L64 448C64 483.3 92.7 512 128 512L512 512C547.3 512 576 483.3 576 448L576 260L377.6 408.8C343.5 434.4 296.5 434.4 262.4 408.8L64 260z"/>
+          </svg></span><div class="task-text"><div class="task-title">Invites</div><div class="task-desc">Invite people to join the community</div></div></div>
+            <div  class="task-item" ><span class="icon purple">
+              <svg viewBox="0 0 35.033 35.033" xmlns="http://www.w3.org/2000/svg" fill="#fff" width="16" height="16">
+                <path d="M11.811,10.535l-6.983,6.984l6.983,6.981c0.78,0.781,0.78,2.048,0,2.828c-0.392,0.392-0.901,0.586-1.414,0.586
+                c-0.513,0-1.022-0.194-1.414-0.586l-8.397-8.396C0.211,18.558,0,18.049,0,17.519c0-0.529,0.211-1.039,0.586-1.414l8.397-8.398
+                c0.781-0.78,2.047-0.78,2.828,0C12.591,8.488,12.591,9.752,11.811,10.535z M34.447,16.104l-8.396-8.398
+                c-0.781-0.78-2.047-0.78-2.828,0c-0.781,0.781-0.781,2.047,0,2.828l6.982,6.984L23.223,24.5c-0.781,0.781-0.781,2.048,0,2.828
+                c0.392,0.392,0.902,0.586,1.414,0.586s1.023-0.194,1.414-0.586l8.396-8.396c0.375-0.375,0.586-0.884,0.586-1.414
+                C35.033,16.99,34.822,16.479,34.447,16.104z M21.012,3.831c-1.076-0.277-2.161,0.373-2.435,1.441l-6,23.498
+                c-0.272,1.07,0.373,2.16,1.442,2.434c0.167,0.043,0.334,0.063,0.497,0.063c0.894,0,1.706-0.603,1.937-1.505l6-23.498
+                C22.727,5.193,22.081,4.104,21.012,3.831z"/>
+              </svg>
+            </span><div class="task-text"><div class="task-title">API</div><div class="task-desc">Trigger an action on another platform</div></div></div>
+            <div data-file="partnership_arial" class="task-item"><span class="icon green"><svg xmlns="http://www.w3.org/2000/svg" fill="#ffffff" viewBox="0 0 24 24" width="16" height="16">
+              <path transform="scale(0.0375)" d="
+                M300.9 149.2
+                L184.3 278.8
+                C179.7 283.9 179.9 291.8 184.8 296.7
+                C215.3 327.2 264.8 327.2 295.3 296.7
+                L327.1 264.9
+                C331.3 260.7 336.6 258.4 342 258
+                C348.8 257.4 355.8 259.7 361 264.9
+                L537.6 440
+                L608 384
+                L608 96
+                L496 160
+                L472.2 144.1
+                C456.4 133.6 437.9 128 418.9 128
+                L348.5 128
+                C347.4 128 346.2 128 345.1 128.1
+                C328.2 129 312.3 136.6 300.9 149.2
+                z
+                M148.6 246.7
+                L255.4 128
+                L215.8 128
+                C190.3 128 165.9 138.1 147.9 156.1
+                L144 160
+                L32 96
+                L32 384
+                L188.4 514.3
+                C211.4 533.5 240.4 544 270.3 544
+                L286 544
+                L279 537
+                C269.6 527.6 269.6 512.4 279 503.1
+                C288.4 493.8 303.6 493.7 312.9 503.1
+                L353.9 544.1
+                L362.9 544.1
+                C382 544.1 400.7 539.8 417.7 531.8
+                L391 505
+                C381.6 495.6 381.6 480.4 391 471.1
+                C400.4 461.8 415.6 461.7 424.9 471.1
+                L456.9 503.1
+                L474.4 485.6
+                C483.3 476.7 485.9 463.8 482 452.5
+                L344.1 315.7
+                L329.2 330.6
+                C279.9 379.9 200.1 379.9 150.8 330.6
+                C127.8 307.6 126.9 270.7 148.6 246.6
+                z
+              "/>
+            </svg></span><div class="task-text"><div class="task-title">Partnership</div><div class="task-desc">Verify user joined a partner community</div></div></div>
+            <div data-file="partnership_quest" class="task-item"><span class="icon violet">
+              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="#fff" width="16" height="16" >
+                <path d="M3 5.5L8 4v15l-5 1.5V5.5z"  />
+                <path d="M9 4l6 1.5v15L9 19V4z" />
+                <path d="M16 5.5l5-1.5v15l-5 1.5V5.5z"/>
+              </svg>
+            </span><div class="task-text"><div class="task-title">Partnership Quest</div><div class="task-desc">Verify a claimed quest in a partner community</div></div></div>
+            <div data-file="proof_of_humanity" class="task-item"><span class="icon purple"><svg class="icon-fix" fill="#fff" stroke="#fff" viewBox="0 0 24 24" width="16px" height="16px"
+                xmlns="http://www.w3.org/2000/svg">
+              <g transform="scale(0.2213)">
+                <path fill="#fff" stroke="#fff" d="M90.288,24.301l-9.181,3.078l1.054,3.144c-0.401-0.54-0.813-1.07-1.244-1.587l-1.727-5.15l4.583-1.535l-3.08-9.183 
+                  l-9.182,3.078l2.014,6.003c-4.973-3.456-10.87-5.73-17.421-6.32c-0.078-0.007-0.146,0.003-0.222,0.002 
+                  c-0.005,0-0.01-0.002-0.016-0.002c-21.993-0.762-45.111,12.02-43.113,36.752c0.008,0.1,0.033,0.189,0.051,0.282 
+                  c-0.029,0.256-0.029,0.524,0.033,0.815c1.206,5.644-0.645,10.605-5.278,14.065c-0.212,0.159-0.375,0.34-0.517,0.528 
+                  c-0.468,0.309-0.838,0.781-1.037,1.352c-0.869,2.494-0.209,5.033,1.784,6.768c0.329,0.287,0.709,0.48,1.105,0.586 
+                  c1.287,0.711,2.632,1.184,4.029,1.514c-0.287,1.549-0.146,3.115,0.6,4.59c-1.393,2.715-0.468,5.71,2.282,7.346 
+                  c0.155,0.092,0.31,0.161,0.462,0.217c0.467,0.555,0.512,1.446,0.34,2.306c-0.053,0.263-0.06,0.524-0.04,0.78 
+                  c-0.012,0.232-0.005,0.47,0.04,0.707c0.725,3.804,3.973,5.902,7.69,5.971c0.2,0.004,0.385-0.016,0.559-0.051 
+                  c0.172,0.006,0.352-0.004,0.538-0.033c5.969-0.967,12.765-0.428,15.007,6.129c0.448,1.311,1.646,1.754,2.719,1.581 
+                  c0.362,0.271,0.838,0.426,1.438,0.384c10.816-0.756,21.537-2.327,32.276-3.77c0.38-0.051,0.709-0.174,0.993-0.348 
+                  c1.302-0.404,2.354-1.863,1.513-3.434c-7.176-13.381,7.371-27.975,10.133-40.827c0.061-0.276,0.061-0.535,0.036-0.78 
+                  c1.132-8.181-0.38-16.244-3.906-23.172l7.765-2.602L90.288,24.301z M79.442,15.456l1.808,5.39l-5.39,1.806l-1.808-5.389 
+                  L79.442,15.456z M78.711,46.361l-5.389,1.807l-1.807-5.39l-5.39,1.807l-1.722-5.136l-5.389,1.807l-1.808-5.389l5.39-1.808 
+                  l1.722,5.136l5.389-1.807l-1.722-5.135l5.389-1.808l-1.807-5.389l5.39-1.809l1.809,5.39l-5.392,1.808l1.809,5.39l-5.39,1.807 
+                  l1.723,5.135l5.389-1.807l-1.665-4.967l5.39-1.807l1.808,5.389l-5.391,1.808L78.711,46.361z M85.455,33.885l-1.807-5.389 
+                  l5.389-1.807l1.808,5.39L85.455,33.885z"></path>
+              </g>
+            </svg></span><div class="task-text"><div class="task-title">Proof of humanity</div><div class="task-desc">Click to verify identity</div></div></div>
+            
+            <div class="section-title bottom">Social</div>
+            <div  data-file="rankingup"  class="task-item"><span class="icon violet"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-discord" viewBox="0 0 24 24">
+              <path d="M20.318 4.36a19.8 19.8 0 0 0-4.885-1.517.075.075 0 0 0-.078.038c-.212.375-.445.866-.609 1.25a18.3 18.3 0 0 0-5.487 0 12 12 0 0 0-.618-1.25.075.075 0 0 0-.078-.038 19.9 19.9 0 0 0-4.885 1.517.06.06 0 0 0-.031.027C.534 9.036-.32 13.57.1 18.048q.005.033.032.056a19.9 19.9 0 0 0 5.992 3.03.075.075 0 0 0 .084-.028q.695-.945 1.227-1.994a.075.075 0 0 0-.016-.089l-.027-.017a13.5 13.5 0 0 1-1.872-.892.075.075 0 0 1-.03-.1l.022-.028q.191-.143.372-.292a.075.075 0 0 1 .077-.01c3.928 1.794 8.181 1.794 12.062 0a.075.075 0 0 1 .08.01q.181.149.372.292a.075.075 0 0 1-.006.127 12 12 0 0 1-1.873.891.075.075 0 0 0-.045.045.075.075 0 0 0 .004.062c.36.697.773 1.363 1.226 1.994a.075.075 0 0 0 .084.028 19.8 19.8 0 0 0 6.001-3.03.075.075 0 0 0 .032-.056c.501-5.176-.839-9.673-3.55-13.658a.045.045 0 0 0-.03-.029m-12.297 10.96c-1.184 0-2.157-1.085-2.157-2.419s.956-2.419 2.157-2.419c1.21 0 2.176 1.095 2.157 2.419 0 1.333-.956 2.419-2.157 2.419m7.974 0c-1.183 0-2.157-1.085-2.157-2.419s.956-2.419 2.157-2.419c1.21 0 2.177 1.095 2.157 2.419 0 1.333-.947 2.419-2.157 2.419"/>
+            </svg></span><div class="task-text"><div class="task-title">Discord</div><div class="task-desc">Join a Discord server</div></div></div>
+
+            {% if community.twitter_account and community.twitter_account.action == "connected" %}
+              <div data-file="twitter" class="task-item"><span class="icon tiktok">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#fff" class="bi bi-twitter-x" viewBox="0 0 16 16">
+                  <path d="M12.6.75h2.454l-5.36 6.142L16 15.25h-4.937l-3.867-5.07-4.425 5.07H.316l5.733-6.57L0 .75h5.063l3.495 4.633L12.601.75Zm-.86 13.028h1.36L4.323 2.145H2.865z"/>
+                </svg>
+              </span><div class="task-text"><div class="task-title">Twitter</div><div class="task-desc">Tweet, retweet, reply, like, follow or join a Twitter Space</div></div></div> 
+            {% else %}
+            <div class="task-non"><span class="icon tiktok">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#fff" class="bi bi-twitter-x" viewBox="0 0 16 16">
+              <path d="M12.6.75h2.454l-5.36 6.142L16 15.25h-4.937l-3.867-5.07-4.425 5.07H.316l5.733-6.57L0 .75h5.063l3.495 4.633L12.601.75Zm-.86 13.028h1.36L4.323 2.145H2.865z"/>
+            </svg>
+            </span><div class="task-text"><div class="task-title" style="color: var(--text-main);">Twitter</div><div class="task-desc">Connect your Twitter account in
+              <a class="subsettings" href="{{ url_for('settings_integrations_twitter', community_slug=community_slug) }}">
+
+              Settings
+            </a> to use this tasks </div></div></div>
+            {% endif %}
+            <div data-file="spotify" class="task-item">
+              <span class="icon spotify" style="background-color: #1DB954;">    
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="#fff" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M11.9954 0C5.38111 0 0 5.38151 0 11.9963C0 18.6152 5.38111 24 11.9954 24C18.6147 24 24 18.6152 24 11.9963C24 5.38151 18.6147 0 11.9954 0ZM5.90793 16.4042C7.29868 15.9809 8.72459 15.7662 10.1459 15.7662C12.5597 15.7662 14.9427 16.3779 17.0383 17.5359C17.163 17.6038 17.2763 17.8284 17.3271 18.108C17.378 18.3875 17.3577 18.6749 17.2761 18.8244C17.1731 19.0163 16.9641 19.1403 16.7436 19.1403C16.6343 19.1403 16.5382 19.1157 16.4421 19.0638C14.5183 18.0064 12.3412 17.4474 10.1459 17.4474C8.81957 17.4474 7.51751 17.6437 6.27698 18.0304C6.21655 18.0487 6.15439 18.0581 6.09222 18.0581C5.82059 18.0582 5.58484 17.8851 5.50576 17.6284C5.39898 17.2773 5.61986 16.4984 5.90793 16.4042ZM5.38466 11.9845C6.93474 11.5631 8.53668 11.3494 10.1459 11.3494C13.0389 11.3494 15.9117 12.0494 18.4555 13.3748C18.6338 13.4653 18.7652 13.6187 18.8254 13.8068C18.8865 13.9973 18.8681 14.2021 18.7728 14.3849C18.5458 14.8292 18.2804 15.1277 18.1124 15.1277C17.9932 15.1277 17.8783 15.0991 17.7638 15.0419C15.4016 13.8119 12.8387 13.1882 10.1459 13.1882C8.64803 13.1882 7.17852 13.3852 5.77951 13.7732C5.71444 13.7909 5.64763 13.7998 5.58114 13.7998C5.24459 13.7998 4.94801 13.5725 4.8602 13.2479C4.74775 12.8258 5.00467 12.0878 5.38466 11.9845ZM5.25065 9.09687C5.17959 9.11441 5.10696 9.12323 5.03473 9.12323C4.62799 9.12331 4.27554 8.84845 4.17765 8.4554C4.05498 7.95785 4.36627 7.37988 4.81708 7.26633C6.57033 6.83567 8.36317 6.61731 10.1459 6.61731C13.5968 6.61731 16.9018 7.39318 19.9702 8.92383C20.1833 9.02896 20.3422 9.21041 20.4177 9.43475C20.4932 9.65933 20.4766 9.90106 20.3711 10.1146C20.2274 10.4022 19.9169 10.7119 19.5747 10.7119C19.4428 10.7119 19.3073 10.6809 19.1873 10.6246C16.3687 9.21443 13.3268 8.49938 10.1459 8.49938C8.51127 8.49946 6.86431 8.70043 5.25065 9.09687Z"/>
+                  </svg>
+              </span>
+              <div class="task-text">
+                <div class="task-title">Spotify</div>
+                <div class="task-desc">Listen, save the track</div>
+              </div>
+            </div>
+
+            <div data-file="test" class="task-item"><span class="icon telegram"><svg xmlns="http://www.w3.org/2000/svg" 
+                width="16" height="16" 
+                fill="currentColor" 
+                viewBox="0 0 24 24">
+              <path d="M24 12A12 12 0 1 1 0 12a12 12 0 0 1 24 0m-11.568-3.141q-1.752.729-7 3.015-.85.337-.893.662c-.045.364.412.509 1.035.705l.263.083c.612.2 1.437.432 1.864.44q.585.015 1.302-.48 4.903-3.309 5.061-3.345c.075-.018.18-.039.249.024s.063.18.056.212c-.045.194-1.841 1.861-2.769 2.725-.29.27-.495.46-.537.504a12 12 0 0 1-.282.279c-.57.549-.996.96.022 1.632.491.324.883.589 1.274.857.426.292.852.58 1.404.944q.21.138.404.28c.497.354.945.672 1.496.621.32-.03.652-.33.821-1.23.398-2.125 1.179-6.729 1.36-8.627a2.1 2.1 0 0 0-.02-.473.51.51 0 0 0-.171-.326.8.8 0 0 0-.465-.14c-.45.008-1.144.249-4.476 1.635"/>
+              </svg></span><div class="task-text"><div class="task-title">Telegram</div><div class="task-desc">Join a Telegram channel</div></div>
+            </div>
+            <div data-file="tiktok" class="task-item"><span class="icon tiktok">
+              <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" fill="#fff" width="16" height="16" >
+                <path d="M16.708 0.027c1.745-0.027 3.48-0.011 5.213-0.027 0.105 2.041 0.839 4.12 2.333 5.563 1.491 1.479 3.6 2.156 5.652 2.385v5.369c-1.923-0.063-3.855-0.463-5.6-1.291-0.76-0.344-1.468-0.787-2.161-1.24-0.009 3.896 0.016 7.787-0.025 11.667-0.104 1.864-0.719 3.719-1.803 5.255-1.744 2.557-4.771 4.224-7.88 4.276-1.907 0.109-3.812-0.411-5.437-1.369-2.693-1.588-4.588-4.495-4.864-7.615-0.032-0.667-0.043-1.333-0.016-1.984 0.24-2.537 1.495-4.964 3.443-6.615 2.208-1.923 5.301-2.839 8.197-2.297 0.027 1.975-0.052 3.948-0.052 5.923-1.323-0.428-2.869-0.308-4.025 0.495-0.844 0.547-1.485 1.385-1.819 2.333-0.276 0.676-0.197 1.427-0.181 2.145 0.317 2.188 2.421 4.027 4.667 3.828 1.489-0.016 2.916-0.88 3.692-2.145 0.251-0.443 0.532-0.896 0.547-1.417 0.131-2.385 0.079-4.76 0.095-7.145 0.011-5.375-0.016-10.735 0.025-16.093z"/>
+              </svg>
+            </span><div class="task-text"><div class="task-title">TikTok</div><div class="task-desc">Post a TikTok video</div></div></div>
+            <div data-file="youtube" class="task-item">
+              <span class="icon youtube">    
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12.076 2.999h.134c1.233.004 7.48.05 9.165.503a3.015 3.015 0 0 1 2.123 2.13c.151.57.258 1.325.33 2.104l.015.156.033.39.012.156c.098 1.37.11 2.655.111 2.935v.113c-.002.291-.015 1.662-.123 3.09l-.012.158-.013.156c-.075.857-.186 1.711-.353 2.337a3.015 3.015 0 0 1-2.123 2.13c-1.74.468-8.354.501-9.27.502h-.213c-.464 0-2.38-.009-4.39-.078l-.255-.009-.131-.006-.256-.01-.256-.01c-1.665-.073-3.25-.192-3.981-.39a3.015 3.015 0 0 1-2.123-2.13c-.166-.626-.277-1.48-.353-2.337l-.012-.156-.012-.158A46.5 46.5 0 0 1 0 11.52v-.185c.003-.322.015-1.437.096-2.667l.011-.154.005-.078.012-.156.033-.39.015-.156c.072-.78.179-1.535.33-2.104a3.015 3.015 0 0 1 2.123-2.13c.73-.195 2.315-.315 3.981-.39l.256-.01.258-.009.13-.004.256-.01A150 150 0 0 1 11.787 3zM9.6 7.813v7.227l6.236-3.612z"/>
+                </svg>
+              </span>
+              <div class="task-text">
+                <div class="task-title">Youtube</div>
+                <div class="task-desc">Like,comment or subcribe</div>
+              </div>
+            </div>
+            <div  class="task-item"><span class="icon instagram"><i class="fa-brands fa-instagram"></i></span><div class="task-text"><div class="task-title">Instagram</div><div class="task-desc">like, commnet and follow</div></div></div>
+          </div>
+
+
+
+          <!-- Right Column -->
+          <div class="task-column">
+            <div class="section-title">Answers</div>
+            <div data-file="selector" class="task-item"><span class="icon pink"><svg viewBox="0 0 24 24" fill="none" width="16" height="16" xmlns="http://www.w3.org/2000/svg">
+              <path d="M13.5 3H12H8C6.34315 3 5 4.34315 5 6V18C5 19.6569 6.34315 21 8 21H12M13.5 3L19 8.625M13.5 3V7.625C13.5 8.17728 13.9477 8.625 14.5 8.625H19M19 8.625V11.8125" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M17.5 21L17.5 15M17.5 15L20 17.5M17.5 15L15 17.5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            </span><div class="task-text"><div class="task-title">File upload</div><div class="task-desc">Upload an image or file</div></div></div>
+
+              <div data-file="puzzle" class="task-item">
+                <span class="icon purple-puzzle">
+                  <svg xmlns="http://www.w3.org/2000/svg" shape-rendering="geometricPrecision" width="16" height="16" text-rendering="geometricPrecision" image-rendering="optimizeQuality" fill="#fff" clip-rule="evenodd" viewBox="0 0 495 511.962"><path d="M62.686 511.962h372.371l-36.089-62.816L495 366.77c-28.169-39.57-62.177-73.186-83.426-82.313 4.492-11.642 5.27-13.683 1.515-20.139 39.914-11.352 66.091-27.943 66.035-49.863-.059-23.9-34.387-46.861-85.543-54.849-12.249-51.822-24.432-92.624-39.938-119.402-2.82-4.867-5.749-9.275-8.811-13.195-46.162-59.204-62.34-2.606-95.067-2.672-37.938-.077-42.766-52.014-92.236-3.124-5.32 5.258-10.296 11.648-14.938 19.092-16.825 26.955-29.385 67.801-38.669 119.301-54.538 10.31-88.209 33.076-87.091 56.325 1.012 21.062 27.574 37.207 67.494 48.355-2.624 8.118-2.006 9.511 1.55 19.503C56.059 296.357 24.902 334.551 0 367.998l96.902 81.148-34.216 62.816zm184.129-101.745c8.695 0 15.746 7.053 15.746 15.748 0 8.693-7.051 15.746-15.746 15.746s-15.745-7.053-15.745-15.746c0-8.695 7.05-15.748 15.745-15.748zm-43.494-72.864c0-2.911.483-5.876 1.432-8.873 1.994-6.363 5.997-12.39 10.917-16.854 5.737-5.213 12.947-8.985 20.488-10.746 17.9-4.172 40.37.352 51 16.562l.13.219c6.033 9.281 7.471 22.053 2.16 31.982-3.503 6.559-7.651 10.311-12.944 15.198l-8.663 7.843-2.411 2.272c-3.162 3.131-4.364 4.935-5.562 9.672l-.796 3.524c-.68 3.494-2.097 6.189-4.242 8.059l-.207.165c-2.216 1.841-5.06 2.767-8.512 2.767-3.698 0-6.876-1.234-9.45-3.695-1.349-1.293-2.352-2.885-3.009-4.758-.612-1.757-.917-3.731-.917-5.914 0-8.881 2.663-16.615 8.725-23.186 4.405-4.781 9.548-9.13 14.42-13.45 3.604-3.29 7.683-6.95 7.683-12.207 0-8.204-7.05-12.6-14.532-12.6-7.61 0-11.106 2-14.668 8.642-1.131 2.121-2.166 4.573-3.089 7.352-1.125 3.674-2.805 6.494-5.033 8.44-8.662 7.557-22.92.622-22.92-10.414zM379.85 268.38l.538 3.545 3.092 20.384c30.035-5.503 9.778 69.444-14.87 65.515-4.251 13.322-7.139 39.976-10.879 49.934-34.937 93-184.185 87.349-219.85-6.156-3.527-9.243-6.82-35.042-10.903-46.838-26.757 6.684-43.251-69.348-13.819-62.836l3.373-20.225.574-3.447.305-1.819c83.026 18.029 182.824 16.091 262.214.455l.225 1.488zm-260.025-97.561l7.198-24.639c46.656 39.159 207.874 33.023 243.016 0l6.065 24.639c-40.982 43.351-212.466 37.461-256.279 0z"/>
+                  </svg>
+
+
+<!--                   
+                  <svg xmlns="http://www.w3.org/2000/svg" version="1.0" viewBox="0 0 1536.000000 1024.000000" preserveAspectRatio="xMidYMid meet" width="24" height="24" fill="#fff" style="position: relative; top: 1px; right: 1.5px;">
+
+                      <g transform="translate(0.000000,1024.000000) scale(0.12,-0.12)" stroke="none">
+                      <path d="M7830 8968 c-65 -25 -91 -49 -982 -938 -335 -333 -615 -606 -623 -608 -8 -2 -23 11 -34 29 -37 60 -51 155 -51 337 0 266 -35 402 -146 568 -154 233 -401 364 -686 364 -356 0 -685 -254 -794 -615 -24 -80 -27 -107 -28 -240 -1 -126 3 -163 22 -234 73 -269 282 -496 539 -586 86 -30 233 -55 323 -55 36 0 97 -5 135 -10 73 -11 175 -53 175 -73 0 -12 -106 -118 -926 -927 -470 -464 -503 -499 -535 -565 -29 -61 -33 -80 -33 -150 -1 -154 -40 -107 761 -901 779 -772 731 -715 635 -749 -35 -13 -102 -19 -262 -25 -118 -5 -228 -11 -245 -15 -16 -4 -75 -29 -130 -55 -242 -117 -404 -339 -446 -610 -55 -362 167 -755 526 -930 163 -80 326 -109 502 -89 191 20 346 94 491 233 186 179 247 323 262 621 9 169 24 253 47 262 8 3 127 -107 316 -294 480 -476 1096 -1075 1130 -1100 54 -40 131 -63 210 -63 59 0 83 5 137 31 61 28 159 124 1440 1402 756 755 1533 1529 1727 1721 243 241 360 364 380 400 25 45 28 61 28 141 0 74 -4 98 -23 137 -17 35 -136 156 -485 495 -254 246 -575 558 -713 694 -138 135 -267 258 -287 273 -48 37 -69 28 -98 -37 -21 -47 -23 -72 -29 -267 -6 -210 -7 -217 -40 -315 -89 -263 -312 -460 -585 -516 -332 -69 -666 62 -875 342 -70 95 -131 219 -161 329 -33 124 -33 314 0 420 75 240 250 422 487 504 100 35 167 44 369 51 203 6 288 18 334 46 35 21 39 42 13 81 -28 42 -68 83 -786 788 -459 451 -691 673 -723 690 -66 35 -185 39 -263 8z"/>
+                      </g>
+                  </svg> -->
+                </span>
+
+                <div class="task-text">
+                  <div class="task-title">Puzzle</div>
+                  <div class="task-desc">Solve a riddle or enter a secret code</div>
+                </div>
+              </div>
+
+            <div data-file="quizpoll" class="task-item"><span class="icon green"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M6 3.6C4.7 3.6 3.6 4.7 3.6 6V18C3.6 19.3 4.7 20.4 6 20.4H18C19.3 20.4 20.4 19.3 20.4 18V6C20.4 4.7 19.3 3.6 18 3.6H6zM8.1 10.8C8.6 10.8 9 11.3 9 11.7V16.2C9 16.7 8.6 17.1 8.1 17.1C7.6 17.1 7.2 16.7 7.2 16.2V11.7C7.2 11.3 7.6 10.8 8.1 10.8zM15 14C15 13.2 15.4 12.8 16 12.8C16.6 12.8 17 13.2 17 14V16.2C17 16.7 16.6 17.1 16 17.1C15.4 17.1 15 16.7 15 16.2V14zM12 7.2C12.4 7.2 12.9 7.6 12.9 8.1V16.2C12.9 16.7 12.4 17.1 12 17.1C11.6 17.1 11.1 16.7 11.1 16.2V8.1C11.1 7.6 11.6 7.2 12 7.2z"/>
+            </svg></span><div class="task-text"><div class="task-title">Poll</div><div class="task-desc">Vote in a poll</div></div></div>
+            <div data-file="quiz" class="task-item"><span class="icon green"><svg xmlns="http://www.w3.org/2000/svg" fill="#fff"  width="16" height="16" viewBox="0 0 24 24">
+              <path transform="scale(0.0375)" d="M184 120C184 89.1 209.1 64 240 64L264 64C281.7 64 296 78.3 296 96L296 544C296 561.7 281.7 576 264 576L232 576C202.2 576 177.1 555.6 170 528C169.3 528 168.7 528 168 528C123.8 528 88 492.2 88 448C88 430 94 413.4 104 400C84.6 385.4 72 362.2 72 336C72 305.1 89.6 278.2 115.2 264.9C108.1 252.9 104 238.9 104 224C104 179.8 139.8 144 184 144L184 120zM456 120L456 144C500.2 144 536 179.8 536 224C536 239 531.9 253 524.8 264.9C550.5 278.2 568 305 568 336C568 362.2 555.4 385.4 536 400C546 413.4 552 430 552 448C552 492.2 516.2 528 472 528C471.3 528 470.7 528 470 528C462.9 555.6 437.8 576 408 576L376 576C358.3 576 344 561.7 344 544L344 96C344 78.3 358.3 64 376 64L400 64C430.9 64 456 89.1 456 120z"/>
+            </svg></span><div class="task-text"><div class="task-title">Quiz</div><div class="task-desc">Answer a quiz with multiple choices</div></div></div>
+            <div data-file="textform" class="task-item"><span class="icon yellow"><svg fill="#fff" width="16" height="16"  viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <g transform="translate(0,0) scale(0.0629)">
+                <path d="M34.249,246.497l63.655,25.155V5.1c0-2.818,2.29-5.094,5.103-5.1h51.022c2.811,0.006,5.096,2.282,5.096,5.094v266.559 
+                  l63.658-25.155c2.134-0.824,4.569-0.147,5.943,1.675c1.39,1.839,1.378,4.36-0.022,6.178l-96.136,125.057 
+                  c-0.971,1.261-2.466,1.994-4.053,1.998c-1.573,0-3.074-0.737-4.041-1.998L28.333,254.35c-0.705-0.92-1.058-2.019-1.053-3.106 
+                  c0-1.063,0.336-2.157,1.021-3.082C29.682,246.35,32.115,245.66,34.249,246.497z 
+                  M354.125,244.402h-21.907l-12.364-29.736h-37.228l-12.027,29.736h-21.407l41.452-99.561h21.861L354.125,244.402z 
+                  M314.653,200.095l-9.91-23.779c-1.412-3.374-2.571-6.58-3.599-9.677c-1.144,3.429-2.266,6.528-3.405,9.476l-9.948,23.974h26.862V200.095z 
+                  M340.509,267.006h-83.718V282.3h56.287l-61.786,73.763v10.518h90.071v-15.289h-62.305l61.438-73.472v-10.813H340.509z"/>
+              </g>
+            </svg></i></span><div class="task-text"><div class="task-title">Text</div><div class="task-desc">Answer in text form</div></div></div>
+            <div data-file="nums" class="task-item"><span class="icon red"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" width="17" height="17" stroke-width="1.5" stroke="currentColor" class="size-6">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8.242 5.992h12m-12 6.003H20.24m-12 5.999h12M4.117 7.495v-3.75H2.99m1.125 3.75H2.99m1.125 0H5.24m-1.92 2.577a1.125 1.125 0 1 1 1.591 1.59l-1.83 1.83h2.16M2.99 15.745h1.125a1.125 1.125 0 0 1 0 2.25H3.74m0-.002h.375a1.125 1.125 0 0 1 0 2.25H2.99" />
+              </svg></span><div class="task-text"><div class="task-title">Number</div><div class="task-desc">Provide a numeric answer</div></div></div>
+            <div data-file="url" class="task-item"><span class="icon red"><svg fill="none" stroke="#fff" width="17" height="17" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <g transform="scale(0.125)">
+                <path d="M84 128.6H54.6C36.6 128.6 22 114 22 96c0-9 3.7-17.2 9.6-23.1 5.9-5.9 14.1-9.6 23.1-9.6H84m24 65.3h29.4
+                  c9 0 17.2-3.7 23.1-9.6 5.9-5.9 9.6-14.1 9.6-23.1 0-18-14.6-32.6-32.6-32.6H108M67.9 96h56.2"
+                  stroke="#fff" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+              </g>
+            </svg></span><div class="task-text"><div class="task-title">URL</div><div class="task-desc">Provide a link</div></div></div>
+              <div data-file="ratings" class="task-item"><span class="icon green">        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#fff"
+              width="16"
+              height="16">
+            <g transform="scale(0.0375)">
+              <path d="M144 224C161.7 224 176 238.3 176 256L176 512C176 529.7 161.7 544 144 544L96 544C78.3 544 64 529.7 64 512L64 256C64 238.3 78.3 224 96 224L144 224zM334.6 80C361.9 80 384 102.1 384 129.4L384 133.6C384 140.4 382.7 147.2 380.2 153.5L352 224L512 224C538.5 224 560 245.5 560 272C560 291.7 548.1 308.6 531.1 316C548.1 323.4 560 340.3 560 360C560 383.4 543.2 402.9 521 407.1C525.4 414.4 528 422.9 528 432C528 454.2 513 472.8 492.6 478.3C494.8 483.8 496 489.8 496 496C496 522.5 474.5 544 448 544L360.1 544C323.8 544 288.5 531.6 260.2 508.9L248 499.2C232.8 487.1 224 468.7 224 449.2L224 262.6C224 247.7 227.5 233 234.1 219.7L290.3 107.3C298.7 90.6 315.8 80 334.6 80z"/>
+            </g>
+          </svg></span><div class="task-text"><div class="task-title">Opinion Scale</div><div class="task-desc">Rate on an opinion scale</div></div></div>
+
+
+            <div data-file="stars" class="task-item"><span class="icon green">
+
+              <svg viewBox="0 0 24 24" width="16" height="16"   xmlns="http://www.w3.org/2000/svg" stroke="#fff" fill="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9.15316 5.40838C10.4198 3.13613 11.0531 2 12 2C12.9469 2 13.5802 3.13612 14.8468 5.40837L15.1745 5.99623C15.5345 6.64193 15.7144 6.96479 15.9951 7.17781C16.2757 7.39083 16.6251 7.4699 17.3241 7.62805L17.9605 7.77203C20.4201 8.32856 21.65 8.60682 21.9426 9.54773C22.2352 10.4886 21.3968 11.4691 19.7199 13.4299L19.2861 13.9372C18.8096 14.4944 18.5713 14.773 18.4641 15.1177C18.357 15.4624 18.393 15.8341 18.465 16.5776L18.5306 17.2544C18.7841 19.8706 18.9109 21.1787 18.1449 21.7602C17.3788 22.3417 16.2273 21.8115 13.9243 20.7512L13.3285 20.4768C12.6741 20.1755 12.3469 20.0248 12 20.0248C11.6531 20.0248 11.3259 20.1755 10.6715 20.4768L10.0757 20.7512C7.77268 21.8115 6.62118 22.3417 5.85515 21.7602C5.08912 21.1787 5.21588 19.8706 5.4694 17.2544L5.53498 16.5776C5.60703 15.8341 5.64305 15.4624 5.53586 15.1177C5.42868 14.773 5.19043 14.4944 4.71392 13.9372L4.2801 13.4299C2.60325 11.4691 1.76482 10.4886 2.05742 9.54773C2.35002 8.60682 3.57986 8.32856 6.03954 7.77203L6.67589 7.62805C7.37485 7.4699 7.72433 7.39083 8.00494 7.17781C8.28555 6.96479 8.46553 6.64194 8.82547 5.99623L9.15316 5.40838Z" />
+              </svg>
+            </span><div class="task-text"><div class="task-title">Opinion Scale</div><div class="task-desc">Rate on an opinion scale</div></div></div>
+            
+            <div class="section-title bottom">On-chain action</div>
+            <div data-file="Nft" class="task-item"><span class="icon violet">
+              <svg height="18" width="18" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" fill="#fff">
+                <path d="M247.355,106.9C222.705,82.241,205.833,39.18,197.46,0c-8.386,39.188-25.24,82.258-49.899,106.917
+                c-24.65,24.642-67.724,41.514-106.896,49.904c39.188,8.373,82.254,25.235,106.904,49.895
+                c24.65,24.65,41.522,67.72,49.908,106.9c8.373-39.188,25.24-82.258,49.886-106.917
+                c24.65-24.65,67.724-41.514,106.896-49.904C315.08,148.422,272.014,131.551,247.355,106.9z"/>
+
+                <path d="M407.471,304.339c-14.714-14.721-24.81-40.46-29.812-63.864c-5.011,23.404-15.073,49.142-29.803,63.872
+                c-14.73,14.714-40.464,24.801-63.864,29.812c23.408,5.01,49.134,15.081,63.864,29.811
+                c14.73,14.722,24.81,40.46,29.82,63.864c5.001-23.413,15.081-49.142,29.802-63.872
+                c14.722-14.722,40.46-24.802,63.856-29.82C447.939,329.14,422.201,319.061,407.471,304.339z"/>
+
+                <path d="M146.352,354.702c-4.207,19.648-12.655,41.263-25.019,53.626c-12.362,12.354-33.968,20.82-53.613,25.027
+                c19.645,4.216,41.251,12.656,53.613,25.027c12.364,12.362,20.829,33.96,25.036,53.618
+                c4.203-19.658,12.655-41.255,25.023-53.626c12.354-12.362,33.964-20.82,53.605-25.035
+                c-19.64-4.2-41.251-12.656-53.613-25.019C159.024,395.966,150.555,374.351,146.352,354.702z"/>
+              </svg>
+            </span><div class="task-text"><div class="task-title">NFT</div><div class="task-desc">Verify NFT ownership</div></div></div>
+            <div class="task-item"><span class="icon blue">
+              <svg xmlns="http://www.w3.org/2000/svg" 
+                  viewBox="0 0 24 24" width="16" height="16" style="margin-right: 4px;"
+                  fill="#FFF">
+                <path transform="scale(0.046875)" d="M128 96l0-16c0-44.2 86-80 192-80S512 35.8 512 80l0 16c0 30.6-41.3 57.2-102 70.7-2.4-2.8-4.9-5.5-7.4-8-15.5-15.3-35.5-26.9-56.4-35.5-41.9-17.5-96.5-27.1-154.2-27.1-21.9 0-43.3 1.4-63.8 4.1-.2-1.3-.2-2.7-.2-4.1zM432 353l0-46.2c15.1-3.9 29.3-8.5 42.2-13.9 13.2-5.5 26.1-12.2 37.8-20.3l0 15.4c0 26.8-31.5 50.5-80 65zm0-96l0-33c0-4.5-.4-8.8-1-13 15.5-3.9 30-8.6 43.2-14.2s26.1-12.2 37.8-20.3l0 15.4c0 26.8-31.5 50.5-80 65zM0 240l0-16c0-44.2 86-80 192-80s192 35.8 192 80l0 16c0 44.2-86 80-192 80S0 284.2 0 240zm384 96c0 44.2-86 80-192 80S0 380.2 0 336l0-15.4c11.6 8.1 24.5 14.7 37.8 20.3 41.9 17.5 96.5 27.1 154.2 27.1s112.3-9.7 154.2-27.1c13.2-5.5 26.1-12.2 37.8-20.3l0 15.4zm0 80.6l0 15.4c0 44.2-86 80-192 80S0 476.2 0 432l0-15.4c11.6 8.1 24.5 14.7 37.8 20.3 41.9 17.5 96.5 27.1 154.2 27.1s112.3-9.7 154.2-27.1c13.2-5.5 26.1-12.2 37.8-20.3z"/>
+              </svg>
+            </span><div class="task-text"><div class="task-title">Token</div><div class="task-desc">Verify token balance</div></div></div>
+            <div class="task-item"><span class="icon violet">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="#fff" width="16" height="16" viewBox="0 0 109.06 122.88"><path d="M34.43 47.86L52.8 37.6V18.31a9.233 9.233 0 01-5.46-3.16L17.91 32.18c.35.98.54 2.03.54 3.13 0 .92-.13 1.8-.38 2.64l16.36 9.91zm11.35-35.38a9.231 9.231 0 01-.59-3.25c0-2.55 1.03-4.86 2.7-6.53S51.87 0 54.42 0c2.55 0 4.86 1.03 6.53 2.7a9.205 9.205 0 012.7 6.53c0 1.12-.2 2.19-.56 3.18l29.57 17.1c.21-.25.42-.5.65-.73a9.205 9.205 0 016.53-2.7c2.55 0 4.86 1.03 6.53 2.7a9.205 9.205 0 012.7 6.53c0 2.55-1.03 4.85-2.7 6.52a9.194 9.194 0 01-5.32 2.62v33.91c2.07.27 3.92 1.22 5.32 2.62 1.67 1.67 2.7 3.98 2.7 6.52a9.222 9.222 0 01-9.23 9.23 9.205 9.205 0 01-7.15-3.39l-29.61 17.12c.36.99.56 2.06.56 3.18 0 2.55-1.03 4.86-2.7 6.53a9.205 9.205 0 01-6.53 2.7c-2.55 0-4.86-1.03-6.53-2.7s-2.7-3.98-2.7-6.53c0-1.14.21-2.24.59-3.25L16.35 93.38a9.205 9.205 0 01-7.13 3.36c-2.55 0-4.86-1.03-6.53-2.7C1.03 92.37 0 90.06 0 87.51s1.03-4.85 2.7-6.52a9.242 9.242 0 015.25-2.62V44.44a9.18 9.18 0 01-5.25-2.62A9.164 9.164 0 010 35.3c0-2.55 1.03-4.86 2.7-6.53a9.205 9.205 0 016.53-2.7 9.205 9.205 0 017.16 3.4l29.39-16.99zm15.76 2.61a9.192 9.192 0 01-5.55 3.23V37.6l18.33 10.62 16.85-9.74c-.37-.99-.56-2.07-.56-3.18 0-1.08.19-2.13.53-3.09l-29.6-17.12zm36.69 29.3a9.159 9.159 0 01-4.92-2.56c-.19-.19-.37-.38-.54-.59l-16.82 9.72v20.78l16.89 9.75c.15-.17.3-.34.46-.5a9.194 9.194 0 014.92-2.56V44.39h.01zm-7.07 46.27c-.36-.98-.55-2.04-.55-3.14 0-1.16.21-2.27.61-3.3l-16.34-9.43-18.89 10.98v18.79a9.192 9.192 0 015.55 3.23l29.62-17.13zm-43.82 17.06a9.233 9.233 0 015.46-3.16V85.68l-18.96-11-16.09 9.29c.45 1.09.71 2.29.71 3.55 0 1.12-.2 2.19-.56 3.18l29.44 17.02zM10.76 78.41c1.93.32 3.66 1.25 4.99 2.58.1.1.19.2.28.3l16.39-9.46V50.36L16.64 40.8c-.27.37-.57.71-.89 1.03a9.255 9.255 0 01-4.99 2.58v34zM9.24 41.34c.04 0 .08-.01.12-.01h.08a6 6 0 004.06-1.76 6.023 6.023 0 001.77-4.27c0-1.67-.68-3.18-1.77-4.27-1.09-1.09-2.6-1.77-4.27-1.77s-3.18.68-4.27 1.77a6.023 6.023 0 00-1.77 4.27c0 1.67.68 3.18 1.77 4.27a6.03 6.03 0 004.28 1.77zm49.44 68.05a6.023 6.023 0 00-4.27-1.77c-1.67 0-3.18.68-4.27 1.77-1.09 1.09-1.77 2.6-1.77 4.27s.68 3.18 1.77 4.27 2.6 1.77 4.27 1.77c1.67 0 3.18-.68 4.27-1.77 1.09-1.09 1.77-2.6 1.77-4.27s-.67-3.18-1.77-4.27zm0-104.43a6.023 6.023 0 00-4.27-1.77c-1.67 0-3.18.68-4.27 1.77s-1.77 2.6-1.77 4.27c0 1.67.68 3.18 1.77 4.27a6.023 6.023 0 004.27 1.77c1.67 0 3.18-.68 4.27-1.77a6.023 6.023 0 001.77-4.27c0-1.67-.67-3.18-1.77-4.27zm45.42 78.29a6.023 6.023 0 00-4.27-1.77c-1.67 0-3.18.68-4.27 1.77a6.023 6.023 0 00-1.77 4.27c0 1.67.68 3.18 1.77 4.27a6.023 6.023 0 004.27 1.77c1.67 0 3.18-.68 4.27-1.77a6.023 6.023 0 001.77-4.27c0-1.67-.67-3.18-1.77-4.27zm-90.6 0c-1.09-1.09-2.6-1.77-4.27-1.77s-3.18.68-4.27 1.77a6.023 6.023 0 00-1.77 4.27c0 1.67.68 3.18 1.77 4.27s2.6 1.77 4.27 1.77 3.18-.68 4.27-1.77a6.023 6.023 0 001.77-4.27 6.065 6.065 0 00-1.77-4.27zm80.95-45.22c.08.08.14.18.2.28.06.1.1.2.14.31.23.34.49.66.77.95a6.023 6.023 0 004.27 1.77c1.67 0 3.18-.68 4.27-1.77a6.023 6.023 0 001.77-4.27c0-1.67-.68-3.18-1.77-4.27a6.023 6.023 0 00-4.27-1.77c-1.67 0-3.18.68-4.27 1.77a6.023 6.023 0 00-1.77 4.27c.01.99.25 1.91.66 2.73zM35.41 71.49a1.687 1.687 0 01.43.88l17.13 10.07V62.56L35.41 52.11v19.38zm37.56-19.11L55.96 62.57v19.89l17.01-10.05V52.38zM54.39 39.99l-16.6 9.93 16.69 10.05 16.21-9.84-16.3-10.14z" fill-rule="evenodd" clip-rule="evenodd"/></svg>
+            </span><div class="task-text"><div class="task-title">On-chain action</div><div class="task-desc">Validate smart contract interaction</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+<div id="preview-modal" class="preview-modal" style="display:none;">
+  <div class="preview-all-content">
+
+    <div class="preview-box-arra">
+      <div class="preview-header-arriall">
+        <span>Quest Preview</span>
+        <button class="preview-cancel" onclick="closePreview()">✕</button>
+      </div>
+
+      <div id="preview-content" class="preview-content-aerrra"></div>
+    </div>    
+  </div>
+
+</div>
+

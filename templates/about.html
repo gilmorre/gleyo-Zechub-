@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+  <!-- ✅ DYNAMIC TITLE -->
+  <title>
+    {% if active_page == 'pricing' %}
+      Gleyo Pricing – Plans for Community Growth Platform
+    {% elif active_page == 'product' %}
+      Gleyo Product – Community Engagement & Analytics Tools
+    {% elif active_page == 'about' %}
+      About Gleyo – Community Retention Platform
+    {% else %}
+      Gleyo – Structured Community Retention Platform
+    {% endif %}
+  </title>
+
+  <!-- ✅ META DESCRIPTION -->
+  <meta name="description" content="
+  {% if active_page == 'pricing' %}
+    Explore Gleyo pricing. Free early access and upcoming pro plans with analytics, engagement tools, and retention features.
+  {% elif active_page == 'product' %}
+    Discover Gleyo’s tools for community engagement, collaboration, and AI-driven analytics.
+  {% elif active_page == 'about' %}
+    Learn about Gleyo’s mission to build sustainable and measurable community growth.
+  {% else %}
+    Gleyo helps communities build long-term engagement with structured retention systems and analytics.
+  {% endif %}
+  ">
+
+  <!-- ✅ OPTIONAL: KEYWORDS (not critical but harmless) -->
+  <meta name="keywords" content="community platform, engagement tools, retention software, Gleyo">
+
+  <!-- ✅ CANONICAL -->
+  <link rel="canonical" href="https://gleyo.app/{{ active_page if active_page != 'home' else '' }}">
+
+  <!-- ✅ OPEN GRAPH (for sharing) -->
+  <meta property="og:title" content="
+  {% if active_page == 'pricing' %}
+    Gleyo Pricing – Plans for Community Growth
+  {% elif active_page == 'product' %}
+    Gleyo Product – Engagement & Analytics Tools
+  {% elif active_page == 'about' %}
+    About Gleyo
+  {% else %}
+    Gleyo – Community Retention Platform
+  {% endif %}
+  ">
+
+  <meta property="og:description" content="
+  {% if active_page == 'pricing' %}
+    Free early access. Pro plans coming soon.
+  {% elif active_page == 'product' %}
+    Build engagement loops, collaboration, and analytics.
+  {% elif active_page == 'about' %}
+    Sustainable community growth and retention.
+  {% else %}
+    Structured engagement for long-term community growth.
+  {% endif %}
+  ">
+
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://gleyo.app/{{ active_page if active_page != 'home' else '' }}">
+  <meta property="og:image" content="https://gleyo.app/static/preview.png">
+
+  <!-- ✅ TWITTER -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Gleyo Platform">
+  <meta name="twitter:description" content="Build long-term community engagement with Gleyo">
+  <meta name="twitter:image" content="https://gleyo.app/static/preview.png">
+
+  <!-- ✅ SCHEMA MARKUP -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "Gleyo",
+    "url": "https://gleyo.app",
+    "logo": "https://gleyo.app/static/preview.png",
+    "sameAs": []
+  }
+  </script>
+
+  {% if active_page == 'pricing' %}
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Product",
+      "name": "Gleyo",
+      "description": "Community engagement and retention platform",
+      "image": "https://gleyo.app/static/my_logo.png",
+      "brand": {
+        "@type": "Brand",
+        "name": "Gleyo"
+      },
+      "offers": [
+        {
+          "@type": "Offer",
+          "name": "Early Access",
+          "price": "0",
+          "priceCurrency": "USD",
+          "availability": "https://schema.org/InStock",
+          "url": "https://gleyo.app/pricing"
+        },
+        {
+          "@type": "Offer",
+          "name": "Pro Plan",
+          "availability": "https://schema.org/PreOrder",
+          "url": "https://gleyo.app/pricing"
+        }
+      ]
+    }
+    </script>
+  {% endif %}
+
+  <!-- FONTS / CSS -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <link rel="shortcut icon" href="https://gleyo.app/static/my_logo.png">
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='about.css') }}">
+  <script src="{{ url_for('static', filename='about.js') }}" defer></script>
+  <style>
+
+  .view {
+    display: none;
+    padding: 80px 8%;
+    max-width: 1100px;
+    margin: auto;
+  }
+
+  .view.active {
+    display: block;
+  }
+
+  </style>
+</head>
+
+<body>
+
+<nav>
+  <div class="logo">Gleyo</div>
+  <div class="nav-links">
+    <a href="{{ url_for('about', page='home') }}"
+      class="{% if active_page == 'home' %}active{% endif %}">
+      Home
+    </a>
+
+    <a href="{{ url_for('about', page='product') }}"
+      class="{% if active_page == 'product' %}active{% endif %}">
+      Product
+    </a>
+
+    <a href="{{ url_for('about', page='pricing') }}"
+      class="{% if active_page == 'pricing' %}active{% endif %}">
+      Pricing
+    </a>
+
+    <a href="{{ url_for('about', page='about') }}"
+      class="{% if active_page == 'about' %}active{% endif %}">
+      About
+    </a>
+  </div>
+</nav>
+
+<section id="home" class="view {% if active_page == 'home' %}active{% endif %}">
+  <div class="hero">
+    <h1>Structured Community Retention</h1>
+    <p>Gleyo helps communities move beyond short-term campaigns and build measurable long-term engagement.</p>
+  </div>
+</section>
+
+<section id="product" class="view {% if active_page == 'product' %}active{% endif %}">
+  <div class="card">
+    <h2>Quest Infrastructure</h2>
+    <p>Create structured engagement loops with reward automation and controlled invite caps.</p>
+  </div>
+
+  <div class="card">
+    <h2>Collaboration Layer</h2>
+    <p>Private member-to-member and owner collaboration channels designed to drive relationship-based retention.</p>
+  </div>
+
+  <div class="card">
+    <h2>Analytics & AI</h2>
+    <p>Track performance, engagement metrics, and unlock AI-driven community insights.</p>
+  </div>
+</section>
+
+<section id="pricing" class="view {% if active_page == 'pricing' %}active{% endif %}">
+  <div class="hero">
+    <h1>Simple Pricing</h1>
+    <p>Free for early communities. Paid plans coming soon.</p>
+  </div>
+
+  <div class="pricing-grid">
+    <div class="price-card">
+      <h3>Early Access</h3>
+      <div class="price">Free <span>/ limited</span></div>
+      <p>Full platform access for selected communities.</p>
+      <a href="javascript:void(0)" class="btn" onclick="openModal('earlyModal')">Apply</a>
+    </div>
+
+    <div class="price-card">
+      <h3>Pro</h3>
+      <div class="price">Coming Soon</div>
+      <p>Advanced analytics and AI retention tools.</p>
+      <a href="javascript:void(0)" class="btn" onclick="openModal('waitlistModal')">Join Waitlist</a>
+    </div>
+  </div>
+</section>
+
+<section id="about" class="view {% if active_page == 'about' %}active{% endif %}">
+  <div class="card">
+    <h2>The Problem</h2>
+    <p>Most community platforms optimize for spikes, not sustainability. Engagement fades after campaigns end.</p>
+  </div>
+
+  <div class="card">
+    <h2>Our Approach</h2>
+    <p>Retention is the product. We combine incentives, collaboration, and analytics into one structured system.</p>
+  </div>
+
+  <div class="card">
+    <h2>Our Mission</h2>
+    <p>To make community growth measurable, sustainable, and relationship-driven.</p>
+  </div>
+</section>
+
+<footer>
+  &copy; {{ current_year }} Gleyo. All rights reserved
+</footer>
+
+
+<div id="earlyModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeModal('earlyModal')">
+        <svg width="17" height="17" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path fill-rule="evenodd" clip-rule="evenodd"
+            d="M5.29289 5.29289C5.68342 4.90237 6.31658 4.90237 6.70711 5.29289L12 10.5858L17.2929 5.29289C17.6834 4.90237 18.3166 4.90237 18.7071 5.29289C19.0976 5.68342 19.0976 6.31658 18.7071 6.70711L13.4142 12L18.7071 17.2929C19.0976 17.6834 19.0976 18.3166 18.7071 18.7071C18.3166 19.0976 17.6834 19.0976 17.2929 18.7071L12 13.4142L6.70711 18.7071C6.31658 19.0976 5.68342 19.0976 5.29289 18.7071C4.90237 18.3166 4.90237 17.6834 5.29289 17.2929L10.5858 12L5.29289 6.70711C4.90237 6.31658 4.90237 5.68342 5.29289 5.29289Z"
+            fill="currentColor"/>
+        </svg>
+    </span>
+    <h2>Apply for Early Access</h2>
+
+    <form id="earlyAccessForm" >
+      <input type="text" name="name" placeholder="Full Name" required>
+      <input type="email" name="email" placeholder="Work Email" required>
+      <input type="text" name="community_name" placeholder="Community Name" required>
+      <input type="text" name="community_link" placeholder="Website / Discord Link" required>
+
+        <div class="custom-select" id="communitySizeSelect">
+        <div class="select-trigger">
+            <span id="selectedSize">Community Size</span>
+            <svg width="16" height="16" viewBox="0 0 24 24">
+            <path fill="currentColor" d="M7 10l5 5 5-5z"/>
+            </svg>
+        </div>
+
+        <div class="select-options">
+            <div class="select-option" data-value="<500">&lt;500</div>
+            <div class="select-option" data-value="500-5k">500–5k</div>
+            <div class="select-option" data-value="5k-20k">5k–20k</div>
+            <div class="select-option" data-value="20k+">20k+</div>
+        </div>
+
+        <input type="hidden" name="community_size" id="communitySizeInput" required>
+        </div>
+
+      <textarea name="problem" placeholder="What problem are you trying to solve?" required></textarea>
+      <textarea name="reason" placeholder="Why do you want early access?" required></textarea>
+
+      <div class="outer-shell">
+        <button type="submit" class="btn others">Submit Application</button>
+      </div>
+      <p id="earlyFeedback" class="feedback"></p>
+    </form>
+  </div>
+</div>
+
+
+
+
+<div id="waitlistModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeModal('waitlistModal')">
+        <svg width="17" height="17" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path fill-rule="evenodd" clip-rule="evenodd"
+            d="M5.29289 5.29289C5.68342 4.90237 6.31658 4.90237 6.70711 5.29289L12 10.5858L17.2929 5.29289C17.6834 4.90237 18.3166 4.90237 18.7071 5.29289C19.0976 5.68342 19.0976 6.31658 18.7071 6.70711L13.4142 12L18.7071 17.2929C19.0976 17.6834 19.0976 18.3166 18.7071 18.7071C18.3166 19.0976 17.6834 19.0976 17.2929 18.7071L12 13.4142L6.70711 18.7071C6.31658 19.0976 5.68342 19.0976 5.29289 18.7071C4.90237 18.3166 4.90237 17.6834 5.29289 17.2929L10.5858 12L5.29289 6.70711C4.90237 6.31658 4.90237 5.68342 5.29289 5.29289Z"
+            fill="currentColor"/>
+        </svg>
+    </span>
+    <h2>Join Pro Waitlist</h2>
+
+    <form id="waitlistForm">
+      <input type="email" name="email" placeholder="Your Email" required>
+      <input type="text" name="community_name" placeholder="Community Name (optional)">
+      <div class="outer-shell">
+        <button type="submit" class="btn others">Join Waitlist</button>
+      </div>
+      <p id="waitlistFeedback" class="feedback"></p>
+    </form>
+  </div>
+</div>
+
+
+
+
+
+
+
+</body>
+</html>
+

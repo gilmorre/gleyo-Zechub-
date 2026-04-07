@@ -1,0 +1,499 @@
+*{
+  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+
+}
+
+
+/* Make both containers same width */
+.outer-box,
+.popup-container {
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+
+
+ @media (max-width: 991px){
+
+.outer-box,
+.popup-container {
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+ }
+/* Outer container */
+.outer-box {
+    position: relative;
+    border: 1.5px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    padding: 50px 20px 20px;
+}
+
+/* Floating label above */
+.wlabeled {
+    position: absolute;
+    top: -16px;
+    left: 20px;
+    background: #007bff; /* changed from red to blue for poll */
+    color: white;
+    font-size: 14px;
+    padding: 6px 16px;
+    border-radius: 50px;
+    display: flex;
+    align-items: center;
+    font-weight: bold;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+.wlabeled i {
+    margin-right: 6px;
+}
+
+
+
+
+
+/* Popup container */
+.popup-container {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 18px;
+    padding: 20px 20px 30px;
+    position: relative;
+    color: white;
+}
+
+/* Upward arrow above container */
+.popup-container::before {
+    content: "";
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-bottom: 12px solid #222;
+}
+
+.popup-header {
+    display: flex;
+    align-items: center;
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-bottom: 16px;
+    gap: 10px;
+}
+
+.popup-header .iconpoll {
+    background: #007bff;
+    padding: 6px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.popup-header .iconpoll i {
+    color: white;
+    font-size: 18px;
+}
+
+.popup-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 15px;
+}
+
+.popup-actions button {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: #ccc;
+    font-size: 18px;
+}
+
+.popup-actions button:hover {
+    color: white;
+}
+
+.custom-radio {
+   font-size: 0.9rem;
+   font-weight: bold;
+    margin-top: 14px;
+    display: inline-block;
+    margin-bottom: 0;
+}
+
+.poollyern {
+    width: 90%;
+    padding: 10px 14px;
+    border-radius: 14px;
+    margin-left: 6px;
+    color: white;
+    font-size: 1rem;
+}
+
+.optn{
+    width: 90%;
+    padding: 10px 14px;
+    border-radius: 14px;
+    margin-left: 6px;
+    color: white;
+    font-size: 1rem;
+}
+
+
+
+input[type="text"].error {
+    border-color: #ff3b3b;
+}
+
+.error-message {
+    color: #ff3b3b;
+    font-size: 0.85rem;
+    margin-top: 6px;
+    font-weight: 600;
+}
+
+
+.liners {
+    height: 0.5px;
+    background-color: #2e65ff;
+    border-radius: 1px;
+    margin: 8px -20px; /* matches container's horizontal padding */
+}
+
+.youtubeCircle {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background-color: #ff0000;  /* blue circle always visible */
+  margin: 10px auto;
+  position: relative;
+  overflow: hidden;
+}
+
+.youtubeCircle img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: none; /* hide image by default */
+}
+#YoulinkInput,
+  #YourTextArea {
+    background-color: transparent;
+    border: none;           /* Remove border */
+    outline: none;          /* Remove focus outline */
+    font-size: 16px;
+    padding: 8px;
+    width: 100%;
+    resize: none;           /* For textarea: remove resize handle if desired */
+  }
+
+  /* Optional: placeholder style */
+  #YoulinkInput::placeholder,
+  #YourTextArea::placeholder {
+    color: #888;            /* Light gray placeholder text */
+  }
+
+  /* Optional: remove autofill background (Chrome) */
+  input:-webkit-autofill {
+    background-color: transparent !important;
+    -webkit-box-shadow: 0 0 0px 1000px transparent inset;
+    -webkit-text-fill-color: #000;
+  }
+
+  #YoulinkInput {
+    background-color: transparent;
+    border: none;
+    outline: none;
+    font-size: 16px;
+    padding: 8px;
+    width: 100%;
+    color: aliceblue; /* text color when user types */
+  }
+
+  /* Make placeholder look like normal text */
+  #YoulinkInput::placeholder {
+    color: aliceblue;       /* same color as normal text */
+    opacity: 1;        /* ensure placeholder is fully visible */
+  }
+
+  
+    .mineoptions {
+      margin-top: 15px;
+      gap: 10px;
+    }
+
+    .optionnsy {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .optionnsy input {
+      flex: 1;
+      margin-right: 8px;
+    }
+
+    .add-option {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      background: #333;
+      border: none;
+      color: #aaa;
+      font-size: 14px;
+      padding: 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .add-option:hover {
+      background: #444;
+      color: #fff;
+    }
+.spacinelement {
+  display: flex;
+  flex-direction: column;
+  gap: 5px; /* spaces between each .mutiplespacing */
+}
+
+
+.mutiplespacing {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+}
+
+.mutiplespacing .text .title {
+    font-weight: bold;
+    font-size: 12px;
+}
+
+.mutiplespacing .text .description {
+    font-size: 13px;
+    color: #888;
+    margin-top: 3px;
+}
+
+/* Toggle switch styles */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 20px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #ccc;
+  transition: 0.3s;
+  border-radius: 20px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: #4caf50;
+}
+
+input:checked + .slider:before {
+  transform: translateX(20px);
+}
+
+.optn::placeholder {
+  color: aliceblue;       /* same color as normal text */
+  opacity: 1;        /* ensure placeholder is fully visible */
+}
+
+.optionnsy {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+  position: relative; /* <-- this fixes it */
+}
+
+.remove-option {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  border: none;
+  background: none;
+  color: #aaa;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.remove-option:hover {
+  color: red;
+}
+.polltit{
+  font-weight: bold;
+  font-size: 15px;
+  color: aliceblue;
+
+}
+.polldesc{
+  color: #787878;
+
+}
+
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8;
+  width: 100%; /* or any fixed width you want */
+  font-family: Arial, sans-serif;
+}
+
+.custom-radio {
+  display: inline-flex;       /* keep inline but still flex */
+  align-items: center;
+  padding: 12px;
+  border: 0.1px solid #cccccc57;
+  border-radius: 12px;
+  background-color: transparent; /* dark background */
+  color: #fff;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+  position: relative;
+}
+
+.custom-radio:hover {
+  border-color: #888;
+}
+
+.custom-radio input {
+  display: none; /* hide default radio button */
+}
+
+.radio-btn {
+   flex: 0 0 16px;
+  height: 16px;
+  width: 16px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  margin-right: 12px;
+  position: relative;
+}
+
+.custom-radio input:checked + .radio-btn::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 8px;
+  height: 8px;
+  background-color: #fff;
+  border-radius: 50%;
+}
+
+.custom-radio input:checked {
+  background-color: #444; /* optional: darker background when selected */
+}
+
+.custom-radio-other {
+  position: relative;   /* needed for absolute positioning */
+  display: block;       /* full width */
+  padding: 2.5px;
+  border: 0.1px solid #cccccc57;
+  border-radius: 12px;
+  margin-top: 10px;
+  background-color: transparent;
+}
+/* hide the input regardless of type */
+.custom-radio-other input[type="radio"],
+.custom-radio-other input[type="checkbox"] {
+  display: none;
+}
+
+/* the visual button */
+.custom-radio-other .radio-btn {
+  height: 16px;
+  cursor: pointer;
+  margin-left: 8px;
+  width: 16px;
+  border: 2px solid #fff;
+  border-radius: 50%; /* keep it circle even if it's a checkbox */
+  position: relative;
+}
+
+/* checked state for both radio and checkbox */
+.custom-radio-other input[type="radio"]:checked + .radio-btn::after,
+.custom-radio-other input[type="checkbox"]:checked + .radio-btn::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  background-color: #fff;
+  border-radius: 50%;
+}
+
+.custom-radio-other .other-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: white;
+  font-size: 14px;
+}
+
+.other-input::placeholder{
+  color: rgba(240, 248, 255, 0.484);
+}
+
+.marginpoll{
+  margin-left: 13px
+}
+
+/* Hidden by default */
+.otherOption {
+  display: none;
+}
+
+.pollcontainer {
+  text-align: right;
+}
+
+.pollitems{
+  background-color: transparent;
+  border: none;
+  color: #2e65ff;
+}
+
+.pollitems:hover{
+  background-color: #2c2c2c;
+  border-radius: 30%;
+}
+
+
+

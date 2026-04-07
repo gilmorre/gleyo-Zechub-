@@ -1,0 +1,304 @@
+
+
+      <label for="color">Color <span class="optional">Optional</span></label>
+      <div class="orion-dropdown-wrapper">
+        <button type="button" class="orion-toggle-btn" id="orion-toggle-picker">
+          <img src="https://cdn2.iconfinder.com/data/icons/tritone-set-1-of-3/100/Color-1024.png" alt="Color Picker Icon" loading="lazy" decoding="async"/>
+        </button>
+
+        <div class="orion-dropdown-panel" id="orion-dropdown-panel">
+          <div class="orion-color-row">
+            <div class="orion-swatch"  data-color="#ff4b4b" style="background-color: #ff4b4b;"></div>
+            <div class="orion-swatch" data-color="#ff6e40" style="background-color: #ff6e40;"></div>
+            <div class="orion-swatch" data-color="#f6d32d" style="background-color: #f6d32d;"></div>
+            <div class="orion-swatch" data-color="#ff82ff" style="background-color: #ff82ff;"></div>
+            <div class="orion-swatch" data-color="#ffb347" style="background-color: #ffb347;"></div>
+          </div>
+
+          <div class="orion-color-row">
+            <div class="orion-swatch" data-color="#4285f4" style="background-color: #4285f4;"></div>
+            <div class="orion-swatch" data-color="#4258f4" style="background-color: #4258f4;"></div>
+            <div class="orion-swatch" data-color="#3eff91" style="background-color: #3eff91;"></div>
+            <div class="orion-swatch" data-color="#1e13f1" style="background-color: #1e13f1;"></div>
+            <div class="orion-swatch" data-color="#13a04c" style="background-color: #13a04c;"></div>
+          </div>
+
+          <div class="orion-color-row">
+            <div class="orion-swatch" data-color="#1e1e2f" style="background-color: #1e1e2f;"></div>
+            <div class="orion-swatch" data-color="#2a262f" style="background-color: #2a262f;"></div>
+            <div class="orion-swatch" data-color="#cccccc" style="background-color: #cccccc;"></div>
+            <div class="orion-swatch" data-color="#a8a8a8" style="background-color: #a8a8a8;"></div>
+            <div class="orion-swatch" data-color="#fdfdfd" style="background-color: #fdfdfd;"></div>
+          </div>
+
+          <input type="hidden" id="orion-hidden-input" name="color" />
+          <div class="orion-preview" id="orion-preview"></div>
+
+          <div class="orion-hashtag-group">
+            <div class="orion-hashtag-icon" id="orion-hashtag-icon">#</div>
+            <input class="orion-text-input" id="orion-text-input" placeholder="#hex" maxlength="7" />
+            <img class="orion-eyedropper-icon" id="orion-eyedropper-icon" title="Pick screen color" src="https://cdn-icons-png.flaticon.com/512/151/151933.png" />
+          </div>
+
+          <button type="button" class="orion-confirm-btn" id="orion-confirm-btn">Okay</button>
+        </div>
+      </div>
+
+<script>
+  function initOrionColorPicker() {
+    const toggle = document.getElementById('orion-toggle-picker');
+    const picker = document.getElementById('orion-dropdown-panel');
+    const swatches = document.querySelectorAll('.orion-swatch');
+    const preview = document.getElementById('orion-preview');
+    const hiddenInput = document.getElementById('orion-hidden-input');
+    const confirmBtn = document.getElementById('orion-confirm-btn');
+    const hashtagIcon = document.getElementById('orion-hashtag-icon');
+    const colorInputField = document.getElementById('orion-text-input');
+    const eyedropperIcon = document.getElementById('orion-eyedropper-icon');
+    const wrapper = document.querySelector('.orion-dropdown-wrapper');
+
+    // Toggle dropdown
+    if (toggle && picker) {
+      toggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        picker.style.display = picker.style.display === 'block' ? 'none' : 'block';
+      });
+    }
+
+    // Click swatches
+    swatches.forEach((swatch) => {
+      swatch.addEventListener('click', () => {
+        const color = swatch.getAttribute('data-color');
+        if (preview) preview.style.backgroundColor = color;
+        if (hiddenInput) hiddenInput.value = color;
+      });
+    });
+
+    // Confirm button
+    if (confirmBtn) {
+      confirmBtn.addEventListener('click', () => {
+        if (picker) picker.style.display = 'none';
+      });
+    }
+
+    // Click outside to close
+    document.addEventListener('click', (e) => {
+      if (wrapper && !wrapper.contains(e.target)) {
+        if (picker) picker.style.display = 'none';
+      }
+    });
+
+    // Hashtag icon → text input
+    if (hashtagIcon && colorInputField) {
+      hashtagIcon.addEventListener('click', () => {
+        hashtagIcon.style.display = 'none';
+        colorInputField.style.display = 'inline-block';
+        colorInputField.focus();
+        colorInputField.value = '#';
+      });
+
+      colorInputField.addEventListener('input', () => {
+        const val = colorInputField.value;
+        if (/^#[0-9a-fA-F]{3,6}$/.test(val)) {
+          if (preview) preview.style.backgroundColor = val;
+          if (hiddenInput) hiddenInput.value = val;
+        }
+      });
+    }
+
+    // Eyedropper tool
+    if (eyedropperIcon) {
+      eyedropperIcon.addEventListener('click', async () => {
+        if ('EyeDropper' in window) {
+          try {
+            const eyeDropper = new EyeDropper();
+            const result = await eyeDropper.open();
+            const pickedColor = result.sRGBHex;
+            if (preview) preview.style.backgroundColor = pickedColor;
+            if (hiddenInput) hiddenInput.value = pickedColor;
+            if (colorInputField) {
+              colorInputField.value = pickedColor;
+              colorInputField.style.display = 'inline-block';
+            }
+            if (hashtagIcon) hashtagIcon.style.display = 'none';
+          } catch (err) {
+            console.warn('Eyedropper canceled:', err);
+          }
+        } else {
+          alert('Eyedropper API not supported in this browser.');
+        }
+      });
+    }
+  }
+
+  // Call the function after the page loads
+  document.addEventListener('DOMContentLoaded', initOrionColorPicker);
+</script>
+
+
+  <style>
+
+    .orion-dropdown-wrapper {
+      position: relative;
+    }
+
+    .orion-toggle-btn {
+      background: transparent;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+    }
+
+    .orion-toggle-btn img {
+      width: 40px;
+      height: 40px;
+      filter: drop-shadow(0 0 3px rgba(0,0,0,0.6));
+      transition: transform 0.2s ease;
+    }
+
+    .orion-toggle-btn:hover img {
+      transform: scale(1.1);
+    }
+
+    .orion-dropdown-panel {
+      position: absolute;
+      top: 48px;
+      left: 0;
+      z-index: 1000;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 16px;
+      padding: 20px;
+      width: 280px;
+      backdrop-filter: blur(14px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+      display: none;
+    }
+    
+
+    .orion-color-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .orion-color-row:last-of-type {
+      border-bottom: none;
+      margin-bottom: 20px;
+    }
+
+    .orion-swatch {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+      position: relative;
+    }
+
+    .orion-swatch:hover {
+      transform: scale(1.12);
+      border-color: #fff;
+    }
+
+    .orion-swatch::after {
+      content: attr(data-color);
+      position: absolute;
+      bottom: -22px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 10px;
+      color: #aaa;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+
+    .orion-swatch:hover::after {
+      opacity: 1;
+    }
+
+    .orion-preview {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 2px solid #4285f4;
+      background-color: #1e1e2f;
+      margin: 0 auto 16px;
+      transition: background-color 0.2s ease;
+    }
+
+    .orion-confirm-btn {
+      background-color: #4285f4;
+      border: none;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      width: 100%;
+      transition: background-color 0.2s ease;
+    }
+
+    .orion-confirm-btn:hover {
+      background-color: #2f6de0;
+    }
+
+    .orion-hashtag-group {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: -10px;
+      margin-bottom: 20px;
+      gap: 8px;
+    }
+
+    .orion-hashtag-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background-color: #2a2a40;
+      color: #fff;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      border: 2px solid #444;
+      transition: background-color 0.2s ease, transform 0.2s ease;
+    }
+
+    .orion-hashtag-icon:hover {
+      background-color: #3a3a55;
+      transform: scale(1.1);
+    }
+
+    .orion-text-input {
+      display: none;
+      border: 1px solid #555;
+      background-color: #28283c;
+      color: #fff;
+      border-radius: 8px;
+      padding: 6px 10px;
+      width: 100px;
+      font-size: 13px;
+    }
+
+    .orion-eyedropper-icon {
+      width: 22px;
+      height: 22px;
+      cursor: pointer;
+      filter: invert(1);
+      opacity: 0.7;
+      transition: opacity 0.2s ease;
+    }
+
+    .orion-eyedropper-icon:hover {
+      opacity: 1;
+    }
+
+  </style>
+

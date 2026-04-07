@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Delete Channel</title>
+
+<style>
+:root {
+  --bg: #f2f3f5;
+  --card-bg: #ffffff;
+  --card-background: #ffffff;
+  --system-dropdown: #ffffff;
+  --text: #0d0d0d;
+  --subtext: #676a70;
+  --border: #d8d8df;
+  --border-border:#d8d8df;
+  --bg-emoji-border: #d8d8df;
+  --bg-bgt: #f2f3f5;
+  --toggle-off: #9aa0a6;
+  --toggle-off-men: #8a8d90;
+  --playback: #000000ab;
+  --toggle-on: #4285f4;
+  --card-shadow: rgba(0,0,0,0.04);
+  --system-hover: rgba(0, 0, 0, 0.05);
+  --accent: #4285f4;
+  --bar-ba: #b5b3b3;
+  --system-color: #1f1f1f;
+  --purple: #4285f4;
+  --system-header: #fff;
+  --system-svg: #555;
+  --system-border: #d8d8df;
+  --danger: #ff6565;
+  --slider-track: #cccccc;
+  --slider-progress: #4285f4;
+  --reply-back: #f0f0f0;
+  --box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  --slider-thumb: #ffffff;
+  --radius: 12px;
+  --placeholder: #7e818a;
+  --bar-emojis: #e8e8e8 ;
+  --bg-main: #ffffff;
+  --bg-sidebar: #f4f4f4;
+  --bg-chat: #ffffff;
+  --bg-hover-selected-comm: #eeeeee;
+  --bg-hover-selected: #d9d6d6;
+  --bg-input: #eaeaea;
+  --bg-emoji: #f0f0f0;
+  --bg-first-child-side: #f4f4f4 !important;
+  --theme-mode: #ffff;
+  --border: #cfcfcf;
+  --bg-hover: #dcdcdc;
+  --border-react: #eeeeee;
+  --bg-hover-react: #ebeaea;
+  --text: #111;
+}
+
+/* =====================
+   MODAL
+===================== */
+.channel-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  animation: fadeIn .25s ease;
+}
+
+.channel-modal {
+  background: var(--card-bg);
+  padding: 25px;
+  width: 90%;
+  max-width: 420px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  animation: popIn .25s ease;
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: scale(.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.channel-modal-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.channel-modal-text {
+  color: var(--subtext);
+  font-size: 14px;
+  line-height: 1.5;
+  margin-bottom: 25px;
+}
+
+.channel-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.channel-modal-cancel,
+.channel-modal-delete {
+  padding: 8px 22px;
+  font-size: 14px;
+  font-weight: 550;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: .18s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* cancel */
+.channel-modal-cancel {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--subtext);
+}
+.channel-modal-cancel:hover {
+  color: var(--text);
+}
+
+/* delete */
+.channel-modal-delete {
+  background-color: #d63b3b;
+  color: #fff;
+  border: none;
+  box-shadow: 0 0 0 0 rgba(255, 100, 100, 0);
+}
+.channel-modal-delete:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(255, 100, 100, 0.25);
+}
+</style>
+</head>
+
+<body>
+  
+
+  <div
+    id="channel-delete-modal"
+    class="channel-modal-overlay confi-hiddenyy"
+    aria-hidden="true"
+    style="background-color: rgba(0, 0, 0, 0.315);"
+  >
+    <div
+      class="channel-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="channel-modal-title"
+    >
+      <div id="channel-modal-title" class="channel-modal-title">
+        Delete Channel?
+      </div>
+
+      <div class="channel-modal-text">
+        Are you sure you want to delete this channel?<br>
+        <span style="color:var(--danger); font-weight:550">
+          This action cannot be undone.
+        </span>
+      </div>
+
+      <div class="channel-modal-actions">
+        <div class="channel-modal-cancel" onclick="closeDeleteModal(event)">
+          Cancel
+        </div>
+        <div class="channel-modal-delete" onclick="confirmDelete(event)">
+          Delete
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

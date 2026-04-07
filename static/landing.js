@@ -1,0 +1,166 @@
+const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute("content");
+
+/* ---- Search ---- */
+const searchInput = document.querySelector(".nav-search");
+const mainContent = document.getElementById("main-content");
+const resultsContainer = document.getElementById("community-search-results");
+
+if (searchInput) {
+  searchInput.addEventListener("input", async () => {
+    const query = searchInput.value.trim();
+    if (query.length === 0) {
+      mainContent.style.display = "block";
+      resultsContainer.style.display = "none";
+      resultsContainer.innerHTML = "";
+      return;
+    }
+    mainContent.style.display = "none";
+    resultsContainer.style.display = "block";
+    const res = await fetch(`/api/search-communities?q=${encodeURIComponent(query)}`);
+    const data = await res.json();
+    if (data.length === 0) { resultsContainer.innerHTML = "<p>No communities found.</p>"; return; }
+    let html = `<div class="community-grid">`;
+    data.forEach(c => {
+      html += `<a href="${c.url}" class="community-card">
+        <img src="${c.logo}" alt="">
+        <div class="center-edinit"><h3>${c.name}</h3><p>${c.about || ""}</p></div>
+      </a>`;
+    });
+    html += `</div>`;
+    resultsContainer.innerHTML = html;
+  });
+}
+
+/* ---- Profile click: desktop = dropdown, mobile = bottom sheet ---- */
+function handleProfileClick() {
+  if (window.innerWidth <= 768) {
+    openSheet();
+  } else {
+    toggleDropdown();
+  }
+}
+
+/* ---- Desktop dropdown ---- */
+function toggleDropdown() {
+  const dropdown = document.getElementById("profile-dropdown");
+  const trigger = document.getElementById("profile-trigger");
+  if (!trigger || !dropdown) return;
+  const rect = trigger.getBoundingClientRect();
+  if (dropdown.style.display === "flex") { dropdown.style.display = "none"; return; }
+  dropdown.style.display = "flex";
+  dropdown.style.top = rect.bottom + 8 + "px";
+  dropdown.style.left = rect.right - 210 + "px";
+}
+
+window.addEventListener("click", function (e) {
+  const trigger = document.getElementById("profile-trigger");
+  const dropdown = document.getElementById("profile-dropdown");
+  if (!trigger || !dropdown) return;
+  if (!trigger.contains(e.target) && !dropdown.contains(e.target)) dropdown.style.display = "none";
+});
+
+/* ---- Mobile bottom sheet ---- */
+function openSheet() {
+  const overlay = document.getElementById("sheet-overlay");
+  const sheet = document.getElementById("bottom-sheet");
+  if (!sheet) return;
+  // stop body scroll
+  document.body.style.overflow = "hidden";
+  if (overlay) { overlay.style.display = "block"; requestAnimationFrame(() => overlay.classList.add("open")); }
+  requestAnimationFrame(() => sheet.classList.add("open"));
+}
+
+function closeSheet() {
+  const overlay = document.getElementById("sheet-overlay");
+  const sheet = document.getElementById("bottom-sheet");
+  if (!sheet) return;
+  document.body.style.overflow = "";
+  sheet.classList.remove("open");
+  if (overlay) {
+    overlay.classList.remove("open");
+    setTimeout(() => { if (overlay) overlay.style.display = "none"; }, 300);
+  }
+}
+
+// close sheet on resize to desktop
+window.addEventListener("resize", () => {
+  if (window.innerWidth > 768) closeSheet();
+});
+
+/* ---- Routing helpers ---- */
+function saveAccountBackRoute() {
+  let path = window.location.pathname + window.location.search;
+  if (path.includes("/settings")) path = "/";
+  sessionStorage.setItem("accountBackRoute", path);
+}
+
+async function logoutUser(url) {
+  const res = await fetch(url, { method: "POST", credentials: "include", headers: { "X-CSRFToken": csrfToken } });
+  if (res.redirected) { window.location.replace(res.url); return; }
+  const ct = res.headers.get("content-type");
+  if (ct && ct.includes("application/json")) {
+    const data = await res.json();
+    if (data.success) window.location.replace("/login");
+  } else { window.location.replace("/login"); }
+}
+
+/* ---- Parallax ---- */
+window.addEventListener("scroll", () => {
+  const scrollY = window.scrollY;
+  document.querySelectorAll(".parallax").forEach(el => {
+    const speed = el.dataset.speed || 0.2;
+    el.style.transform = `translateY(${scrollY * speed}px)`;
+  });
+  const nav = document.querySelector(".top-nav");
+  if (nav) nav.style.background = scrollY > 20 ? "rgba(11,11,18,0.95)" : "rgba(11,11,18,0.78)";
+});
+
+/* ---- Scroll reveal ---- */
+const revealObserver = new IntersectionObserver(entries => {
+  entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add("active"); });
+}, { threshold: 0.12 });
+document.querySelectorAll(".reveal").forEach(el => revealObserver.observe(el));
+
+/* ---- Service Worker ---- */
+let swRegistration = null;
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/static/sw.js")
+    .then(reg => { swRegistration = reg; })
+    .catch(err => console.error("SW failed", err));
+}
+
+/* ---- Push notifications ---- */
+function PushOutnot() {
+  const isAuth = document.body.dataset.auth === "1";
+  if (!isAuth) return;
+  if (Notification.permission === "granted") enablePushNotifications();
+  else if (Notification.permission === "default") {
+    const banner = document.getElementById("push-banner");
+    if (banner) banner.style.display = "flex";
+  }
+  const btn = document.getElementById("enable-push-btn");
+  if (btn) btn.addEventListener("click", enablePushNotifications);
+}
+
+async function enablePushNotifications() {
+  if (!("Notification" in window)) return;
+  const perm = await Notification.requestPermission();
+  if (perm !== "granted") return;
+  if (!swRegistration) return;
+  const existing = await swRegistration.pushManager.getSubscription();
+  if (existing) return;
+  const VAPID_PUBLIC_KEY = document.body.dataset.vapid;
+  const sub = await swRegistration.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+  });
+  await fetch("/api/push/subscribe", {
+    method: "POST", credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(sub)
+  });
+  const banner = document.getElementById("push-banner");
+  if (banner) banner.style.display = "none";
+}
+
+PushOutnot();

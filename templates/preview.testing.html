@@ -20735,20 +20735,29 @@ const mappedSVG = {
 };
 
 const previews = document.getElementById("imagePreviewsContainer");
-const sendBtnSVG = document.querySelector(".tnmr-send-button.send-message-btn");
+const sendBtns = document.querySelectorAll(".tnmr-send-button.send-message-btn");
 
 
 function updateSendButton() {
-    const hasText = chatInput.innerText.trim().length > 0;
+    if (!chatInput || !previews || sendBtns.length === 0) {
+        console.warn("Missing elements:", { chatInput, previews, sendBtns });
+        return;
+    }
 
+    const hasText = chatInput.innerText.trim().length > 0;
     const previewsVisible = window.getComputedStyle(previews).display !== "none";
 
-    if (hasText || previewsVisible) {
-        sendBtnSVG.innerHTML = mappedSVG.send;
-    } else {
-        sendBtnSVG.innerHTML = mappedSVG.audio;
-    }
+    console.log("updateSendButton:", { hasText, previewsVisible });
+
+    sendBtns.forEach(btn => {
+        if (hasText || previewsVisible) {
+            btn.innerHTML = mappedSVG.send;
+        } else {
+            btn.innerHTML = mappedSVG.audio;
+        }
+    });
 }
+
 
 // Listen for typing
 chatInput.addEventListener("input", updateSendButton);

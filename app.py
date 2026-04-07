@@ -188,6 +188,8 @@ app.config.update(
     REMEMBER_COOKIE_SAMESITE="Lax",
     REMEMBER_COOKIE_SECURE=True
 )
+
+
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -30246,4 +30248,4 @@ if __name__ == "__main__":
         start_subscription_monitors()
 
 
-    socketio.run(app, host="0.0.0.0", port=port)
+    socketio.run(app, host="0.0.0.0", port=8000, debug=True)

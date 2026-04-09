@@ -193,12 +193,21 @@
       border-radius: 50%;
       display: flex;
       align-items: center;
+      overflow: hidden;
       justify-content: center;
       font-family: 'Syne', sans-serif;
       font-size: 18px;
       font-weight: 700;
       margin-bottom: 16px;
       border: 1px solid var(--border);
+    }
+
+
+
+    .avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
 
     .avatar-founder   { background: rgba(99,102,241,0.15); color: #a5b4fc; }
@@ -356,7 +365,9 @@
       <!-- OKIRI -->
       <div class="team-card">
         <div class="team-card-accent accent-founder"></div>
-        <div class="avatar avatar-founder">OD</div>
+        <div class="avatar avatar-founder">
+          <img src="https://xpcqiovfesvllsljxhac.supabase.co/storage/v1/object/public/uploads/donald.jpg" alt="">
+        </div>
         <h3>Okiri Donald</h3>
         <div class="badges">
           <span class="badge badge-purple">Founder</span>
@@ -389,7 +400,9 @@
       <!-- OLAIDE -->
       <div class="team-card">
         <div class="team-card-accent accent-cofounder"></div>
-        <div class="avatar avatar-cofounder">OM</div>
+        <div class="avatar avatar-cofounder">
+          <img src="https://xpcqiovfesvllsljxhac.supabase.co/storage/v1/object/public/uploads/mayo.jpg" alt="Mayowa.jpg">
+        </div>
         <h3>Olaide Mayowa</h3>
         <div class="badges">
           <span class="badge badge-teal">Co-Founder</span>

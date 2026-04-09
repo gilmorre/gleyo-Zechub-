@@ -134,7 +134,7 @@ from flask_limiter.util import get_remote_address
 
 limiter = Limiter(
     key_func=get_remote_address,
-    default_limits=["200000000000 per day", "50000000000 per hour"]
+    default_limits=["2000 per day", "200 per hour"]
 )
 
 limiter.init_app(app)
@@ -169,8 +169,9 @@ if not redis_url:
  
 app.secret_key = os.getenv("SECRET_KEY")
 app.config.update(
-    SESSION_TYPE="filesystem",
-    SESSION_COOKIE_NAME="redis",
+    SESSION_TYPE="redis",
+    SESSION_REDIS=redis.from_url(redis_url),
+    SESSION_COOKIE_NAME="gleyo_session",
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SECURE=True,
     SESSION_COOKIE_SAMESITE="Lax",

@@ -329,8 +329,6 @@ def shutdown_session(exception=None):
 
 
 
-
-
 def check_is_iphone():
 
     user_agent = request.headers.get("User-Agent", "").lower()
@@ -3732,10 +3730,10 @@ app.register_blueprint(invite_bp)
 
 
 
-from discord_bot import bp_discord_bot
+from discord_bot import bp_discord_bot, start_bot_in_background
 
-# app.register_blueprint(bp_discord_bot)
-# start_bot_in_background(app)
+app.register_blueprint(bp_discord_bot)
+start_bot_in_background(app)
 
 
 
@@ -8553,24 +8551,6 @@ def submit_bug():
 # loliop
 
 
-@app.route("/<community_slug>")
-@login_required
-def main_community_base(community_slug):
-    user = current_user
-    user_communities = get_user_communities(user.id)
-    community = Community.query.filter_by(slug=community_slug).first_or_404()
-    total_xp = get_total_xp(user.id, community.id)
-    level_data = get_level(total_xp)
-    latest_sprint = get_latest_valid_sprint(community.id)
-    return render_template(
-        "your_community.html",
-        user=user,
-        community_tuples=user_communities,
-        latest_sprint=latest_sprint,
-        community=community,
-        level_data=level_data
-
-    )
 
 
 

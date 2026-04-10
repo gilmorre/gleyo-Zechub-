@@ -2741,6 +2741,19 @@ def documentation():
 
     return render_template("documentation.html")
 
+
+@app.route("/gleyo")
+@login_required
+def gleyo_base():
+    return redirect("/gleyo/quest")
+
+
+@app.route("/castle-bordair")
+@login_required
+def castle_bordair_base():
+    return redirect("/castle-bordair/quest")
+
+
 @app.route("/<page>")
 def about(page):
     print("PAGE HIT:", page)

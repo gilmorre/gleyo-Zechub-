@@ -10,6 +10,10 @@ function getUuidsFromUrl() {
   };
 }
 
+window.__SPRINT_DATA__ =  {
+  id: null,
+  name: ""
+}
 
 function restoreSelectedSprint() {
 
@@ -32,6 +36,86 @@ function restoreSelectedSprint() {
 
 }
 
+
+
+  function openCustomDatePicker(triggerEl, onSelect) {
+
+    const calendarEl = document.querySelector("#startCalendar");
+    if (!calendarEl) return;
+
+    /* ===== 🔁 TOGGLE GATE ===== */
+    if (calendarEl.classList.contains("open")) {
+      closeCalendar(calendarEl);
+      activeCalendarTarget = null;
+      return; // ⛔ stop execution (toggle close)
+    }
+
+    activeCalendarTarget = { triggerEl, onSelect };
+
+    /* ===============================
+      🔁 SYNC FROM VALUE TEXT
+    =============================== */
+    const valueTextEl = triggerEl.querySelector(".valueText");
+
+    if (valueTextEl && valueTextEl.textContent.trim()) {
+      const raw = valueTextEl.textContent.trim();
+
+      // expects: "03 Feb 00:00 2026"
+      const parsed = parseDisplayDate(raw);
+
+      if (parsed && !isNaN(parsed)) {
+        const state = window.calendarState;
+
+        // core state
+        state.selected  = new Date(parsed);
+        state.viewYear  = parsed.getFullYear();
+        state.viewMonth = parsed.getMonth();
+
+        // time UI
+        const hourInput = document.querySelector(".flatpickr-hour");
+        const minuteEl  = document.querySelector(".flatpickr-minute");
+        const amPmEl    = document.querySelector(".flatpickr-am-pm");
+
+        const h24 = parsed.getHours();
+        const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+        const ampm = h24 >= 12 ? "PM" : "AM";
+
+        if (hourInput) hourInput.value = h12;
+        if (minuteEl)  minuteEl.textContent = String(parsed.getMinutes()).padStart(2, "0");
+        if (amPmEl)    amPmEl.textContent = ampm;
+
+        /* 🔥 STATE-DRIVEN SYNC */
+        updateTime({
+          hours: h12,
+          minutes: parsed.getMinutes(),
+          ampm: ampm
+        });
+
+        // redraw calendar (month + active day)
+        window.dispatchEvent(new CustomEvent("calendar:refresh"));
+      }
+    }
+
+    /* ===============================
+      📍 OPEN PICKER
+    =============================== */
+    window.openCalendar(triggerEl, calendarEl);
+  }
+    
+  function positionDropdown(dropdownEl) {
+    const rect = dropdownEl.getBoundingClientRect();
+    const dropdownHeight = dropdownEl.offsetHeight;
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+
+    if (spaceBelow < dropdownHeight && spaceAbove > dropdownHeight) {
+      dropdownEl.style.top = "auto";
+      dropdownEl.style.bottom = "100%"; // 👈 flip above
+    } else {
+      dropdownEl.style.bottom = "auto";
+      dropdownEl.style.top = "100%";    // 👈 drop below
+    }
+  }
 
 
 getUuidsFromUrl();
@@ -147,17 +231,9 @@ window.clearValue = clearValue
 
 
 
-
-function Loadotherside() {
-    validateForm();
-    const rewardParent = document.getElementById("rewardContainerParent");
-    if (!rewardParent) return;
-
-    
-
-
-
     function renderReward(r) {
+   const rewardParent = document.getElementById("rewardContainerParent");
+    if (!rewardParent) return;
         const wrapper = document.createElement("div");
         wrapper.classList.add("rewardContainerWrapper");
         const typeKey = r.reward_type.toLowerCase();
@@ -451,39 +527,8 @@ function Loadotherside() {
 
     }
 
-    if (window.existingRewards && window.existingRewards.length) {
-        window.existingRewards.forEach(r => renderReward(r));
-        updateClearAllRewards();
-        validateForm();
-        setTimeout(validateForm, 0);
-
-    }
-    updateRewardColumnState();
 
 
-    
-  updateClearAllRewards();
-  
-
-
-
-
-
-    const shifted = document.querySelector(".shifted");
-    const trigger = document.querySelector(".shift");
-    const options = document.querySelector(".reward-dropdown");
-
-    let rewardOpen = false;
-
-    document.querySelectorAll(".reward-dropdown .option").forEach(option => {
-      option.addEventListener("click", (e) => {
-        options.style.display = "none";
-        rewardOpen = false;
-      });
-    });
-/* =========================
-   SMART POSITION ENGINE
-========================= */
 function smartPosition(trigger, dropdown) {
   const tRect = trigger.getBoundingClientRect();
   const dRect = dropdown.getBoundingClientRect();
@@ -520,6 +565,34 @@ function smartPosition(trigger, dropdown) {
     dropdown.style.left = `${tRect.right + window.scrollX - dRect.width}px`;
   }
 }
+
+
+function Loadotherside() {
+ 
+
+
+
+
+    updateRewardColumnState();
+
+
+    
+  updateClearAllRewards();
+  
+
+
+
+
+
+    const shifted = document.querySelector(".shifted");
+    const trigger = document.querySelector(".shift");
+    const options = document.querySelector(".reward-dropdown");
+
+    let rewardOpen = false;
+
+
+
+
 
 
 
@@ -767,10 +840,9 @@ document.addEventListener("input", (e) => {
         if (opts) opts.style.display = "none";
       });
   }
-
-  document.addEventListener("click", e => {
-    validateForm();
-
+document.querySelectorAll(".reward-dropdown .option").forEach(option => {
+  option.addEventListener("click", (e) => {
+  alert("called")
     if (e.target.closest("#levelDropdown")) return;
     const opt = e.target.closest(".option");
     const dropdownContainer = e.target.closest(
@@ -778,6 +850,8 @@ document.addEventListener("input", (e) => {
     );
 
     if (opt) {
+      e.preventDefault();
+      e.stopPropagation(); 
       const isRewardOption = !!opt.closest(".reward-dropdown") || opt.hasAttribute("data-icon");
       const text = opt.getAttribute("data-text") || opt.textContent.trim();
       const iconClass = opt.getAttribute("data-icon") || (opt.querySelector("i")?.className || "");
@@ -1693,6 +1767,7 @@ document.addEventListener("input", (e) => {
 
     closeAllDropdowns();
   });
+});
 
   window.addEventListener("scroll", closeAllDropdowns, { passive: true });
   document.addEventListener("keydown", e => {
@@ -2105,11 +2180,11 @@ function renderSavedCondition(cond) {
     // Use SVG instead of FontAwesome
     const operator = cond.operator === ">" ? ">" : "<";
     typeSpan.innerHTML = operator === ">"
-      ? `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="con-svg" fill="currentColor">
+      ? `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="con-svg-mega" fill="currentColor">
     <path d="M1.64 2.63c-.35.76-.02 1.67 0.74 2.02L18.91 12 2.38 19.35c-.76.35-1.1 1.26-.74 2.02s1.26 1.1 2.02.74l19.92-9.17c.54-.25.89-.79.89-1.38s-.35-1.13-.89-1.38L3.66 1.89c-.76-.35-1.67-.02-2.02.74z"/>
   </svg>
   `
-      : `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="con-svg" fill="currentColor">
+      : `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="con-svg-mega" fill="currentColor">
     <path d="M22.36 2.63c.35.76.02 1.67-.74 2.02L5.09 12l16.53 7.35c.76.35 1.1 1.26.74 2.02s-1.26 1.1-2.02.74L1.42 13.56c-.54-.25-.89-.79-.89-1.38s.35-1.13.89-1.38l18.94-8.74c.76-.35 1.67-.02 2.02.74z"/>
   </svg>
   `;
@@ -2221,10 +2296,10 @@ function renderSavedCondition(cond) {
     const typeSpan = newBlock.querySelector(".conitiontype span");
 
     const dateOperatorSVG = {
-      ">": `<svg xmlns="http://www.w3.org/2000/svg" class="con-svg" viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+      ">": `<svg xmlns="http://www.w3.org/2000/svg" class="con-svg" viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
         <path d="M1.64 2.63c-.35.76-.02 1.67 0.74 2.02L18.91 12 2.38 19.35c-.76.35-1.1 1.26-.74 2.02s1.26 1.1 2.02.74l19.92-9.17c.54-.25.89-.79.89-1.38s-.35-1.13-.89-1.38L3.66 1.89c-.76-.35-1.67-.02-2.02.74z"/>
       </svg>`,
-      "<": `<svg xmlns="http://www.w3.org/2000/svg" class="con-svg" viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+      "<": `<svg xmlns="http://www.w3.org/2000/svg" class="con-svg" viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
         <path d="M22.36 2.63c.35.76.02 1.67-.74 2.02L5.09 12l16.53 7.35c.76.35 1.1 1.26.74 2.02s-1.26 1.1-2.02.74L1.42 13.56c-.54-.25-.89-.79-.89-1.38s.35-1.13.89-1.38l18.94-8.74c.76-.35 1.67-.02 2.02.74z"/>
       </svg>`
     };
@@ -2436,7 +2511,8 @@ window.showDiscordPopup = function showDiscordPopup() {
   const popup = document.getElementById("discordPopup");              
   const popupContent = popup.querySelector(".custom-popup-content"); 
   const settingsLink = popup.querySelector(".target-link-into");    
-
+    const dropdownHandle = document.querySelector(".condition")
+    dropdownHandle.style.display = "none";
   if (!popup || !popupContent) return;
 
   // show
@@ -2445,10 +2521,9 @@ window.showDiscordPopup = function showDiscordPopup() {
   // helper to hide + cleanup listeners
   const hide = () => {
     popup.classList.remove("show");
-    closeBtn?.removeEventListener("click", hide);
-    okBtn?.removeEventListener("click", hide);
     popup.removeEventListener("click", overlayHandler);
     settingsLink?.removeEventListener("click", settingsHandler);
+
   };
 
   /* =========================
@@ -2539,21 +2614,7 @@ function callingTriggerArialAsp() {
     }
   }
 
-    
-  function positionDropdown(dropdownEl) {
-    const rect = dropdownEl.getBoundingClientRect();
-    const dropdownHeight = dropdownEl.offsetHeight;
-    const spaceBelow = window.innerHeight - rect.bottom;
-    const spaceAbove = rect.top;
 
-    if (spaceBelow < dropdownHeight && spaceAbove > dropdownHeight) {
-      dropdownEl.style.top = "auto";
-      dropdownEl.style.bottom = "100%"; // 👈 flip above
-    } else {
-      dropdownEl.style.bottom = "auto";
-      dropdownEl.style.top = "100%";    // 👈 drop below
-    }
-  }
 
   function closeAllDropdowns(except = null) {
     document.querySelectorAll(".condition, .level-dropdown, .role-select, .quest-select")
@@ -2670,10 +2731,8 @@ function callingTriggerArialAsp() {
       openDropdown = dropdown;
     });
 
-  
-    document.addEventListener("click", (e) => {
-      const option = e.target.closest(".condition .option");
-        if (!option) return;
+document.querySelectorAll(".condition .option").forEach(option => {
+  option.addEventListener("click", (e) => {
         e.stopPropagation();
 
         const containerParent = document.getElementById("conditionContainerParent");
@@ -3030,9 +3089,11 @@ function callingTriggerArialAsp() {
         validateForm();
         updateConditionColumnState();
         updateClearAllConditions();
+        const dropdown = document.querySelector(".condition")
         dropdown.style.display = "none";
       });
-    });
+  });
+});
 
 
 
@@ -3158,7 +3219,10 @@ function callingTriggerArialAsp() {
       <button class="piicki">OK</button>
     `;
 
-    document.body.appendChild(div);
+    const container = document.getElementById("inject-main-card");
+    if (container) {
+      container.appendChild(div);
+    }
     GLOBAL_RENO = div;
 
     return div;
@@ -5034,7 +5098,7 @@ async function markBackendValidatedSocialTasks(root = document) {
     }
   });
 
-  validateForm();   // ✅ finally
+  validateForm();  
 }
 
 function hookTaskInteractions(root = document){
@@ -9823,26 +9887,61 @@ function updateConditionColumnState() {
       const data = await res.json();
 
 
-  // 🔥 parse if it's string (important)
-  let desc = data.description;
 
-  if (typeof desc === "string") {
-    try {
-      desc = JSON.parse(desc);
-    } catch (e) {
-      console.warn("Description is not JSON, fallback to text");
-      desc = [{
-        type: "text",
-        html: desc
-      }];
+      // 🔥 DESCRIPTION
+      let desc = data.description;
+
+      if (typeof desc === "string") {
+        try {
+          desc = JSON.parse(desc);
+        } catch {
+          desc = [{ type: "text", html: desc }];
+        }
+      }
+
+      window.__SPRINT_DATA__ = data.sprint || {
+        id: null,
+        name: ""
+      };
+
+      // 🔥 REWARDS
+      window.existingRewards = (data.rewards || []).map(r => {
+        try {
+          r.reward_data = JSON.parse(r.reward_data);
+        } catch {
+          r.reward_data = {};
+        }
+        return r;
+
+      });
+
+      // 🔥 CONDITIONS
+      window.existingConditions = (data.conditions || []).map(c => {
+        try {
+          c.condition_value = JSON.parse(c.condition_value);
+        } catch {
+          // leave as-is if not JSON
+        }
+        return c;
+      });
+    if (window.existingRewards) {
+      window.existingRewards.forEach(r => {
+        renderReward(r);
+      });
     }
-  }
 
-  // 🔥 build editor
-  buildEditorFromSubquest(desc);
+    if (window.existingConditions) {
+      window.existingConditions.forEach(cond => {
+        renderSavedCondition(cond);
+      });
+    }
+    updateClearAllRewards();
 
-  // 🔥 VERY IMPORTANT (sync your editor system)
-  syncPlaceholders();
+    updateRewardColumnState();
+
+      buildEditorFromSubquest(desc);
+
+      syncPlaceholders();
 
       
     } catch (err) {
@@ -11128,69 +11227,6 @@ function updateConditionColumnState() {
 
   let activeCalendarTarget = null;
 
-  function openCustomDatePicker(triggerEl, onSelect) {
-
-    const calendarEl = document.querySelector("#startCalendar");
-    if (!calendarEl) return;
-
-    /* ===== 🔁 TOGGLE GATE ===== */
-    if (calendarEl.classList.contains("open")) {
-      closeCalendar(calendarEl);
-      activeCalendarTarget = null;
-      return; // ⛔ stop execution (toggle close)
-    }
-
-    activeCalendarTarget = { triggerEl, onSelect };
-
-    /* ===============================
-      🔁 SYNC FROM VALUE TEXT
-    =============================== */
-    const valueTextEl = triggerEl.querySelector(".valueText");
-
-    if (valueTextEl && valueTextEl.textContent.trim()) {
-      const raw = valueTextEl.textContent.trim();
-
-      // expects: "03 Feb 00:00 2026"
-      const parsed = parseDisplayDate(raw);
-
-      if (parsed && !isNaN(parsed)) {
-        const state = window.calendarState;
-
-        // core state
-        state.selected  = new Date(parsed);
-        state.viewYear  = parsed.getFullYear();
-        state.viewMonth = parsed.getMonth();
-
-        // time UI
-        const hourInput = document.querySelector(".flatpickr-hour");
-        const minuteEl  = document.querySelector(".flatpickr-minute");
-        const amPmEl    = document.querySelector(".flatpickr-am-pm");
-
-        const h24 = parsed.getHours();
-        const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
-        const ampm = h24 >= 12 ? "PM" : "AM";
-
-        if (hourInput) hourInput.value = h12;
-        if (minuteEl)  minuteEl.textContent = String(parsed.getMinutes()).padStart(2, "0");
-        if (amPmEl)    amPmEl.textContent = ampm;
-
-        /* 🔥 STATE-DRIVEN SYNC */
-        updateTime({
-          hours: h12,
-          minutes: parsed.getMinutes(),
-          ampm: ampm
-        });
-
-        // redraw calendar (month + active day)
-        window.dispatchEvent(new CustomEvent("calendar:refresh"));
-      }
-    }
-
-    /* ===============================
-      📍 OPEN PICKER
-    =============================== */
-    window.openCalendar(triggerEl, calendarEl);
-  }
 
 
   function parseDisplayDate(str) {

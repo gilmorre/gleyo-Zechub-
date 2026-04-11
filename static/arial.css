@@ -26,6 +26,12 @@
 }
 
 
+.con-svg-mega {
+  width: 13px !important;
+  height: 13px !important;
+}
+
+
 
 
 
@@ -1464,6 +1470,7 @@ display: inline-flex !important;
 
 .target-link-into {
   color: var(--sub-accent);
+  width: fit-content
 }
 
 .target-link-into:hover {

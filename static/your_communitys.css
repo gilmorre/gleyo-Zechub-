@@ -13353,7 +13353,7 @@ background-color: var(--bg-app);
   height: 100%;
 }
 
-.quest-item {
+.subquests-list .quest-item {
   display: flex;
   align-items: center;
   background: var(--bg-sidebar);

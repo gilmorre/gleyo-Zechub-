@@ -10,240 +10,240 @@
 <link rel="shortcut icon" href="https://gleyo.app/static/my_logo.png">
 
 <link rel="stylesheet" href="{{ url_for('static', filename='your_communitys.css') }}?v=1">
-  <style>
+<style>
 
-  :root {
-    --bg-app-set-up: #0b0b12;
-    --bg-app-others: #212136;
-    --bg-app-init: #0b0b12;
-    --bg-app: #0b0b12;
-    --bg-sidebar: #181826;
-    /* --bg-sidebar: #1818266c; */
-    --bg-sidebar-opaque: #181826a4;
-    --surface2-dip: #191928f6;
-    --surface2: #191928f6;
-    --surface2-dipper: #171725f6;
-    --bg-sidebar-opaque-back: #181826cc;
-    --bg-sidebar-inactive: #181826c5;
-    --main-ui: #1e1e2f;
-    --bg-surface-lower-q: #191929;
-    --bg-surface: #222236;
-    --inniter-skq-bold: #222236;
-    --inniter-skq: #28283d8e;
-    --bg-surface-m-lighter: #28283d;
-    --bg-surface-m-lighter-init: #2d2d44;
-    --bg-surface-dropdown: #1b1b2c;
-    --bg-surface-in-active: #161623;
-    --multi-spacing: #1b1b2b;
-    --bg-hover-hover-init-q-qq: #161623;
-    --bg-hover-hover-init-q-qq-hover: #161623;
-    --bg-surface-active: rgba(28, 28, 43, 0.851);
-    --bg-surface-active-q-p: rgba(28, 28, 43, 0.784);
-    --bg-surface-active-hover: rgba(28, 28, 43, 0.82);
-    --bg-hover: #2a2a44;
-    --bg-surface-lower: #222236e3;
-    --bg-surface-active-q: rgba(90, 120, 255, 0.18);
-    --bg-surface-active-q-active: rgba(120, 160, 255, 0.45);
-    --border-q-p: #2a2a44e4;
-    --bg-hover-q-p: #3c3c51c0;
-    --bg-hover-back-q-p: #222236c3;
-    --bg-hover-back-q-p-balck: #2222368e;
-    --border-split: #e4e4e4da;
-    --bg-hover-hover: #2a2a449c;
-    --join-banner-height: 0px;
-    --content-dropper: #151520;
-    --bg-hover-hover-init-q: #2a2a4469;
-    --bg-hover-hover-init-q-hover: #2a2a4449;
-    --bg-hover-hover-plain: #232339;
-    --bg-hover-hover-lower: #2a2a4467;
-    --bg-hover-hover-3: #2323389c;
-    --satus-yyr : #212135ea;
-    --error-alt: #e74c3c;
-    --sub-muted: #9aa0b4;
-    --active-ness: #2ecc71;
-    --red: rgba(255, 0, 0, 0.519);
-    --bg-active-border: #353555;
-    --bg-active: #303050;
-    --accent-color: #6366f1;   
-    --text-main-q: #e5e7eb3f;
-    --accent-70: color-mix(in srgb, var(--accent-color) 70%, transparent);
-    --accent-45: color-mix(in srgb, var(--accent-color) 45%, transparent);
-    --accent-25: color-mix(in srgb, var(--accent-color) 25%, transparent);
-    --text-main: #e5e7eb;
-    --sub-accent: #5865F2;
-    --bg-hover-hover-adder: #2f2f4a96;
-    --bg-hover-hover-init-r: #2a2a4488;
-    --text-main-items: #e5e7ebdf;
-    --accent-color-hover: #2a2a4472;
-    --text-main-items-reviews: #dadcdffa;
-    --main-ui-snap: #2a2a463c;
-    --main-ui-snap-hover: #2a2a462a;
-    --border-main-ui-snap: #2f2f4add;
-    --bg-hover-hover-dim: #2a2a4465;
-    --text-muted: #bbbfc7;
-    --text-muted-svg: #bbbfc78b;
-    --text-muted-bg: #b4b8c0;
-    --toggle-knob: #f3f4f6;
-    --text-main-small: #d9dbdf;
-    --bg-surface-lighter: #222236be;
-    --bg-surface-trans: #22223671;
-    --border: #2f2f4a;
-    --border-light: #404060;
-    /* --border-light: #32324e; */
-    --border-lighter: #2f2f4a9d;
-    --bg-hover-hover-init-q-hover-border: #2f2f4ab6;
-    --radius: 12px;
-    --bg-surface-init: #222236c3;
-    --info-bg: rgba(250, 204, 21, 0.08);
-    --info-border: rgba(250, 204, 21, 0.25);
-    --accent2: #3ecfcf;
-    --green: #2ecc71;
-    --red: #e74c3c;
-    --orange: #f39c12;
-
-
-
-    --main-text: #FFF;
-
-    --card-bg: var(--bg-sidebar);
-    --page-bg: #0b0f0e;
-    --border-muted-start: #2a2f2e;
-    --border-muted-end: #1a1f1e;
-
-    --accent-discord: #5865F2;
-    --accent-discord-text: #4f5de6;
-    --accent-twitter: #1DA1F2;
-    --accent-twitter-text: #1991d9;
-
-    --accent-token: #F97316;
-    --accent-token-text: #E06612;
-
-    --accent-tiktok: #000000;
-    --accent-tiktok-text: #000000;
-
-    --accent-text: #ffd900c2;
-
-
-    --accent-telegram: #229ED9;
-    --accent-telegram-text: #1f8fc1;
-
-    --accent-url: #C0392B;
-    --accent-url-text: #c03a2beb;
-    --accent-quiz: #6f42c1;
-    --accent-youtube: #ff0000d3;
-    --accent-youtube-text: #e60000da;
-    --accent-upload: #C0392B;
-    --accent-upload--file-drop: #c03a2bb1;
-    --accent-poll: #007bff;
-    --accent-link: #2563eb;
-    --accent-partnership: #2bd4a4e1;
-    --accent-partnership-text: #28c9a3be;
-    --processing-background: #23273b;
-    --accent-p-quest: #9B5CFF;
-    --accent-p-quest-text: #854ED6;
-
-    --accent-numbers: #32CD32;
-    --accent-number-text: #2BB82B;
-
-    --accent-star: #10b981;
-    --accent-numbers: #fd7e14;
-    --accent-puzzle: #7026a9c8;
-    --accent-nft: #B6FF00;
-    --accent-nft-text: #A8E600;
-
-    --accent-invite: #22c55ee1;
-
-    --accent-poh: #4C6EF5;
-    --accent-poh-text: #364FC7;
+:root {
+  --bg-app-set-up: #0b0b12;
+  --bg-app-others: #212136;
+  --bg-app-init: #0b0b12;
+  --bg-app: #0b0b12;
+  --bg-sidebar: #181826;
+  /* --bg-sidebar: #1818266c; */
+  --bg-sidebar-opaque: #181826a4;
+  --surface2-dip: #191928f6;
+  --surface2: #191928f6;
+  --surface2-dipper: #171725f6;
+  --bg-sidebar-opaque-back: #181826cc;
+  --bg-sidebar-inactive: #181826c5;
+  --main-ui: #1e1e2f;
+  --bg-surface-lower-q: #191929;
+  --bg-surface: #222236;
+  --inniter-skq-bold: #222236;
+  --inniter-skq: #28283d8e;
+  --bg-surface-m-lighter: #28283d;
+  --bg-surface-m-lighter-init: #2d2d44;
+  --bg-surface-dropdown: #1b1b2c;
+  --bg-surface-in-active: #161623;
+  --multi-spacing: #1b1b2b;
+  --bg-hover-hover-init-q-qq: #161623;
+  --bg-hover-hover-init-q-qq-hover: #161623;
+  --bg-surface-active: rgba(28, 28, 43, 0.851);
+  --bg-surface-active-q-p: rgba(28, 28, 43, 0.784);
+  --bg-surface-active-hover: rgba(28, 28, 43, 0.82);
+  --bg-hover: #2a2a44;
+  --bg-surface-lower: #222236e3;
+  --bg-surface-active-q: rgba(90, 120, 255, 0.18);
+  --bg-surface-active-q-active: rgba(120, 160, 255, 0.45);
+  --border-q-p: #2a2a44e4;
+  --bg-hover-q-p: #3c3c51c0;
+  --bg-hover-back-q-p: #222236c3;
+  --bg-hover-back-q-p-balck: #2222368e;
+  --border-split: #e4e4e4da;
+  --bg-hover-hover: #2a2a449c;
+  --join-banner-height: 0px;
+  --content-dropper: #151520;
+  --bg-hover-hover-init-q: #2a2a4469;
+  --bg-hover-hover-init-q-hover: #2a2a4449;
+  --bg-hover-hover-plain: #232339;
+  --bg-hover-hover-lower: #2a2a4467;
+  --bg-hover-hover-3: #2323389c;
+  --satus-yyr : #212135ea;
+  --error-alt: #e74c3c;
+  --sub-muted: #9aa0b4;
+  --active-ness: #2ecc71;
+  --red: rgba(255, 0, 0, 0.519);
+  --bg-active-border: #353555;
+  --bg-active: #303050;
+  --accent-color: #6366f1;   
+  --text-main-q: #e5e7eb3f;
+  --accent-70: color-mix(in srgb, var(--accent-color) 70%, transparent);
+  --accent-45: color-mix(in srgb, var(--accent-color) 45%, transparent);
+  --accent-25: color-mix(in srgb, var(--accent-color) 25%, transparent);
+  --text-main: #e5e7eb;
+  --sub-accent: #5865F2;
+  --bg-hover-hover-adder: #2f2f4a96;
+  --bg-hover-hover-init-r: #2a2a4488;
+  --text-main-items: #e5e7ebdf;
+  --accent-color-hover: #2a2a4472;
+  --text-main-items-reviews: #dadcdffa;
+  --main-ui-snap: #2a2a463c;
+  --main-ui-snap-hover: #2a2a462a;
+  --border-main-ui-snap: #2f2f4add;
+  --bg-hover-hover-dim: #2a2a4465;
+  --text-muted: #bbbfc7;
+  --text-muted-svg: #bbbfc78b;
+  --text-muted-bg: #b4b8c0;
+  --toggle-knob: #f3f4f6;
+  --text-main-small: #d9dbdf;
+  --bg-surface-lighter: #222236be;
+  --bg-surface-trans: #22223671;
+  --border: #2f2f4a;
+  --border-light: #404060;
+  /* --border-light: #32324e; */
+  --border-lighter: #2f2f4a9d;
+  --bg-hover-hover-init-q-hover-border: #2f2f4ab6;
+  --radius: 12px;
+  --bg-surface-init: #222236c3;
+  --info-bg: rgba(250, 204, 21, 0.08);
+  --info-border: rgba(250, 204, 21, 0.25);
+  --accent2: #3ecfcf;
+  --green: #2ecc71;
+  --red: #e74c3c;
+  --orange: #f39c12;
 
 
 
-      /* POH states */
-    --poh-success-bg: rgba(80, 220, 159, 0.346);
-    --poh-success-text: #9ff3cf;
-    --poh-error-bg: rgba(255, 90, 90, 0.109);
-    --poh-error-text: #ff9b9b;
-      
+  --main-text: #FFF;
+
+  --card-bg: var(--bg-sidebar);
+  --page-bg: #0b0f0e;
+  --border-muted-start: #2a2f2e;
+  --border-muted-end: #1a1f1e;
+
+  --accent-discord: #5865F2;
+  --accent-discord-text: #4f5de6;
+  --accent-twitter: #1DA1F2;
+  --accent-twitter-text: #1991d9;
+
+  --accent-token: #F97316;
+  --accent-token-text: #E06612;
+
+  --accent-tiktok: #000000;
+  --accent-tiktok-text: #000000;
+
+  --accent-text: #ffd900c2;
+
+
+  --accent-telegram: #229ED9;
+  --accent-telegram-text: #1f8fc1;
+
+  --accent-url: #C0392B;
+  --accent-url-text: #c03a2beb;
+  --accent-quiz: #6f42c1;
+  --accent-youtube: #ff0000d3;
+  --accent-youtube-text: #e60000da;
+  --accent-upload: #C0392B;
+  --accent-upload--file-drop: #c03a2bb1;
+  --accent-poll: #007bff;
+  --accent-link: #2563eb;
+  --accent-partnership: #2bd4a4e1;
+  --accent-partnership-text: #28c9a3be;
+  --processing-background: #23273b;
+  --accent-p-quest: #9B5CFF;
+  --accent-p-quest-text: #854ED6;
+
+  --accent-numbers: #32CD32;
+  --accent-number-text: #2BB82B;
+
+  --accent-star: #10b981;
+  --accent-numbers: #fd7e14;
+  --accent-puzzle: #7026a9c8;
+  --accent-nft: #B6FF00;
+  --accent-nft-text: #A8E600;
+
+  --accent-invite: #22c55ee1;
+
+  --accent-poh: #4C6EF5;
+  --accent-poh-text: #364FC7;
 
 
 
-    --sprint-color: {{ sprint.color if sprint is defined and sprint.color else '#4285f4' }};
-    --orion-color: {{ quest.color if quest is defined and quest.color else '#4285f4' }};
+    /* POH states */
+  --poh-success-bg: rgba(80, 220, 159, 0.346);
+  --poh-success-text: #9ff3cf;
+  --poh-error-bg: rgba(255, 90, 90, 0.109);
+  --poh-error-text: #ff9b9b;
+    
 
-    --logo-url: url('{{ community.logo_path }}');
-  }
+
+
+  --sprint-color: {{ sprint.color if sprint is defined and sprint.color else '#4285f4' }};
+  --orion-color: {{ quest.color if quest is defined and quest.color else '#4285f4' }};
+
+  --logo-url: url('{{ community.logo_path }}');
+}
 
 
 :root{
-  --bg:var(--bg-app);--surface:var(--bg-surface);--surface2:var(--bg-surface-dip);
-  --border2: var(--border);
-  --p:#5b6ef5;--p-light:#7b8aff;
-  --green:#12d87a;--amber:#f5a623;--red:#f05070;
-  --txt:#e8eaf0;--sub: var(--text-muted-bg);--sub2: var(--tex-muted);
-  --card-shadow:0 2px 24px rgba(0,0,0,.45);
-  --ff:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
+--bg:var(--bg-app);--surface:var(--bg-surface);--surface2:var(--bg-surface-dip);
+--border2: var(--border);
+--p:#5b6ef5;--p-light:#7b8aff;
+--green:#12d87a;--amber:#f5a623;--red:#f05070;
+--txt:#e8eaf0;--sub: var(--text-muted-bg);--sub2: var(--tex-muted);
+--card-shadow:0 2px 24px rgba(0,0,0,.45);
+--ff:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
 }
-  .profile {
-    position: relative;
-    color: white;
-    border-radius: 12px;
-    border-bottom-left-radius: 18px;
-    border-bottom-right-radius: 18px;
-    overflow: hidden;
+.profile {
+  position: relative;
+  color: white;
+  border-radius: 12px;
+  border-bottom-left-radius: 18px;
+  border-bottom-right-radius: 18px;
+  overflow: hidden;
 
-    width: 100%;
-    min-width: 100%;
-    max-width: 100%;
-    height: 100px;            
-    transition: height 0.18s ease;
+  width: 100%;
+  min-width: 100%;
+  max-width: 100%;
+  height: 100px;            
+  transition: height 0.18s ease;
 
-    padding: 0 !important;
-  }
+  padding: 0 !important;
+}
 
-  /* ----------------------------
-    BACKGROUND IMAGE
-  ----------------------------- */
-  .profile.with-bg::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: var(--logo-url) center / cover no-repeat;
-    z-index: 0;
-  }
+/* ----------------------------
+  BACKGROUND IMAGE
+----------------------------- */
+.profile.with-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--logo-url) center / cover no-repeat;
+  z-index: 0;
+}
 
-  /* ----------------------------
-    DARK OVERLAY (REPLACES filter)
-  ----------------------------- */
-  .profile.with-bg::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.335); /* 👈 control darkness */
-    z-index: 1;
-  }
+/* ----------------------------
+  DARK OVERLAY (REPLACES filter)
+----------------------------- */
+.profile.with-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.335); /* 👈 control darkness */
+  z-index: 1;
+}
 
-  /* ----------------------------
-    NO-BG FALLBACK
-  ----------------------------- */
-  .profile.no-bg::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: var(--border);
-    z-index: 0;
-  }
+/* ----------------------------
+  NO-BG FALLBACK
+----------------------------- */
+.profile.no-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--border);
+  z-index: 0;
+}
 
-  /* ----------------------------
-    CONTENT ABOVE EVERYTHING
-  ----------------------------- */
-  .profile > * {
-    position: relative;
-    z-index: 2;
-  }
+/* ----------------------------
+  CONTENT ABOVE EVERYTHING
+----------------------------- */
+.profile > * {
+  position: relative;
+  z-index: 2;
+}
 
-  
 
-  </style>
+
+</style>
 
 </head>
 <body class="light">
@@ -1289,23 +1289,7 @@ function getLayoutRoot(){
   return document.querySelector(".module-nav-displayer");
 }
 </script>
-{% if subquest is defined %}
 
-<script>
-    const SUBQUEST_DESC = {{ subquest.desc | default([]) | tojson | safe }};
-
-    window.existingRewards = {{ rewards | default([]) | tojson }};
-
-    window.__SPRINT_DATA__ = {
-      id: "{{ subquest.sprint_id or '' }}",
-      name: "{{ subquest.sprint_name or '' }}"
-    };
-
-
-
-
-</script>
-{% endif %}
 
 <script>
 window.__FROM_SLUG_ROUTE__   = {{ 'true' if from_slug_route else 'false' }};
@@ -6688,7 +6672,6 @@ if (cssToLoad) {
   if (finalPath.includes("/quest/admin/")) {
 
     __CURRENT_SCRIPT__ = "/static/arial.js";
-    window.existingConditions = {{ conditions | default([]) | tojson }};
 
   await loadScript("/static/arial.js");
 
@@ -6697,11 +6680,6 @@ if (cssToLoad) {
     window.AialModule.init();
   }
 
-  if (window.existingConditions) {
-    window.existingConditions.forEach(cond => {
-      renderSavedCondition(cond);
-    });
-  }
 
   
 

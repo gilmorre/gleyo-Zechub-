@@ -4091,7 +4091,6 @@ def community_logo():
 
 
 def save_community_logo_when_done(future, community_id):
-
     with app.app_context():
         try:
             print("🏢 Logo upload callback")
@@ -4107,17 +4106,17 @@ def save_community_logo_when_done(future, community_id):
         except Exception as e:
             print("❌ Community logo upload failed:", e)
 
+
 @app.route("/api/create-community", methods=["POST"])
 @login_required
 def create_community_api():
     user = current_user
-    user_id = session["user_id"]
 
     name = request.form.get("name", "").strip()
     about = request.form.get("about", "").strip()
     blockchain = request.form.get("blockchain", "").strip()
     website = session.get("new_comm_website", "").strip()
- 
+
     if not name or not blockchain:
         return {"error": "Missing required fields"}, 400
 
@@ -4129,45 +4128,48 @@ def create_community_api():
     try:
         new_slug = slugify(name)
 
-        # 🔥 upload
+        # 🔥 Prepare upload (READ ONCE)
         original_name = secure_filename(file.filename)
         ext = original_name.rsplit(".", 1)[-1].lower()
         logo_uuid = str(uuid.uuid4())
 
-        storage_name = f"communities/{user_id}/logos/{logo_uuid}.{ext}"
+        storage_name = f"communities/{user.id}/logos/{logo_uuid}.{ext}"
         file_bytes = file.read()
 
-        future = upload_to_supabase(
-            file_bytes,
-            storage_name,
-            file.mimetype
-        )
-        
-
-        def callback(f):
-            save_community_logo_when_done(f, new_community.id)
-
-        future.add_done_callback(callback)
-
-        # ✅ create community
+        # ✅ 1. Create community FIRST (no logo yet)
         new_community = Community(
             name=name,
             about=about,
             blockchain=blockchain,
             website=website,
-            logo_path=None,
+            logo_path=None,  # ✅ important
             slug=new_slug,
-            created_by_id=user_id
+            created_by_id=user.id
         )
 
         db.session.add(new_community)
-        db.session.flush()
+        db.session.flush()  # ✅ get ID BEFORE async
 
-        # ✅ your existing logic
-        create_default_community_structure(new_community.id, user_id)
+        community_id = new_community.id  # ✅ store primitive (IMPORTANT)
+
+        # ✅ 2. Start upload (NON-BLOCKING)
+        future = upload_to_supabase(
+            file_bytes,
+            storage_name,
+            file.mimetype
+        )
+
+        # ✅ 3. Attach callback safely
+        def callback(f):
+            save_community_logo_when_done(f, community_id)
+
+        future.add_done_callback(callback)
+
+        # ✅ 4. Continue normal logic
+        create_default_community_structure(community_id, user.id)
 
         wallet = CommunityWallet(
-            community_id=new_community.id,
+            community_id=community_id,
             available_balance=0,
             locked_balance=0,
             currency="USD"
@@ -4185,27 +4187,28 @@ def create_community_api():
         db.session.add(init_tx)
 
         admin_role = CommunityUserRole(
-            user_id=user_id,
-            community_id=new_community.id,
+            user_id=user.id,
+            community_id=community_id,
             role="admin"
         )
         db.session.add(admin_role)
 
         join_event = CommunityMembershipEvent(
-            user_id=user_id,
-            community_id=new_community.id,
+            user_id=user.id,
+            community_id=community_id,
             event_type="join"
         )
         db.session.add(join_event)
 
         new_invite = InvitationCode(
-            user_id=user_id,
-            community_id=new_community.id
+            user_id=user.id,
+            community_id=community_id
         )
         db.session.add(new_invite)
 
         db.session.commit()
 
+        # ✅ 5. RETURN IMMEDIATELY (upload still running)
         return {
             "success": True,
             "redirect_url": url_for("setup1", community_slug=new_slug)
@@ -4215,7 +4218,10 @@ def create_community_api():
         db.session.rollback()
         print("ERROR:", e)
         return {"error": "Server error"}, 500
-        
+
+
+
+
 # ─────────── Misc pages ───────────
 @app.route("/terms")
 def terms():
@@ -4479,9 +4485,38 @@ def get_subquest_description(slug, quest_uuid, subquest_uuid):
 
     if not subquest:
         return jsonify({"error": "Subquest not found"}), 404
+    print("REWARDS:", subquest.rewards)
+    print("CONDITIONS:", subquest.conditions)
+
+    # 🔥 rewards
+    rewards = []
+    for r in subquest.rewards:
+        rewards.append({
+            "id": r.id,
+            "reward_type": r.reward_type,
+            "distribution_type": r.distribution_type,
+            "reward_data": r.reward_data,
+            "claim_count": r.claim_count
+        })
+
+    # 🔥 conditions
+    conditions = []
+    for c in subquest.conditions:
+        conditions.append({
+            "id": c.id,
+            "condition_type": c.condition_type,
+            "condition_value": c.condition_value,
+            "operator": c.operator
+        })
 
     return jsonify({
-        "description": subquest.description or ""
+        "description": subquest.description or "",
+        "rewards": rewards,
+        "conditions": conditions,
+        "sprint": {
+            "id": subquest.sprint_id,
+            "name": subquest.sprint_name
+        }
     })
 
 
@@ -14717,16 +14752,6 @@ def subquest_detail(community_slug, quest_uuid, subquest_uuid):
     )
     subquest = Subquest.query.filter_by(uuid=subquest_uuid, quest_id=quest.id).first_or_404()
  
-    # ✅ Fetch conditions
-    conditions = [
-        {
-            "condition_type": c.condition_type,
-            "condition_value": c.condition_value,
-            "operator": c.operator,
-            "subquest_uuid": c.subquest_uuid 
-        }
-        for c in subquest.conditions
-    ]
 
     now = datetime.utcnow()
 
@@ -14744,18 +14769,7 @@ def subquest_detail(community_slug, quest_uuid, subquest_uuid):
     
     # ✅ Fetch rewards
     ever_had_rewards = db.session.query(SubquestReward.id).filter_by(subquest_id=subquest.id).first() is not None
-    rewards = []
-    for r in subquest.rewards:
-        try:
-            reward_data = json.loads(r.reward_data) if r.reward_data else {}
-        except Exception:
-            reward_data = {}
-        rewards.append({
-            "id": r.id,
-            "reward_type": r.reward_type,
-            "distribution_type": r.distribution_type,
-            "reward_data": reward_data
-        })
+
 
     # ✅ Permission check
     user_id = current_user.id if current_user.is_authenticated else None
@@ -14779,54 +14793,15 @@ def subquest_detail(community_slug, quest_uuid, subquest_uuid):
     community_list_visible = session.get("community_list_visible", True)
     usersettings_states = session.get("usersettings_states", {})
     settingsinfo_visible = usersettings_states.get(str(community.id), True)
-    # =========================
-    # Parse subquest description (like preview)
-    # =========================
+  
 
-    raw_desc = []
 
-    # If DB already stores JSON blocks
-    if isinstance(subquest.description, (list, dict)):
-        raw_desc = subquest.description
 
-    # If stored as stringified JSON
-    elif isinstance(subquest.description, str):
-        try:
-            raw_desc = json.loads(subquest.description)
-        except Exception:
-            raw_desc = []
 
-    parsed_blocks = []
-
-    for block in raw_desc:
-        if block.get("type") == "text":
-            html = block.get("html", "")
-            parsed_html = (html)  
-            parsed_blocks.append({
-                "type": "text",
-                "html": parsed_html
-            })
-
-        elif block.get("type") == "image":
-            parsed_blocks.append({
-                "type": "image",
-                "src": block.get("src")
-            })
-
-        elif block.get("type") == "video":
-            parsed_blocks.append({
-                "type": "video",
-                "src": block.get("src")
-            })
-
-    # 🔥 Inject parsed desc into subquest object
-    subquest.desc = parsed_blocks
     if request.headers.get("X-Partial"):
         return render_template(
             "arial.html",
-            rewards=rewards,
             user=user,
-            conditions=conditions,
             settingsinfo_visible=settingsinfo_visible,
             community_visible=community_list_visible,
             community_tuples=user_communities,
@@ -14846,9 +14821,7 @@ def subquest_detail(community_slug, quest_uuid, subquest_uuid):
     latest_sprint = get_latest_valid_sprint(community.id)
     return render_template(
         "your_community.html",
-        rewards=rewards,
         user=user,
-        conditions=conditions,
         settingsinfo_visible=settingsinfo_visible,
         community_visible=community_list_visible,
         community_tuples=user_communities,

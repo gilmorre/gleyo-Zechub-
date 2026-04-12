@@ -2942,12 +2942,15 @@ body.sidebar-open .bar-quest-container svg {
   opacity: 1;
 }
 
-.dropdowneds .logout:hover {
-  color: rgba(255, 80, 80, 0.95);
-  background-color: rgba(255, 0, 0, 0.08);
+.logout:hover {
+  color: rgba(255, 80, 80, 0.95) !important;
+  background-color: rgba(255, 0, 0, 0.08) !important;
 }
 
 
+.logout {
+  color: rgba(253, 103, 103, 0.791) !important;
+}
 
 
 
@@ -14370,4 +14373,386 @@ background-color: var(--bg-app);
   max-width: 470px;
   z-index: 999;
   box-shadow:0 10px 30px rgba(0,0,0,0.5);
+}
+
+
+#leave-community-modal {
+  position: fixed;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  display: flex;
+  background: rgba(0,0,0,.55);
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+#leave-community-modal.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.lc-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+}
+
+.lc-box {
+  width: 100%;
+  max-width: 420px;
+  background: rgba(34, 34, 54, 0.448);
+  backdrop-filter: blur(14px);
+  border: 0.9px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  height: auto!important;
+  overflow-y: auto;
+  max-height: 80dvh !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+@media(max-width: 420px) {
+#leave-community-modal {
+  padding: 0 15px;
+}
+}
+
+.lc-sub {
+  font-size: 14px; 
+  color: var(--text-muted); 
+  line-height: 1.5;
+  margin: 0;
+}
+
+.lc-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.lc-actions button{
+  padding: 12px 25px;
+  border-radius: 20px;
+  outline: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer !important
+}
+
+.lc-cancel {
+    background: rgba(43, 43, 66, 0.448);
+}
+
+.lc-cancel:hover {
+  background: rgba(43, 43, 66, 0.147);
+}
+
+.lc-leave {
+  background: rgba(255, 0, 0, 0.769);
+  color: #fff
+}
+
+
+.lc-leave:hover {
+  color: var(--text-main);
+  background: rgba(255, 0, 0, 0.515);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* ================= OVERLAY ================= */
+.ci-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(10, 10, 20, 0.65);
+  backdrop-filter: blur(6px);
+}
+.ci-overlay.active {
+  display: block;
+}
+
+/* ================= DESKTOP MODAL ================= */
+.ci-modal-desktop {
+  display: none;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.96);
+  background: var(--bg-surface);
+  border-radius: 18px;
+  width: 420px;
+  max-width: 92vw;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 26px 22px;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+  opacity: 0;
+  transition: all 0.2s ease;
+}
+
+.ci-overlay.active .ci-modal-desktop {
+  display: block;
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+/* ================= MOBILE SHEET ================= */
+.ci-modal-mobile {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: var(--bg-surface);
+  border-radius: 20px 20px 0 0;
+  padding: 18px 18px 34px;
+  box-sizing: border-box;
+  max-height: 85vh;
+  overflow-y: auto;
+  transform: translateY(100%);
+  transition: transform 0.28s cubic-bezier(.32,.72,0,1);
+  border-top: 1px solid var(--border);
+}
+
+.ci-modal-mobile.open {
+  transform: translateY(0);
+}
+
+/* ================= DRAG HANDLE ================= */
+.ci-drag-handle {
+  width: 42px;
+  height: 4px;
+  background: var(--border);
+  border-radius: 3px;
+  margin: 0 auto 16px;
+  opacity: 0.7;
+}
+
+/* ================= CLOSE BUTTON ================= */
+.ci-close-btn {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ci-close-btn:hover {
+  background: var(--bg-hover-hover);
+  color: var(--text-main);
+}
+
+/* ================= COMMUNITY INFO ================= */
+.community-info {
+  text-align: center;
+  padding: 6px 4px;
+}
+
+.ci-logo {
+  width: 84px;
+  height: 84px;
+  border-radius: 22px;
+  margin-bottom: 12px;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  background: var(--bg-surface-lighter);
+}
+
+.ci-name {
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0 0 6px;
+  color: var(--text-main);
+}
+
+.ci-about {
+  color: var(--text-muted);
+  margin: 8px 0 18px;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+/* ================= LINKS ================= */
+.ci-links {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ci-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  border-radius: 12px;
+  background: var(--bg-hover);
+  text-decoration: none;
+  color: var(--text-main);
+  font-size: 14px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  transition: all 0.15s ease;
+}
+
+.ci-link:hover {
+  background: var(--bg-hover-hover);
+  border-color: var(--border-light);
+}
+
+/* icon inside link */
+.ci-link svg {
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+/* ================= SPECIAL LINKS ================= */
+.ci-link.discord {
+  border-color: var(--accent-discord-text);
+}
+.ci-link.twitter {
+  border-color: var(--accent-twitter-text);
+}
+.ci-link.website {
+  border-color: var(--accent-url-text);
+}
+
+/* ================= SKELETON ================= */
+.info-skeleton {
+  padding: 8px 0;
+  text-align: center;
+}
+
+.info-skeleton .sk-logo {
+  width: 84px;
+  height: 84px;
+  border-radius: 22px;
+  background: var(--inniter-skq);
+  margin: 0 auto 14px;
+}
+
+.info-skeleton .sk-line {
+  height: 12px;
+  border-radius: 6px;
+  background: var(--inniter-skq);
+  margin: 8px auto;
+  width: 70%;
+}
+
+.info-skeleton .sk-line.short {
+  width: 45%;
+}
+
+@keyframes sk-pulsep {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.info-skeleton .sk-logo,
+.info-skeleton .sk-line {
+  animation: sk-pulsep 1.4s ease-in-out infinite;
+}
+
+/* ================= RESPONSIVE ================= */
+@media (max-width: 640px) {
+  .ci-modal-desktop {
+    display: none !important;
+  }
+}
+
+@media (min-width: 641px) {
+  .ci-modal-mobile {
+    display: none !important;
+  }
+}
+
+
+.show-only-when {
+  display: none !important;
+}
+
+
+.empty-state {
+  height: 60vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.empty-svg {
+  width: 120px;
+  height: 120px;
+  margin-bottom: 20px;
+}
+
+/* orbit path */
+.orbit {
+  fill: none;
+  stroke: rgba(255,255,255,0.1);
+  stroke-width: 1;
+}
+
+/* moving dot */
+.dot {
+  fill: #4f46e5;
+  transform-origin: 100px 100px;
+  animation: rotateDot 3s linear infinite;
+}
+
+/* pulse center */
+.pulse {
+  fill: #4f46e5;
+  opacity: 0.6;
+  animation: pulseAnim 1.5s ease-in-out infinite;
+}
+
+/* animations */
+@keyframes rotateDot {
+  from {
+    transform: rotate(0deg) translateY(-60px);
+  }
+  to {
+    transform: rotate(360deg) translateY(-60px);
+  }
+}
+
+@keyframes pulseAnim {
+  0%, 100% {
+    r: 10;
+    opacity: 0.6;
+  }
+  50% {
+    r: 16;
+    opacity: 0.2;
+  }
 }

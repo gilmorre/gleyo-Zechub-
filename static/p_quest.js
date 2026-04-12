@@ -369,6 +369,34 @@ function getLayoutRoot(){
 }
 
 
+function showGlobalEmptyState() {
+  const root = document.getElementById("quests-root");
+
+  root.innerHTML = `
+    <div class="empty-state">
+      
+      <div class="empty-svg">
+        <svg viewBox="0 0 200 200">
+          
+          <!-- orbit circle -->
+          <circle cx="100" cy="100" r="60" class="orbit"></circle>
+
+          <!-- moving dot -->
+          <circle cx="100" cy="40" r="6" class="dot"></circle>
+
+          <!-- center pulse -->
+          <circle cx="100" cy="100" r="12" class="pulse"></circle>
+
+        </svg>
+      </div>
+
+      <h3>No quests yet</h3>
+      <p>When quests are created, they’ll show up here.</p>
+
+    </div>
+  `;
+}
+
 
 async function loadAllQuests() {
   const root = document.getElementById("quests-root");

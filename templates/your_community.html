@@ -9,7 +9,7 @@
 <meta name="color-scheme" content="light">
 <link rel="shortcut icon" href="https://gleyo.app/static/my_logo.png">
 
-<link rel="stylesheet" href="{{ url_for('static', filename='your_communitys.css') }}?v=1">
+<link rel="stylesheet" href="{{ url_for('static', filename='your_communitys.css') }}?v=7">
 <style>
 
 :root {
@@ -731,7 +731,7 @@
                                    
                 </div>
 
-              {% if has_role(current_user.id, community.id, "admin") and not is_banned %}
+              
                 <div class="community-menu-wrapper {% if is_banned %}banned-comm-sett{% endif %}" style="overflow: hidden;">
                   <div class="community-menu-btn" onclick="toggleCommunityDropdown(this, event)" style="cursor: pointer; color: #FFf; ">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" stroke="currentColor"  width="18" height="18" shape-rendering="geometricPrecision" text-rendering="geometricPrecision" image-rendering="optimizeQuality" fill-rule="evenodd" clip-rule="evenodd" viewBox="0 0 512 484.13"><path fill-rule="nonzero" d="m42.91 425.26 67.53-27.93c5.15-2.11 10.84-.91 14.69 2.63 19.44 17.83 42.15 32.12 67.1 41.82 24.01 9.35 50.22 14.48 77.71 14.48 59.15 0 112.7-23.97 151.46-62.74 38.76-38.75 62.73-92.31 62.73-151.46 0-59.15-23.97-112.7-62.73-151.46-38.76-38.76-92.31-62.73-151.46-62.73-59.15 0-112.71 23.97-151.46 62.73-38.76 38.76-62.74 92.31-62.74 151.46 0 17.49 2.04 34.34 5.88 50.32 3.99 16.58 9.92 32.44 17.53 47.29 2.08 4.07 1.95 8.69.07 12.49l.04.03-36.35 73.07zm204.77-272.59c0-4.03.71-7.77 2.13-11.2 1.41-3.42 3.55-6.54 6.39-9.33 2.83-2.79 5.93-4.9 9.27-6.32 3.36-1.41 6.97-2.13 10.84-2.13 3.88 0 7.49.72 10.81 2.13 3.34 1.42 6.39 3.53 9.17 6.34 2.78 2.79 4.88 5.89 6.26 9.32 1.4 3.42 2.09 7.16 2.09 11.19 0 3.93-.69 7.6-2.08 11-1.39 3.4-3.47 6.54-6.26 9.4-2.77 2.84-5.82 4.99-9.15 6.42-3.34 1.43-6.94 2.16-10.84 2.16-3.98 0-7.67-.71-11.06-2.13-3.37-1.42-6.46-3.55-9.25-6.38-2.77-2.85-4.86-5.97-6.24-9.38-1.4-3.41-2.08-7.1-2.08-11.09zm12.61 167.69c-1.05 3.74-3.16 11.07 3.1 11.07 1.35 0 3.08-.76 5.14-2.25 2.23-1.62 4.79-4.06 7.66-7.3 2.91-3.3 5.94-7.19 9.09-11.69 3.14-4.48 6.44-9.62 9.87-15.35.37-.61 1.18-.82 1.79-.45l11.64 8.63c.55.41.68 1.18.31 1.76-5.35 9.3-10.76 17.43-16.23 24.36-5.51 6.98-11.1 12.77-16.76 17.34l-.09.07c-5.67 4.59-11.47 8.04-17.42 10.35-16.56 6.41-42.7 5.37-50.19-13.95-4.73-12.21-.84-26.07 2.88-38.01l18.78-56.88c1.2-4.32 2.72-9.05 3.28-13.5.91-7.39-2.36-12.18-10.42-12.18H206.3c-.72 0-1.3-.59-1.3-1.31l.07-.45 4.32-15.7c.15-.58.69-.97 1.26-.96l83.89-2.63c.72-.03 1.32.54 1.35 1.25l-.06.42-35.54 117.36zM113 426.33l-92.87 38.39a13.89 13.89 0 0 1-12.41.01c-6.88-3.43-9.68-11.79-6.26-18.67L51.29 345.9a240.606 240.606 0 0 1-16.66-47.1 242.111 242.111 0 0 1-6.75-56.74c0-66.84 27.09-127.36 70.9-171.16C142.58 27.1 203.1 0 269.94 0S397.3 27.1 441.1 70.9c43.8 43.8 70.9 104.32 70.9 171.16s-27.1 127.36-70.9 171.16c-43.8 43.81-104.32 70.91-171.16 70.91-30.86 0-60.46-5.83-87.72-16.44A242.153 242.153 0 0 1 113 426.33z"/>
@@ -740,7 +740,7 @@
                   </div>
 
                 </div>        
-              {% endif %}
+              
                   
             </div>
           
@@ -1170,9 +1170,8 @@
       Logout
     </a>
   </div>
-
   <div class="community-dropdown" style="display: none;">
-    <a href="/community/{{ community.slug }}/settings/general"
+    <a href="/community/{{ community.slug }}/settings/general" class="{% if not has_role(current_user.id, community.id, 'admin') and not is_banned %}show-only-when{% endif %}"
       onclick="event.preventDefault(); saveCommunityBackRoute(event, this); navigateTo(this.href);"> 
         <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z"/>
@@ -1181,10 +1180,31 @@
         Community Settings
     </a>
 
-    <a style="font-size: 14px;" class="open-message">  
+    <a style="font-size: 14px;" class="open-message {% if not has_role(current_user.id, community.id, 'admin') and not is_banned %}show-only-when{% endif %}">  
       <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" stroke="currentColor" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
         <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z" />
       </svg> Open Chat
+    </a>
+
+    <a 
+      onclick="event.preventDefault(); loadCommunityInfo()"> 
+      <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="currentColor" shape-rendering="geometricPrecision" text-rendering="geometricPrecision" image-rendering="optimizeQuality" fill-rule="evenodd" clip-rule="evenodd" viewBox="0 0 512 512"><path fill-rule="nonzero" d="M256 0c70.69 0 134.69 28.66 181.02 74.98C483.34 121.3 512 185.31 512 256c0 70.69-28.66 134.7-74.98 181.02C390.69 483.34 326.69 512 256 512c-70.69 0-134.69-28.66-181.02-74.98C28.66 390.69 0 326.69 0 256c0-70.69 28.66-134.69 74.98-181.02C121.31 28.66 185.31 0 256 0zm-9.96 161.03c0-4.28.76-8.26 2.27-11.91 1.5-3.63 3.77-6.94 6.79-9.91 3-2.95 6.29-5.2 9.84-6.7 3.57-1.5 7.41-2.28 11.52-2.28 4.12 0 7.96.78 11.49 2.27 3.54 1.51 6.78 3.76 9.75 6.73 2.95 2.97 5.16 6.26 6.64 9.91 1.49 3.63 2.22 7.61 2.22 11.89 0 4.17-.73 8.08-2.21 11.69-1.48 3.6-3.68 6.94-6.65 9.97-2.94 3.03-6.18 5.32-9.72 6.84-3.54 1.51-7.38 2.29-11.52 2.29-4.22 0-8.14-.76-11.75-2.26-3.58-1.51-6.86-3.79-9.83-6.79-2.94-3.02-5.16-6.34-6.63-9.97-1.48-3.62-2.21-7.54-2.21-11.77zm13.4 178.16c-1.11 3.97-3.35 11.76 3.3 11.76 1.44 0 3.27-.81 5.46-2.4 2.37-1.71 5.09-4.31 8.13-7.75 3.09-3.5 6.32-7.65 9.67-12.42 3.33-4.76 6.84-10.22 10.49-16.31.37-.65 1.23-.87 1.89-.48l12.36 9.18c.6.43.73 1.25.35 1.86-5.69 9.88-11.44 18.51-17.26 25.88-5.85 7.41-11.79 13.57-17.8 18.43l-.1.06c-6.02 4.88-12.19 8.55-18.51 11.01-17.58 6.81-45.36 5.7-53.32-14.83-5.02-12.96-.9-27.69 3.06-40.37l19.96-60.44c1.28-4.58 2.89-9.62 3.47-14.33.97-7.87-2.49-12.96-11.06-12.96h-17.45c-.76 0-1.38-.62-1.38-1.38l.08-.48 4.58-16.68c.16-.62.73-1.04 1.35-1.02l89.12-2.79c.76-.03 1.41.57 1.44 1.33l-.07.43-37.76 124.7zm158.3-244.93c-41.39-41.39-98.58-67-161.74-67-63.16 0-120.35 25.61-161.74 67-41.39 41.39-67 98.58-67 161.74 0 63.16 25.61 120.35 67 161.74 41.39 41.39 98.58 67 161.74 67 63.16 0 120.35-25.61 161.74-67 41.39-41.39 67-98.58 67-161.74 0-63.16-25.61-120.35-67-161.74z"/>
+      </svg>
+        Info
+    </a>
+
+    <div class="dropdown-divider"></div>
+
+
+    <a onclick="handleLeaveCommunityClick()"
+     class="logout leave-that-community-now"> 
+      <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" 
+      fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+      <polyline points="16 17 21 12 16 7"/>
+      <line x1="21" y1="12" x2="9" y2="12"/>
+      </svg>
+        Leave Community
     </a>
   </div>
 
@@ -4753,12 +4773,29 @@ const navbarSVG = {
 
 function syncCommunityAdminMenu(ctx) {
 
-  // 🔥 remove any existing menu first
-  document.querySelectorAll(".community-menu-wrapper")
-    .forEach(el => el.remove());
+
+  const dropdown = document.querySelector(".community-dropdown");
+  if (!dropdown) return;
+
+  const links = dropdown.querySelectorAll("a");
 
   const isAdmin = ctx.is_admin;
   const banned = ctx.banned;
+
+  // only first and second <a>
+  const settingsLink = links[0];
+  const chatLink = links[1];
+
+  if (!settingsLink || !chatLink) return;
+
+  if (!isAdmin || banned) {
+    settingsLink.classList.add("show-only-when");
+    chatLink.classList.add("show-only-when");
+  } else {
+    // ✅ admin → REMOVE hide class
+    settingsLink.classList.remove("show-only-when");
+    chatLink.classList.remove("show-only-when");
+  }
 
   // only admin and not banned
   if (!isAdmin || banned) return;
@@ -4766,22 +4803,6 @@ function syncCommunityAdminMenu(ctx) {
   const header = document.querySelector(".profile-header");
   if (!header) return;
 
-  const wrapper = document.createElement("div");
-  wrapper.className = "community-menu-wrapper";
-  wrapper.style.overflow = "hidden";
-
-  wrapper.innerHTML = `
-    <div class="community-menu-btn"
-         onclick="toggleCommunityDropdown(this, event)"
-         style="cursor:pointer;color:#fff;">
-         
-          <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" stroke="currentColor"  width="18" height="18" shape-rendering="geometricPrecision" text-rendering="geometricPrecision" image-rendering="optimizeQuality" fill-rule="evenodd" clip-rule="evenodd" viewBox="0 0 512 484.13"><path fill-rule="nonzero" d="m42.91 425.26 67.53-27.93c5.15-2.11 10.84-.91 14.69 2.63 19.44 17.83 42.15 32.12 67.1 41.82 24.01 9.35 50.22 14.48 77.71 14.48 59.15 0 112.7-23.97 151.46-62.74 38.76-38.75 62.73-92.31 62.73-151.46 0-59.15-23.97-112.7-62.73-151.46-38.76-38.76-92.31-62.73-151.46-62.73-59.15 0-112.71 23.97-151.46 62.73-38.76 38.76-62.74 92.31-62.74 151.46 0 17.49 2.04 34.34 5.88 50.32 3.99 16.58 9.92 32.44 17.53 47.29 2.08 4.07 1.95 8.69.07 12.49l.04.03-36.35 73.07zm204.77-272.59c0-4.03.71-7.77 2.13-11.2 1.41-3.42 3.55-6.54 6.39-9.33 2.83-2.79 5.93-4.9 9.27-6.32 3.36-1.41 6.97-2.13 10.84-2.13 3.88 0 7.49.72 10.81 2.13 3.34 1.42 6.39 3.53 9.17 6.34 2.78 2.79 4.88 5.89 6.26 9.32 1.4 3.42 2.09 7.16 2.09 11.19 0 3.93-.69 7.6-2.08 11-1.39 3.4-3.47 6.54-6.26 9.4-2.77 2.84-5.82 4.99-9.15 6.42-3.34 1.43-6.94 2.16-10.84 2.16-3.98 0-7.67-.71-11.06-2.13-3.37-1.42-6.46-3.55-9.25-6.38-2.77-2.85-4.86-5.97-6.24-9.38-1.4-3.41-2.08-7.1-2.08-11.09zm12.61 167.69c-1.05 3.74-3.16 11.07 3.1 11.07 1.35 0 3.08-.76 5.14-2.25 2.23-1.62 4.79-4.06 7.66-7.3 2.91-3.3 5.94-7.19 9.09-11.69 3.14-4.48 6.44-9.62 9.87-15.35.37-.61 1.18-.82 1.79-.45l11.64 8.63c.55.41.68 1.18.31 1.76-5.35 9.3-10.76 17.43-16.23 24.36-5.51 6.98-11.1 12.77-16.76 17.34l-.09.07c-5.67 4.59-11.47 8.04-17.42 10.35-16.56 6.41-42.7 5.37-50.19-13.95-4.73-12.21-.84-26.07 2.88-38.01l18.78-56.88c1.2-4.32 2.72-9.05 3.28-13.5.91-7.39-2.36-12.18-10.42-12.18H206.3c-.72 0-1.3-.59-1.3-1.31l.07-.45 4.32-15.7c.15-.58.69-.97 1.26-.96l83.89-2.63c.72-.03 1.32.54 1.35 1.25l-.06.42-35.54 117.36zM113 426.33l-92.87 38.39a13.89 13.89 0 0 1-12.41.01c-6.88-3.43-9.68-11.79-6.26-18.67L51.29 345.9a240.606 240.606 0 0 1-16.66-47.1 242.111 242.111 0 0 1-6.75-56.74c0-66.84 27.09-127.36 70.9-171.16C142.58 27.1 203.1 0 269.94 0S397.3 27.1 441.1 70.9c43.8 43.8 70.9 104.32 70.9 171.16s-27.1 127.36-70.9 171.16c-43.8 43.81-104.32 70.91-171.16 70.91-30.86 0-60.46-5.83-87.72-16.44A242.153 242.153 0 0 1 113 426.33z"/>
-          </svg>
-
-    </div>
-  `;
-
-  header.appendChild(wrapper);
 }
 
 
@@ -4987,6 +5008,146 @@ function getCommunitySlugFromPath(path = window.location.pathname) {
 }
 
 
+  (function () {
+    // SVG icons
+    const ICONS = {
+      close: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
+      website: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>`,
+      discord: `<svg width="15" height="15" viewBox="0 -28.5 256 256" version="1.1" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid">
+                  <path d="M216.856339,16.5966031 C200.285002,8.84328665 182.566144,3.2084988 164.041564,0 C161.766523,4.11318106 159.108624,9.64549908 157.276099,14.0464379 C137.583995,11.0849896 118.072967,11.0849896 98.7430163,14.0464379 C96.9108417,9.64549908 94.1925838,4.11318106 91.8971895,0 C73.3526068,3.2084988 55.6133949,8.86399117 39.0420583,16.6376612 C5.61752293,67.146514 -3.4433191,116.400813 1.08711069,164.955721 C23.2560196,181.510915 44.7403634,191.567697 65.8621325,198.148576 C71.0772151,190.971126 75.7283628,183.341335 79.7352139,175.300261 C72.104019,172.400575 64.7949724,168.822202 57.8887866,164.667963 C59.7209612,163.310589 61.5131304,161.891452 63.2445898,160.431257 C105.36741,180.133187 151.134928,180.133187 192.754523,160.431257 C194.506336,161.891452 196.298154,163.310589 198.110326,164.667963 C191.183787,168.842556 183.854737,172.420929 176.223542,175.320965 C180.230393,183.341335 184.861538,190.991831 190.096624,198.16893 C211.238746,191.588051 232.743023,181.531619 254.911949,164.955721 C260.227747,108.668201 245.831087,59.8662432 216.856339,16.5966031 Z M85.4738752,135.09489 C72.8290281,135.09489 62.4592217,123.290155 62.4592217,108.914901 C62.4592217,94.5396472 72.607595,82.7145587 85.4738752,82.7145587 C98.3405064,82.7145587 108.709962,94.5189427 108.488529,108.914901 C108.508531,123.290155 98.3405064,135.09489 85.4738752,135.09489 Z M170.525237,135.09489 C157.88039,135.09489 147.510584,123.290155 147.510584,108.914901 C147.510584,94.5396472 157.658606,82.7145587 170.525237,82.7145587 C183.391518,82.7145587 193.761324,94.5189427 193.539891,108.914901 C193.539891,123.290155 183.391518,135.09489 170.525237,135.09489 Z" fill="currentColor" fill-rule="nonzero"/>
+                </svg>`,
+      twitter: `<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.74l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>`,
+    };
+
+    // Build and append modal to body once
+    function buildModal() {
+      if (document.getElementById("ci-overlay")) return;
+
+      const overlay = document.createElement("div");
+      overlay.id = "ci-overlay";
+      overlay.className = "ci-overlay";
+
+      overlay.innerHTML = `
+        <!-- Desktop centered modal -->
+        <div class="ci-modal-desktop" id="ci-modal-desktop">
+          <button class="ci-close-btn" id="ci-close-desktop">${ICONS.close}</button>
+          <div id="inject-main-card-desktop"></div>
+        </div>
+
+        <!-- Mobile bottom sheet -->
+        <div class="ci-modal-mobile" id="ci-modal-mobile">
+          <div class="ci-drag-handle"></div>
+          <button class="ci-close-btn" id="ci-close-mobile">${ICONS.close}</button>
+          <div id="inject-main-card-mobile"></div>
+        </div>
+      `;
+
+      document.body.appendChild(overlay);
+
+      // Close on overlay background click
+      overlay.addEventListener("click", function (e) {
+        if (e.target === overlay) closeCommunityModal();
+      });
+
+      // Close buttons
+      document.getElementById("ci-close-desktop").addEventListener("click", closeCommunityModal);
+      document.getElementById("ci-close-mobile").addEventListener("click", closeCommunityModal);
+    }
+
+    function isMobile() {
+      return window.innerWidth <= 640;
+    }
+
+    function openCommunityModal() {
+      buildModal();
+      const overlay = document.getElementById("ci-overlay");
+      const desktop = document.getElementById("ci-modal-desktop");
+      const mobile = document.getElementById("ci-modal-mobile");
+
+      overlay.classList.add("active");
+      document.body.style.overflow = "hidden";
+
+      if (isMobile()) {
+        mobile.style.display = "block";
+        desktop.style.display = "none";
+        // Trigger slide-up animation
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            mobile.classList.add("open");
+          });
+        });
+      } else {
+        desktop.style.display = "block";
+        mobile.style.display = "none";
+      }
+    }
+
+    window.closeCommunityModal = function () {
+      const overlay = document.getElementById("ci-overlay");
+      const mobile = document.getElementById("ci-modal-mobile");
+      if (!overlay) return;
+
+      mobile.classList.remove("open");
+      setTimeout(function () {
+        overlay.classList.remove("active");
+        mobile.style.display = "none";
+        document.getElementById("ci-modal-desktop").style.display = "none";
+        document.body.style.overflow = "";
+      }, 320);
+    };
+
+    function renderSkeleton() {
+      const skHtml = `
+        <div class="info-skeleton">
+          <div class="sk-logo"></div>
+          <div class="sk-line"></div>
+          <div class="sk-line short"></div>
+        </div>`;
+      const d = document.getElementById("inject-main-card-desktop");
+      const m = document.getElementById("inject-main-card-mobile");
+      if (d) d.innerHTML = skHtml;
+      if (m) m.innerHTML = skHtml;
+    }
+
+    function renderCommunityInfo(data) {
+      const html = `
+        <div class="community-info">
+          <img src="${data.logo || '/static/default.png'}" class="ci-logo" alt="${data.name}"/>
+          <p class="ci-name">${data.name}</p>
+          <p class="ci-about">${data.about || "No description provided."}</p>
+          <div class="ci-links">
+            ${data.website ? `<a href="${data.website}" target="_blank" class="ci-link">${ICONS.website} ${data.website}</a>` : ""}
+            ${data.discord_invite ? `<a href="${data.discord_invite}" target="_blank" class="ci-link">${ICONS.discord} ${data.discord_invite}</a>` : ""}
+            ${data.twitter ? `<a href="https://twitter.com/${data.twitter}" target="_blank" class="ci-link">${ICONS.twitter} ${data.twitter}</a>` : ""}
+          </div>
+        </div>`;
+      const d = document.getElementById("inject-main-card-desktop");
+      const m = document.getElementById("inject-main-card-mobile");
+      if (d) d.innerHTML = html;
+      if (m) m.innerHTML = html;
+    }
+
+    window.loadCommunityInfo = async function () {
+      toggleSidebar();
+      document.querySelector(".community-dropdown").style.display = "none"
+      openCommunityModal();
+      renderSkeleton();
+      try {
+        const res = await fetch(`/community/${communitySlug}/info`, {
+          headers: { "X-Partial": "1" }
+        });
+        if (!res.ok) {
+          showToast("Failed to load community info");
+          return;
+        }
+        const data = await res.json();
+        renderCommunityInfo(data);
+      } catch (err) {
+        console.error(err);
+        showToast("Network error");
+      }
+    };
+  })();
 
 async function handleSlugChange() {
 
@@ -6544,6 +6705,123 @@ function showReWardsSkeleton(containerSelector) {
   `;
 }
 
+function handleLeaveCommunityClick() {
+  toggleSidebar();
+  document.querySelector(".community-dropdown").style.display = "none"
+  openLeaveCommunityModal();
+}
+
+function closeLeaveModal() {
+
+  const modal = document.getElementById("leave-community-modal");
+  if (modal) modal.remove();
+
+}
+
+async function confirmLeaveCommunity() {
+
+  try {
+
+    const res = await fetch(`/community/${communitySlug}/leave`, {
+
+      method: "POST",
+
+      headers: {
+
+        "Content-Type": "application/json"
+
+      }
+
+    });
+
+
+    const data = await res.json();
+
+
+    if (!res.ok) {
+
+      showToast(data.message || "Failed to leave community");
+
+      return;
+
+    }
+
+
+    closeLeaveModal();
+
+
+    // 🔥 SMART REDIRECT (uses your system)
+
+    if (data.next_community_slug) {
+
+      loadMainSettingsSection(
+
+        `/community/${data.next_community_slug}/quest`
+
+      );
+
+    } else {
+
+      window.location.href = "/dashboard";
+
+    }
+
+
+  } catch (err) {
+
+    console.error(err);
+
+    showToast("Network error");
+
+  }
+
+}
+
+
+
+
+
+
+function openLeaveCommunityModal() {
+  if (document.getElementById("leave-community-modal")) return;
+
+  const modal = document.createElement("div");
+  modal.id = "leave-community-modal";
+  modal.className = "show";
+
+  modal.innerHTML = `
+
+    <div class="lc-box">
+      <h3>Leave Community?</h3>
+
+      <p class="lc-sub" style="margin-bottom: 20px">
+        If you leave this community, you will lose access to it — including
+        quests, leaderboard, and member activity.
+      </p>
+
+      <p class="lc-sub">
+        Your progress, completed quests, and position will remain saved,
+        but you won’t be able to view or continue them unless you rejoin.
+      </p>
+
+      <div class="lc-actions">
+        <button class="lc-cancel" onclick="closeLeaveModal()">Cancel</button>
+        <button class="lc-leave">Leave</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  modal.onclick = (e) => {
+    if (e.target.closest(".lc-box")) return;
+    closeLeaveModal();
+  };
+
+  document.querySelector(".lc-leave").onclick = confirmLeaveCommunity;
+}
+
+
 
 async function loadMainSettingsSection(path, push = true, previewMode = false, noSkeleton = false) {
   if (__IS_LOADING__) return;
@@ -6671,9 +6949,9 @@ if (cssToLoad) {
 
   if (finalPath.includes("/quest/admin/")) {
 
-    __CURRENT_SCRIPT__ = "/static/arial.js";
+    __CURRENT_SCRIPT__ = "/static/arial.js?v=2";
 
-  await loadScript("/static/arial.js");
+  await loadScript("/static/arial.js?v=2");
 
 
   if (window.AialModule) {

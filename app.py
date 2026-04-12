@@ -96,7 +96,10 @@ from quest_models import Quest
 from integrations import CommunityWebhook
 from sub_quest_models import Subquest, SubquestRun
 import uuid
-
+import os, re
+from functools import wraps
+from flask import request, render_template, session, redirect, url_for, flash
+from werkzeug.utils import secure_filename
 from CommunityUserRole_models import CommunityUserRole, CommunityUserExtraRole, CommunityExtraRole, CommunityRoleStyle, CommunityMembershipEvent
 import random
 import community_checking
@@ -4005,17 +4008,56 @@ def admin_panel_api():
         "redirect_url": url_for("community_logo")
     }
     
- 
-import os
-import re
-from functools import wraps
-from flask import request, render_template, session, redirect, url_for, flash
-from werkzeug.utils import secure_filename
 
-# ─────────── Auth decorator ───────────
+@app.route("/community/<slug>/leave", methods=["POST"])
+@login_required
+def leave_community(slug):
+    community = Community.query.filter_by(slug=slug).first_or_404()
+
+    # ❌ prevent creator from leaving
+    if community.created_by_id == current_user.id:
+        return jsonify({
+            "message": "You created this community and cannot leave it"
+        }), 400
+
+    # find membership
+    role = CommunityUserRole.query.filter_by(
+        user_id=current_user.id,
+        community_id=community.id
+    ).first()
+
+    if not role:
+        return jsonify({
+            "message": "You are not a member of this community"
+        }), 400
+
+    # ✅ remove access
+    db.session.delete(role)
+
+    # ✅ log event
+    event = CommunityMembershipEvent(
+        user_id=current_user.id,
+        community_id=community.id,
+        event_type="leave"
+    )
+    db.session.add(event)
+
+    db.session.commit()
+
+    # 🔥 find next community
+    next_role = CommunityUserRole.query.filter_by(
+        user_id=current_user.id
+    ).first()
+
+    next_slug = next_role.community.slug if next_role else None
+
+    return jsonify({
+        "success": True,
+        "next_community_slug": next_slug
+    })
 
 
-# ─────────── Slug generator ───────────
+
 def slugify(text):
     return re.sub(r'[\W_]+', '-', text.lower()).strip('-')
 
@@ -6464,7 +6506,32 @@ def edit_message(message_id):
 
 
 
+@app.route("/community/<slug>/info")
+@login_required
+def community_info(slug):
+    community = Community.query.filter_by(slug=slug).first_or_404()
 
+    # ✅ Twitter (latest connected)
+    twitter = None
+    if community.twitter_account:
+        twitter = community.twitter_account.xusername
+
+    # ✅ Discord invite
+    discord_invite = None
+    if community.discord_guild and community.discord_guild.bot_joined:
+        from discord_bot import get_or_create_invite
+        discord_invite = get_or_create_invite(
+            community.discord_guild.guild_id
+        )
+
+    return jsonify({
+        "name": community.name,
+        "about": community.about,
+        "website": community.website,
+        "logo": community.logo_path,
+        "twitter": twitter,
+        "discord_invite": discord_invite
+    })
 
 @app.route("/<community_slug>/collab")
 @login_required 

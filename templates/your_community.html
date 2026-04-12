@@ -6719,64 +6719,55 @@ function closeLeaveModal() {
 }
 
 async function confirmLeaveCommunity() {
-
   try {
-
     const res = await fetch(`/community/${communitySlug}/leave`, {
-
       method: "POST",
-
       headers: {
-
-        "Content-Type": "application/json"
-
+        "Content-Type": "application/json",
+        "X-CSRFToken": csrfToken
       }
-
     });
-
 
     const data = await res.json();
 
-
     if (!res.ok) {
-
       showToast(data.message || "Failed to leave community");
-
       return;
-
     }
-
 
     closeLeaveModal();
 
+    // 🔥 1. REMOVE FROM UI
+    const currentLink = document.querySelector(
+      `.link-communites[data-slug="${communitySlug}"]`
+    );
 
-    // 🔥 SMART REDIRECT (uses your system)
-
-    if (data.next_community_slug) {
-
-      loadMainSettingsSection(
-
-        `/community/${data.next_community_slug}/quest`
-
-      );
-
-    } else {
-
-      window.location.href = "/dashboard";
-
+    if (currentLink) {
+      currentLink.remove();
     }
 
+    // 🔥 2. FIND NEXT AVAILABLE COMMUNITY (FROM DOM NOW)
+    const remainingCommunities = document.querySelectorAll(".link-communites");
+
+    if (remainingCommunities.length > 0) {
+      const nextLink = remainingCommunities[0];
+
+      await switchCommunity({
+        slug: nextLink.dataset.slug,
+        redirectPath: nextLink.dataset.redirect,
+        logo: nextLink.dataset.logo,
+        name: nextLink.dataset.name
+      });
+
+    } else {
+      location.reload();
+    }
 
   } catch (err) {
-
     console.error(err);
-
     showToast("Network error");
-
   }
-
 }
-
 
 
 

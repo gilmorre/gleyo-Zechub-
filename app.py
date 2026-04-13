@@ -2751,10 +2751,10 @@ def gleyo_base():
     return redirect("/gleyo/quest")
 
 
-@app.route("/castle-bordair")
+@app.route("/blockster")
 @login_required
 def castle_bordair_base():
-    return redirect("/castle-bordair/quest")
+    return redirect("/blockster/quest")
 
 
 @app.route("/<page>")
@@ -2806,8 +2806,7 @@ def create_passcode():
 @csrf.exempt
 def pick_username():
 
-    if current_user.is_authenticated and not session.get("pending_email"):
-        abort(404)
+
 
     email = session.get("pending_email")
     profile_pic = session.get("pending_profile_pic")

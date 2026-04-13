@@ -542,11 +542,11 @@
 
       </div>
 
-      <div class="brand">
+      <div class="brand" id="brandSection">
         {% if community.logo_path %}
           <img
             class="initials-circled"
-            style="border-radius: 50%; margin-right: 10px;"
+            style="border-radius: 50%; margin-right: 10px; object-fit: cover;"
             src="{{ community.logo_path }}"
             alt="Community Logo"
           >
@@ -556,7 +556,7 @@
           </div>
         {% endif %}
 
-        <div class="brand-name">{{ community.name }}</div>
+        <div class="brand-name" style="width: 70% !important; max-width: 70% !important">{{ community.name }}</div>
       </div>
 
     </div>
@@ -2199,10 +2199,42 @@ async function acceptInviteNormal(communitySlug, invitationCode=null) {
     }
 }
 
+function renderBrand(ctx) {
+  const brand = document.getElementById("brandSection");
+  if (!brand) return;
+
+  const comm = ctx.community;
+
+  brand.innerHTML = `
+    ${
+      comm.logo
+        ? `<img 
+              class="initials-circled"
+              style="border-radius:50%; margin-right:10px; objet-fit: cover"
+              src="${comm.logo}"
+              alt="Community Logo"
+           >`
+        : `<div class="initials-circle" style="border-radius:50%; margin-right:10px;">
+              ${comm.name[0].toUpperCase()}${comm.name[1]?.toUpperCase() || ""}
+           </div>`
+    }
+
+    <div class="brand-name" style="width:70% !important; max-width:70% !important;">
+      ${comm.name}
+    </div>
+  `;
+}
+
+
+
+
+
+
 function insertCommunityToSidebar(comm) {
 
     const scroll = document.querySelector(".community-scroll");
     if (!scroll) return;
+    updateBrand(comm);
 
     // prevent duplicate
     if (document.querySelector(`.link-communites[data-slug="${comm.slug}"]`)) {
@@ -4819,6 +4851,7 @@ async function refreshCommunityNav(slug) {
 
   buildSidebar(ctx);
   syncCommunityAdminMenu(ctx);
+  renderBrand(ctx);
 }
 
 function toggleVerifiedBadge(ctx) {
@@ -6870,7 +6903,6 @@ async function loadMainSettingsSection(path, push = true, previewMode = false, n
 
   if (push) {
     history.pushState({}, "", finalPath);
-    handleSlugChange(); 
   }
 
     setActiveNav(finalPath);

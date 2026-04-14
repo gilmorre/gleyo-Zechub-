@@ -19,7 +19,7 @@ community_twitter_bp = Blueprint("community_twitter", __name__)
 # ─── Config (from twittersetup / env vars) ───────────────────────────────
 CLIENT_ID     = "QlRZQUttRjBXQUlZaUlkZFJSSWY6MTpjaQ"
 CLIENT_SECRET = "9u5jXskzwgaRa4pEAnjwpA2jZSulgVUNjqRwBOqDbWeqmXGA9S"
-REDIRECT_URI  = "https://gleyo-production.up.railway.app/community-twitter-callback"
+REDIRECT_URI  = "https://gleyo.app/community-twitter-callback"
 
 SCOPES = ["tweet.read", "users.read", "offline.access"]
 

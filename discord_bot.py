@@ -253,7 +253,7 @@ def get_discord_roles(guild_id: str):
 
 
 
-@bp_discord_bot.route("/discord/bot/callback")
+@bp_discord_bot.route("/bot/callback")
 def discord_bot_callback():
     """Callback after bot invite"""
     if "error" in request.args:

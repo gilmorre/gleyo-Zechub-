@@ -2751,10 +2751,10 @@ def gleyo_base():
     return redirect("/gleyo/quest")
 
 
-@app.route("/blockster")
+@app.route("/castle-bordair")
 @login_required
 def castle_bordair_base():
-    return redirect("/blockster/quest")
+    return redirect("/castle-bordair/quest")
 
 
 @app.route("/<page>")

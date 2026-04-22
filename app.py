@@ -26630,7 +26630,7 @@ class MyAdminIndexView(AdminIndexView):
     def is_accessible(self):
         return (
             current_user.is_authenticated and
-            current_user.email == "okirdonald321@gmail.com"
+            current_user.email.strip().lower() == "okiridonald321@gmail.com"
         )
 
     def inaccessible_callback(self, name, **kwargs):
@@ -26644,7 +26644,7 @@ class BaseAdmin(ModelView):
     def is_accessible(self):
         return (
             current_user.is_authenticated and
-            current_user.email == "okirdonald321@gmail.com"
+            current_user.email.strip().lower() == "okiridonald321@gmail.com"
         )
 
     def inaccessible_callback(self, name, **kwargs):
@@ -26657,7 +26657,7 @@ class BaseAdmin(ModelView):
 # ------------------------
 # ✅ Users Admin View
 # ------------------------
-class UserAdmin(ModelView):
+class UserAdmin(BaseAdmin):
     column_list = (
         'id',
         'uuid',
@@ -26728,7 +26728,7 @@ class UserAdmin(ModelView):
             model.password = generate_password_hash(form.password.data)
 
 
-class UserTwoFactorAdmin(ModelView):
+class UserTwoFactorAdmin(BaseAdmin):
 
     can_create = True
     can_edit = True
@@ -26783,7 +26783,7 @@ class UserTwoFactorAdmin(ModelView):
 # ------------------------
 # ✅ Community Admin View
 # ------------------------
-class CommunityAdmin(ModelView):
+class CommunityAdmin(BaseAdmin):
     column_list = (
         'id',
         'name',
@@ -26848,7 +26848,7 @@ def generate_slug(mapper, connection, target):
 # ------------------------
 # ✅ UserDiscord Admin View
 # ------------------------
-class UserDiscordAdmin(ModelView):
+class UserDiscordAdmin(BaseAdmin):
     column_list = (
         'id', 'user_id', 'username', 'discord_username',
         'discord_user_id', 'action', 'token_type',
@@ -26898,7 +26898,7 @@ class UserDiscordAdmin(ModelView):
 # ------------------------
 # ✅ UserTwitter Admin View
 # ------------------------
-class UserTwitterAdmin(ModelView):
+class UserTwitterAdmin(BaseAdmin):
     # Columns to display in the table
     column_list = (
         'id', 'user_id', 'username', 'xusername', 'twitter_user_id',
@@ -26956,7 +26956,7 @@ class UserTwitterAdmin(ModelView):
 # ------------------------
 # ✅ UserTelegram Admin View
 # ------------------------
-class UserTelegramAdmin(ModelView):
+class UserTelegramAdmin(BaseAdmin):
     column_list = (
         'id', 'user_id', 'username', 'tusername',
         'telegram_user_id', 'phone_number',
@@ -27003,7 +27003,7 @@ class UserTelegramAdmin(ModelView):
 
 
 
-class WalletAdmin(ModelView):
+class WalletAdmin(BaseAdmin):
     column_list = ('id', 'user_id', 'address', 'chain', 'connected_at', 'nonce')
     column_labels = {
         'id': 'ID',
@@ -27023,7 +27023,7 @@ class WalletAdmin(ModelView):
 # ✅ UserYouTube Admin View
 # ------------------------
 
-class UserYouTubeAdmin(ModelView):
+class UserYouTubeAdmin(BaseAdmin):
     column_list = (
         'id', 'user_id', 'username', 'youtube_handle', 'youtube_user_id',
         'action', 'access_token', 'refresh_token', 'token_type',
@@ -27069,7 +27069,7 @@ class UserYouTubeAdmin(ModelView):
 
 
 
-class UserTikTokAdmin(ModelView):
+class UserTikTokAdmin(BaseAdmin):
     column_list = (
         'id', 'user_id', 'username', 'nickname', 'open_id',
         'action', 'access_token', 'refresh_token', 'token_type', 'expires_at', 'timestamp'
@@ -27115,7 +27115,7 @@ class UserTikTokAdmin(ModelView):
 # -------------------------------
 # ✅ CommunityUserRole Admin View
 # -------------------------------
-class CommunityUserRoleAdmin(ModelView):
+class CommunityUserRoleAdmin(BaseAdmin):
     column_list = (
         'id',
         'user_id',
@@ -27159,7 +27159,7 @@ class CommunityUserRoleAdmin(ModelView):
 # ------------------------
 # ✅ DiscordGuild Admin View
 # ------------------------
-class DiscordGuildAdmin(ModelView):
+class DiscordGuildAdmin(BaseAdmin):
     column_list = (
         'id', 'community_id', 'community_name',
         'guild_id', 'guild_name', 'icon_url',
@@ -27214,7 +27214,7 @@ class DiscordGuildAdmin(ModelView):
 # ------------------------
 # ✅ DiscordNotificationSetting Admin View
 # ------------------------
-class DiscordNotificationSettingAdmin(ModelView):
+class DiscordNotificationSettingAdmin(BaseAdmin):
     column_list = (
         'id', 'guild_id', 'guild_name',
         'type', 'channel_id', 'role_id'
@@ -27256,7 +27256,7 @@ def _community_name(view, context, model, name):
 # ------------------------
 # ✅ CommunityTwitter Admin View
 # ------------------------
-class CommunityTwitterAdmin(ModelView):
+class CommunityTwitterAdmin(BaseAdmin):
     column_list = ('xusername', 'twitter_user_id', 'community_name', 'action', 'timestamp')
     
     column_labels = {
@@ -27280,7 +27280,7 @@ class CommunityTwitterAdmin(ModelView):
 # ------------------------
 # ✅ Invitation Codes Admin View
 # ------------------------
-class InvitationCodeAdmin(ModelView):
+class InvitationCodeAdmin(BaseAdmin):
     column_list = (
         'id', 'code', 'user_id', 'username',
         'community_id', 'community_name', 'created_at'
@@ -27317,7 +27317,7 @@ class InvitationCodeAdmin(ModelView):
 # ------------------------
 # ✅ CommunitySecurity Admin View
 # ------------------------
-class CommunitySecurityAdmin(ModelView):
+class CommunitySecurityAdmin(BaseAdmin):
     column_list = (
         'id',
         'community_id',
@@ -27388,7 +27388,7 @@ class CommunitySecurityAdmin(ModelView):
 # ------------------------
 # ✅ Quest Admin View
 # ------------------------
-class QuestAdmin(ModelView):
+class QuestAdmin(BaseAdmin):
     column_list = (
         'id', 'uuid', 'title', 'description', 'community_id', 'community_name',
         'creator_id', 'creator_username', 'sprint_id', 'sprint_title',
@@ -27435,7 +27435,7 @@ class QuestAdmin(ModelView):
     column_filters = ('community_id', 'sprint_id', 'creator_id')
     can_view_details = True
 
-class AIConversationAdmin(ModelView):
+class AIConversationAdmin(BaseAdmin):
     column_list = [
         "id",
         "session_id",
@@ -27455,7 +27455,7 @@ class AIConversationAdmin(ModelView):
 # ------------------------
 # ✅ Subquest Admin View
 # ------------------------
-class SubquestAdmin(ModelView):
+class SubquestAdmin(BaseAdmin):
     column_list = (
         'id', 
         'public_id',       # <-- show public_id in list
@@ -27539,7 +27539,7 @@ class SubquestAdmin(ModelView):
 # ------------------------
 # ✅ SubquestCondition Admin View
 # ------------------------
-class SubquestConditionAdmin(ModelView):
+class SubquestConditionAdmin(BaseAdmin):
     column_list = (
         'id',
         'subquest_id',
@@ -27600,7 +27600,7 @@ class SubquestConditionAdmin(ModelView):
 # ------------------------
 # ✅ SubquestReward Admin View
 # ------------------------
-class SubquestRewardAdmin(ModelView):
+class SubquestRewardAdmin(BaseAdmin):
     column_list = (
         'id',
         'subquest_id',
@@ -27659,7 +27659,7 @@ class SubquestRewardAdmin(ModelView):
 # ------------------------
 # ✅ Task Admin View
 # ------------------------
-class TaskAdmin(ModelView):
+class TaskAdmin(BaseAdmin):
     column_list = ('id', 'type', 'config', 'subquest_id', 'subquest_name')
     column_labels = {
         'id': 'Task ID',
@@ -27684,7 +27684,7 @@ class TaskAdmin(ModelView):
 
 
 
-class TaskCompletionAdmin(ModelView):
+class TaskCompletionAdmin(BaseAdmin):
     column_list = (
         'id', 'task_id', 'task_name', 'subquest_completion_id', 'user_id', 'username',
         'reward_id', 'reward_name', 'reward_claimed', 'status', 'completed_at', 
@@ -27758,7 +27758,7 @@ from markupsafe import Markup
 from sqlalchemy.orm import joinedload
 
 
-class TaskAttemptHistoryAdmin(ModelView):
+class TaskAttemptHistoryAdmin(BaseAdmin):
     column_list = (
         'id', 'task_id', 'task_type', 'user_id', 'username',
         'subquest_completion_id',
@@ -27835,7 +27835,7 @@ class TaskAttemptHistoryAdmin(ModelView):
 # ------------------------
 # ✅ SubquestCooldown Admin View
 # ------------------------
-class SubquestCooldownAdmin(ModelView):
+class SubquestCooldownAdmin(BaseAdmin):
     column_list = ('id', 'user', 'subquest', 'task_attempt', 'subquest_completion', 'cooldown_until', 'is_no_retry', 'created_at')
     column_labels = {
         'user': 'User',
@@ -27857,7 +27857,7 @@ class SubquestCooldownAdmin(ModelView):
 # ------------------------------
 # ✅ UserXPAdmin View
 # ------------------------
-class UserXPAdmin(ModelView):
+class UserXPAdmin(BaseAdmin):
     column_list = (
         'id', 'user_id', 'username', 'completion_id', 'amount', 'bonus_xp_reward', 'reason', 'created_at'
     )
@@ -27889,7 +27889,7 @@ class UserXPAdmin(ModelView):
 # ------------------------------
 # ✅ SubquestCompletionAdmin View
 # ------------------------
-class SubquestCompletionAdmin(ModelView):
+class SubquestCompletionAdmin(BaseAdmin):
     column_list = (
         'id',
         'subquest_id',
@@ -27992,7 +27992,7 @@ class SubquestCompletionAdmin(ModelView):
 # ------------------------
 # ✅ Sprint Admin View
 # ------------------------
-class SprintAdmin(ModelView):
+class SprintAdmin(BaseAdmin):
     column_list = (
         'id', 'uuid', 'title', 'description', 'community_id', 'community_name',
         'created_by_id', 'creator_username',
@@ -28043,7 +28043,7 @@ class SprintAdmin(ModelView):
 # ------------------------
 # ✅ CommunityPayment Admin View
 # ------------------------
-class CommunityPaymentAdmin(ModelView):
+class CommunityPaymentAdmin(BaseAdmin):
     column_list = (
         'id', 'community_id', 'community_name',
         'plan', 'interval', 'stripe_session_id',
@@ -28216,7 +28216,7 @@ Thanks,
 
 
 
-class EnterpriseRequestAdmin(ModelView):
+class EnterpriseRequestAdmin(BaseAdmin):
     column_list = (
         'id', 'community_id', 'community', 'payment',
         'company', 'website', 'fullname', 'email', 'phone',
@@ -28361,7 +28361,7 @@ from flask_admin.contrib.sqla import ModelView
 from markupsafe import Markup, escape
 from wtforms import fields
 
-class CommunityInviteLogAdmin(ModelView):
+class CommunityInviteLogAdmin(BaseAdmin):
     column_list = (
         'id',
         'invited_user_id', 'invited_username',
@@ -28433,7 +28433,7 @@ class CommunityInviteLogAdmin(ModelView):
 # ✅  LimitedCode Admin View
 # ------------------------
 
-class LimitedCodeAdmin(ModelView):
+class LimitedCodeAdmin(BaseAdmin):
     # Columns shown in the list view
     column_list = (
         "id", "code", "community", "role", "emails",
@@ -28478,7 +28478,7 @@ class LimitedCodeAdmin(ModelView):
 # ------------------------
 # ✅ Payment Admin View
 # ------------------------
-class PaymentAdmin(ModelView):
+class PaymentAdmin(BaseAdmin):
     column_list = (
         'id', 'user_id', 'username', 'community_id', 'community_name',
         'amount', 'token', 'network', 'status', 'tx', 'paid_at', 'note','created_at'
@@ -28522,7 +28522,7 @@ from flask_admin.contrib.sqla import ModelView
 # ------------------------
 # ✅ CommunityRequest Admin
 # ------------------------
-class CommunityRequestAdmin(ModelView):
+class CommunityRequestAdmin(BaseAdmin):
     column_list = (
         "id",
         "from_community_name",
@@ -28563,7 +28563,7 @@ class CommunityRequestAdmin(ModelView):
 
 
 
-class UserCommunitySettingsAdmin(ModelView):
+class UserCommunitySettingsAdmin(BaseAdmin):
     column_list = (
         "id",
         "user",
@@ -28604,7 +28604,7 @@ class UserCommunitySettingsAdmin(ModelView):
 
 import json
 from flask_admin.contrib.sqla import ModelView
-class CommunityRequestMessageAdmin(ModelView):
+class CommunityRequestMessageAdmin(BaseAdmin):
     column_list = (
         "id",
         "request",
@@ -28682,7 +28682,7 @@ class CommunityRequestMessageAdmin(ModelView):
 # ------------------------------
 # ✅ UserConditionStatus Admin
 # -------------------------------
-class UserConditionStatusAdmin(ModelView):
+class UserConditionStatusAdmin(BaseAdmin):
     column_list = ("id", "user_id", "subquest_id", "condition_id", "condition_type", "met", "last_checked")
     column_labels = {
         "user_id": "User",
@@ -28709,7 +28709,7 @@ class UserConditionStatusAdmin(ModelView):
 # ------------------------------
 # ✅ UserCommunityFabState Admin
 # -------------------------------
-class UserCommunityFabStateAdmin(ModelView):
+class UserCommunityFabStateAdmin(BaseAdmin):
     column_list = ("id", "user_id", "community_id", "is_visible", "notification_count", "updated_at")
     column_labels = {
         "user_id": "User",
@@ -28727,7 +28727,7 @@ class UserCommunityFabStateAdmin(ModelView):
 from flask_admin.contrib.sqla import ModelView
 
 
-class CommunityInviteTaskAdmin(ModelView):
+class CommunityInviteTaskAdmin(BaseAdmin):
     # Columns to display in the list view
     column_list = ('id', 'invite_log', 'task', 'status', 'completed_at')
     
@@ -28764,7 +28764,7 @@ class CommunityInviteTaskAdmin(ModelView):
     }
 
 
-class ResetTrackerAdmin(ModelView):
+class ResetTrackerAdmin(BaseAdmin):
     column_list = ("id", "last_reset_at")
     column_labels = {
         "id": "ID",
@@ -28780,7 +28780,7 @@ class ResetTrackerAdmin(ModelView):
 # -------------------------------
 from markupsafe import Markup
 
-class CommunityOnlineStatusAdmin(ModelView):
+class CommunityOnlineStatusAdmin(BaseAdmin):
     # list view columns
     column_list = ("id", "community", "is_online", "last_seen")
 
@@ -28816,7 +28816,7 @@ class CommunityOnlineStatusAdmin(ModelView):
 
 from markupsafe import Markup
 
-class BugReportAdmin(ModelView):
+class BugReportAdmin(BaseAdmin):
     # Columns to display in the list view
     column_list = ("id", "user", "description", "screenshot_path", "created_at")
     
@@ -28847,7 +28847,7 @@ class BugReportAdmin(ModelView):
 # ✅ Flask-Admin: Safe relationship handling
 # ============================================================
 
-class TaskReviewAdmin(ModelView):
+class TaskReviewAdmin(BaseAdmin):
     # Show these columns in list view
     column_list = (
         "id",
@@ -28940,7 +28940,7 @@ class TaskReviewAdmin(ModelView):
 # ============================================================
 # ✅ TaskReviewHistory  Admin
 # ============================================================
-class TaskReviewHistoryAdmin(ModelView):
+class TaskReviewHistoryAdmin(BaseAdmin):
     column_list = (
         "id", "task_review", "reviewer", "comment",
         "status", "stars", "free_xp", "flag", "created_at"
@@ -29265,7 +29265,7 @@ from flask_admin.contrib.sqla import ModelView
 from flask_admin import Admin
 from wtforms.validators import Regexp
 
-class CommunityRoleStyleAdmin(ModelView):
+class CommunityRoleStyleAdmin(BaseAdmin):
     column_list = (
         "id",
         "community",
@@ -29747,7 +29747,7 @@ class PreviewTaskStateAdmin(BaseAdmin):
 
 
 
-class CommunityMembershipEventAdmin(ModelView):
+class CommunityMembershipEventAdmin(BaseAdmin):
     column_list = [
         "id",
         "user_id",

@@ -259,4 +259,39 @@ async function runPageScript() {
   }
 }
 
+
+
+
+function callSpaceflash() {
+    const flash = document.querySelector(".flash");
+
+    if (!flash) return;
+
+    setTimeout(() => {
+        flash.classList.add("show");
+    }, 50);
+
+    setTimeout(() => {
+        hideFlash(flash);
+    }, 4000);
+}
+
+function closeFlash(el) {
+    const flash = el.closest('.flash');
+    hideFlash(flash);
+}
+
+function hideFlash(flash) {
+    if (!flash) return;
+
+    flash.classList.remove("show");
+    flash.classList.add("hide");
+
+    setTimeout(() => {
+        const container = flash.closest('.flash-container');
+        if (container) container.remove();
+    }, 300);
+}
+
 CalledIniter();
+callSpaceflash();

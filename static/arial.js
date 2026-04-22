@@ -842,7 +842,6 @@ document.addEventListener("input", (e) => {
   }
 document.querySelectorAll(".reward-dropdown .option").forEach(option => {
   option.addEventListener("click", (e) => {
-  alert("called")
     if (e.target.closest("#levelDropdown")) return;
     const opt = e.target.closest(".option");
     const dropdownContainer = e.target.closest(

@@ -28,6 +28,7 @@ from statistics import median
 from eth_account.messages import encode_defunct
 from eth_account import Account
 from solana.rpc.api import Client
+from flask import get_flashed_messages
 from supabase import create_client
 import resend
 import base58
@@ -295,8 +296,11 @@ def global_protection():
         
     if not current_user.is_authenticated:
         next_url = request.full_path if request.query_string else request.path
-        return redirect(url_for("login", next=next_url))
 
+        flash("Please log in to access this page.", "error")
+
+        return redirect(url_for("login", next=next_url))
+    
     sid = session.get("sid")
     if not sid:
         return redirect(url_for("logoutinner"))
@@ -422,15 +426,14 @@ nonces = {}
 UPLOAD_FOLDER = os.path.join('static', 'uploads')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-# Initialize LoginManager
 login_manager = LoginManager()
-login_manager.init_app(app)
 
-# Optional settings
-login_manager.login_view = 'login'  # the name of your login route
-
+login_manager.login_view = 'login'  
+login_manager.login_message = "Please log in to access this page."
+login_manager.login_message_category = "error"
 
 # app.py
+login_manager.init_app(app)
 
 @app.route("/test-supabase")
 def test_supabase():
@@ -2003,16 +2006,28 @@ def disable_2fa():
 
     return jsonify({"status": "ok"})
 
-
+DEMO_EMAIL = "test@gleyo.app"
+DEMO_MODE = True  # turn off later
+DEMO_EXPIRY = 60 * 60 * 24 * 365 * 100  
+DEMO_COMMUNITY_SLUG = "gleyo"  
 
 def new_code_for(email: str) -> None:
-    code = f"{random.randint(0, 999999):06}"
-    print(code)
+    if DEMO_MODE and email == DEMO_EMAIL:
+        code = "123456"
+        expiry = time.time() + DEMO_EXPIRY
+    else:
+        code = f"{random.randint(0, 999999):06}"
+        expiry = time.time() + EXPIRY_SECONDS
 
-    codes[email] = code
+    codes[email] = {
+        "code": code,
+        "expires": expiry
+    }
+
     session["pending_email"] = email
     session["code_sent_time"] = time.time()
-    print(f"📧 Sent OTP {code} to {email}") 
+
+    print(f"📧 Sent OTP {code} to {email}")
     send_email_code(email, code)
 
 import uuid  # Add at top
@@ -2072,6 +2087,13 @@ def load_user(user_id):
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    messages = get_flashed_messages(with_categories=True)
+    print(messages)
+    flash_message = None
+    flash_category = None
+
+    if messages:
+        flash_category, flash_message = messages[-1]
     if current_user.is_authenticated:
         sid = session.get("sid")
 
@@ -2104,10 +2126,17 @@ def login():
         session['next'] = next_url
 
     if request.headers.get("X-Partial"):
-        return render_template("auth/login.html")
+        return render_template(
+            "auth/login.html",
+            flash_message=flash_message,
+            flash_category=flash_category
+        )
     
-    return render_template("login.html")
-
+    return render_template(
+        "login.html",
+        flash_message=flash_message,
+        flash_category=flash_category
+    )
 
 @app.route("/create-account", methods=["GET", "POST"])
 def create_account():
@@ -2235,6 +2264,7 @@ def send_code():
             "error"
         )
         return redirect(url_for("login"))
+
 
     if next_url and is_safe_url(next_url):
         session["next"] = next_url
@@ -2698,16 +2728,20 @@ def verify_code():
     code = (data.get("code") or "").strip()
 
     email = session.get("pending_email")
-    sent  = session.get("code_sent_time", 0)
 
-    print(f"this is my email: {email}")
     if not email:
         return jsonify({"error": "no_session"}), 400
 
-    if time.time() - sent > EXPIRY_SECONDS:
+    entry = codes.get(email)
+
+    if not entry:
         return jsonify({"error": "expired"})
 
-    if code != codes.get(email):
+    # ✅ use per-code expiry
+    if time.time() > entry["expires"]:
+        return jsonify({"error": "expired"})
+
+    if code != entry["code"]:
         return jsonify({"error": "wrong"})
 
     user = Users.query.filter_by(email=email).first()
@@ -2719,7 +2753,15 @@ def verify_code():
     log_user_in(user)
     create_user_session(user)
 
+    # ✅ FORCE redirect for demo email
+    if DEMO_MODE and email == DEMO_EMAIL:
+        return jsonify({
+            "redirect": url_for("p_quest", community_slug=DEMO_COMMUNITY_SLUG),
+            "hard": True
+        })
+
     next_url = session.pop('next', None)
+
     return jsonify({
         "redirect": next_url or url_for("dashboard"),
         "hard": True    

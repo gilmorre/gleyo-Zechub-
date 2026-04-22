@@ -253,31 +253,6 @@ html, body {
 }
 
 
-.flash-container {
-  margin-top: 18px;
-  font-family: 'Outfit', sans-serif;
-  background: rgba(231, 76, 60, 0.08);
-  color: var(--red);
-  padding: 12px 14px;
-  border-radius: 12px;
-  font-size: 13px;
-  position: relative;
-}
-
-.flash-close,
-.flask-cancelaa {
-  position: absolute;
-  right: 10px;
-  top: 8px;
-  cursor: pointer;
-  opacity: 0.7;
-  transition: opacity 0.2s ease;
-}
-
-.flash-close:hover,
-.flask-cancelaa:hover {
-  opacity: 1;
-}
 
  
 
@@ -430,4 +405,96 @@ html, body {
 .authen-thingserrrs {
   font-family: 'Outfit', sans-serif;
   margin-bottom: 40px;
+}
+
+.flash-container {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: auto;
+  z-index: 9999;
+  width: fit-content;
+  min-width: 280px;
+  max-width: 780px;
+  font-family: 'Outfit', sans-serif;
+}
+
+.flash {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(180, 40, 30, 0.18);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(231, 76, 60, 0.2);
+  color: #fde8e6;
+  padding: 12px 16px;
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 4px 20px rgba(180, 40, 30, 0.122);
+  position: relative;
+  line-height: 1.4;
+  overflow: hidden;
+  animation: flashSlideUp 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.flash.flash-hiding {
+  animation: flashSlideDown 0.28s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+@keyframes flashSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes flashSlideDown {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(20px) scale(0.96);
+  }
+}
+
+.flash::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 1.5px;
+  width: 100%;
+  background: linear-gradient(to right, rgba(253, 180, 170, 0.7) 70%, transparent 100%);
+  transform-origin: left;
+  animation: flashProgress 4s linear forwards;
+}
+
+@keyframes flashProgress {
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(0); }
+}
+
+.flash-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  padding-left: 8px;
+  cursor: pointer;
+  opacity: 0.4;
+  transition: opacity 0.2s ease;
+  flex-shrink: 0;
+}
+
+.flash-close:hover {
+  opacity: 0.9;
 }

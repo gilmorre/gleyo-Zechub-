@@ -979,17 +979,7 @@ html, body {
     height: 100dvh;
     overflow: hidden; /* important */
   }
-  .card {
-    background: var(--bg-sidebar);
-    overflow-y: auto;
-    height: calc(100dvh - 60px);
-    align-items: center;
-    display: flex;
-    flex-direction: column;
-    padding: 20px;
-    padding-top: 0  !important;
-  }
-
+ 
   .settings-layout {
     display: flex;
     height: calc(100vh - 4px);
@@ -8044,11 +8034,6 @@ border-top-color: var(--text-main) !important;
   color:var(--text-main);
 }
 
-.activity-item{
-  font-size:13px;
-  color:var(--text-muted);
-  font-style: italic;
-}
 
 .iner-llebei {
   display: flex;
@@ -14062,14 +14047,12 @@ background-color: var(--bg-app);
   text-align: center;
   padding: 8px 0;
 }
-
-.activity-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  padding: 6px 0;
+.activity-item{
+  font-size:13px;
+  color:var(--text-muted);
+  font-style: italic;
 }
+
 
 .activity-left {
   font-size: 13px;
@@ -14722,12 +14705,6 @@ background-color: var(--bg-app);
   stroke-width: 1;
 }
 
-/* moving dot */
-.dot {
-  fill: #4f46e5;
-  transform-origin: 100px 100px;
-  animation: rotateDot 3s linear infinite;
-}
 
 /* pulse center */
 .pulse {

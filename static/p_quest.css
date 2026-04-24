@@ -17,6 +17,12 @@
   box-sizing: border-box;
 }
 
+.dot {
+  fill: #4f46e5;
+  transform-origin: 100px 100px;
+  animation: rotateDot 3s linear infinite;
+}
+
 
 
 .counting-subquest {

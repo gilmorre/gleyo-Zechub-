@@ -16,6 +16,13 @@
 
 }
 
+.activity-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+}
 
 
 .activity-modal{

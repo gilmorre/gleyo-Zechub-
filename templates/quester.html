@@ -4109,13 +4109,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const textInput = otherOption.querySelector(".other-input");
 
   if (radioBtn && textInput) {
-    // place the dot on the left, vertically centered
     radioBtn.style.position = "absolute";
     radioBtn.style.left = "6px";
     radioBtn.style.top = "50%";
     radioBtn.style.transform = "translateY(-50%)";
 
-    // push the input text so it doesn’t overlap the dot
     textInput.style.paddingLeft = "26px";
   }
 });

@@ -1508,6 +1508,7 @@ function hideActivity(){
 
 function checkOpenSprintFromURL() {
   const params = new URLSearchParams(window.location.search);
+  __CURRENT_PATH__ = null;
   const open = params.get("open");
 
   if (open === "sprint") {

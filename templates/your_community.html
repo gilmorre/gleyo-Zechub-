@@ -6027,20 +6027,26 @@ function renderQuestSkeleton(target, count = 4, layout = null) {
 
 let __CURRENT_CSS__ = null;
 
-function loadCSS(href) {
+async function loadCSS(href) {
   if (__CURRENT_CSS__ === href) return;
 
-  // remove old CSS first
-  if (__CURRENT_CSS__) {
-    removeCSS(__CURRENT_CSS__);
-  }
+  const container = document.getElementById("inject-main-card");
+  if (!container) return;
 
-  const link = document.createElement("link");
-  link.rel = "stylesheet";
-  link.href = href;
-  link.setAttribute("data-dynamic-css", "true");
+  // remove old CSS
+  const oldStyle = container.querySelector("style[data-dynamic-css]");
+  if (oldStyle) oldStyle.remove();
 
-  document.head.appendChild(link);
+  // fetch new CSS
+  const res = await fetch(href);
+  const css = await res.text();
+
+  // inject into div
+  const style = document.createElement("style");
+  style.setAttribute("data-dynamic-css", "true");
+  style.textContent = css;
+
+  container.appendChild(style);
 
   __CURRENT_CSS__ = href;
 }

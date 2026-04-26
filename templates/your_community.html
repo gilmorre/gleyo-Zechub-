@@ -7155,9 +7155,9 @@ if (cssToLoad) {
 
   if (finalPath.includes("/rewards")) {
     
-    __CURRENT_SCRIPT__ = "/static/reward.js";
+    __CURRENT_SCRIPT__ = "/static/reward.js?v=2";
 
-    await loadScript("/static/reward.js");
+    await loadScript("/static/reward.js?v=2");
 
     if (window.ReviewModule) {
       window.ReviewModule.init();

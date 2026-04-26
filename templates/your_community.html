@@ -4978,7 +4978,7 @@ function buildSidebar(ctx) {
     addItem("Partnerships", `/${slug}/partnerships`, navbarSVG.partnerships);
   }
   
-  addItem("Partnerships", `/${slug}/rewards`, navbarSVG.rewards);
+  addItem("Rewards", `/${slug}/rewards`, navbarSVG.rewards);
   /* ---------------- XP + NAME ---------------- */
 
   updateXPCard(ctx);
@@ -7159,7 +7159,9 @@ if (cssToLoad) {
 
     await loadScript("/static/reward.js");
 
-
+    if (window.ReviewModule) {
+      window.ReviewModule.init();
+    }
 
   }
 

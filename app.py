@@ -50,7 +50,7 @@ from flask_cors import CORS
 from sqlalchemy import and_, or_, func, cast, Date, distinct, case
 import os
 from instance import db, mail
-from models import Users, UserTwoFactor, PasswordResetToken
+from models import Users, UserTwoFactor, PasswordResetToken, UserTransaction
 from usertwitter import UserTwitter
 from usertelegram import UserTelegram
 from userdiscord import UserDiscord
@@ -5725,11 +5725,7 @@ def rewardmember(community_slug):
         flash("Only admins can access this page.", "error")
         return redirect(url_for("dashboard"))
     
-    is_premium = community.is_paid 
-    
-    has_ever_unlocked = CommunityRequest.query.filter_by(
-        from_community_id=community.id
-    ).count() > 0
+
 
     tfa_enabled = False
     if user.two_factor:
@@ -5761,7 +5757,27 @@ def rewardmember(community_slug):
         wallet_address=active_wallet
     )
 
+@app.route('/api/user/transactions')
+@login_required
+def get_user_transactions():
+    txs = UserTransaction.query.filter_by(user_id=current_user.id)\
+        .order_by(UserTransaction.created_at.desc())\
+        .limit(10).all()
 
+    data = []
+
+    for tx in txs:
+        data.append({
+            "id": tx.id,
+            "type": tx.type,
+            "amount": float(tx.amount),
+            "token": tx.token,
+            "status": tx.status,
+            "remark": tx.remark,
+            "date": tx.created_at.strftime("%b %d, %Y · %I:%M %p")
+        })
+
+    return jsonify(data)
 
 
 @app.route("/api/<community_slug>/partnerships")

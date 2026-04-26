@@ -1,3 +1,4 @@
+(function () {
 let CURRENT_BAL = 0;
 let LAST_WITHDRAW = 0;
 const MIN_WITHDRAW = 1;
@@ -475,7 +476,76 @@ function handleOTPError(type){
 
   }, 900);
 }
+let ALL_TX = []; // 🔥 global source of truth
 
+async function loadTransactions() {
+  const container = document.getElementById("txContainer");
+  if (!container) return;
+
+
+
+  try {
+    const res = await fetch("/api/user/transactions");
+    const txs = await res.json();
+
+    ALL_TX = txs; // ✅ store for openAll
+
+    if (!txs.length) {
+      container.innerHTML = `
+        <div class="no-tx">
+          No transaction history
+        </div>
+      `;
+      return;
+    }
+
+    let totalEarned = 0;
+
+    container.innerHTML = txs.map(tx => {
+      const isIn = tx.type === "in";
+      const isPending = tx.status === "pending";
+
+      if (isIn && tx.status === "confirmed") {
+        totalEarned += tx.amount;
+      }
+
+      return `
+        <div class="tx-row">
+          <div class="tx-dot ${isPending ? "pend" : "in"}"></div>
+
+          <div class="tx-info">
+            <div class="tx-desc">${tx.remark || "Transaction"}</div>
+            <div class="tx-time">${tx.date}</div>
+          </div>
+
+          <div class="tx-right">
+            <div class="tx-amt ${isIn ? "in" : "pend"}">
+              ${isIn ? "+" : "−"}${tx.amount.toFixed(2)} ${tx.token}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    updateStats(txs, totalEarned);
+
+  } catch (err) {
+    container.innerHTML = "Failed to load transactions";
+  }
+}
+
+function updateStats(txs, totalEarned) {
+  const earnedEl = document.getElementById("totalEarned");
+  const txCountEl = document.getElementById("txCount");
+
+  if (earnedEl) {
+    earnedEl.textContent = totalEarned.toFixed(2);
+  }
+
+  if (txCountEl) {
+    txCountEl.textContent = txs.length;
+  }
+}
 
 setupOTPInputs();
 
@@ -489,13 +559,85 @@ function openTx(id){
   document.getElementById('txContent').innerHTML=`<div class="sbadge ${t.type}">${statusLabel}</div><div class="d-amt" style="color:${color}">${t.amt}</div><div class="d-usd">${t.usd}</div><div class="dg"><div class="dr"><span class="dk">Description</span><span class="dv">${t.label}</span></div><div class="dr"><span class="dk">Date</span><span class="dv">${t.date}</span></div><div class="dr"><span class="dk">Block</span><span class="dv">${t.block}</span></div><div class="dr"><span class="dk">Confirmations</span><span class="dv ${cc}">${t.conf}</span></div><div class="dr"><span class="dk">From</span><span class="dv">${t.from}</span></div><div class="dr"><span class="dk">To</span><span class="dv">${t.to}</span></div><div class="dr"><span class="dk">Gas</span><span class="dv">${t.gas}</span></div><div class="dr"><span class="dk">Network</span><span class="dv">Polygon Mainnet</span></div><div class="dr"><span class="dk">Tx Hash</span><span class="dv" style="font-size:.62rem">${t.hash}</span></div></div><button class="exp-btn" onclick="alert('Opens PolygonScan in production')"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M5 2.5H2.5C2.22 2.5 2 2.72 2 3V10.5C2 10.78 2.22 11 2.5 11H10C10.28 11 10.5 10.78 10.5 10.5V8" stroke="currentColor" stroke-width="1.15" stroke-linecap="round"/><path d="M7.5 2H11V5.5M11 2L6 7" stroke="currentColor" stroke-width="1.15" stroke-linecap="round" stroke-linejoin="round"/></svg>View on PolygonScan</button>`;
   document.getElementById('txOv').classList.add('open');
 }
-function openAll(){
-  const entries=Object.entries(TX);
-  const icons={in:`<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2V10M3.5 6.5L7 10L10.5 6.5" stroke="#12d87a" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>`,pend:`<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="4.5" stroke="#f5a623" stroke-width="1.2"/><path d="M7 4.5V7L8.5 8.5" stroke="#f5a623" stroke-width="1.2" stroke-linecap="round"/></svg>`,out:`<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 10V2M3.5 5.5L7 2L10.5 5.5" stroke="#f05070" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>`};
-  document.getElementById('txContent').innerHTML=`<div class="s-title">All Transactions</div><div class="s-sub" style="margin-bottom:14px">Complete history · #P-0011</div>${entries.map(([k,t])=>`<div class="stx" onclick="switchTx('${k}')"><div class="tx-dot ${t.type}" style="flex-shrink:0">${icons[t.type]||icons.in}</div><div class="tx-info"><div class="tx-desc">${t.label}</div><div class="tx-time">${t.date}</div></div><div class="tx-right"><div class="tx-amt ${t.type}">${t.amt}</div><div class="tx-usd">${t.usd}</div></div><svg width="6" height="10" viewBox="0 0 6 10" fill="none" style="flex-shrink:0;color:var(--sub2)"><path d="M1 1L5 5L1 9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`).join('')}`;
+
+
+function openAll() {
+  const content = document.getElementById('txContent');
+
+  // 🔥 EMPTY STATE
+  if (!ALL_TX.length) {
+    content.innerHTML = `
+      <div class="s-title">All Transactions</div>
+
+      <div class="no-tx">
+        No transaction history
+      </div>
+    `;
+
+    document.getElementById('txOv').classList.add('open');
+    return;
+  }
+
+  // 🔥 NORMAL STATE
+  content.innerHTML = `
+    <div class="s-title">All Transactions</div>
+    <div class="s-sub" style="margin-bottom:14px">
+      Complete history · #P-0011
+    </div>
+
+    ${ALL_TX.map((tx, i) => {
+      const isIn = tx.type === "in";
+      const isPending = tx.status === "pending";
+
+      return `
+        <div class="stx" onclick="openTxFromAPI(${i})">
+          
+          <div class="tx-dot ${isPending ? "pend" : "in"}"></div>
+
+          <div class="tx-info">
+            <div class="tx-desc">${tx.remark || "Transaction"}</div>
+            <div class="tx-time">${tx.date}</div>
+          </div>
+
+          <div class="tx-right">
+            <div class="tx-amt ${isIn ? "in" : "pend"}">
+              ${isIn ? "+" : "−"}${tx.amount.toFixed(2)} ${tx.token}
+            </div>
+            <div class="tx-usd">
+              ≈ $${tx.amount.toFixed(2)} USD
+            </div>
+          </div>
+
+          <svg width="6" height="10" viewBox="0 0 6 10" fill="none">
+            <path d="M1 1L5 5L1 9" stroke="currentColor" stroke-width="1.4"/>
+          </svg>
+
+        </div>
+      `;
+    }).join("")}
+  `;
+
   document.getElementById('txOv').classList.add('open');
 }
 function switchTx(id){document.getElementById('txOv').classList.remove('open');setTimeout(()=>openTx(id),220);}
 function bgClose(e,id){if(e.target===document.getElementById(id))document.getElementById(id).classList.remove('open');}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){['wOv','txOv'].forEach(id=>document.getElementById(id)?.classList.remove('open'));closeTFA();}});
- 
+Object.assign(window, {
+  doCopy,
+  bgClose,
+  openWithdraw,
+  revealID,
+  setMax,
+  openAll,
+  calcFee,
+  toW2,
+  toW1,
+  doSend,
+  closeW,
+  closeTFA,
+  goToSettings
+});
+  window.ReviewModule = {
+    init: loadTransactions
+  };
+})();

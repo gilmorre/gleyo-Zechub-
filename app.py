@@ -3790,7 +3790,7 @@ app.register_blueprint(invite_bp)
 from discord_bot import bp_discord_bot, start_bot_in_background
 
 app.register_blueprint(bp_discord_bot)
-start_bot_in_background(app)
+# start_bot_in_background(app)
 
 
 
@@ -4190,6 +4190,32 @@ def save_community_logo_when_done(future, community_id):
             print("❌ Community logo upload failed:", e)
 
 
+def create_default_roles_and_styles(community_id, creator_id):
+    defaults = [
+        ("admin", "#E53935"),
+        ("editor", "#1E88E5"),
+        ("reviewer", "#8E24AA"),
+        ("member", "#43A047"),
+    ]
+
+    for name, color in defaults:
+        # 🔥 create extra role
+        role = CommunityExtraRole(
+            community_id=community_id,
+            name=name,
+            created_by_id=creator_id
+        )
+        db.session.add(role)
+        db.session.flush()  # get role.id
+
+        # 🔥 create style linked to that role
+        style = CommunityRoleStyle(
+            community_id=community_id,
+            extra_role_id=role.id,
+            color=color
+        )
+        db.session.add(style)
+
 @app.route("/api/create-community", methods=["POST"])
 @login_required
 def create_community_api():
@@ -4250,6 +4276,7 @@ def create_community_api():
 
         # ✅ 4. Continue normal logic
         create_default_community_structure(community_id, user.id)
+        create_default_roles_and_styles(community_id, user.id)
 
         wallet = CommunityWallet(
             community_id=community_id,
@@ -23028,7 +23055,7 @@ def notify_community_pin(
     for sub in subs:
         subs_map.setdefault(sub.user_id, []).append(sub)
 
-    base_url = "http://127.0.0.1:8000"
+    base_url = "https://gleyo.app"
 
     # 🔥 4. Loop users (NO DB QUERIES INSIDE)
     for member in members:
@@ -23234,7 +23261,8 @@ def comm_message_audio():
     reply_to_uuid = data.get("reply_to_uuid")
     wave_height = data.get("wave_height")
     duration_str = data.get("duration", "0:00")
-    
+    client_id = data.get("client_id")
+
 
 
     if not community_id:
@@ -23259,6 +23287,7 @@ def comm_message_audio():
         ).first()
 
         if not channel:
+            print("Channel not found")
             return jsonify({"error": "Channel not found"}), 404
 
     elif ticket_uuid:
@@ -23274,17 +23303,18 @@ def comm_message_audio():
             return blocked
     community = Community.query.get(community_id)
 
-
-    blocked = ensure_ticket_actions_allowed(ticket)
-    if blocked:
-        return blocked
+    if ticket:
+        blocked = ensure_ticket_actions_allowed(ticket)
+        if blocked:
+            return blocked
 
     if channel:
         if not ensure_channel_chat_permission(
             current_user.id,
             community_id,
             channel
-        ):
+        ):  
+            print("Permission denied")
             return jsonify({"error": "permission_denied"}), 403
 
     now = datetime.now(timezone.utc)
@@ -23378,13 +23408,16 @@ def comm_message_audio():
     storage_name = f"audio/{community_id}/{message.id}/{uuid.uuid4()}.{ext}"
 
     audio_bytes = audio_file.read()
-    audio_size = len(audio_bytes)  # 🔥 bytes
+    audio_size = len(audio_bytes) 
+    audio_file.seek(0)
 
-    audio_url = upload_to_supabase(
+    future = upload_to_supabase(
         audio_bytes,
         storage_name,
         audio_file.mimetype
     )
+
+    audio_url = future.result()
 
 
     # 8️⃣ Save audio metadata
@@ -23428,7 +23461,7 @@ def comm_message_audio():
             if send_reply_notification:
                 notified_user_ids.add(replied_user_id)
 
-                base_url = "http://127.0.0.1:8000"
+                base_url = "https://gleyo.app"
 
                 if channel.category:
                     target_url = (
@@ -23510,7 +23543,7 @@ def comm_message_audio():
             if not user_subs:
                 continue
 
-            base_url = "http://127.0.0.1:8000"
+            base_url = "https://gleyo.app"
 
             if channel.category:
                 target_url = (
@@ -23574,6 +23607,7 @@ def comm_message_audio():
         "is_mention": False,
 
         **flatten_author(author),
+        "client_id": client_id,
 
         "reactions": [],
         "files": [],
@@ -23764,9 +23798,10 @@ def build_author_payload(
         else "https://i.pravatar.cc/100?img=3"
     )
 
-    color = resolve_author_color(
+    color = get_user_color_for_community(
+        user_id=user.id,
         community_id=community_id,
-        core_role=sender_role
+        role_key=sender_role
     )
 
     return {
@@ -23843,6 +23878,7 @@ def comm_message():
     files = request.files.getlist("files")
     community_id = data.get("community_id")
 
+    client_id = data.get("client_id")
     channel_uuid = normalize_uuid(data.get("channel_uuid"))
     ticket_uuid = normalize_uuid(data.get("ticket_uuid"))
 
@@ -23944,9 +23980,10 @@ def comm_message():
             return blocked
 
     community = Community.query.get(community_id)
-    blocked = ensure_ticket_actions_allowed(ticket)
-    if blocked:
-        return blocked
+    if ticket:
+        blocked = ensure_ticket_actions_allowed(ticket)
+        if blocked:
+            return blocked
 
    
     user_role = CommunityUserRole.query.filter_by(
@@ -24089,7 +24126,7 @@ def comm_message():
             if send_reply_notification:
                 notified_user_ids.add(replied_user_id)
 
-                base_url = "http://127.0.0.1:8000"
+                base_url = "https://gleyo.app"
 
                 if channel.category:
                     target_url = (
@@ -24168,7 +24205,7 @@ def comm_message():
                 if level not in ("mentions", "all"):
                     continue
 
-                base_url = "http://127.0.0.1:8000"
+                base_url = "https://gleyo.app"
 
                 if channel.category:
                     target_url = (
@@ -24255,7 +24292,7 @@ def comm_message():
             if not user_subs:
                 continue
 
-            base_url = "http://127.0.0.1:8000"
+            base_url = "https://gleyo.app"
 
             if channel.category:
                 target_url = (
@@ -24323,6 +24360,7 @@ def comm_message():
         "link": target_link,  
         "reply_to": reply_to.uuid if reply_to else None,
         "is_mention": is_mention,
+        "client_id": client_id,
 
         **flatten_author(author),
 
@@ -24571,11 +24609,23 @@ def get_community_mentionables():
                 CommunityUserRole.banned.is_(False)
             )
         )
+        # 🔥 join extra role definition
+        .outerjoin(
+            CommunityExtraRole,
+            and_(
+                CommunityExtraRole.community_id == community_id,
+                CommunityExtraRole.name == CommunityUserRole.role
+            )
+        )
+        # 🔥 FIXED: match either core role OR extra role
         .outerjoin(
             CommunityRoleStyle,
             and_(
                 CommunityRoleStyle.community_id == community_id,
-                CommunityRoleStyle.role_key == CommunityUserRole.role
+                or_(
+                    CommunityRoleStyle.role_key == CommunityUserRole.role,
+                    CommunityRoleStyle.extra_role_id == CommunityExtraRole.id
+                )
             )
         )
         .order_by(Users.username.asc())
@@ -24593,7 +24643,7 @@ def get_community_mentionables():
                     else "https://i.pravatar.cc/100?img=3"
                 ),
                 # 🔥 THIS IS THE KEY
-                "user_color": u.role_color or "#5865f2",
+                "user_color": u.role_color or "#ff0481",
                 "role": u.role,
             }
             for u in users
@@ -25205,13 +25255,31 @@ def get_comm_messages():
     # 🔥 LOAD ROLE COLORS FOR COMMUNITY
     DEFAULT_COLOR = "#5865f2"
 
-    role_color_map = {
-        r.role_key: r.color
-        for r in CommunityRoleStyle.query.filter_by(
+    # 🔥 load all styles
+    styles = CommunityRoleStyle.query.filter_by(
+        community_id=community_id
+    ).all()
+
+    # 🔥 load extra roles
+    extra_roles = {
+        r.id: r.name
+        for r in CommunityExtraRole.query.filter_by(
             community_id=community_id
         ).all()
     }
 
+    # 🔥 build unified role → color map
+    role_color_map = {}
+
+    for s in styles:
+        if s.role_key:
+            # core role
+            role_color_map[s.role_key] = s.color
+        elif s.extra_role_id:
+            # extra role → resolve name
+            role_name = extra_roles.get(s.extra_role_id)
+            if role_name:
+                role_color_map[role_name] = s.color
 
     
 
@@ -25640,15 +25708,25 @@ def get_category_allowed_roles(category_id):
 
 def get_user_color_for_community(user_id, community_id, role_key):
     style = (
-        db.session.query(CommunityRoleStyle)
+        db.session.query(CommunityRoleStyle.color)
+        .outerjoin(
+            CommunityExtraRole,
+            and_(
+                CommunityExtraRole.community_id == community_id,
+                CommunityExtraRole.name == role_key
+            )
+        )
         .filter(
             CommunityRoleStyle.community_id == community_id,
-            CommunityRoleStyle.role_key == role_key
+            or_(
+                CommunityRoleStyle.role_key == role_key,
+                CommunityRoleStyle.extra_role_id == CommunityExtraRole.id
+            )
         )
         .first()
     )
 
-    return style.color if style else None
+    return style[0] if style else None
 
 
 
@@ -26085,10 +26163,10 @@ def delete_comm_message():
     else:
         community_id = ticket.community_id
         room = f"community_{community_id}"
-
-    blocked = ensure_ticket_actions_allowed(ticket)
-    if blocked:
-        return blocked
+    if ticket:
+        blocked = ensure_ticket_actions_allowed(ticket)
+        if blocked:
+            return blocked
 
     # =============================
     # 🔎 ROLE LOOKUP

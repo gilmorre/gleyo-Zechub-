@@ -64,16 +64,34 @@ if (!window.__INAPP_SOCKET__) {
     });
 
     socket.on("community_notification", (payload) => {
-      // 🚫 If already in SAME chat → ignore completely
-const active = window.CurrentActiveChat;
+      const active = window.CurrentActiveChat;
 
-if (
-  active &&
-  active.communityId === payload.community_id &&
-  active.channelUuid === payload.channel_uuid
-) {
-  return;
-}
+      if (!active || !active.communityId) {
+        alert("called")
+        showTopCommunityModal(payload);
+        return;
+      }
+
+      const sameCommunity =
+        String(active.communityId) === String(payload.community_id);
+
+      const isSameChannelChat =
+        sameCommunity &&
+        payload.channel_uuid &&
+        active.channelUuid &&
+        active.channelUuid === payload.channel_uuid;
+
+      // ✅ ticket match (only if BOTH exist)
+      const isSameTicketChat =
+        sameCommunity &&
+        payload.ticket_uuid &&
+        active.ticketUuid &&
+        active.ticketUuid === payload.ticket_uuid;
+
+      // 🚫 ONLY block when exact match
+      if (isSameChannelChat || isSameTicketChat) {
+        return;
+      }
 
       showTopCommunityModal(payload);
     });

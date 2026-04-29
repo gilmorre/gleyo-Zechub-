@@ -108,6 +108,7 @@ document.addEventListener("DOMContentLoaded", () => {
   --subtext: #676a70;
   --border: #d8d8df;
   --border-border:#d8d8df;
+  --overlay-bg: rgba(221, 218, 218, 0.442);
   --bg-emoji-border: #d8d8df;
   --bg-bgt: #f2f3f5;
   --bg-bgt-roles: #f2f3f5b3;
@@ -123,20 +124,24 @@ document.addEventListener("DOMContentLoaded", () => {
   --system-color: #1f1f1f;
   --purple: #4285f4;
   --system-header: #fff;
+  --bg-first-child-side-main: #fff;
   --system-svg: #555;
   --system-border: #d8d8df;
   --danger: #ff6565;
   --slider-track: #cccccc;
   --slider-progress: #4285f4;
   --reply-back: #f0f0f0;
+  --reply-back-del: #f0f0f0;
   --box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   --slider-thumb: #ffffff;
+  --lighterness: #ffffff47;
   --radius: 12px;
   --placeholder: #7e818a;
   --bar-emojis: #e8e8e8 ;
   --bg-main: #ffffff;
   --bg-sidebar: #f4f4f4;
   --bg-chat: #ffffff;
+  
   --bg-hover-selected-comm: #eeeeee;
   --bg-hover-selected: #d9d6d6;
   --bg-input: #eaeaea;
@@ -158,6 +163,7 @@ document.addEventListener("DOMContentLoaded", () => {
 body.dark {
   --bg-main: #1e1e2f;
   --bg-first-child-side: #181827;
+  --bg-first-child-side-main: #181827;
   --bg-sidebar: #1e1e2f;
   --bg-chat: #232336;
   --card-background: #181826;
@@ -170,13 +176,16 @@ body.dark {
   --bg-hover: #2a2a3d;
   --bg-hover-selected-comm: #2a2a3d;
   --bg-bgt-roles: rgba(34, 34, 54, 0.712);
+  --lighterness: rgb(34, 34, 54, 0.448);
   --bg-hover-selected: #2a2a3d;
   --border-react: #2c2c40;
   --bg-hover-react: #2a2a3d;
   --bg-hover-react-hover: #2a2a3d;
+  --bg-surface: #222236e3;
   --card-background: #1e1e2f;
   --text: #ffffff;
   --accent: #4285f4;
+  --overlay-bg: rgba(0,0,0,.55);
   --system-hover: rgba(255, 255, 255, 0.08);
   --border-border:#35354d;
   --bg-bgt: #2a2a3d;
@@ -193,6 +202,7 @@ body.dark {
   --toggle-off-men: #a5a7af;
   --toggle--off: #4b4e5b;
   --reply-back: #30304b;
+  --reply-back-del: #30304b4c;
   --card-shadow: rgba(0,0,0,0.18);
   --playback: #bebece;
   --border: #33354a;
@@ -375,11 +385,12 @@ html, body {
   .all-container {
     display: flex;      
     flex-direction: row;   
-    width: 20%;
+    width: 400px !important;
+    padding: 0;
+    min-width: 400px !important;
+    max-width: 400px !important;
     height: 100vh;
     border-right: 0.9px solid var(--border);
-    min-width: 20%;
-    max-width: 20%;
   }
 
 
@@ -481,9 +492,7 @@ body{
 
 
 .sidebar-community-chat {
-  width: 80%;
-  min-width: 80%;
-  max-width: 80%;
+  flex: 1;  
   background-color: var(--bg-sidebar);
   display: flex;
   height: 100dvh;
@@ -503,7 +512,8 @@ body{
   font-weight: bold;
   font-size: 18px;
   min-width: 0;
-  flex: 1 1 auto;
+  width: auto !important;
+  max-width: 222px !important;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -631,13 +641,13 @@ body{
 }
 
 .logo-sidebar {
-  max-width: 20% !important;
-  width: 20% !important;
-  min-width: 20% !important;
+  width: 84px !important;
+  min-width: 84px !important;
+
+  max-width: 84px !important;
   background-color: var(--bg-first-child-side);
   border-right: 0.9px solid var(--border);
   align-items: center;
-  padding: 12px 12px !important;
   height: 100dvh;
   box-sizing: border-box !important;
   gap: 25px;
@@ -685,8 +695,8 @@ body{
 
 
 .logo-communities {
-  width: 45px;
-  height: 45px;
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
   overflow: hidden;
     flex-shrink: 0;
@@ -727,7 +737,7 @@ body{
     display: flex;
    margin-bottom: 20px;
    align-items: center;
-   gap: 15px;
+   gap: 18px;
    display: flex;
    cursor: pointer;
 }
@@ -741,10 +751,7 @@ body{
   position: relative; /* anchor for absolute text */
 }
 
-#communityLogoList{
-  width: 100%;
-  flex-shrink: 0;
-}
+
 
 /* Hidden state */
 .logo-name {
@@ -794,6 +801,29 @@ body{
     width: 100% !important;
 }
 
+.logo-list {
+  overflow-x: hidden;
+  overflow-y: auto;
+  width: 100% !important;
+  min-width: 100% !important;
+  display: flex; 
+  flex-direction: column; 
+  padding: 2px 22px;
+  padding-top: 60px !important;
+  align-items: center; 
+  justify-content: center;
+  scrollbar-width: none;         
+  -ms-overflow-style: none;      
+}
+
+.logo-list::-webkit-scrollbar {
+  display: none;              
+}
+.logo-sidebar.expanded .logo-list {
+  align-items: flex-start; 
+  padding: 10px 12px !important;
+  justify-content: flex-start;
+}
  
 .logo-sidebar.expanded {
   min-width: 100% !important;
@@ -804,9 +834,19 @@ body{
   border-right: none;
 
 }
+.logo-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  max-width: 0;                /* collapsed state */
+  opacity: 0;
+  transition: max-width 0.3s ease, opacity 0.2s ease;
+}
 
 .logo-sidebar.expanded .logo-name {
-  display: block;
+  max-width: 260px;         
+  opacity: 1;
 }
 
 
@@ -3014,18 +3054,6 @@ body.dark .init-confi-page {
       scroll-behavior: smooth;
     }
 
-.image-preview-container {
-  width: 120px;
-  height: 120px;
-  display: flex;     
-  flex-shrink: 0;
-  position: relative;
-  border-radius: 15px;
-  box-shadow: var(--box-shadow);
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
 
 
 .img-btn {
@@ -3237,9 +3265,13 @@ body.dark.container-slow-mode {
   
   display: flex !important;
   flex-direction: column;
-  background-color: var(--bg-chat);
+  background-color: var(--bg-first-child-side-main);
 }
 
+.messages {
+  background-color: var(--bg-first-child-side-main);
+
+}
 
 
 @media (min-width: 991px) {
@@ -3291,6 +3323,8 @@ body.dark .container-slow-mode {
 .all-container {
   display: flex;      
   flex-direction: row;   
+    padding: 0;
+
   height: calc(100vh - 4px) !important;
   height: 100vh; 
   width: 100%;
@@ -3370,9 +3404,7 @@ body.dark .container-slow-mode {
     display: flex !important;
     width: 100% !important;
   }
-.sidebar-community-chat {
-  width: 80%;
-}
+ 
 
   .all-container.hide {
     display: none !important;
@@ -3598,7 +3630,7 @@ body.dark .container-slow-mode {
     bottom: 0;
     display: flex;
     width: 100%;
-    background: var(--bg-chat);
+    background: var(--bg-first-child-side-main);
     justify-content: center;
     align-items: center;
     flex-direction: column;
@@ -3639,10 +3671,7 @@ body.dark .container-slow-mode {
   .tnmr-chat-input-container {
     width: 100% !important;
 
-  border-bottom-left-radius: 0 !important;
-  border-bottom-left-radius: 0 !important;
-  border-top-left-radius: 0 !important;
-  border-top-right-radius: 0 !important;
+  border-radius: 0 !important;
   background-color: transparent;
   display: flex;
   gap: 6px;
@@ -3771,10 +3800,6 @@ body.dark .container-slow-mode {
 }
 
 
-.media-preview-container, .link-preview-container{
-  min-width: 100% !important;
-  width: 100% !important;
-}
 
  
 .plain-text-head {
@@ -3906,11 +3931,27 @@ body.dark .container-slow-mode {
 
 }
 
-.preview-image img{
+
+.image-preview-container {
+  width: 120px;
+  height: 120px;
+  display: flex;     
+  flex-shrink: 0;
+  background-color: var(--bg-surface);
+  position: relative;
+  border-radius: 15px;
+  box-shadow: var(--box-shadow);
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+
+.preview-image {
   width: 100%;
-  object-fit: contain;
+  height: 100%;
+  object-fit: cover;  
   border-radius: 8px;
-  margin-top: 6px;
 }
 
 
@@ -3971,45 +4012,35 @@ body.dark .container-slow-mode {
     margin-top: 8px;
 }
 
-
-
-
+.media-preview-container, .link-preview-container{
+  min-width: 100% !important;
+  width: 100% !important;
+}
 
 .uploaded-images {
-    margin-top: 6px;
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 10px;
+  margin-top: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
-/* MOBILE */
-@media (max-width: 991px) {
-  .uploaded-images {
-    max-width: 100% !important;
-    height: 50% !important;
-
-  }
-}
-
-/* IMAGE / VIDEO CARD */
+/* CARD */
 .preview-image-display-chat {
-  width: 100%;
-  max-width: 420px;
   border-radius: 18px;
-  overflow: hidden;  
+  overflow: hidden;
+  flex: 0 0 auto;
+  max-width: 100%;
 }
 
-/* IMAGE STYLE */
+/* IMAGE */
 .preview-image-display-chat img {
   width: auto;
   height: auto;
+  max-width: 100%;
   max-height: 60vh;
-  object-fit:fill;
-  border-radius: inherit;
   display: block;
+  border-radius: 18px;
 }
-
-
 
 
 
@@ -4167,6 +4198,9 @@ audio, .audio-bar {
   padding-top: 20px;
 }
 
+.mobber-artnet .menu-item,.mobber-artnet .menu-item svg, .seperating-seperator .channel-item{
+  color: var(--subtext) !important
+}
 .message-main{
   width: 100% !important;
   max-width: 100% !important;
@@ -4184,11 +4218,6 @@ audio, .audio-bar {
 
 }
 
-.voice-and-reactions{
-  width: 100% !important;
-  width: 100% !important;
-  min-width: 100% !important;
-}
 
 
 
@@ -4213,7 +4242,10 @@ audio, .audio-bar {
   font-size: 13px;
   opacity: 0.9;
 }
-
+#is_verified {
+  position: relative;
+  top: 1.5px;
+}
 .audio-play-btn {
   width: 42px;
   height: 42px;
@@ -4494,24 +4526,43 @@ audio, .audio-bar {
     .modal-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.45);
+        background: var(--overlay-bg);
       display: flex;
       align-items: center;
       justify-content: center;
       z-index: 9999;
     }
+   .delete-modal {
+      width: 97%;
+      max-width: 390px;
 
+      border-radius: 30px;
+      padding: 22px 20px;
+      box-shadow: var(--box-shadow);
+      background: var(--lighterness);
+      backdrop-filter: blur(14px);
+      border: 0.8px solid var(--border);
+      animation: popIn 0.18s ease-out;
+    }
     /* ===============================
        MODAL
     =============================== */
-    .delete-modal {
-      width: 90%;
-      max-width: 360px;
-      background: var(--card-bg);
-      border-radius: var(--radius);
-      padding: 18px;
+    body.light .delete-modal {
+      width: 97%;
+      max-width: 390px;
+
+      border-radius: 30px;
+      padding: 22px 20px;
       box-shadow: var(--box-shadow);
-      border: 1px solid var(--border);
+
+      background: var(--lighterness);
+
+      /* ✨ Enhanced glass effect */
+      backdrop-filter: blur(14px) saturate(160%) contrast(110%) brightness(105%);
+      -webkit-backdrop-filter: blur(14px) saturate(160%) contrast(110%) brightness(105%);
+
+      border: 0.8px solid var(--border);
+
       animation: popIn 0.18s ease-out;
     }
 
@@ -4547,10 +4598,10 @@ audio, .audio-bar {
        MESSAGE PREVIEW
     =============================== */
     .delete-preview {
-      background: var(--reply-back);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 0;
+      background: var(--reply-back-del);
+      border: 0.9px solid var(--border);
+      border-radius: 20px;
+      padding: 0 4px;
       margin-bottom: 16px;
       max-height: 90px;
       overflow-y: auto;
@@ -4574,6 +4625,12 @@ audio, .audio-bar {
     .modal-actions {
       display: flex;
       gap: 10px;
+    }
+
+    .modal-actions button {
+      padding: 9px;
+      border-radius: 13px;
+      border-color: var(--border)
     }
 
     .modal-btn {
@@ -5386,7 +5443,7 @@ audio, .audio-bar {
   height: 60px;
   display: flex;
   align-items: center;
-  background-color: var(--system-header) !important;
+  background-color: var(--bg-first-child-side-main);
   padding: 0 16px;
   border-bottom: 0.8px solid var(--border);
   font-weight: bold;
@@ -5579,6 +5636,20 @@ audio, .audio-bar {
   justify-content: flex-end;
   gap: 10px;
 }
+.modal-btn.btn-delete {
+  background: rgba(255, 0, 0, 0.08);   /* light red background */
+  color: #ff3b3b;                      /* bright red text */
+  border: 1px solid rgba(255, 0, 0, 0.18);
+
+  transition: all 0.2s ease;
+}
+
+/* hover state */
+.modal-btn.btn-delete:hover {
+  background: rgba(255, 0, 0, 0.15);   /* deeper red on hover */
+  color: #ff1f1f;                      /* stronger red text */
+  border-color: rgba(255, 0, 0, 0.3);
+}
 
 .modal-btn {
   padding: 6px 12px;
@@ -5614,6 +5685,28 @@ audio, .audio-bar {
     display: none !important;
   }
 }
+
+::-webkit-scrollbar {
+  width: 4px;         
+  height: 4px;         
+}
+
+
+::-webkit-scrollbar-track {
+  background: transparent; 
+}
+
+ 
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);  
+  border-radius: 10px;
+}
+
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
 </style>
 
 
@@ -5626,9 +5719,6 @@ audio, .audio-bar {
 </head>
 
 <body class="dark">
-
-
-
 
 {% if not is_mobile %}  
 <div id="scroll-emj-con" class=" hide-scroll-emj"
@@ -5870,8 +5960,8 @@ audio, .audio-bar {
 
 <div class="all-container" >
 <div class="logo-sidebar">
-<div class="logo-search-container" style="display: flex; gap: 20px;">
-    <button id="close-search-comm"  style="background-color: transparent; outline: none; border: none; cursor: pointer; display: none">
+<div class="logo-search-container" style="display: flex; gap: 20px; padding: 12px; padding-bottom: 2px !important;">
+    <button id="close-search-comm"  style="background-color: transparent; color: var(--text); opacity: 0.9; outline: none; border: none; cursor: pointer; display: none">
     <svg
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 512 512" width="20" height="20"
@@ -5903,7 +5993,7 @@ audio, .audio-bar {
 
 
 
-<div class="logo-list" id="communityLogoList" style=" display: flex; flex-direction: column; align-items: center; justify-content: center;">
+<div class="logo-list" id="communityLogoList">
 
   <!-- Skeleton item -->
   <div class="logo-item skeleton">
@@ -6037,23 +6127,11 @@ audio, .audio-bar {
       </div>
 
       <div class="profile-icons">
-          <span class="profile-icon">
-            <svg fill="currentColor" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
-              <path transform="translate(1.32,1.32) scale(0.45)" d="M48.4,24.2c0-1.8-1.297-3.719-2.896-4.285s-3.149-1.952-3.6-3.045
-                c-0.451-1.093-0.334-3.173,0.396-4.705c0.729-1.532,0.287-3.807-0.986-5.08c-1.272-1.273-3.547-1.714-5.08-0.985
-                c-1.532,0.729-3.609,0.848-4.699,0.397s-2.477-2.003-3.045-3.602C27.921,1.296,26,0,24.2,0c-1.8,0-3.721,1.296-4.29,2.895
-                c-0.569,1.599-1.955,3.151-3.045,3.602c-1.09,0.451-3.168,0.332-4.7-0.397c-1.532-0.729-3.807-0.288-5.08,0.985
-                c-1.273,1.273-1.714,3.547-0.985,5.08c0.729,1.533,0.845,3.611,0.392,4.703c-0.453,1.092-1.998,2.481-3.597,3.047S0,22.4,0,24.2
-                s1.296,3.721,2.895,4.29c1.599,0.568,3.146,1.957,3.599,3.047c0.453,1.089,0.335,3.166-0.394,4.698s-0.288,3.807,0.985,5.08
-                c1.273,1.272,3.547,1.714,5.08,0.985c1.533-0.729,3.61-0.847,4.7-0.395c1.091,0.452,2.476,2.008,3.045,3.604
-                c0.569,1.596,2.49,2.891,4.29,2.891c1.8,0,3.721-1.295,4.29-2.891c0.568-1.596,1.953-3.15,3.043-3.604
-                c1.09-0.453,3.17-0.334,4.701,0.396c1.533,0.729,3.808,0.287,5.08-0.985c1.273-1.273,1.715-3.548,0.986-5.08
-                c-0.729-1.533-0.849-3.61-0.398-4.7c0.451-1.09,2.004-2.477,3.603-3.045C47.104,27.921,48.4,26,48.4,24.2z M24.2,33.08
-                c-4.91,0-8.88-3.97-8.88-8.87c0-4.91,3.97-8.88,8.88-8.88c4.899,0,8.87,3.97,8.87,8.88C33.07,29.11,29.1,33.08,24.2,33.08z"/>
-            </svg>
+          <a href="/settings" target="_blank" class="profile-icon" style="color: var(--text)">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fill-rule="evenodd" clip-rule="evenodd" d="M14.2788 2.15224C13.9085 2 13.439 2 12.5 2C11.561 2 11.0915 2 10.7212 2.15224C10.2274 2.35523 9.83509 2.74458 9.63056 3.23463C9.53719 3.45834 9.50065 3.7185 9.48635 4.09799C9.46534 4.65568 9.17716 5.17189 8.69017 5.45093C8.20318 5.72996 7.60864 5.71954 7.11149 5.45876C6.77318 5.2813 6.52789 5.18262 6.28599 5.15102C5.75609 5.08178 5.22018 5.22429 4.79616 5.5472C4.47814 5.78938 4.24339 6.1929 3.7739 6.99993C3.30441 7.80697 3.06967 8.21048 3.01735 8.60491C2.94758 9.1308 3.09118 9.66266 3.41655 10.0835C3.56506 10.2756 3.77377 10.437 4.0977 10.639C4.57391 10.936 4.88032 11.4419 4.88029 12C4.88026 12.5581 4.57386 13.0639 4.0977 13.3608C3.77372 13.5629 3.56497 13.7244 3.41645 13.9165C3.09108 14.3373 2.94749 14.8691 3.01725 15.395C3.06957 15.7894 3.30432 16.193 3.7738 17C4.24329 17.807 4.47804 18.2106 4.79606 18.4527C5.22008 18.7756 5.75599 18.9181 6.28589 18.8489C6.52778 18.8173 6.77305 18.7186 7.11133 18.5412C7.60852 18.2804 8.2031 18.27 8.69012 18.549C9.17714 18.8281 9.46533 19.3443 9.48635 19.9021C9.50065 20.2815 9.53719 20.5417 9.63056 20.7654C9.83509 21.2554 10.2274 21.6448 10.7212 21.8478C11.0915 22 11.561 22 12.5 22C13.439 22 13.9085 22 14.2788 21.8478C14.7726 21.6448 15.1649 21.2554 15.3694 20.7654C15.4628 20.5417 15.4994 20.2815 15.5137 19.902C15.5347 19.3443 15.8228 18.8281 16.3098 18.549C16.7968 18.2699 17.3914 18.2804 17.8886 18.5412C18.2269 18.7186 18.4721 18.8172 18.714 18.8488C19.2439 18.9181 19.7798 18.7756 20.2038 18.4527C20.5219 18.2105 20.7566 17.807 21.2261 16.9999C21.6956 16.1929 21.9303 15.7894 21.9827 15.395C22.0524 14.8691 21.9088 14.3372 21.5835 13.9164C21.4349 13.7243 21.2262 13.5628 20.9022 13.3608C20.4261 13.0639 20.1197 12.558 20.1197 11.9999C20.1197 11.4418 20.4261 10.9361 20.9022 10.6392C21.2263 10.4371 21.435 10.2757 21.5836 10.0835C21.9089 9.66273 22.0525 9.13087 21.9828 8.60497C21.9304 8.21055 21.6957 7.80703 21.2262 7C20.7567 6.19297 20.522 5.78945 20.2039 5.54727C19.7799 5.22436 19.244 5.08185 18.7141 5.15109C18.4722 5.18269 18.2269 5.28136 17.8887 5.4588C17.3915 5.71959 16.7969 5.73002 16.3099 5.45096C15.8229 5.17191 15.5347 4.65566 15.5136 4.09794C15.4993 3.71848 15.4628 3.45833 15.3694 3.23463C15.1649 2.74458 14.7726 2.35523 14.2788 2.15224ZM12.5 15C14.1695 15 15.5228 13.6569 15.5228 12C15.5228 10.3431 14.1695 9 12.5 9C10.8305 9 9.47716 10.3431 9.47716 12C9.47716 13.6569 10.8305 15 12.5 15Z" fill="#1C274C"></path> </g></svg>
 
-          </span>
-          <span class="profile-icon">⛔</span>
+          </a>
+          <!-- <span class="profile-icon">⛔</span> -->
       </div>
   </div>  
 </div>
@@ -6135,7 +6213,7 @@ audio, .audio-bar {
       <div class="hide inter-twinning" style="display: flex;"></div>
     </div>
 
-    <div class="messages" id="messages" style="overflow-x: hidden !important; {% if is_mobile %}background-color: var(--card-bg) {% else %} background-color:  var(--bg-chat) {% endif %};">
+    <div class="messages" id="messages" style="overflow-x: hidden !important;">
 
     </div>
 
@@ -6471,12 +6549,12 @@ audio, .audio-bar {
 
 
             {% if is_mobile %}  
-            <div id="scroll-emj-con" class=" hide-scroll-emj"
-                  style="background-color: var(--card-bg); display: none; color: var(--subtext)!important; 
+            <div id="scroll-emj-con" class="hide-scroll-emj"
+                  style="background-color: var(--bg-first-child-side-main);display: none;  color: var(--subtext)!important; 
                   overflow: hidden; height: {% if keyboard_height %}{{ keyboard_height }}px{% else %}223px{% endif %};">
 
-                <div style="display: flex; flex-direction: column; height: 100% !important; padding-left: 5px !important; padding-right: 5px !important;">
-                <div style="padding: 10px; padding-left: 0 !important; padding-right: 0 !important; padding-bottom: 13px; max-height: 90px; top: 0; position: sticky; " class="show-more-emoji">
+                <div style="display: flex; flex-direction: column; height: 100% !important; ">
+                <div style="padding: 10px; padding-left: 5px !important; padding-right: 5px !important; padding-bottom: 13px; max-height: 90px; top: 0; position: sticky; " class="show-more-emoji">
                 <div class="emoji-drag-handler"  style="justify-content: center; align-items: center; display: flex; padding-bottom: 20px;">
                 <div style="background-color: var(--slider-track); height: 3px; padding: 3px; width: 20%; border-radius: 5px;"></div>
                 </div>
@@ -6553,11 +6631,11 @@ audio, .audio-bar {
                 </div>
 
 
-                  <div id="emoji-picker" style="height: 100%; box-sizing: border-box; padding-bottom: 20px; overflow-y: auto; width: 100%; overflow: auto;">
+                  <div id="emoji-picker" style="height: 100%; box-sizing: border-box; padding-bottom: 20px; overflow-y: auto; width: 100%; overflow: auto; padding-left: 5px !important; padding-right: 5px !important;">
                   </div>
 
 
-                  <div style="display: flex; overflow-y: hidden; overflow-x: auto; justify-content: space-between; align-items: center; flex-shrink: 0; bottom: 0; position: sticky; padding: 12px; padding-left: 0 !important; padding-right: 0 !important;" class="emoji-lister-list">
+                  <div style="display: flex; overflow-y: hidden; overflow-x: auto; justify-content: space-between; align-items: center; flex-shrink: 0; bottom: 0; position: sticky; padding: 12px 0 !important;   " class="emoji-lister-list">
 
 
                     <button id="recent-svg">
@@ -7244,7 +7322,17 @@ function ShubShowRemove() {
 <script>
 
 const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute("content");
+const CurrentActiveChat = {
+  communityId: null,
+  communityName: null,
+  communitySlug: null,
+  channelUuid: null,
+  ticketUuid: null,
+  channelName: null,
+  ticketDisplayNumber: null
+};
 
+window.CurrentActiveChat = CurrentActiveChat
 let activeReactionMsgId = null;
  
 function getCachedMessage(messageUuid) {
@@ -7909,7 +7997,7 @@ reactionPopupMessage
   bottom: 0;
   box-shadow: 0 4px 18px rgba(0,0,0,0.4);
   width: 100%;
-  height: 55%;
+  height: 70%;
   background: var(--bg-chat);
   border: var(--bg-emoji-border);
   border-radius: 25px 25px 0 0;
@@ -9061,7 +9149,7 @@ reactionPopupMessage
     </div>
 
     <div class="server-emoji-box">
-      <img src="https://cdn.jsdelivr.net/gh/marranlogan-png/yeahman/mummydance.gif" width="26" height="26" loading="lazy" decoding="async">
+ 
     </div>
 
 
@@ -10401,7 +10489,6 @@ const communitySearchInput = document.querySelector(".search-input-list");
 
 
 
-<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 
 
 
@@ -10411,11 +10498,20 @@ const communitySearchInput = document.querySelector(".search-input-list");
 
 
 <script>
-  window.__SOCKET__ = io({
-    transports: ["websocket"],
-    withCredentials: true
-  });
-  const socket = window.__SOCKET__;
+const socket = getSocket();
+function getSocket() {
+  return window.__SOCKET__;
+}
+function onSocketReady(cb) {
+  const check = () => {
+    if (window.__SOCKET__) {
+      cb(window.__SOCKET__);
+    } else {
+      setTimeout(check, 50);
+    }
+  };
+  check();
+}
 </script>
 
 
@@ -10483,6 +10579,249 @@ function clearTicketContent() {
 
 
 
+async function renderMessagesFromServer(messages, pins = []) {
+  const messagesEl = document.getElementById("messages");
+  if (!messagesEl) return;
+  await ensureMentionCache(); 
+
+  const messageIndex = {};
+  const timeline = [];
+  const ticketUuid = CurrentActiveChat.ticketUuid;
+  const displayId = CurrentActiveChat.ticketDisplayNumber;
+  const communityId = CurrentActiveChat.communityId;
+
+  const ticket =
+    TicketStore?.[communityId]?.tickets?.find(
+      t => t.ticket_uuid === ticketUuid || t.uuid === ticketUuid
+    );
+
+  if (ticket?.status === "open") {
+    const exists = messagesEl.querySelector(
+      `[data-ticket-notice="${ticketUuid}"][data-ticket-notice-type="open"]`
+    );
+
+    if (!exists) {
+      const role = getCommunityRole(communityId);
+      const isStaff = isStaffRole(role);
+
+      messagesEl.appendChild(
+        buildOpenTicketNotice({
+          ticketUuid,
+          displayId,
+          isStaff
+        })
+      );
+    }
+  }
+
+  // messages → timeline
+  messages.forEach(m => {
+    timeline.push({
+      type: "message",
+      time: new Date(
+        m.created_at.endsWith("Z") ? m.created_at : m.created_at + "Z"
+      ).getTime(),
+      data: m
+    });
+  });
+
+  // pins → timeline
+  pins.forEach(p => {
+    timeline.push({
+      type: "pin",
+      time: new Date(
+        p.pinned_at.endsWith("Z") ? p.pinned_at : p.pinned_at + "Z"
+      ).getTime(),
+      data: p
+    });
+  });
+
+  // 🔥 SORT BY TIME (ASC)
+  timeline.sort((a, b) => a.time - b.time);
+
+  // ===============================
+  // PASS 1: RENDER EVERYTHING
+  // ===============================
+  timeline.forEach(item => {
+    if (item.type === "message") {
+      const msg = item.data;
+      if (msg.is_deleted) return;
+    try {
+      const rawText = msg.content || "";
+      const escaped = escapeHTML(rawText);
+      let safeHTML = stylizeLinks(escaped);
+      const hasAudio = msg.audio && msg.audio.type === "audio";
+      const finalRender = hasAudio ? AUDIO : TEXT_FILES;
+      if (!is_mobile) {
+        safeHTML = replaceUnicodeEmojiWithSVG(safeHTML);
+      }
+
+     safeHTML = highlightMentions(safeHTML);
+
+      const wrapper = document.createElement("div");
+      wrapper.classList.add("message-wrapper");
+      wrapper.dataset.msgIds = msg.uuid;
+      wrapper.dataset.msgSent = msg.is_sender ? "true" : "false";
+      wrapper.dataset.senderRole = msg.sender_role; // admin | member
+      wrapper.dataset.isCreator = msg.is_creator ? "true" : "false";
+      wrapper.dataset.createdAt = msg.created_at;
+      const authorColor = msg.user_color || "#5865f2";
+
+
+
+      wrapper.innerHTML = `
+        <div class="message">
+          <img
+            class="avatar" style="object-fit: cover;"
+            src="${msg.avatar || "https://i.pravatar.cc/100?img=3"}"
+            data-comm-img="${msg.avatar || "https://i.pravatar.cc/100?img=3"}"
+          >
+          <div class="message-content reaction-target">
+            <div class="message-main">
+              <div class="message-meta">
+                <span class="author"  style="color: ${authorColor};" data-colored-user="${authorColor}">${msg.username}</span>
+                <time class="timestamp-message">
+                  ${formatTimeFromISO(msg.created_at)}
+                </time>
+              </div>
+              ${finalRender}
+            </div>
+        </div>
+        ${SWIPEACTIONsHTML}
+
+
+      `;
+
+
+      messagesEl.appendChild(wrapper);
+      messageIndex[msg.uuid] = wrapper;
+
+      buildVoiceContent({
+        wrapper,
+        safeHTML,
+        hasText: !!rawText,
+        hasFiles: Array.isArray(msg.files) && msg.files.length > 0,
+        files: msg.files || [],
+        text: rawText
+      });
+      if (msg.audio && msg.audio.type === "audio") {
+        appendAudioFromServer(wrapper, msg.audio);
+      }
+      if (Array.isArray(msg.reactions) && msg.reactions.length > 0) {
+        const reactionsContainer =
+          wrapper.querySelector(".reactions-container");
+
+      msg.reactions.forEach(r => {
+        const node = createReactionNode({
+          emojiKey: r.emoji,
+          count: r.count,
+          reactedByMe: r.reacted_by_me
+        });
+        reactionsContainer.appendChild(node);
+      });
+
+      }
+      if (msg.is_edited === true) {
+        applyEditedState(wrapper, msg.content);
+      }
+
+      if (is_mobile) {
+        attachMobileLongPress(wrapper);
+        enableSwipe(wrapper);
+      } else {
+        attachMessageInteractions(wrapper);
+      }
+
+    } catch (err) {
+      console.error("Render message failed:", msg, err);
+    }
+  } else if (item.type === "pin") {
+    const p = item.data;
+
+    const notice = createPinnedSystemNotice({
+      username: p.username,
+      messageUuid: p.message_uuid,
+      channelUuid: p.channel_uuid,
+      pinnedAtISO: p.pinned_at
+    });
+
+    messagesEl.appendChild(notice);
+  }
+});
+
+
+
+
+  const messageColorMap = Object.create(null);
+  messages.forEach(m => {
+    messageColorMap[m.uuid] = m.user_color || "#5865f2";
+  });
+
+    // ===============================
+    // PASS 2: INJECT REPLIES
+    // ===============================
+    messages.forEach(msg => {
+      if (!msg.reply_to) return;
+
+      const currentWrapper = messageIndex[msg.uuid];
+      if (!currentWrapper) return;
+
+      const repliedWrapper = messageIndex[msg.reply_to];
+
+      // 🧠 CASE 1: replied message exists
+      if (repliedWrapper) {
+        const replyPreviewHTML =
+          extractReplyPreviewFromWrapper(repliedWrapper);
+
+        injectReplyHeader(currentWrapper, {
+          username:
+            repliedWrapper.querySelector(".author")?.innerText || "User",
+          avatar:
+            repliedWrapper.querySelector("img.avatar")?.src || null,
+          userColor: messageColorMap[msg.reply_to],
+          previewHTML: replyPreviewHTML,
+          replyToUuid: msg.reply_to,
+          isMention: msg.is_mention
+        });
+
+        return;
+      }
+
+      // 🧠 CASE 2: replied message was deleted
+      injectReplyHeader(currentWrapper, {
+        username: null,
+        avatar: "https://i.pravatar.cc/40?img=64",
+        userColor: null,
+        previewHTML: "<em>Message deleted</em>",
+        replyToUuid: msg.reply_to
+      });
+    });
+
+  if (ticket?.status === "closed") {
+    const exists = messagesEl.querySelector(
+      `[data-ticket-notice="${ticketUuid}"][data-ticket-notice-type="closed"]`
+    );
+
+    if (!exists) {
+      const role = getCommunityRole(communityId);
+      const isStaff = isStaffRole(role);
+
+      messagesEl.appendChild(
+        buildClosedTicketNotice({
+          ticketUuid,
+          displayId,
+          closedBy: ticket.closed_by,
+          isStaff
+        })
+      );
+    }
+  }
+
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+
+
 window.__INITIAL_STATE__ = {
   communityId: {{ initial_community_id|tojson }},
   categoryUuid: {{ initial_category_uuid|tojson }},
@@ -10498,6 +10837,18 @@ function getActiveChatKey() {
   return CurrentActiveChat.channelUuid || CurrentActiveChat.ticketUuid;
 }
 
+function normalizeAvatar(url) {
+  if (!url) return null;
+
+  // remove leading slash ONLY if it's like "/https..."
+  if (url.startsWith("/http")) {
+    return url.slice(1);
+  }
+
+  return url;
+}
+
+onSocketReady((socket) => {
 socket.on("community_notification", (data) => {
   console.log(data)
   const normalized = {
@@ -10513,10 +10864,11 @@ socket.on("community_notification", (data) => {
 
     user_id: data.user_id,
     username: data.username,
-    avatar: data.avatar,
+    avatar: normalizeAvatar(data.avatar),
     sender_role: data.sender_role,
     is_creator: data.is_creator,
     user_color: data.user_color || "#5865f2",
+    client_id: data.client_id, 
 
     reactions: data.reactions || [],
     files: data.files || [],
@@ -10529,6 +10881,7 @@ socket.on("community_notification", (data) => {
   const chatKey = getChatKey(normalized);
   if (!chatKey) return; // 🚨 safety
 
+
   ChannelStore[communityId] ??= {};
   ChannelStore[communityId][chatKey] ??= {
     messages: [],
@@ -10537,24 +10890,50 @@ socket.on("community_notification", (data) => {
   };
 
   const cache = ChannelStore[communityId][chatKey];
+console.log("CLIENT CHECK", {
+  incoming: data.client_id,
+  cache: cache.messages.map(m => m.client_id)
+});
+  if (data.client_id) {
+    const temp = cache.messages.find(m => m.client_id === data.client_id);
 
-  // ❌ ignore own optimistic message
-  if (normalized.is_sender) return;
+    if (temp) {
+      // ✅ update cache
+      Object.assign(temp, normalized);
 
-  // ❌ dedupe
+      // ✅ update DOM (THIS WAS MISSING)
+      const existingEl = document.querySelector(
+        `.message-wrapper[data-client-id="${data.client_id}"]`
+      );
+
+      if (existingEl) {
+        existingEl.setAttribute("data-msg-ids", data.uuid);
+        existingEl.dataset.clientId = ""; // optional cleanup
+
+        // remove pending state
+        const textEl = existingEl.querySelector(".pending-text");
+        if (textEl) {
+          textEl.classList.remove("pending-text");
+          textEl.classList.add("sent-text");
+        }
+
+        return; // 🚫 STOP HERE (NO APPEND)
+      }
+    }
+  }
   if (cache.messages.some(m => m.uuid === normalized.uuid)) return;
-
   cache.messages.push(normalized);
 
-  // ✅ render if active
+  
   if (
     CurrentActiveChat.communityId === communityId &&
     getActiveChatKey() === chatKey
   ) {
     const messagesEl = document.getElementById("messages");
-    messagesEl.innerHTML = "";
     renderMessagesFromServer(cache.messages, cache.pins || []);
   }
+
+});
 });
 
 
@@ -10731,11 +11110,13 @@ function applyRenamedCategory({ category_uuid, name }) {
     header.lastChild.textContent = name;
   }
 }
-
+onSocketReady((socket) => {
 socket.on("category_rename_comm_message", (data) => {
   if (Number(data.community_id) !== CurrentActiveChat.communityId) return;
 
   applyRenamedCategory(data);
+});
+
 });
 
 
@@ -10986,6 +11367,9 @@ const NotificationScopeContext = {
 };
 
 
+
+onSocketReady((socket) => {
+
 socket.on("message_reaction_update", data => {
   const {
     message_uuid,
@@ -11000,7 +11384,6 @@ socket.on("message_reaction_update", data => {
 
   const communityId = Number(community_id);
 
-  // 🔑 SAME ROUTING LOGIC AS community_notification
   const chatKey = getChatKey({
     channel_uuid,
     ticket_uuid
@@ -11064,6 +11447,7 @@ socket.on("message_reaction_update", data => {
   });
 });
 
+});
 
 
 function applyReactionUpdateToDOM({
@@ -11587,248 +11971,6 @@ async function closeTicket(e) {
   }
 }
 
-
-
-async function renderMessagesFromServer(messages, pins = []) {
-  const messagesEl = document.getElementById("messages");
-  if (!messagesEl) return;
-  await ensureMentionCache(); 
-
-  const messageIndex = {};
-  const timeline = [];
-  const ticketUuid = CurrentActiveChat.ticketUuid;
-  const displayId = CurrentActiveChat.ticketDisplayNumber;
-  const communityId = CurrentActiveChat.communityId;
-
-  const ticket =
-    TicketStore?.[communityId]?.tickets?.find(
-      t => t.ticket_uuid === ticketUuid || t.uuid === ticketUuid
-    );
-
-  if (ticket?.status === "open") {
-    const exists = messagesEl.querySelector(
-      `[data-ticket-notice="${ticketUuid}"][data-ticket-notice-type="open"]`
-    );
-
-    if (!exists) {
-      const role = getCommunityRole(communityId);
-      const isStaff = isStaffRole(role);
-
-      messagesEl.appendChild(
-        buildOpenTicketNotice({
-          ticketUuid,
-          displayId,
-          isStaff
-        })
-      );
-    }
-  }
-
-  // messages → timeline
-  messages.forEach(m => {
-    timeline.push({
-      type: "message",
-      time: new Date(
-        m.created_at.endsWith("Z") ? m.created_at : m.created_at + "Z"
-      ).getTime(),
-      data: m
-    });
-  });
-
-  // pins → timeline
-  pins.forEach(p => {
-    timeline.push({
-      type: "pin",
-      time: new Date(
-        p.pinned_at.endsWith("Z") ? p.pinned_at : p.pinned_at + "Z"
-      ).getTime(),
-      data: p
-    });
-  });
-
-  // 🔥 SORT BY TIME (ASC)
-  timeline.sort((a, b) => a.time - b.time);
-
-  // ===============================
-  // PASS 1: RENDER EVERYTHING
-  // ===============================
-  timeline.forEach(item => {
-    if (item.type === "message") {
-      const msg = item.data;
-      if (msg.is_deleted) return;
-    try {
-      const rawText = msg.content || "";
-      const escaped = escapeHTML(rawText);
-      let safeHTML = stylizeLinks(escaped);
-      const hasAudio = msg.audio && msg.audio.type === "audio";
-      const finalRender = hasAudio ? AUDIO : TEXT_FILES;
-      if (!is_mobile) {
-        safeHTML = replaceUnicodeEmojiWithSVG(safeHTML);
-      }
-
-     safeHTML = highlightMentions(safeHTML);
-
-      const wrapper = document.createElement("div");
-      wrapper.classList.add("message-wrapper");
-      wrapper.dataset.msgIds = msg.uuid;
-      wrapper.dataset.msgSent = msg.is_sender ? "true" : "false";
-      wrapper.dataset.senderRole = msg.sender_role; // admin | member
-      wrapper.dataset.isCreator = msg.is_creator ? "true" : "false";
-      wrapper.dataset.createdAt = msg.created_at;
-      const authorColor = msg.user_color || "#5865f2";
-
-
-
-      wrapper.innerHTML = `
-        <div class="message">
-          <img
-            class="avatar" style="object-fit: cover;"
-            src="${msg.avatar || "https://i.pravatar.cc/100?img=3"}"
-            data-comm-img="${msg.avatar || "https://i.pravatar.cc/100?img=3"}"
-          >
-          <div class="message-content reaction-target">
-            <div class="message-main">
-              <div class="message-meta">
-                <span class="author"  style="color: ${authorColor};" data-colored-user="${authorColor}">${msg.username}</span>
-                <time class="timestamp-message">
-                  ${formatTimeFromISO(msg.created_at)}
-                </time>
-              </div>
-              ${finalRender}
-            </div>
-        </div>
-        ${SWIPEACTIONsHTML}
-
-
-      `;
-
-
-      messagesEl.appendChild(wrapper);
-      messageIndex[msg.uuid] = wrapper;
-
-      buildVoiceContent({
-        wrapper,
-        safeHTML,
-        hasText: !!rawText,
-        hasFiles: Array.isArray(msg.files) && msg.files.length > 0,
-        files: msg.files || [],
-        text: rawText
-      });
-      if (msg.audio && msg.audio.type === "audio") {
-        appendAudioFromServer(wrapper, msg.audio);
-      }
-      if (Array.isArray(msg.reactions) && msg.reactions.length > 0) {
-        const reactionsContainer =
-          wrapper.querySelector(".reactions-container");
-
-      msg.reactions.forEach(r => {
-        const node = createReactionNode({
-          emojiKey: r.emoji,
-          count: r.count,
-          reactedByMe: r.reacted_by_me
-        });
-        reactionsContainer.appendChild(node);
-      });
-
-      }
-      if (msg.is_edited === true) {
-        applyEditedState(wrapper, msg.content);
-      }
-
-      if (is_mobile) {
-        attachMobileLongPress(wrapper);
-        enableSwipe(wrapper);
-      } else {
-        attachMessageInteractions(wrapper);
-      }
-
-    } catch (err) {
-      console.error("Render message failed:", msg, err);
-    }
-  } else if (item.type === "pin") {
-    const p = item.data;
-
-    const notice = createPinnedSystemNotice({
-      username: p.username,
-      messageUuid: p.message_uuid,
-      channelUuid: p.channel_uuid,
-      pinnedAtISO: p.pinned_at
-    });
-
-    messagesEl.appendChild(notice);
-  }
-});
-
-
-
-
-  const messageColorMap = Object.create(null);
-  messages.forEach(m => {
-    messageColorMap[m.uuid] = m.user_color || "#5865f2";
-  });
-
-    // ===============================
-    // PASS 2: INJECT REPLIES
-    // ===============================
-    messages.forEach(msg => {
-      if (!msg.reply_to) return;
-
-      const currentWrapper = messageIndex[msg.uuid];
-      if (!currentWrapper) return;
-
-      const repliedWrapper = messageIndex[msg.reply_to];
-
-      // 🧠 CASE 1: replied message exists
-      if (repliedWrapper) {
-        const replyPreviewHTML =
-          extractReplyPreviewFromWrapper(repliedWrapper);
-
-        injectReplyHeader(currentWrapper, {
-          username:
-            repliedWrapper.querySelector(".author")?.innerText || "User",
-          avatar:
-            repliedWrapper.querySelector("img.avatar")?.src || null,
-          userColor: messageColorMap[msg.reply_to],
-          previewHTML: replyPreviewHTML,
-          replyToUuid: msg.reply_to,
-          isMention: msg.is_mention
-        });
-
-        return;
-      }
-
-      // 🧠 CASE 2: replied message was deleted
-      injectReplyHeader(currentWrapper, {
-        username: null,
-        avatar: "https://i.pravatar.cc/40?img=64",
-        userColor: null,
-        previewHTML: "<em>Message deleted</em>",
-        replyToUuid: msg.reply_to
-      });
-    });
-
-  if (ticket?.status === "closed") {
-    const exists = messagesEl.querySelector(
-      `[data-ticket-notice="${ticketUuid}"][data-ticket-notice-type="closed"]`
-    );
-
-    if (!exists) {
-      const role = getCommunityRole(communityId);
-      const isStaff = isStaffRole(role);
-
-      messagesEl.appendChild(
-        buildClosedTicketNotice({
-          ticketUuid,
-          displayId,
-          closedBy: ticket.closed_by,
-          isStaff
-        })
-      );
-    }
-  }
-
-  messagesEl.scrollTop = messagesEl.scrollHeight;
-}
 
 
 
@@ -12798,15 +12940,6 @@ function applyCommunityTicketUI(communityId) {
 ---------------------------------- */ 
 
 
-const CurrentActiveChat = {
-  communityId: null,
-  communityName: null,
-  communitySlug: null,
-  channelUuid: null,
-  ticketUuid: null,
-  channelName: null,
-  ticketDisplayNumber: null
-};
 
 
 const ChannelStore = {};
@@ -13145,13 +13278,15 @@ document.addEventListener("DOMContentLoaded", async () => {
 <script>
 const TicketStore = {};
 
+
+onSocketReady((socket) => {
 socket.on("community_ticket_closed", (payload) => {
   console.log(payload)
   if (payload.event === "ticket_closed") {
     handleTicketClosed(payload);
   }
+});  
 });
-
 
 function replaceTicketNotice(ticketUuid, newNode) {
   document
@@ -13940,13 +14075,15 @@ function normalizeTicket(raw) {
 }
 
 
-
+onSocketReady((socket) => {
 socket.on("community_ticket", (payload) => {
   console.log(payload)
   if (payload.event === "ticket_created") {
     handleTicketCreated(payload);
   }
+});  
 });
+
 
 
 
@@ -15379,15 +15516,17 @@ function clearChannelContext() {
 
 
 
- 
-
+onSocketReady((socket) => {
 socket.on("channel_update_comm_message", (data) => {
   if (Number(data.community_id) !== CurrentActiveChat.communityId) return;
 
   applyUpdatedChannel(data);
 
   if (!is_mobile) RightclickMenuDES();
+});  
 });
+
+
 
 async function saveChannelSettings() {
   if (!ChannelContext.data) return;
@@ -16069,12 +16208,15 @@ function applyChannelPermissions({ channel_uuid, roles }) {
   refreshChannelPermissionUI?.(channel_uuid, roles);
 }
 
-
+onSocketReady((socket) => {
 socket.on("channel_permissions_comm_message", (data) => {
   if (Number(data.community_id) !== CurrentActiveChat.communityId) return;
 
   applyChannelPermissions(data);
+});  
 });
+
+
 function sameRoles(a = [], b = []) {
   if (a.length !== b.length) return false;
 
@@ -16593,7 +16735,7 @@ function channelExists(community, uuid) {
   );
 }
 
-
+onSocketReady((socket) => {
 socket.on("channel_create_comm_message", (data) => {
   console.log("📡 Channel created:", data);
 
@@ -16620,7 +16762,9 @@ socket.on("channel_create_comm_message", (data) => {
   // ✅ rebind UI
   if (!is_mobile) RightclickMenuDES();
   ClassMobOpenChat();
+});  
 });
+
 
 
 
@@ -16768,7 +16912,7 @@ function injectNewChannelIntoUI(channel) {
   ClassMobOpenChat();
 }
 
-
+onSocketReady((socket) => {
 socket.on("channel_delete_comm_message", (data) => {
   const { community_id, channel_uuid } = data;
 
@@ -16777,7 +16921,9 @@ socket.on("channel_delete_comm_message", (data) => {
   applyDeletedChannel(channel_uuid);
 
   if (!is_mobile) RightclickMenuDES();
+});  
 });
+
 
 function channelStillExists(community, uuid) {
   if (!community) return false;
@@ -17298,12 +17444,14 @@ function applyCategoryPermissions({ category_uuid, roles }) {
   refreshCategoryPermissionUI?.(category_uuid, roles);
 }
 
-
+onSocketReady((socket) => {
 socket.on("category_permissions_comm_message", (data) => {
   if (Number(data.community_id) !== CurrentActiveChat.communityId) return;
 
   applyCategoryPermissions(data);
+});  
 });
+
 
 
 /* OPEN on clicking Add Roles */
@@ -20942,11 +21090,13 @@ function categoryExists(community, uuid) {
   return community.categories?.some(c => c.uuid === uuid);
 }
 
-
+onSocketReady((socket) => {
 socket.on("category_create_comm_message", (data) => {
   if (Number(data.community_id) !== CurrentActiveChat.communityId) return;
 
   applyCreatedCategory(data);
+});
+  
 });
 
 
@@ -21015,13 +21165,15 @@ function applyDeletedCategory({ category_uuid }) {
 }
 
 
-
-
+onSocketReady((socket) => {
 socket.on("category_delete_comm_message", (data) => {
   if (Number(data.community_id) !== CurrentActiveChat.communityId) return;
 
   applyDeletedCategory(data);
 });
+  
+});
+
 
 
 
@@ -21292,8 +21444,7 @@ deleteBtnModal.addEventListener("click", () => {
 });
 
 
-
-
+onSocketReady((socket) => {
 socket.on("delete_comm_message", (data) => {
   console.log("🗑️ delete_comm_message:", data);
 
@@ -21325,7 +21476,10 @@ socket.on("delete_comm_message", (data) => {
 
   // ✅ ACTIVE → REMOVE FROM DOM
   removeMessageFromDOM(messageUuid);
+});  
 });
+
+
 
 
 function removeMessageFromDOM(messageUuid) {
@@ -21710,7 +21864,7 @@ function buildMessageLink(messageUuid) {
 }
 
 
-
+onSocketReady((socket) => {
 socket.on("pin_comm_message", data => {
   const cache = getActiveChannelCache();
   if (!cache) return;
@@ -21737,9 +21891,11 @@ socket.on("pin_comm_message", data => {
       pinnedAt: data.pinned_at
     });
   }
+});  
 });
 
 
+onSocketReady((socket) => {
 socket.on("unpin_comm_message", data => {
   removePinnedNoticeFromCache(data.message_uuid);
 
@@ -21748,7 +21904,10 @@ socket.on("unpin_comm_message", data => {
   ) {
     removePinnedNoticeFromTimeline(data.message_uuid);
   }
+});  
 });
+
+
 
 
 
@@ -22789,6 +22948,7 @@ function getActiveChatKey() {
   return CurrentActiveChat.channelUuid || CurrentActiveChat.ticketUuid;
 }
 
+onSocketReady((socket) => {
 socket.on("edit_comm_message", (data) => {
   const {
     message_uuid,
@@ -22844,7 +23004,7 @@ socket.on("edit_comm_message", (data) => {
 
 
 
-async function appendAudioMessage(audioURL, durationText, audioBlob) {
+window.appendAudioMessage = async function appendAudioMessage(audioURL, durationText, audioBlob) {
 
 
   const cache = getActiveChatCache();
@@ -22862,6 +23022,8 @@ async function appendAudioMessage(audioURL, durationText, audioBlob) {
   replyBlob && replyBlob.style.display !== "none"
     ? replyBlob.getAttribute("data-reply-target")
     : null;
+  const clientId = "c_" + Date.now() + "_" + Math.random().toString(36).slice(2);
+  
   wrapper.innerHTML = `
     <div class="message">
       <img class="avatar" src="${avatar}" data-comm-img="${avatar}">
@@ -22892,6 +23054,8 @@ async function appendAudioMessage(audioURL, durationText, audioBlob) {
 
     ${SWIPEMOBILE} 
   `;
+
+  wrapper.dataset.clientId = clientId;
 
   const replyState = cache?.replyState;
   if (replyTargetUuid) {
@@ -22932,6 +23096,7 @@ async function appendAudioMessage(audioURL, durationText, audioBlob) {
 
   const tempAudioMessage = {
     uuid: "__temp_audio__" + Date.now(),
+    client_id: clientId,
     is_sender: true,
     user_id: userId,
     username,
@@ -22956,8 +23121,10 @@ async function appendAudioMessage(audioURL, durationText, audioBlob) {
   form.append("channel_uuid", CurrentActiveChat.channelUuid || null);
   form.append("ticket_uuid", CurrentActiveChat.ticketUuid || null);
   form.append("audio", audioBlob, "voice.mp4");
+  form.append("client_id", clientId);
   form.append("wave_height", finalWaveHeights.join(","));
   form.append("duration", durationText);
+  
 
 
   if (replyBlob && replyBlob.style.display !== "none") {
@@ -23031,7 +23198,9 @@ async function appendAudioMessage(audioURL, durationText, audioBlob) {
     console.error(err);
     wrapper.classList.add("send-failed");
   }
-}
+}  
+});
+
 
  
 async function CommhandleSend() {
@@ -23152,6 +23321,8 @@ async function CommhandleSend() {
       const authorColor =
         MyCommunityColor[CurrentActiveChat.communityId] || "#5865f2";
       const user_color = authorColor
+      const clientId = "c_" + Date.now() + "_" + Math.random().toString(36).slice(2);
+
  
 
 
@@ -23191,6 +23362,7 @@ async function CommhandleSend() {
         `;
 
         const replyState = cache?.replyState;
+        wrapper.dataset.clientId = clientId;
 
         if (replyTargetUuid && replyState) {
           injectReplyHeader(wrapper, {
@@ -23271,6 +23443,7 @@ async function CommhandleSend() {
           uuid: "__temp__" + Date.now(),
           user_id: userId,
           username,
+          client_id: clientId,
           avatar,
           user_color,
           content: rawText,
@@ -23293,6 +23466,7 @@ async function CommhandleSend() {
           form.append("community_id", CurrentActiveChat.communityId);
           form.append("channel_uuid", CurrentActiveChat.channelUuid);
           form.append("ticket_uuid", CurrentActiveChat.ticketUuid);
+          form.append("client_id", clientId);
           form.append("content", rawText);
 
           if (replyTargetUuid) {
@@ -23564,7 +23738,6 @@ sendBtn.forEach(btn => {
     padding-bottom: 13px !important;
     padding-left: 3px !important;
     padding-right: 4px !important;
-    background-color: var(--bg-chat);
 
   }
 }
@@ -23580,7 +23753,6 @@ sendBtn.forEach(btn => {
     padding-bottom: 10px !important;
     padding-left: 10px !important;
     padding-right: 10px !important;
-    background-color: var(--bg-chat);
   }
 }
 
@@ -24689,8 +24861,11 @@ async function extractAudioCover(file) {
 
 
     // Open file picker when clicking attach icon
-    document.querySelector(".join-attach").addEventListener("click", () => {
-      filePicker.click();
+
+    document.querySelectorAll(".join-attach").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        filePicker.click();
+      });
     });
 
     // When image is selected

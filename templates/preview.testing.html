@@ -6436,7 +6436,7 @@ audio, .audio-bar {
             
 
             </div>
-
+            {% if not is_mobile %} 
             <div class="appneded-audio-medd lap" style="
               display: none; 
               box-sizing: border-box !important;
@@ -6546,6 +6546,8 @@ audio, .audio-bar {
 
           
             </div>
+          {% endif %}
+
 
 
             {% if is_mobile %}  
@@ -6789,13 +6791,16 @@ audio, .audio-bar {
                 </div>
             </div>
         
+          {% endif %}
+
           </div>
 
         </div>  
 
-
-          <div class="appneded-audio-medd" style="
+          {% if is_mobile %} 
+          <div class="appneded-audio-medd mobkk" style="
             display: none; 
+            width: 100% !important;
             box-sizing: border-box !important;
             height: 120px;         /* fixed height */
             overflow: hidden;      /* hide overflow if needed */
@@ -10439,7 +10444,9 @@ const sendBtn = document.querySelectorAll(".send-message-btn");
 const chatInput = document.getElementById("chat-input");
 const closeForAudio = document.querySelector(".close-for-audio");
 const playBtn = document.getElementById("playBtn");
-const audioUI = document.querySelector(".appneded-audio-medd");
+const audioUI = document.querySelector(
+  ".appneded-audio-medd.mobkk, .appneded-audio-medd.lap"
+);
 const scrollEmjCon = document.getElementById("scroll-emj-con");
 const pickEmoji = document.getElementById("pick-emoji");
 const supportGrid = document.getElementById("support_grid_icon");
@@ -25149,10 +25156,11 @@ function forceCloseAudioUI() {
     if (is_mobile) {
         keyboardDiv && (keyboardDiv.style.display = 'none');
         showEmojiBtn && (showEmojiBtn.style.display = 'flex');
+        audioUI.style.display = "none";
     }
 
     // Hide audio UI
-    audioUI.style.display = "none";
+    
     closeForAudio.style.display = "block";
 
     // Clear audio AFTER finalizeRecording runs

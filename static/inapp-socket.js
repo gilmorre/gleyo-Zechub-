@@ -67,7 +67,6 @@ if (!window.__INAPP_SOCKET__) {
       const active = window.CurrentActiveChat;
 
       if (!active || !active.communityId) {
-        alert("called")
         showTopCommunityModal(payload);
         return;
       }

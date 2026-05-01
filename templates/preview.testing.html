@@ -1232,6 +1232,16 @@ header {
   margin-bottom: 16px;
 }
 
+.top-loader {
+  display: flex;
+  justify-content: center;
+  padding: 10px;
+}
+
+.hidden {
+  display: none;
+}
+
 header .title {
   flex: 1;
   text-align: center;
@@ -12464,7 +12474,9 @@ function ClassMobOpenChat() {
 
           if (!data) return;
 
-          ChannelStore[communityId][channelUuid] ??= {};
+          ChannelStore[communityId][channelUuid] ??= {
+            hasMore: true
+          };
 
           Object.assign(ChannelStore[communityId][channelUuid], {
             messages: data.messages,
@@ -27685,6 +27697,10 @@ if (is_mobile) {
 
 });
 
+function isNearBottom(el, threshold = 100) {
+  return el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
+}
+
 function parseChatKey(chatKey) {
   if (!chatKey) return {};
 
@@ -27707,11 +27723,70 @@ function parseChatKey(chatKey) {
     ticket_uuid: null
   };
 }
+
+
 document.addEventListener("visibilitychange", () => {
   if (!document.hidden) {
     refetchAllChats(); 
   }
 });
+
+function initTopLoader() {
+  const messagesEl = document.getElementById("messages");
+  if (!messagesEl) return;
+
+  // prevent duplicate
+  if (document.getElementById("top-loader")) return;
+
+  const loader = document.createElement("div");
+  loader.id = "top-loader";
+  loader.className = "top-loader hidden";
+
+  loader.innerHTML = `
+    <svg width="20" height="20" viewBox="0 0 50 50">
+      <circle
+        cx="25"
+        cy="25"
+        r="20"
+        fill="none"
+        stroke-width="4"
+        stroke="#888"
+        stroke-linecap="round"
+        stroke-dasharray="31.4 31.4"
+      >
+        <animateTransform
+          attributeName="transform"
+          type="rotate"
+          repeatCount="indefinite"
+          dur="0.8s"
+          values="0 25 25;360 25 25"
+        />
+      </circle>
+    </svg>
+  `;
+
+  
+  messagesEl.prepend(loader);
+} 
+
+
+function showTopLoader() {
+  const loader = document.getElementById("top-loader");
+  if (loader) loader.classList.remove("hidden");
+}
+
+function hideTopLoader() {
+  const loader = document.getElementById("top-loader");
+  if (loader) loader.remove();
+}
+
+
+function prependMessages(messages, pins = []) {
+  buildMessageElement(messages, pins, true); // true = prepend
+}
+
+let isLoadingOlder = false;
+
 
 async function refetchAllChats() {
   for (const communityId in ChannelStore) {
@@ -27766,7 +27841,7 @@ async function refetchAllChats() {
           CurrentActiveChat.communityId == communityId &&
           getActiveChatKey() === chatKey
         ) {
-          renderMessagesFromServer(cache.messages, cache.pins || []);
+          appendNewMessages(data.messages, data.pins || []);
         }
 
       } catch (err) {
@@ -27774,6 +27849,374 @@ async function refetchAllChats() {
       }
     }
   }
+}
+
+
+
+messagesEl.addEventListener("scroll", () => {
+  if (messagesEl.scrollTop < 50) {
+    maybeLoadOlder();
+  }
+});
+
+
+let lastLoadTime = 0;
+
+function maybeLoadOlder() {
+  const now = Date.now();
+
+  if (now - lastLoadTime < 400) return;
+  const communityId = CurrentActiveChat.communityId;
+  const chatKey = getActiveChatKey();
+  const cache = ChannelStore?.[communityId]?.[chatKey];
+
+  if (!cache) return;
+
+  if (cache.hasMore === false) return;
+
+  const wrappers = document.querySelectorAll(".message-wrapper");
+  if (wrappers.length < 25) return;
+
+  loadOlderMessages();
+}
+
+
+function appendNewMessages(messages, pins = []) {
+  buildMessageElement(messages, pins, false); // false = append
+}
+
+
+async function buildMessageElement(messages = [], pins = [], insertBefore = false) {
+  const messagesEl = document.getElementById("messages");
+  if (!messagesEl) return;
+  const shouldAutoScroll = !insertBefore && isNearBottom(messagesEl);
+
+  const prevHeight = messagesEl.scrollHeight;
+  await ensureMentionCache(); 
+
+  const messageIndex = {};
+  const timeline = [];
+  const ticketUuid = CurrentActiveChat.ticketUuid;
+  const displayId = CurrentActiveChat.ticketDisplayNumber;
+  const communityId = CurrentActiveChat.communityId;
+
+  const ticket =
+    TicketStore?.[communityId]?.tickets?.find(
+      t => t.ticket_uuid === ticketUuid || t.uuid === ticketUuid
+    );
+
+  if (ticket?.status === "open") {
+    const exists = messagesEl.querySelector(
+      `[data-ticket-notice="${ticketUuid}"][data-ticket-notice-type="open"]`
+    );
+
+    if (!exists) {
+      const role = getCommunityRole(communityId);
+      const isStaff = isStaffRole(role);
+
+      messagesEl.appendChild(
+        buildOpenTicketNotice({
+          ticketUuid,
+          displayId,
+          isStaff
+        })
+      );
+    }
+  }
+
+  // messages → timeline
+  messages.forEach(m => {
+    timeline.push({
+      type: "message",
+      time: new Date(
+        m.created_at.endsWith("Z") ? m.created_at : m.created_at + "Z"
+      ).getTime(),
+      data: m
+    });
+  });
+
+  // pins → timeline
+  pins.forEach(p => {
+    timeline.push({
+      type: "pin",
+      time: new Date(
+        p.pinned_at.endsWith("Z") ? p.pinned_at : p.pinned_at + "Z"
+      ).getTime(),
+      data: p
+    });
+  });
+
+  // 🔥 SORT BY TIME (ASC)
+  timeline.sort((a, b) => a.time - b.time);
+
+  // ===============================
+  // PASS 1: RENDER EVERYTHING
+  // ===============================
+  timeline.forEach(item => {
+    if (item.type === "message") {
+      const msg = item.data;
+      if (msg.is_deleted) return;
+    try {
+      const rawText = msg.content || "";
+      const escaped = escapeHTML(rawText);
+      let safeHTML = stylizeLinks(escaped);
+      const hasAudio = msg.audio && msg.audio.type === "audio";
+      const finalRender = hasAudio ? AUDIO : TEXT_FILES;
+      if (!is_mobile) {
+        safeHTML = replaceUnicodeEmojiWithSVG(safeHTML);
+      }
+
+     safeHTML = highlightMentions(safeHTML);
+
+      const wrapper = document.createElement("div");
+      wrapper.classList.add("message-wrapper");
+      wrapper.dataset.msgIds = msg.uuid;
+      wrapper.dataset.msgSent = msg.is_sender ? "true" : "false";
+      wrapper.dataset.senderRole = msg.sender_role; // admin | member
+      wrapper.dataset.isCreator = msg.is_creator ? "true" : "false";
+      wrapper.dataset.createdAt = msg.created_at;
+      const authorColor = msg.user_color || "#5865f2";
+
+
+
+      wrapper.innerHTML = `
+        <div class="message">
+          <img
+            class="avatar" style="object-fit: cover;"
+            src="${msg.avatar || "https://i.pravatar.cc/100?img=3"}"
+            data-comm-img="${msg.avatar || "https://i.pravatar.cc/100?img=3"}"
+          >
+          <div class="message-content reaction-target">
+            <div class="message-main">
+              <div class="message-meta">
+                <span class="author"  style="color: ${authorColor};" data-colored-user="${authorColor}">${msg.username}</span>
+                <time class="timestamp-message">
+                  ${formatTimeFromISO(msg.created_at)}
+                </time>
+              </div>
+              ${finalRender}
+            </div>
+        </div>
+        ${SWIPEACTIONsHTML}
+
+
+      `;
+
+
+      if (insertBefore) {
+        messagesEl.insertBefore(wrapper, messagesEl.firstChild);
+      } else {
+        messagesEl.appendChild(wrapper);
+      }
+      messageIndex[msg.uuid] = wrapper;
+
+      buildVoiceContent({
+        wrapper,
+        safeHTML,
+        hasText: !!rawText,
+        hasFiles: Array.isArray(msg.files) && msg.files.length > 0,
+        files: msg.files || [],
+        text: rawText
+      });
+      if (msg.audio && msg.audio.type === "audio") {
+        appendAudioFromServer(wrapper, msg.audio);
+      }
+      if (Array.isArray(msg.reactions) && msg.reactions.length > 0) {
+        const reactionsContainer =
+          wrapper.querySelector(".reactions-container");
+
+      msg.reactions.forEach(r => {
+        const node = createReactionNode({
+          emojiKey: r.emoji,
+          count: r.count,
+          reactedByMe: r.reacted_by_me
+        });
+        reactionsContainer.appendChild(node);
+      });
+
+      }
+      if (msg.is_edited === true) {
+        applyEditedState(wrapper, msg.content);
+      }
+
+      if (is_mobile) {
+        attachMobileLongPress(wrapper);
+        enableSwipe(wrapper);
+      } else {
+        attachMessageInteractions(wrapper);
+      }
+
+    } catch (err) {
+      console.error("Render message failed:", msg, err);
+    }
+  } else if (item.type === "pin") {
+    const p = item.data;
+
+    const notice = createPinnedSystemNotice({
+      username: p.username,
+      messageUuid: p.message_uuid,
+      channelUuid: p.channel_uuid,
+      pinnedAtISO: p.pinned_at
+    });
+
+    messagesEl.appendChild(notice);
+  }
+});
+
+
+
+
+  const messageColorMap = Object.create(null);
+  messages.forEach(m => {
+    messageColorMap[m.uuid] = m.user_color || "#5865f2";
+  });
+
+    // ===============================
+    // PASS 2: INJECT REPLIES
+    // ===============================
+    messages.forEach(msg => {
+      if (!msg.reply_to) return;
+
+      const currentWrapper = messageIndex[msg.uuid];
+      if (!currentWrapper) return;
+
+      const repliedWrapper = messageIndex[msg.reply_to];
+
+      // 🧠 CASE 1: replied message exists
+      if (repliedWrapper) {
+        const replyPreviewHTML =
+          extractReplyPreviewFromWrapper(repliedWrapper);
+
+        injectReplyHeader(currentWrapper, {
+          username:
+            repliedWrapper.querySelector(".author")?.innerText || "User",
+          avatar:
+            repliedWrapper.querySelector("img.avatar")?.src || null,
+          userColor: messageColorMap[msg.reply_to],
+          previewHTML: replyPreviewHTML,
+          replyToUuid: msg.reply_to,
+          isMention: msg.is_mention
+        });
+
+        return;
+      }
+
+      // 🧠 CASE 2: replied message was deleted
+      injectReplyHeader(currentWrapper, {
+        username: null,
+        avatar: "https://i.pravatar.cc/40?img=64",
+        userColor: null,
+        previewHTML: "<em>Message deleted</em>",
+        replyToUuid: msg.reply_to
+      });
+    });
+
+  if (ticket?.status === "closed") {
+    const exists = messagesEl.querySelector(
+      `[data-ticket-notice="${ticketUuid}"][data-ticket-notice-type="closed"]`
+    );
+
+    if (!exists) {
+      const role = getCommunityRole(communityId);
+      const isStaff = isStaffRole(role);
+
+      messagesEl.appendChild(
+        buildClosedTicketNotice({
+          ticketUuid,
+          displayId,
+          closedBy: ticket.closed_by,
+          isStaff
+        })
+      );
+    }
+  }
+
+  if (insertBefore) {
+    const newHeight = messagesEl.scrollHeight;
+    messagesEl.scrollTop += newHeight - prevHeight;
+  } else if (shouldAutoScroll) {
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+}
+
+
+
+async function loadOlderMessages() {
+  if (isLoadingOlder) return;
+  isLoadingOlder = true;
+
+  const communityId = CurrentActiveChat.communityId;
+
+  const chats = ChannelStore[communityId];
+  if (!chats) return;
+
+  // 🔥 find the active chatKey properly
+  const chatKey = Object.keys(chats).find(
+    key => key === getActiveChatKey()
+  );
+
+  if (!chatKey) {
+    console.warn("❌ chatKey not found in ChannelStore");
+    isLoadingOlder = false;
+    return;
+  }
+
+  const cache = ChannelStore[communityId][chatKey];
+
+  const firstMsg = cache.messages[0];
+  if (!firstMsg) return;
+
+  const body = {
+    community_id: communityId,
+    channel_uuid: CurrentActiveChat.channelUuid || null,
+    ticket_uuid: CurrentActiveChat.ticketUuid || null,
+    before: firstMsg.created_at,
+    limit: 10
+  };
+  const messagesEl = document.getElementById("messages");
+
+  // 🧠 preserve scroll
+  const prevHeight = messagesEl.scrollHeight;
+  initTopLoader() 
+
+  showTopLoader();
+  
+
+  try {
+    const res = await fetch("/api/messages/fetch", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(body)
+    });
+
+    const data = await res.json();
+    if (!data.ok) return;
+    if (data.has_more === false) {
+      cache.hasMore = false;  
+    }
+    const newMsgs = [];
+
+    data.messages.forEach(msg => {
+      if (!cache.messages.some(m => m.uuid === msg.uuid)) {
+        cache.messages.unshift(msg); // 🔥 ADD TO TOP
+        newMsgs.push(msg);
+      }
+    });
+
+    prependMessages(newMsgs, data.pins || []);
+
+    // 🧠 maintain scroll position
+    const newHeight = messagesEl.scrollHeight;
+    messagesEl.scrollTop = newHeight - prevHeight;
+
+  } catch (err) {
+    console.error(err);
+  }
+
+  hideTopLoader();
+  isLoadingOlder = false;
 }
 </script>
 

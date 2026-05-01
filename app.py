@@ -25168,7 +25168,8 @@ def get_comm_messages():
     channel_uuid = normalize_uuid(data.get("channel_uuid"))
     ticket_uuid = normalize_uuid(data.get("ticket_uuid"))
     after = data.get("after")
-
+    before = data.get("before")
+    limit = int(data.get("limit", 10))
 
     if not community_id:
         print(community_id)
@@ -25221,6 +25222,7 @@ def get_comm_messages():
 
     if ticket:
         query = query.filter_by(ticket_id=ticket.id)
+    has_more = True
 
     if after:
         try:
@@ -25235,12 +25237,28 @@ def get_comm_messages():
 
         except Exception:
             return jsonify({"error": "invalid_after"}), 400
+        
+    elif before:
+         
+        
+        before_dt = datetime.fromisoformat(before)
+
+        messages = (
+            query
+            .filter(CommunityMessage.created_at < before_dt)
+            .order_by(CommunityMessage.created_at.desc())
+            .limit(limit)
+            .all()
+        )
+        has_more = len(messages) == limit
+
+        messages = list(reversed(messages))
 
     else:
         messages = (
             query
             .order_by(CommunityMessage.created_at.desc())
-            .limit(50)
+            .limit(25)
             .all()
         )
 
@@ -25402,7 +25420,8 @@ def get_comm_messages():
     return jsonify({
         "ok": True,
         "messages": payload,
-        "pins": pins_payload
+        "pins": pins_payload,
+        "has_more": has_more 
     }), 200
 
 

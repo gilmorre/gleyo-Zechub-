@@ -25167,6 +25167,7 @@ def get_comm_messages():
 
     channel_uuid = normalize_uuid(data.get("channel_uuid"))
     ticket_uuid = normalize_uuid(data.get("ticket_uuid"))
+    after = data.get("after")
 
 
     if not community_id:
@@ -25221,14 +25222,29 @@ def get_comm_messages():
     if ticket:
         query = query.filter_by(ticket_id=ticket.id)
 
-    messages = (
-        query
-        .order_by(CommunityMessage.created_at.desc())
-        .limit(50)
-        .all()
-    )
+    if after:
+        try:
+            after_dt = datetime.fromisoformat(after)
 
-    messages = list(reversed(messages))
+            messages = (
+                query
+                .filter(CommunityMessage.created_at > after_dt)
+                .order_by(CommunityMessage.created_at.asc())
+                .all()
+            )
+
+        except Exception:
+            return jsonify({"error": "invalid_after"}), 400
+
+    else:
+        messages = (
+            query
+            .order_by(CommunityMessage.created_at.desc())
+            .limit(50)
+            .all()
+        )
+
+        messages = list(reversed(messages))
 
     pinned_rows = []
 

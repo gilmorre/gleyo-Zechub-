@@ -245,6 +245,10 @@ body.open {
     white-space: nowrap;
 }
 
+.message-wrapper {
+  background-color: var(--bg-first-child-side-main);
+}
+
 
 .message-actions-dropdown {
   position: relative;
@@ -7443,7 +7447,6 @@ function initReactionPopupDrag() {
 
   popup.addEventListener("touchstart", (e) => {
     if (!popup.classList.contains("show")) return;
-
     dragging = true;
     startY = e.touches[0].clientY;
     currentY = 0;
@@ -7479,6 +7482,8 @@ function initReactionPopupDrag() {
       setTimeout(() => {
         popup.classList.remove("show");
         popup.style.display = "none";
+        MessageBody.classList.remove("overflow-hidden")
+
 
          
         popup.style.transition = "";
@@ -7531,6 +7536,8 @@ function CloseSearchbutton() {
 
 
 function showReactionPopup(wrapper) {
+
+
   const popup = getReactionPopup();
 
   if (!wrapper || !popup) return;
@@ -7623,6 +7630,8 @@ function closeReactionPopupMoobile() {
 
 
 document.addEventListener("touchstart", (e) => {
+    //  alert("called")
+  
   const popup = getReactionPopup();
   if (!popup || popup.style.display !== "flex") return;
 
@@ -7911,10 +7920,7 @@ function openGifPickerFromReaction() {
 document.addEventListener("DOMContentLoaded", () => {
   const reactionPopupMessage = document.getElementById("reaction-popup");
 
-  if (!reactionPopupMessage) {
-    alert("DEBUG: reactionPopup NOT found");
-    return;
-  }
+
 
 
 reactionPopupMessage
@@ -9159,7 +9165,7 @@ reactionPopupMessage
     </div>
 
     <div class="server-emoji-box">
- 
+        <p style="font-size: 14px; font-style: italic; padding: 4px 0; text-align: center; color: var(--subtext)">No emoji's yet</p>
     </div>
 
 
@@ -25710,6 +25716,8 @@ document.addEventListener("click", (e) => {
 
 const chatInputContainer = document.querySelector(".tnmr-chat-input-container");
 function showEmojiAtReactionTarget() {
+ 
+
   if (!lastPopupPosition) return;
 
   emojiPickerMode = "reaction";
@@ -27677,7 +27685,96 @@ if (is_mobile) {
 
 });
 
+function parseChatKey(chatKey) {
+  if (!chatKey) return {};
 
+  if (chatKey.startsWith("channel:")) {
+    return {
+      channel_uuid: chatKey.replace("channel:", ""),
+      ticket_uuid: null
+    };
+  }
+
+  if (chatKey.startsWith("ticket:")) {
+    return {
+      channel_uuid: null,
+      ticket_uuid: chatKey.replace("ticket:", "")
+    };
+  }
+
+  return {
+    channel_uuid: null,
+    ticket_uuid: null
+  };
+}
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) {
+    refetchAllChats(); 
+  }
+});
+
+async function refetchAllChats() {
+  for (const communityId in ChannelStore) {
+    const chats = ChannelStore[communityId];
+
+    for (const chatKey in chats) {
+      const cache = chats[chatKey];
+
+      const { channel_uuid, ticket_uuid } = parseChatKey(chatKey);
+
+      // 🚫 skip broken keys
+      if (!channel_uuid && !ticket_uuid) continue;
+
+      const hasMessages = cache.messages.length > 0;
+      const lastMsg = hasMessages
+        ? cache.messages[cache.messages.length - 1]
+        : null;
+
+      const body = {
+        community_id: Number(communityId),
+        channel_uuid,
+        ticket_uuid
+      };
+
+      if (lastMsg) {
+        body.after = lastMsg.created_at;
+      }
+
+      try {
+        const res = await fetch("/api/messages/fetch", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(body)
+        });
+
+        const data = await res.json();
+        if (!data.ok) continue;
+
+        let hasNew = false;
+
+        data.messages.forEach(msg => {
+          if (cache.messages.some(m => m.uuid === msg.uuid)) return;
+
+          cache.messages.push(msg);
+          hasNew = true;
+        });
+
+        if (
+          hasNew &&
+          CurrentActiveChat.communityId == communityId &&
+          getActiveChatKey() === chatKey
+        ) {
+          renderMessagesFromServer(cache.messages, cache.pins || []);
+        }
+
+      } catch (err) {
+        console.error("Refetch failed:", err);
+      }
+    }
+  }
+}
 </script>
 
 

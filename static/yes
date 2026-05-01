@@ -15,7 +15,7 @@
   flex-shrink: 0;
 }
 
-.skeleton-content {
+.
   flex: 1;
   display: flex;
   justify-content: space-between;

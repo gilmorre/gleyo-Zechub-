@@ -1062,9 +1062,73 @@ body{
 
 
 
+.message-skeleton-init {
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+  animation: fadeIn 0.2s ease;
+}
 
+/* avatar */
+.skeleton-avatar-init {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bg-hover);
+  position: relative; /* REQUIRED */
+  overflow: hidden;
+  flex-shrink: 0;
+}
 
+/* content wrapper */
+.skeleton-content-init {
+  flex: 1;
+}
 
+/* lines */
+.skeleton-line-init {
+  height: 10px;
+  background: var(--bg-hover);
+  border-radius: 6px;
+  margin-bottom: 6px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* shimmer */
+.skeleton-line-init::after,
+.skeleton-avatar-init::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255,255,255,0.25) 50%,
+    transparent 100%
+  );
+  transform: translateX(-100%);
+  animation: shimmer 1.2s infinite;
+}
+
+/* smoother animation */
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* optional fade */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
  
 
@@ -10678,6 +10742,7 @@ async function renderMessagesFromServer(messages, pins = []) {
   const ticketUuid = CurrentActiveChat.ticketUuid;
   const displayId = CurrentActiveChat.ticketDisplayNumber;
   const communityId = CurrentActiveChat.communityId;
+      messagesEl.innerHTML = "";
 
   const ticket =
     TicketStore?.[communityId]?.tickets?.find(
@@ -10702,6 +10767,7 @@ async function renderMessagesFromServer(messages, pins = []) {
       );
     }
   }
+  
 
   // messages → timeline
   messages.forEach(m => {
@@ -10745,6 +10811,7 @@ async function renderMessagesFromServer(messages, pins = []) {
         safeHTML = replaceUnicodeEmojiWithSVG(safeHTML);
       }
 
+
      safeHTML = highlightMentions(safeHTML);
 
       const wrapper = document.createElement("div");
@@ -10780,6 +10847,8 @@ async function renderMessagesFromServer(messages, pins = []) {
 
 
       `;
+
+
 
 
       messagesEl.appendChild(wrapper);
@@ -12378,6 +12447,7 @@ document.addEventListener("click", async (e) => {
   messagesEl.innerHTML = "";
   inputEl.innerHTML = "";
 
+
 const cache = ChannelStore[communityId][ticketUuid];
 
 if (cache?.fetched) {
@@ -12430,6 +12500,41 @@ try {
 
 });
 
+function createMessageSkeleton(count = 10) {
+  const wrapper = document.createDocumentFragment();
+
+  for (let i = 0; i < count; i++) {
+    const skeleton = document.createElement("div");
+    skeleton.className = "message-skeleton-init";
+
+    const content = document.createElement("div");
+    content.className = "skeleton-content-init";
+
+    // Random number of lines (2–4)
+    const linesCount = Math.floor(Math.random() * 3) + 2;
+
+    for (let j = 0; j < linesCount; j++) {
+      const line = document.createElement("div");
+      line.className = "skeleton-line-init";
+
+      // Random width for each line
+      const widthOptions = ["95%", "85%", "75%", "65%", "50%", "40%"];
+      const randomWidth = widthOptions[Math.floor(Math.random() * widthOptions.length)];
+
+      line.style.width = randomWidth;
+
+      content.appendChild(line);
+    }
+
+    skeleton.innerHTML = `<div class="skeleton-avatar-init"></div>`;
+    skeleton.appendChild(content);
+
+    wrapper.appendChild(skeleton);
+  }
+
+  return wrapper;
+}
+
 
 function ClassMobOpenChat() {
   
@@ -12444,7 +12549,10 @@ function ClassMobOpenChat() {
       const messagesEl = document.getElementById("messages");
       const inputEl = document.getElementById("chat-input");
       if (!messagesEl || !inputEl) return;
-
+      if (window.innerWidth <= 991) {
+        document.querySelector(".all-container")?.classList.add("hide");
+        document.querySelector(".chat-panel")?.classList.add("active");
+      }
       const communityId = CurrentActiveChat.communityId;
       const channelUuid = ch.dataset.channelUuid;
       const channelName = ch.dataset.channelName;
@@ -12493,6 +12601,7 @@ function ClassMobOpenChat() {
       
       messagesEl.innerHTML = "";
       inputEl.innerHTML = "";
+      messagesEl.appendChild(createMessageSkeleton(12));
 
 
       const cache = ChannelStore[communityId][channelUuid];
@@ -12567,10 +12676,7 @@ function ClassMobOpenChat() {
       }
 
       /* 7️⃣ MOBILE */
-      if (window.innerWidth <= 991) {
-        document.querySelector(".all-container")?.classList.add("hide");
-        document.querySelector(".chat-panel")?.classList.add("active");
-      }
+
     });
   }
 

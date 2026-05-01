@@ -27952,7 +27952,9 @@ async function buildMessageElement(messages = [], pins = [], insertBefore = fals
   // ===============================
   // PASS 1: RENDER EVERYTHING
   // ===============================
-  timeline.forEach(item => {
+    const list = insertBefore ? [...timeline].reverse() : timeline;
+
+    list.forEach(item => {
     if (item.type === "message") {
       const msg = item.data;
       if (msg.is_deleted) return;
@@ -28207,9 +28209,7 @@ async function loadOlderMessages() {
 
     prependMessages(newMsgs, data.pins || []);
 
-    // 🧠 maintain scroll position
-    const newHeight = messagesEl.scrollHeight;
-    messagesEl.scrollTop = newHeight - prevHeight;
+
 
   } catch (err) {
     console.error(err);

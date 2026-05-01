@@ -5038,23 +5038,38 @@ audio, .audio-bar {
   justify-content: center !important;
 }
 
-.skeleton-avatar {
+.community-name-chat.skl  {
+  width: 50%;
+  height: 20px !important
+}
+
+.skeleton-avatar, .community-name-chat.skl {
+    background: var(--bg-hover);
+  overflow: hidden;
+  position: relative
+}
+
+.skeleton-avatar::after, .community-name-chat.skl {
+  content: "";
+  position: absolute;
+  inset: 0;
   background: linear-gradient(
     90deg,
-    #2a2a2a 25%,
-    #3a3a3a 37%,
-    #2a2a2a 63%
+    transparent 0%,
+    rgba(255,255,255,0.25) 50%,
+    transparent 100%
   );
-  background-size: 400% 100%;
-  animation: shimmer 1.4s ease infinite;
+  transform: translateX(-100%);
+  animation: shimmer 1.2s infinite;
 }
 
-
-
+/* smoother animation */
 @keyframes shimmer {
-  0% { background-position: 100% 0; }
-  100% { background-position: -100% 0; }
+  100% {
+    transform: translateX(100%);
+  }
 }
+
 
 
 
@@ -6156,6 +6171,30 @@ audio, .audio-bar {
     <div class="logo-communities skeleton-avatar"></div>
   </div>
 
+  <div class="logo-item skeleton">
+    <div class="logo-communities skeleton-avatar"></div>
+  </div>
+
+  <div class="logo-item skeleton">
+    <div class="logo-communities skeleton-avatar"></div>
+  </div>
+
+  <div class="logo-item skeleton">
+    <div class="logo-communities skeleton-avatar"></div>
+  </div>
+
+  <div class="logo-item skeleton">
+    <div class="logo-communities skeleton-avatar"></div>
+  </div>
+
+  <div class="logo-item skeleton">
+    <div class="logo-communities skeleton-avatar"></div>
+  </div>
+
+  <div class="logo-item skeleton">
+    <div class="logo-communities skeleton-avatar"></div>
+  </div>
+
 </div>
 
 
@@ -6174,7 +6213,7 @@ audio, .audio-bar {
       <div style="display: flex; gap: 7px;" class="chat-comm-con">
             <div
               id="activeCommunityName"
-              class="community-name-chat"
+              class="community-name-chat skl"
               style="cursor: pointer; position: relative;"
             ></div>
 
@@ -13012,7 +13051,7 @@ function updateActiveCommunitySidebar(community) {
   const nameEl = document.getElementById("activeCommunityName");
   const membersEl = document.getElementById("activeCommunityMembers");
   const verifiedEl = document.getElementById("is_verified");
-
+  nameEl.classList.remove("skl")
   // ✅ NAME
   nameEl.textContent = community.name;
 
@@ -13234,12 +13273,12 @@ const MyCommunityColor = {};
 document.addEventListener("DOMContentLoaded", async () => {
   const container = document.getElementById("communityLogoList");
 
-  // 🔥 WIPE PRE-RENDERED SKELETONS
-  container.innerHTML = "";
 
   try {
     const res = await fetch("/api/my-communities");
     if (!res.ok) throw new Error("Failed to load communities");
+    container.innerHTML = "";
+
 
     const data = await res.json();
     const { me, communities, role_map, notification_map } = data;
@@ -13258,6 +13297,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     Object.assign(NotificationStore.channel, notification_map.channel || {});
 
     
+  
 
     const { communityId, categoryUuid, channelUuid } =
       window.__INITIAL_STATE__ || {};
@@ -13326,6 +13366,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       let avatarHTML = "";
       let extraClass = "";
 
+
       if (community.logo) {
         avatarHTML = `<img src="${community.logo}" alt="${community.name}" loading="lazy" decoding="async">`;
       } else {
@@ -13384,6 +13425,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (avatarEl) avatarEl.src = UserInfo.avatar;
         if (usernameEl) usernameEl.textContent = UserInfo.username;
       }
+
 
     item.addEventListener("click", () => {
       const messagesEl = document.getElementById("messages");
@@ -13445,6 +13487,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       console.log("Community switched → channel state saved", ChannelStore);
     });
+
 
 
 

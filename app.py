@@ -25491,7 +25491,7 @@ def get_reaction_users(message_uuid):
 
     for reaction, user in rows:
         avatar = (
-            f"/{user.profile_pic.lstrip('/')}"
+            f"{user.profile_pic}"
             if user.profile_pic
             else "https://i.pravatar.cc/100?img=3"
         )

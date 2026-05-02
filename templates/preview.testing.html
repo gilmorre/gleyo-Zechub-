@@ -510,9 +510,11 @@ body{
     position: relative;
     top: 12px;
 }
+#activeCommunityName.community-name-chat.skl:after {
+  animation: none;
+}
 
-
-#activeCommunityName.community-name-chat {
+#activeCommunityName.community-name-chat.skl {
   font-weight: bold;
   font-size: 18px;
   min-width: 0;
@@ -520,6 +522,10 @@ body{
   max-width: 222px !important;
   white-space: nowrap;
   overflow: hidden;
+  height: auto !important;
+  animation: none;
+  border-radius: 0 !important;
+  background-color: transparent;
   text-overflow: ellipsis;
   padding: 12px 0;
 }
@@ -671,10 +677,7 @@ body{
   font-weight: 400;
 }
 
-#activeCommunityName.community-name-chat {
-  font-size: 18px;
-  font-weight: 700;
-}
+
 
 .channel {
   font-size: 15px;
@@ -5021,7 +5024,7 @@ audio, .audio-bar {
 .logo-communities img {
   width: 100%;
   height: 100%;
-  background: #646363;
+  background: var(--bg-hover);
   object-fit: cover;
 }
 
@@ -5038,18 +5041,24 @@ audio, .audio-bar {
   justify-content: center !important;
 }
 
-.community-name-chat.skl  {
-  width: 50%;
-  height: 20px !important
+#activeCommunityName.community-name-chat  {
+  width: 70% !important;
+  border-radius: 10px;
+  height: 20px 
 }
 
-.skeleton-avatar, .community-name-chat.skl {
+.skeleton-avatar, #activeCommunityName.community-name-chat{
     background: var(--bg-hover);
   overflow: hidden;
   position: relative
 }
+#activeCommunityName.community-name-chat.skii:after {
+  background: transparent;
+  transform: translateX(0);
+  animation: none;
+}
 
-.skeleton-avatar::after, .community-name-chat.skl {
+.skeleton-avatar::after, #activeCommunityName.community-name-chat:after {
   content: "";
   position: absolute;
   inset: 0;
@@ -6213,11 +6222,11 @@ audio, .audio-bar {
       <div style="display: flex; gap: 7px;" class="chat-comm-con">
             <div
               id="activeCommunityName"
-              class="community-name-chat skl"
+              class="community-name-chat"
               style="cursor: pointer; position: relative;"
             ></div>
 
-            <span id="is_verified">
+            <span id="is_verified" style="display: none;">
 
               <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="19" height="19" class="chat-for-svg">
               <path 
@@ -7707,6 +7716,17 @@ function CloseSearchbutton() {
 
   
 
+function getMyCommunityRole(communityId) {
+  const role = CommunityRoleMap[communityId];
+
+  const community = COMMUNITIES.find(c => c.id === communityId);
+
+  if (community && community.creator_id === UserInfo.userid) {
+    return "creator"; // 🔥 OVERRIDE
+  }
+
+  return role || "member";
+}
 
 
 function showReactionPopup(wrapper) {
@@ -10380,7 +10400,7 @@ function renderReactedUsers(users) {
     row.className = "reacted-user";
 
     row.innerHTML = `
-      <img class="reacted-user-avatar" src="${user.avatar}">
+      <img class="reacted-user-avatar" src="${normalizeAvatar(user.avatar) || ''}">
       <div class="reacted-user-name">${user.name}</div>
     `;
 
@@ -11037,11 +11057,17 @@ function getActiveChatKey() {
 function normalizeAvatar(url) {
   if (!url) return null;
 
-  // remove leading slash ONLY if it's like "/https..."
+  // If it's already a full URL → return as-is
+  if (url.startsWith("http://") || url.startsWith("https://")) {
+    return url;
+  }
+
+  // Fix weird case: "/https://..."
   if (url.startsWith("/http")) {
     return url.slice(1);
   }
 
+  // Otherwise treat as relative (optional depending on your setup)
   return url;
 }
 
@@ -12718,7 +12744,6 @@ function ClassMobOpenChat() {
 
     });
   }
-
   if (!backButtonBound) {
     backButtonBound = true;
 
@@ -12726,12 +12751,14 @@ function ClassMobOpenChat() {
       if (!e.target.closest(".backchatBtn")) return;
 
       if (window.innerWidth <= 991) {
-        document
-          .querySelector(".all-container")
-          ?.classList.remove("hide");
-        document
-          .querySelector(".chat-panel")
-          ?.classList.remove("active");
+        document.querySelector(".all-container")?.classList.remove("hide");
+        document.querySelector(".chat-panel")?.classList.remove("active");
+
+        // ✅ JUST HIDE (no delete)
+        const btn = document.getElementById("scroll-down-btn");
+        if (btn) {
+          btn.classList.remove("btn-visible", "btn-entering");
+        }
       }
     });
   }
@@ -13051,7 +13078,7 @@ function updateActiveCommunitySidebar(community) {
   const nameEl = document.getElementById("activeCommunityName");
   const membersEl = document.getElementById("activeCommunityMembers");
   const verifiedEl = document.getElementById("is_verified");
-  nameEl.classList.remove("skl")
+  nameEl.classList.add("skl")
   // ✅ NAME
   nameEl.textContent = community.name;
 
@@ -13225,9 +13252,6 @@ const UserInfo = {
   userid: null
 };
 
-function getMyCommunityRole(communityId) {
-  return CommunityRoleMap[communityId] || "member";
-}
 
 function getEffectiveNotificationLevel({
   communityId,
@@ -20916,7 +20940,7 @@ function enableSwipe(wrapper) {
 function canDeleteMessage(wrapper) {
   if (!wrapper) return false;
 
-  const myRole = getMyCommunityRole(CurrentActiveChat.communityId); // admin | member
+  const myRole = getMyCommunityRole(CurrentActiveChat.communityId); 
   const isSentByMe = wrapper.dataset.msgSent === "true";
 
   const senderRole = wrapper.dataset.senderRole; // admin | member
@@ -20925,7 +20949,6 @@ function canDeleteMessage(wrapper) {
   // 1️⃣ Message owner (always)
   if (isSentByMe) return true;
 
-  // 2️⃣ Community creator (can delete anyone)
   if (myRole === "creator") return true;
 
   // 3️⃣ Admin rules
@@ -20959,7 +20982,6 @@ function applyMessageOwnershipToPopup(wrapper) {
     editItem.style.display = isSentByMe ? "flex" : "none";
   }
 
-  // 🔥 DELETE — new logic
   if (deleteItem) {
     deleteItem.style.display =
       canDeleteMessage(wrapper) ? "flex" : "none";

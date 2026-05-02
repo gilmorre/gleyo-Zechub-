@@ -151,6 +151,7 @@ document.addEventListener("DOMContentLoaded", () => {
   --border: #cfcfcf;
   --bg-hover: #dcdcdc;
   --border-react: #eeeeee;
+  --bg-chat-react-pops: #232336;
   --bg-hover-react: #ebeaea;
   --bg-hover-react-hover: #f1f1f1;
   --text: #111;
@@ -165,7 +166,8 @@ body.dark {
   --bg-first-child-side: #181827;
   --bg-first-child-side-main: #181827;
   --bg-sidebar: #1e1e2f;
-  --bg-chat: #232336;
+  --bg-chat: #2323365874;
+  --bg-chat-react-pops: #2323368d;
   --card-background: #181826;
   --bg-input: #1b1b29;
   --bg-emoji: rgb(45, 45, 73);
@@ -247,6 +249,24 @@ body.open {
 
 .message-wrapper {
   background-color: var(--bg-first-child-side-main);
+}
+
+.init-settings-content {
+  background: var(--card-bg)
+}
+#categoryPage, .the-main-conduss {
+  background-color: var(--card-background);
+}
+  .stmmert {
+    padding: 0 !important;
+  }
+
+
+@media (max-width: 768px) {
+
+  #categoryPage, .the-main-conduss, .confi-page-container, .confi-pages-head, .init-settings-content, .stmmert, .confi-pages-head {
+    background-color: var(--bg-first-child-side-main) !important;
+  }
 }
 
 
@@ -504,7 +524,32 @@ body{
 
 }
 
+@keyframes shimmer {
+  to { transform: translateX(100%); }
+}
 
+.skel-line, .sklet-cha {
+  display: block;
+  height: 12px;
+  border-radius: 6px;
+  background: var(--bg-hover);
+  position: relative;
+  overflow: hidden;
+}
+
+.skel-line::after, .sklet-cha::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255,255,255,0.25) 50%,
+    transparent 100%
+  );
+  transform: translateX(-100%);
+  animation: shimmer 1.2s infinite;
+}
 
 .chat-for-svg{
     position: relative;
@@ -911,9 +956,9 @@ body{
 
 .active-comm-image {
     width: 100%;
-    height: 12%;
-    border-bottom-left-radius: 10px;
-    border-bottom-right-radius: 10px;
+    height: 120px;
+    padding: 2px 5px;
+    padding-top: 5px !important;
     overflow: hidden; 
 }
 
@@ -921,7 +966,8 @@ body{
 .active-comm-image img{
     width: 100%;
     height: 100%;
-    object-fit: cover; 
+    object-fit: cover;
+    border-radius: 15px;
     display: block;
 }
 
@@ -1286,13 +1332,43 @@ body {
   transition: background .25s ease, color .25s ease;
 }
 
-.settings-page {
-  padding: 20px;
-  max-width: 500px;
-  margin: auto;
+
+  .settings-page {
+    display: none;
+  }
+
+@media (max-width: 992px) {
+
+  .settings-page {
+    position: fixed;
+    inset: 0;
+    flex-direction: column;
+    background-color: var(--card-background);
+    z-index: 999;
+    height: 100dvh;
+    overflow: hidden; /* ✅ Keep this — traps scroll inside */
+  }
+
+  .settings-page header {
+    height: 64px;
+    min-height: 64px;
+    flex-shrink: 0;
+    /* ✅ Prevent header from shrinking or growing */
+    flex-grow: 0;
+  }
+
+  .settings-content-mmgge {
+    flex: 1;
+    min-height: 0; /* 🔥 THIS is the missing piece in flex columns */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 20px;
+    box-sizing: border-box;
+  }
+
 }
 
-/* HEADER */
+
 header {
   display: flex;
   align-items: center;
@@ -1558,7 +1634,6 @@ input:checked + .slider::before {
   justify-content: space-between;
   display: flex;
   align-items: center;
-  border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
 }
@@ -1600,6 +1675,28 @@ input:checked + .slider::before {
   font-size: 13px;
   color: var(--subtext);
   font-weight: 600;
+}
+
+.skeleton-avatar-uut {
+  width: 100%;
+  height: 100%;
+  border-radius: 15px;
+  background: var(--bg-hover);
+  position: relative;
+  overflow: hidden;
+}
+.skeleton-avatar-uut::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255,255,255,0.25) 50%,
+    transparent 100%
+  );
+  transform: translateX(-100%);
+  animation: shimmer 1.2s infinite;
 }
 
 .confi-input, .cr-input, .init-input-field {
@@ -1692,89 +1789,110 @@ input:checked + .slider::before {
 /* =====================
    MODAL
 ===================== */
+/* =====================
+   OVERLAY
+===================== */
 .confi-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.55);
+  background: var(--overlay-bg);
+  display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 999;
-  animation: fadeIn .25s ease;
+  z-index: 9999;
 }
 
-.confi-modal {
-  background: var(--card-bg);
-  padding: 25px;
-  width: 90%;
-  max-width: 420px;
-  border-radius: 16px;
-  border: 1px solid var(--border);
-  animation: popIn .25s ease;
+/* =====================
+   MODAL
+===================== */
+
+
+/* Light mode enhancement */
+body.light .confi-modal {
+  backdrop-filter: blur(14px) saturate(160%) contrast(110%) brightness(105%);
 }
 
+/* =====================
+   ANIMATION
+===================== */
 @keyframes popIn {
-  from { opacity: 0; transform: scale(.92); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    transform: scale(0.96);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
+/* =====================
+   TEXT
+===================== */
 .confi-modal-title {
-  font-size: 20px;
-  font-weight: 700;
-  margin-bottom: 10px;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 6px;
 }
 
 .confi-modal-text {
-  color: var(--subtext);
   font-size: 14px;
-  line-height: 1.5;
-  margin-bottom: 25px;
+  color: var(--subtext);
+  line-height: 1.45;
+  margin-bottom: 16px;
 }
 
+/* =====================
+   ACTIONS
+===================== */
 .confi-modal-actions {
   display: flex;
-  justify-content: flex-end;
   gap: 10px;
 }
 
+/* Base button */
 .confi-modal-cancel,
 .confi-modal-delete {
-  padding: 8px 22px;
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 13px;
   font-size: 14px;
-  font-weight: 550;
-  border-radius: 10px;
+  font-weight: 500;
   cursor: pointer;
-  transition: .18s ease;
+  transition: background 0.15s ease, transform 0.05s ease;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* subtle clean cancel button */
+/* Click press effect */
+.confi-modal-cancel:active,
+.confi-modal-delete:active {
+  transform: scale(0.97);
+}
+
+/* Cancel */
 .confi-modal-cancel {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--subtext);
-}
-.confi-modal-cancel:hover {
+  background: var(--reply-back);
   color: var(--text);
+  border: 0.8px solid var(--border);
 }
 
-/* strong red delete button */
-.confi-modal-delete {
-  background-color: #d63b3b;
+.confi-modal-cancel:hover {
+  filter: brightness(0.96);
+}
 
+/* Delete */
+.confi-modal-delete {
+  background: var(--danger);
   color: #fff;
   border: none;
-  box-shadow: 0 0 0 0 rgba(255, 100, 100, 0);
-}
-.confi-modal-delete:hover {
-  opacity: 0.9;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(255, 100, 100, 0.25);
 }
 
-.confi-modal-delete:hover { opacity: .85; }
- 
+.confi-modal-delete:hover {
+  filter: brightness(0.92);
+}
 
 
 
@@ -2029,6 +2147,7 @@ z-index: 999;
 
 .cr-header {
   display:flex;
+  border-bottom: 0.9px solid var(--border) !important;
   align-items:center;
   justify-content:space-between;
   padding-bottom:18px;
@@ -2220,6 +2339,137 @@ z-index: 999;
   display: block;
 }
 
+/* ===============================
+   OVERLAY
+=============================== */
+.channel-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--overlay-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+
+/* ===============================
+   MODAL BOX
+=============================== */
+.channel-modal {
+  width: 97%;
+  max-width: 390px;
+
+  border-radius: 30px;
+  padding: 22px 20px;
+
+  box-shadow: var(--box-shadow);
+  background: var(--lighterness);
+
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+
+  border: 0.8px solid var(--border);
+
+  animation: popIn 0.18s ease-out;
+}
+
+/* Light mode enhanced glass */
+body.light .channel-modal {
+  backdrop-filter: blur(14px) saturate(160%) contrast(110%) brightness(105%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%) contrast(110%) brightness(105%);
+}
+
+
+/* ===============================
+   ANIMATION
+=============================== */
+@keyframes popIn {
+  from {
+    transform: scale(0.96);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+
+/* ===============================
+   TEXT
+=============================== */
+.channel-modal-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.channel-modal-text {
+  font-size: 14px;
+  color: var(--subtext);
+  line-height: 1.45;
+  margin-bottom: 16px;
+}
+
+
+/* ===============================
+   ACTIONS
+=============================== */
+.channel-modal-actions {
+  display: flex;
+  gap: 10px;
+}
+
+/* make both buttons equal width */
+.channel-modal-cancel,
+.channel-modal-delete {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 10px;
+
+  font-size: 14px;
+  font-weight: 500;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.05s ease;
+}
+
+/* press effect */
+.channel-modal-cancel:active,
+.channel-modal-delete:active {
+  transform: scale(0.97);
+}
+
+
+/* cancel */
+.channel-modal-cancel {
+  background: var(--reply-back);
+  color: var(--text);
+  border: none;
+}
+
+.channel-modal-cancel:hover {
+  filter: brightness(0.96);
+}
+
+
+/* delete */
+.channel-modal-delete {
+  background: var(--danger);
+  color: #fff;
+  border: none;
+}
+
+.channel-modal-delete:hover {
+  filter: brightness(0.92);
+}
+
 .init-input-field,
 .init-textarea-field {
   background: var(--card-bg);
@@ -2287,86 +2537,6 @@ z-index: 999;
   font-weight: 600;
 }
 
-.channel-modal-overlay {
-  position: fixed;
-  inset: 0;
-  align-items: center;
-  justify-content: center;
-  display: flex;  
-  z-index: 999;
-  animation: fadeIn .25s ease;
-}
-
-.channel-modal {
-  background: var(--card-bg);
-  padding: 25px;
-  width: 90%;
-  max-width: 420px;
-  border-radius: 16px;
-  border: 1px solid var(--border);
-  animation: popIn .25s ease;
-}
-
-@keyframes popIn {
-  from { opacity: 0; transform: scale(.92); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-.channel-modal-title {
-  font-size: 20px;
-  font-weight: 700;
-  margin-bottom: 10px;
-}
-
-.channel-modal-text {
-  color: var(--subtext);
-  font-size: 14px;
-  line-height: 1.5;
-  margin-bottom: 25px;
-}
-
-.channel-modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-}
-
-.channel-modal-cancel,
-.channel-modal-delete {
-  padding: 8px 22px;
-  font-size: 14px;
-  font-weight: 550;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: .18s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* cancel */
-.channel-modal-cancel {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--subtext);
-}
-.channel-modal-cancel:hover {
-  color: var(--text);
-}
-
-/* delete */
-.channel-modal-delete {
-  background-color: #d63b3b;
-  color: #fff;
-  border: none;
-  box-shadow: 0 0 0 0 rgba(255, 100, 100, 0);
-}
-.channel-modal-delete:hover {
-  opacity: 0.9;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(255, 100, 100, 0.25);
-}
-
 .init-slowmode-value {
   color: var(--subtext);
 }
@@ -2400,7 +2570,7 @@ z-index: 999;
   cursor: pointer;
   opacity: 0;
   pointer-events: none;
-  z-index: 9999;
+  z-index: 9;
   background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(6px);
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -4349,16 +4519,12 @@ audio, .audio-bar {
   min-width: 100% !important;
 }
 
-.cr-modal, .confi-page, .settings-page {
+.cr-modal, .confi-page {
   height: 100dvh !important;
   min-height: 100dvh !important;
   max-height: 100dvh !important;
 }
 
-.cr-modal {
-  padding: 20px 13px !important;
-
-}
 
 
 
@@ -4674,7 +4840,7 @@ audio, .audio-bar {
       justify-content: center;
       z-index: 9999;
     }
-   .delete-modal {
+   .delete-modal, .confi-modal {
       width: 97%;
       max-width: 390px;
 
@@ -4740,7 +4906,7 @@ audio, .audio-bar {
        MESSAGE PREVIEW
     =============================== */
     .delete-preview {
-      background: var(--reply-back-del);
+      background: var(--bg-first-child-side-main);
       border: 0.9px solid var(--border);
       border-radius: 20px;
       padding: 0 4px;
@@ -5042,9 +5208,9 @@ audio, .audio-bar {
 }
 
 #activeCommunityName.community-name-chat  {
-  width: 70% !important;
+  width: 80% !important;
   border-radius: 10px;
-  height: 20px 
+  height: 32px 
 }
 
 .skeleton-avatar, #activeCommunityName.community-name-chat{
@@ -5418,7 +5584,22 @@ audio, .audio-bar {
   line-height: 1.5;
 }
 
+.close-ticket-btn {
+  margin-top: 50px;
+  padding: 12px 20px;
+  border-radius: 17px;
+  border: 0.9px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
 
+.close-ticket-btn:hover {
+  background: var(--bg-hover);
+}
 
 .user-tiker-opener-3432123, .admins-456215323, .inject-ui-ticket, .admin-tickets {
   padding-top: 12px;
@@ -5819,6 +6000,8 @@ audio, .audio-bar {
   border-color: rgba(255, 0, 0, 0.3);
 }
 
+
+
 .modal-btn {
   padding: 6px 12px;
   border-radius: 8px;
@@ -6212,11 +6395,7 @@ audio, .audio-bar {
 
 <div class="sidebar-community-chat">
   <div class="active-comm-image" id="activeCommunityImageWrapper" style="flex-shrink: 0;">
-    <img
-      id="activeCommunityImage"
-      class="selector-image"
-      alt=""
-    />
+    <div class="skeleton-avatar-uut"></div>
   </div>
   <div style="padding: 12px; box-sizing: border-box; overflow-y: auto;">
       <div style="display: flex; gap: 7px;" class="chat-comm-con">
@@ -6251,56 +6430,43 @@ audio, .audio-bar {
       </div>
 
       <div class="community-stats">
-        <span id="activeCommunityMembers" class="stat-item"></span>
+        <span id="activeCommunityMembers" class="stat-item"><span class="skel-line" style="width:55%;"></span></span>
       </div>
 
-      <div id="inject-wrapper-list">
+<div id="inject-wrapper-list">
 
-      <div class="channel-section">
-        <div class="section-header category-sec" data-section="info">
-          <span class="arrow">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"  fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
-              <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-            </svg>
+  <!-- Section 1 -->
+  <div class="channel-section">
+    <div class="section-header category-sec">
+      <span class="skel-line" style="width:60%; height:14px;"></span>
+    </div>
+    <div class="channel-group">
+      <div class="channel sklet-cha" style="width:75%;"></div>
+      <div class="channel sklet-cha" style="width:85%;"></div>
+    </div>
+  </div>
 
-          </span>ℹ️ Information
-        </div>
-        <div class="channel-group" id="section-info">
-          <div class="channel"># announcements</div>
-          <div class="channel"># rules</div>
-        </div>
-      </div>
+  <!-- Section 2 -->
+  <div class="channel-section">
+    <div class="section-header category-sec">
+      <span class="skel-line" style="width:65%; height:14px;"></span>
+    </div>
+    <div class="channel-group">
+      <div class="channel sklet-cha" style="width:70%;"></div>
+    </div>
+  </div>
 
-      <div class="channel-section">
-        <div class="section-header category-sec" data-section="text">
-          <span class="arrow">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
-              <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-            </svg>
-          </span> Text Channels
-        </div>
-        <div class="channel-group" id="section-text">
-          <div class="channel active"># general</div>
-        </div>
-      </div>
+  <!-- Section 3 -->
+  <div class="channel-section">
+    <div class="section-header category-sec">
+      <span class="skel-line" style="width:50%; height:14px;"></span>
+    </div>
+    <div class="channel-group">
+      <div class="channel sklet-cha"></div>
+    </div>
+  </div>
 
-      <div class="channel-section">
-        <div class="section-header category-sec" data-section="updates">
-          <span class="arrow">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-            </svg>
-          </span>
-          Updates
-        </div>
-
-        <div class="channel-group" id="section-updates">
-          <div class="channel"># new quest</div>
-        </div>
-      </div>
-
-
-      </div>
+</div>
 
 
     
@@ -7140,7 +7306,7 @@ audio, .audio-bar {
         This action cannot be undone.
       </div>
 
-      <!-- 🔥 MESSAGE PREVIEW -->
+      <!-- 🔥 MESSAGE PREVIEW -->  
       <div class="delete-preview">
 
       </div>
@@ -7716,17 +7882,6 @@ function CloseSearchbutton() {
 
   
 
-function getMyCommunityRole(communityId) {
-  const role = CommunityRoleMap[communityId];
-
-  const community = COMMUNITIES.find(c => c.id === communityId);
-
-  if (community && community.creator_id === UserInfo.userid) {
-    return "creator"; // 🔥 OVERRIDE
-  }
-
-  return role || "member";
-}
 
 
 function showReactionPopup(wrapper) {
@@ -8208,8 +8363,9 @@ reactionPopupMessage
   box-shadow: 0 4px 18px rgba(0,0,0,0.4);
   width: 100%;
   height: 70%;
-  background: var(--bg-chat);
-  border: var(--bg-emoji-border);
+  backdrop-filter: blur(9px);
+  background: var(--bg-chat-react-pops) !important;
+  border-color: var(--bg-emoji-border);
   border-radius: 25px 25px 0 0;
   z-index: 999;
   border-radius: 25px;
@@ -8520,11 +8676,11 @@ reactionPopupMessage
 
  
 
-<div class="cr-modal" style="display: none; background-color: var(--card-background); ;">
+<div class="cr-modal stmmert" style="display: none; background-color: var(--card-background);">
 
-  <div class="cr-header {% if not is_mobile %}algn-center{% endif %}">
+  <div class="cr-header {% if not is_mobile %}algn-center{% endif %}" style="padding: 0 20px !important; height: 64px">
     {% if is_mobile %}
-    <button class="cr-icon-btn" id="cr-closeBtn" style="background-color: transparent; outline: none; border: none; display: flex;  align-item: center; justify-content: space-between;">
+    <button class="cr-icon-btn" id="cr-closeBtn" style="background-color: transparent; outline: none; border: none; display: flex;  align-items: center; justify-content: space-between;">
       <svg viewBox="0 0 24 24" width="20" height="20"
           fill="none" xmlns="http://www.w3.org/2000/svg"
           style="position: relative; top: 2px;">
@@ -8544,7 +8700,7 @@ reactionPopupMessage
    
   </div>
 
-  <div class="cr-panel" style="padding-top: 10px;">
+  <div class="cr-panel" style="padding: 20px !important;">
 
     <div class="cr-field">
       <div class="cr-label">Channel Name</div>
@@ -8585,7 +8741,7 @@ reactionPopupMessage
   </div>
 
   <!-- FOOTER -->
-  <div class="cr-footer">
+  <div class="cr-footer"  style="padding: 0 20px !important;">
     <button class="cr-btn" id="cr-createBtn">Create</button>
   </div>
 
@@ -8733,7 +8889,7 @@ reactionPopupMessage
 
         <div class="channel-modal-text">
           Are you sure you want to delete this channel?<br>
-          <span style="color:var(--danger); font-weight:550">
+          <span style="color:var(--danger); font-weight:550; font-size: 13px !important">
             This action cannot be undone.
           </span>
         </div>
@@ -8768,7 +8924,7 @@ reactionPopupMessage
       <div></div>
     </div>
 
-    <div class="init-settings-content" style="overflow-y: auto; background-color: var(--card-bg) !important;">
+    <div class="init-settings-content" style="overflow-y: auto;">
 
       <label class="init-field-label">Channel Name</label>
       <input type="text" class="init-input-field" id="customise-channel" placeholder="announce">
@@ -9020,10 +9176,11 @@ reactionPopupMessage
  
 
 .confi-pages-head {
+  background-color: var(--system-header);
+
   height: 60px;
   display: flex;
   align-items: center;
-  background-color: var(--system-header) !important;
   padding-top: 10px !important;
   padding-bottom: 10px !important;
   padding: 0 24px;
@@ -9057,16 +9214,16 @@ reactionPopupMessage
 
 
 
-<div style="display: none;  background-color: var(--card-background)" class="show-editcategoty" data-click-safe>
+<div style="display: none; " class="show-editcategoty" data-click-safe class="the-main-conduss">
 
 
       
-  <div id="categoryPage" class="confi-page" style="box-sizing: border-box !important; background-color: var(--card-background);  overflow: hidden !important; overflow-y: hidden !important; display: flex; flex-direction: column;">
+  <div id="categoryPage" class="confi-page" style="box-sizing: border-box !important;  overflow: hidden !important; overflow-y: hidden !important; display: flex; flex-direction: column;">
 
     <header class="confi-pages-head" style="position: sticky; top: 0;">
 
       {% if is_mobile %}
-      <button class="confi-left" style="display: flex; align-items: center; justify-content: center;color: var(--text); background-color: transparent; ">
+      <button class="confi-left" style="display: flex; align-items: center; justify-content: center;color: var(--text); background-color: transparent; border: 1px solid transparent ">
         <svg viewBox="0 0 24 24" width="20" height="20"
             fill="none" xmlns="http://www.w3.org/2000/svg"
             style="position: relative; top: 2px;">
@@ -9088,7 +9245,7 @@ reactionPopupMessage
 
     <div class="confi-page-container" style="overflow-y: auto !important; overflow: auto; display: flex; flex-direction: column; ">
 
-      <div class="confi-margin-container" style="background-color: var(--card-background)">
+      <div class="confi-margin-container">
 
         <div class="confi-margin-contain">
           <div class="confi-label">Category Name</div>
@@ -9197,7 +9354,7 @@ reactionPopupMessage
       <div id="confi-modal-title" class="confi-modal-title">Delete Category?</div>
       <div class="confi-modal-text">
       Are you sure you want to delete this category?<br>
-      <span style="color:var(--danger); font-weight:550">
+      <span style="color:var(--danger); font-weight:550; font-size: 13px !important">
           All channels under this category will uncategorized.
       </span>
       </div>
@@ -9367,9 +9524,9 @@ reactionPopupMessage
 </div>
 
 
-<div class="settings-page" id="settingsPage" style="display: none; background-color: var(--card-background)">
+<div class="settings-page" id="settingsPage" style="background-color: var(--card-background)">
 
-  <header style="display: flex; justify-content: space-between; align-items: center;">
+  <header style="display: flex; justify-content: space-between; align-items: center; border-bottom: 0.9px solid var(--border); height: 64px; padding: 0 20px">
     {% if is_mobile %}
       <div id="backBtnNotfi" style="display:flex; align-items:center; gap:6px; cursor:pointer;">
       <svg xmlns="http://www.w3.org/2000/svg"
@@ -9394,6 +9551,8 @@ reactionPopupMessage
     </div>
     <div></div>
   </header>
+
+  <div style="padding: 20px;" class="settings-content-mmgge">
     <div class="card" id="muteCard">
       <div class="section-label" id="replace-withcurrentcommunity">Ambire Wallet Community</div>
 
@@ -9441,11 +9600,11 @@ reactionPopupMessage
     </div>
 
     <div style="padding-top: 10px;;">
-      <div class="section-label">Community Notification Settings</div>
+      <div class="section-label">Notification Settings</div>
 
       <div class="card">
         <label class="radio-row">
-          <input type="radio" name="notif" id="all-noti">
+          <input type="radio" name="notif" value="all" id="all-noti">
           <div>
             <div class="radio-title">All Messages</div>
             <div class="radio-sub">Receive all updates, alerts, and messages.</div>
@@ -9453,7 +9612,7 @@ reactionPopupMessage
         </label>
 
         <label class="radio-row">
-          <input type="radio" name="notif" id="mentioned-noti">
+          <input type="radio" name="notif" value="mentions" id="mentioned-noti">
           <div>
             <div class="radio-title">Only Mentions</div>
             <div class="radio-sub">Only get notified when you're mentioned.</div>
@@ -9461,7 +9620,7 @@ reactionPopupMessage
         </label>
 
         <label class="radio-row">
-          <input type="radio" name="notif" id="none-noti">
+          <input type="radio" name="notif"  value="none" id="none-noti">
           <div>
             <div class="radio-title">Nothing</div>
             <div class="radio-sub">No notifications from this community even when mentioned.</div>
@@ -9496,6 +9655,7 @@ reactionPopupMessage
       </div>
       <button id="themeToggle">Toggle Theme</button>  
     </div>
+  </div>
 
 
 </div>
@@ -10741,16 +10901,19 @@ function onSocketReady(cb) {
 .ticket-entry {
   display: flex;
   align-items: center;
+  color: #F97316; 
   gap: 10px;
   padding: 10px 12px;
+  border-radius: 12px;
   cursor: pointer;
   opacity: 0.85;
 }
 
 .ticket-entry:hover {
-  background: var(--hover-bg, rgba(255,255,255,0.06));
+  background: var(--bg-hover);
   opacity: 1;
 }
+
 
 .ticket-icon svg {
   width: 18px;
@@ -12943,19 +13106,14 @@ function isTicketAvailable(community) {
 
 
 const OpenTicket=`
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path
-      d="M10 8V7M10 12.5V11.5M10 17V16M5.2 4H18.8C19.9201 4 20.4802 4 20.908 4.21799C21.2843 4.40973 21.5903 4.71569 21.782 5.09202C22 5.51984 22 6.0799 22 7.2V8.5C20.067 8.5 18.5 10.067 18.5 12C18.5 13.933 20.067 15.5 22 15.5V16.8C22 17.9201 22 18.4802 21.782 18.908C21.5903 19.2843 21.2843 19.5903 20.908 19.782C20.4802 20 19.9201 20 18.8 20H5.2C4.0799 20 3.51984 20 3.09202 19.782C2.71569 19.5903 2.40973 19.2843 2.21799 18.908C2 18.4802 2 17.9201 2 16.8V15.5C3.933 15.5 5.5 13.933 5.5 12C5.5 10.067 3.933 8.5 2 8.5V7.2C2 6.0799 2 5.51984 2.21799 5.09202C2.40973 4.71569 2.71569 4.40973 3.09202 4.21799C3.51984 4 4.0799 4 5.2 4Z"
-      stroke="currentColor" 
-      stroke-width="2"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    />
-  </svg>
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
+     width="16"
+     height="16">
+      <path fill-rule="evenodd" clip-rule="evenodd"
+        d="M14.0079 19.0029L14.0137 17C14.0137 16.4477 14.4625 16 15.0162 16C15.5698 16 16.0187 16.4477 16.0187 17V18.9765C16.0187 19.458 16.0187 19.6988 16.1731 19.8464C16.3275 19.9941 16.5637 19.984 17.0362 19.964C18.8991 19.8852 20.0437 19.6332 20.8504 18.8284C21.6591 18.0218 21.911 16.8766 21.9894 15.0105C22.005 14.6405 22.0128 14.4554 21.9437 14.332C21.8746 14.2085 21.5987 14.0545 21.0469 13.7463C20.4341 13.4041 20.0199 12.7503 20.0199 12C20.0199 11.2497 20.4341 10.5959 21.0469 10.2537C21.5987 9.94554 21.8746 9.79147 21.9437 9.66803C22.0128 9.54458 22.005 9.35954 21.9894 8.98947C21.911 7.12339 21.6591 5.97823 20.8504 5.17157C19.9727 4.29604 18.6952 4.0748 16.5278 4.0189C16.2482 4.01169 16.0187 4.23718 16.0187 4.51618V7C16.0187 7.55228 15.5698 8 15.0162 8C14.4625 8 14.0137 7.55228 14.0137 7L14.0064 4.49855C14.0056 4.22298 13.7814 4 13.5052 4H9.99502C6.21439 4 4.32407 4 3.14958 5.17157C2.34091 5.97823 2.08903 7.12339 2.01058 8.98947C1.99502 9.35954 1.98724 9.54458 2.05634 9.66802C2.12545 9.79147 2.40133 9.94554 2.95308 10.2537C3.56586 10.5959 3.98007 11.2497 3.98007 12C3.98007 12.7503 3.56586 13.4041 2.95308 13.7463C2.40133 14.0545 2.12545 14.2085 2.05634 14.332C1.98724 14.4554 1.99502 14.6405 2.01058 15.0105C2.08903 16.8766 2.34091 18.0218 3.14958 18.8284C4.32407 20 6.21438 20 9.99502 20H13.0054C13.4767 20 13.7124 20 13.8591 19.8541C14.0058 19.7081 14.0065 19.4731 14.0079 19.0029ZM16.0187 13V11C16.0187 10.4477 15.5698 10 15.0162 10C14.4625 10 14.0137 10.4477 14.0137 11V13C14.0137 13.5523 14.4625 14 15.0162 14C15.5698 14 16.0187 13.5523 16.0187 13Z"
+        fill="currentColor"
+      />
+    </svg>
 
 `
 
@@ -13074,41 +13232,43 @@ function renderCommunitySidebar(community) {
 
 function updateActiveCommunitySidebar(community) {
   const imageWrapper = document.getElementById("activeCommunityImageWrapper");
-  const imageEl = document.getElementById("activeCommunityImage");
   const nameEl = document.getElementById("activeCommunityName");
   const membersEl = document.getElementById("activeCommunityMembers");
   const verifiedEl = document.getElementById("is_verified");
-  nameEl.classList.add("skl")
+
   // ✅ NAME
   nameEl.textContent = community.name;
-
-
   nameEl.dataset.memberCount = community.member_count ?? "";
-
-  // (optional, but clean)
   nameEl.dataset.communitySlug = community.slug ?? "";
 
-  // ✅ MEMBERS TEXT (UI ONLY)
+  nameEl.classList.add("skl")
+
+
+  // ✅ MEMBERS
   membersEl.textContent = `Members · ${
     community.member_count?.toLocaleString() || "—"
   }`;
 
-  // ✅ LOGO
+  // ✅ IMAGE (recreate instead of updating src)
+  imageWrapper.innerHTML = ""; // wipe everything
+
   if (community.logo) {
+    const img = document.createElement("img");
+    img.id = "activeCommunityImage";
+    img.className = "selector-image";
+    img.src = community.logo;
+    img.alt = community.name;
+
+    imageWrapper.appendChild(img);
     imageWrapper.style.display = "";
-    imageEl.src = community.logo;
-    imageEl.alt = community.name;
   } else {
     imageWrapper.style.display = "none";
-    imageEl.src = "";
-    imageEl.alt = "";
   }
 
   // ✅ VERIFIED
   verifiedEl.style.display =
     community.is_paid === true ? "inline-flex" : "none";
 }
-
 
 function canManageStructure(communityId) {
   const role = getMyCommunityRole(communityId);
@@ -13251,6 +13411,22 @@ const UserInfo = {
   avatar: null,
   userid: null
 };
+
+function getMyCommunityRole(communityId) {
+  return CommunityRoleMap[communityId] || "member";
+}
+
+function DelgetMyCommunityRole(communityId) {
+  const role = CommunityRoleMap[communityId];
+
+  const community = COMMUNITIES.find(c => c.id === communityId);
+
+  if (community && community.creator_id === UserInfo.userid) {
+    return "creator";
+  }
+
+  return role || "member";
+}
 
 
 function getEffectiveNotificationLevel({
@@ -13708,7 +13884,15 @@ function renderTicketWelcome() {
 
   root.innerHTML = `
     <div class="tickets-welcome">
-      <h2>🎫 Support Tickets</h2>
+      <h2 style="font-size: 20px; display: flex; align-items: center; justify-content: center; gap: 7px">
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
+     width="20" style="margin-right: 2px;"
+     height="20">
+      <path fill-rule="evenodd" clip-rule="evenodd"
+        d="M14.0079 19.0029L14.0137 17C14.0137 16.4477 14.4625 16 15.0162 16C15.5698 16 16.0187 16.4477 16.0187 17V18.9765C16.0187 19.458 16.0187 19.6988 16.1731 19.8464C16.3275 19.9941 16.5637 19.984 17.0362 19.964C18.8991 19.8852 20.0437 19.6332 20.8504 18.8284C21.6591 18.0218 21.911 16.8766 21.9894 15.0105C22.005 14.6405 22.0128 14.4554 21.9437 14.332C21.8746 14.2085 21.5987 14.0545 21.0469 13.7463C20.4341 13.4041 20.0199 12.7503 20.0199 12C20.0199 11.2497 20.4341 10.5959 21.0469 10.2537C21.5987 9.94554 21.8746 9.79147 21.9437 9.66803C22.0128 9.54458 22.005 9.35954 21.9894 8.98947C21.911 7.12339 21.6591 5.97823 20.8504 5.17157C19.9727 4.29604 18.6952 4.0748 16.5278 4.0189C16.2482 4.01169 16.0187 4.23718 16.0187 4.51618V7C16.0187 7.55228 15.5698 8 15.0162 8C14.4625 8 14.0137 7.55228 14.0137 7L14.0064 4.49855C14.0056 4.22298 13.7814 4 13.5052 4H9.99502C6.21439 4 4.32407 4 3.14958 5.17157C2.34091 5.97823 2.08903 7.12339 2.01058 8.98947C1.99502 9.35954 1.98724 9.54458 2.05634 9.66802C2.12545 9.79147 2.40133 9.94554 2.95308 10.2537C3.56586 10.5959 3.98007 11.2497 3.98007 12C3.98007 12.7503 3.56586 13.4041 2.95308 13.7463C2.40133 14.0545 2.12545 14.2085 2.05634 14.332C1.98724 14.4554 1.99502 14.6405 2.01058 15.0105C2.08903 16.8766 2.34091 18.0218 3.14958 18.8284C4.32407 20 6.21438 20 9.99502 20H13.0054C13.4767 20 13.7124 20 13.8591 19.8541C14.0058 19.7081 14.0065 19.4731 14.0079 19.0029ZM16.0187 13V11C16.0187 10.4477 15.5698 10 15.0162 10C14.4625 10 14.0137 10.4477 14.0137 11V13C14.0137 13.5523 14.4625 14 15.0162 14C15.5698 14 16.0187 13.5523 16.0187 13Z"
+        fill="currentColor"
+      />
+    </svg> Support Tickets</h2>
       <p class="welcome-text">
         Welcome! You haven’t opened any tickets yet.
       </p>
@@ -13731,7 +13915,15 @@ function renderTicketWelcome() {
 function buildAdminEmpty() {
   return `
     <div class="admin-empty" id="admin-empty">
-      <h2>🎫 Ticket Inbox</h2>
+      <h2 style="font-size: 20px; display: flex; align-items: center; justify-content: center; gap: 7px">
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
+     width="20" style="margin-right: 2px;"
+     height="20">
+      <path fill-rule="evenodd" clip-rule="evenodd"
+        d="M14.0079 19.0029L14.0137 17C14.0137 16.4477 14.4625 16 15.0162 16C15.5698 16 16.0187 16.4477 16.0187 17V18.9765C16.0187 19.458 16.0187 19.6988 16.1731 19.8464C16.3275 19.9941 16.5637 19.984 17.0362 19.964C18.8991 19.8852 20.0437 19.6332 20.8504 18.8284C21.6591 18.0218 21.911 16.8766 21.9894 15.0105C22.005 14.6405 22.0128 14.4554 21.9437 14.332C21.8746 14.2085 21.5987 14.0545 21.0469 13.7463C20.4341 13.4041 20.0199 12.7503 20.0199 12C20.0199 11.2497 20.4341 10.5959 21.0469 10.2537C21.5987 9.94554 21.8746 9.79147 21.9437 9.66803C22.0128 9.54458 22.005 9.35954 21.9894 8.98947C21.911 7.12339 21.6591 5.97823 20.8504 5.17157C19.9727 4.29604 18.6952 4.0748 16.5278 4.0189C16.2482 4.01169 16.0187 4.23718 16.0187 4.51618V7C16.0187 7.55228 15.5698 8 15.0162 8C14.4625 8 14.0137 7.55228 14.0137 7L14.0064 4.49855C14.0056 4.22298 13.7814 4 13.5052 4H9.99502C6.21439 4 4.32407 4 3.14958 5.17157C2.34091 5.97823 2.08903 7.12339 2.01058 8.98947C1.99502 9.35954 1.98724 9.54458 2.05634 9.66802C2.12545 9.79147 2.40133 9.94554 2.95308 10.2537C3.56586 10.5959 3.98007 11.2497 3.98007 12C3.98007 12.7503 3.56586 13.4041 2.95308 13.7463C2.40133 14.0545 2.12545 14.2085 2.05634 14.332C1.98724 14.4554 1.99502 14.6405 2.01058 15.0105C2.08903 16.8766 2.34091 18.0218 3.14958 18.8284C4.32407 20 6.21438 20 9.99502 20H13.0054C13.4767 20 13.7124 20 13.8591 19.8541C14.0058 19.7081 14.0065 19.4731 14.0079 19.0029ZM16.0187 13V11C16.0187 10.4477 15.5698 10 15.0162 10C14.4625 10 14.0137 10.4477 14.0137 11V13C14.0137 13.5523 14.4625 14 15.0162 14C15.5698 14 16.0187 13.5523 16.0187 13Z"
+        fill="currentColor"
+      />
+    </svg> Ticket Inbox</h2>
 
       <p class="admin-empty-text">
         Nothing here yet.<br />
@@ -13740,7 +13932,7 @@ function buildAdminEmpty() {
 
 
 
-      <button style="background-color: transparent; border: none; outline: none; border-bottom: var(--text); margin-top: 50px; cursor: pointer !important;" onclick="CloseticketOption(event); cursor: pointer;">Close</button>
+      <button class="close-ticket-btn" onclick="CloseticketOption(event)">Close</button>
     </div>
   `;
 }
@@ -14528,7 +14720,9 @@ communitySearchInput.addEventListener("input", (e) => {
 
 @media (min-width: 992px) {
 
-
+  .settings-page header {
+    flex-shrink: 0;
+  }
   .init-confi-page,
   .cr-modal,
   .subhit-settings-modal,
@@ -14543,6 +14737,8 @@ communitySearchInput.addEventListener("input", (e) => {
     width: 50%;
     max-width: 600px;
     max-height: 80vh;
+
+    flex-direction: column;
 
     padding: 24px;
     overflow: auto;
@@ -14811,7 +15007,6 @@ function bindCommunityBottomSheet() {
 }
 
 
-// OPEN CREATE CHANNEL PANEL LIKE FULL-SCREEN
 const createChannelModal = document.querySelector(".cr-modal");
 
 // MAIN UI ELEMENTS
@@ -14888,6 +15083,15 @@ function openMuteDropdown(){
 
 const allContainered = document.querySelector(".all-container");
 const chatPaneled = document.querySelector(".chat-panel");
+
+function applyRadioState(level) {
+  const radios = document.querySelectorAll('input[name="notif"]');
+
+  radios.forEach(radio => {
+    radio.checked = radio.value === level;
+  });
+}
+
 function hydrateNotificationUIFromScope() {
   const ctx = NotificationScopeContext;
 
@@ -14896,7 +15100,7 @@ function hydrateNotificationUIFromScope() {
 
   if (ctx.scope === "community") {
     data = NotificationStore.community[ctx.communityId] || null;
-    label = "Community Notification Settings";
+    label = "Notification Settings";
   }
 
   if (ctx.scope === "category") {
@@ -14909,21 +15113,11 @@ function hydrateNotificationUIFromScope() {
     label = "Channel Notification Settings";
   }
 
-  // 🐞 DEBUG START
-  console.group("[Notification Hydration Debug]");
-  console.log("Scope:", ctx.scope);
-  console.log("Context:", ctx);
-  console.log("Raw Data:", data);
-  console.log("Data Keys:", data ? Object.keys(data) : null);
-  console.log("message_level:", data?.message_level);
-  console.log("notification_level:", data?.notification_level);
-  console.log("is_muted:", data?.is_muted);
-  console.log("mute_until:", data?.mute_until);
-  console.groupEnd();
-  // 🐞 DEBUG END
-
-  // 🔥 CURRENT LOGIC (UNCHANGED)
-  const level = data?.message_level || "mentions";
+ 
+const level =
+  data?.message_level ??
+  data?.notification_level ??
+  "mentions";
   const muted = data?.is_muted === true;
 
   applyRadioState(level);
@@ -15175,29 +15369,6 @@ notificationsed.forEach(notification => {
   });
 });
 
-function applyRadioState(level) {
-  const radios = document.querySelectorAll(
-    '.card input[type="radio"][name="notif"]'
-  );
-
-  radios.forEach(radio => {
-    const row = radio.closest(".radio-row");
-    const title = row?.querySelector(".radio-title")?.textContent
-      ?.toLowerCase();
-
-    if (!title) return;
-
-    if (level === "all" && title.includes("all")) {
-      radio.checked = true;
-    } else if (level === "mentions" && title.includes("mention")) {
-      radio.checked = true;
-    } else if (level === "none" && title.includes("nothing")) {
-      radio.checked = true;
-    } else {
-      radio.checked = false;
-    }
-  });
-}
 
 function applyMuteState(isMuted) {
   const muteCard = document.getElementById("muteCard");
@@ -16826,9 +16997,6 @@ function closeCreateChannelModal() {
 
 
 
-  // ---- OPEN CREATE CHANNEL MODAL ----
-
-      // ---- OPEN CREATE CHANNEL MODAL ----
   createChannelBtn.addEventListener("click", function () {
       // same as you did
     commOverlay.style.display = "none";
@@ -17043,7 +17211,7 @@ async function crSubmit() {
   const communityId = CurrentActiveChat.communityId;
 
   if (!name || !communityId) {
-    alert("Missing required data");
+    alert("Enter Channel Name");
     return;
   }
 
@@ -20940,7 +21108,7 @@ function enableSwipe(wrapper) {
 function canDeleteMessage(wrapper) {
   if (!wrapper) return false;
 
-  const myRole = getMyCommunityRole(CurrentActiveChat.communityId); 
+  const myRole = DelgetMyCommunityRole(CurrentActiveChat.communityId); 
   const isSentByMe = wrapper.dataset.msgSent === "true";
 
   const senderRole = wrapper.dataset.senderRole; // admin | member
@@ -25043,7 +25211,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 <style>
    .showed-edit{
-    display: block !important;
+    display: flex !important;
   }
 
   .showed{

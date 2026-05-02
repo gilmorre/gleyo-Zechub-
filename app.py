@@ -25980,7 +25980,7 @@ def get_my_communities():
 
 # ---- CATEGORY NOTIFICATION SETTINGS ----
     category_notifs = {
-        s.category_id: {
+        s.category.uuid: {
             "notification_level": s.notification_level,
             "is_muted": s.is_muted
         }
@@ -25991,7 +25991,7 @@ def get_my_communities():
 
     # ---- CHANNEL NOTIFICATION SETTINGS ----
     channel_notifs = {
-        s.channel_id: {
+        s.channel.uuid: {
             "notification_level": s.notification_level,
             "is_muted": s.is_muted
         }

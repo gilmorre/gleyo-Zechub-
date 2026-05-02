@@ -92,6 +92,7 @@ class CategoryNotificationSettings(db.Model):
     is_muted = db.Column(db.Boolean, default=False)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    category = db.relationship("CommunityCategory")
 
     __table_args__ = (
         db.UniqueConstraint("user_id", "category_id"),
@@ -126,6 +127,8 @@ class ChannelNotificationSettings(db.Model):
     is_muted = db.Column(db.Boolean, default=False)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    channel = db.relationship("CommunityChannel")
 
     __table_args__ = (
         db.UniqueConstraint("user_id", "channel_id"),

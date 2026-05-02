@@ -24653,6 +24653,7 @@ def get_community_mentionables():
 
 
 
+
 @app.route("/api/channel/create", methods=["POST"])
 @login_required
 @csrf.exempt
@@ -24677,22 +24678,35 @@ def create_channel():
         if not category:
             return jsonify({"error": "Category not found"}), 404
 
+    # ✅ NEW: GET NEXT POSITION (THIS IS THE ONLY REAL FIX)
+    last_position = (
+        db.session.query(func.max(CommunityChannel.position))
+        .filter(
+            CommunityChannel.community_id == community_id,
+            CommunityChannel.category_id == (category.id if category else None)
+        )
+        .scalar()
+    )
+
+    next_position = (last_position or 0) + 1
+
     channel = CommunityChannel(
         name=name,
         community_id=community_id,
         category_id=category.id if category else None,
         created_by_id=current_user.id,
-        is_private=is_private
+        is_private=is_private,
+        position=next_position  
     )
 
     db.session.add(channel)
     db.session.commit()
 
-    # 🔥 SOCKET BROADCAST
+    # 🔥 SOCKET BROADCAST (UNCHANGED)
     room = f"community_{community_id}"
 
     payload = {
-        "id": channel.id, 
+        "id": channel.id,
         "uuid": channel.uuid,
         "name": channel.name,
         "is_private": channel.is_private,
@@ -24708,16 +24722,6 @@ def create_channel():
     )
 
     return jsonify(payload), 201
-
-
-def get_next_ticket_number(community_id):
-    last_number = (
-        db.session.query(func.max(CommunityTicket.community_ticket_number))
-        .filter(CommunityTicket.community_id == community_id)
-        .scalar()
-    )
-
-    return (last_number or 0) + 1
 
 
 @app.route("/api/tickets/create", methods=["POST"])
@@ -25510,6 +25514,7 @@ def get_reaction_users(message_uuid):
     })
 
 
+
 @app.route("/api/channel/update", methods=["POST"])
 @login_required
 @csrf.exempt
@@ -25520,6 +25525,8 @@ def update_channel():
         uuid=data["channel_uuid"],
         community_id=data["community_id"]
     ).first_or_404()
+
+    old_category_id = channel.category_id  # ✅ track old category
 
     if "name" in data:
         channel.name = data["name"]
@@ -25533,15 +25540,34 @@ def update_channel():
     if "is_private" in data:
         channel.is_private = data["is_private"]
 
+    # =========================
+    # ✅ CATEGORY CHANGE + POSITION FIX
+    # =========================
     if "category_uuid" in data:
         if data["category_uuid"] is None:
-            channel.category_id = None
+            new_category_id = None
         else:
             category = CommunityCategory.query.filter_by(
                 uuid=data["category_uuid"],
                 community_id=data["community_id"]
             ).first_or_404()
-            channel.category_id = category.id
+            new_category_id = category.id
+
+        # 🔥 ONLY if category actually changed
+        if new_category_id != old_category_id:
+            channel.category_id = new_category_id
+
+            # ✅ get last position in new category
+            last_position = (
+                db.session.query(func.max(CommunityChannel.position))
+                .filter(
+                    CommunityChannel.community_id == data["community_id"],
+                    CommunityChannel.category_id == new_category_id
+                )
+                .scalar()
+            )
+
+            channel.position = (last_position or 0) + 1
 
     db.session.commit()
 
@@ -25565,7 +25591,6 @@ def update_channel():
     )
 
     return jsonify({ "channel": payload })
-
 
 
 

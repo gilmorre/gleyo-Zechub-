@@ -254,8 +254,11 @@ body.open {
 .init-settings-content {
   background: var(--card-bg)
 }
-#categoryPage, .the-main-conduss {
-  background-color: var(--card-background);
+@media (min-width: 768px) {
+
+.confi-page, .the-main-conduss {
+  background-color: var(--card-bg) !important;
+}
 }
   .stmmert {
     padding: 0 !important;
@@ -1120,8 +1123,8 @@ body{
 
 /* avatar */
 .skeleton-avatar-init {
-  width: 36px;
-  height: 36px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   background: var(--bg-hover);
   position: relative; /* REQUIRED */
@@ -8741,8 +8744,8 @@ reactionPopupMessage
   </div>
 
   <!-- FOOTER -->
-  <div class="cr-footer"  style="padding: 0 20px !important;">
-    <button class="cr-btn" id="cr-createBtn">Create</button>
+  <div class="cr-footer"  style="padding: 0 20px ">
+    <button class="cr-btn" id="cr-createBtn" onclick="crSubmit(event)">Create</button>
   </div>
 
 </div>
@@ -8991,7 +8994,7 @@ reactionPopupMessage
 
     <div class="init-settings-footer">
       <button class="init-delete-btn" onclick="openDeleteModalChannel(event)">Delete Channel</button>
-      <button class="init-save-btn" id="save-recent-update-cha">Save</button>
+      <button class="init-save-btn" id="save-recent-update-cha" onclick="saveChannelSettings(event)">Save</button>
     </div>
 
   </div>
@@ -11576,8 +11579,10 @@ if (community) {
     category.name = data.name; // ✅ SOURCE OF TRUTH UPDATED
   }
 }
-
-  closeContextCategory();
+  if(!is_mobile){
+  
+    closeContextCategory();
+  }
 });
 
 
@@ -12912,6 +12917,7 @@ function ClassMobOpenChat() {
 
     document.addEventListener("click", (e) => {
       if (!e.target.closest(".backchatBtn")) return;
+      
 
       if (window.innerWidth <= 991) {
         document.querySelector(".all-container")?.classList.remove("hide");
@@ -14723,6 +14729,9 @@ communitySearchInput.addEventListener("input", (e) => {
   .settings-page header {
     flex-shrink: 0;
   }
+  .cr-footer {
+    padding-bottom: 20px !important;
+  }
   .init-confi-page,
   .cr-modal,
   .subhit-settings-modal,
@@ -14737,6 +14746,7 @@ communitySearchInput.addEventListener("input", (e) => {
     width: 50%;
     max-width: 600px;
     max-height: 80vh;
+    height: auto !important;
 
     flex-direction: column;
 
@@ -14964,14 +14974,11 @@ function bindCommunityBottomSheet() {
     const nameEl = e.target.closest("#activeCommunityName");
     if (!nameEl) return;
 
-    console.group("🧪 Community Bottom Sheet");
 
     // ✅ SOURCE OF TRUTH
     const communityName = nameEl.textContent.trim();
     const memberCount = nameEl.dataset.memberCount;
 
-    console.log("🏷️ name:", communityName);
-    console.log("👥 memberCount:", memberCount);
 
     // ✅ NAME
     const nameHeader = commBottomSheet.querySelector(".name-chnage");
@@ -15963,92 +15970,100 @@ socket.on("channel_update_comm_message", (data) => {
 
 
 
-async function saveChannelSettings() {
+let isSavingChannel = false;
+
+async function saveChannelSettings(e) {
+  e?.preventDefault();
+  if (isSavingChannel) return; 
+
   if (!ChannelContext.data) return;
 
-  const { uuid: channelUuid, meta } = ChannelContext.data;
-  const communityId = CurrentActiveChat.communityId;
-  if (!channelUuid || !communityId) return;
+  const saveBtn = document.getElementById("save-recent-update-cha");
+  const originalText = saveBtn?.innerText;
 
+  isSavingChannel = true;
 
-  
-
-  const nameInput = document.getElementById("customise-channel");
-  const topicInput = document.getElementById("customise-about");
-
-  const newName = nameInput?.value.trim() || null;
-  const newTopic = topicInput?.value.trim() || null;
-
-
-  if (!newName) {
-    alert("Channel name can not be empty");
-    return;
+  if (saveBtn) {
+    saveBtn.innerText = "Saving...";
+    saveBtn.disabled = true;
   }
 
-  const newSlowmode = getCurrentSlowmodeSeconds();
-  const newIsPrivate = getPrivateToggleState();
+  try {
+    const { uuid: channelUuid, meta } = ChannelContext.data;
+    const communityId = CurrentActiveChat.communityId;
+    if (!channelUuid || !communityId) return;
 
-  /* ==========================
-     CATEGORY — SINGLE SOURCE 🔥
-  ========================== */
-  const newCategoryUuid = ChannelCategoryState.uuid ?? null;
-  const oldCategoryUuid = meta?.category_uuid ?? null;
+    const nameInput = document.getElementById("customise-channel");
+    const topicInput = document.getElementById("customise-about");
 
-  /* ==========================
-     BUILD PATCH
-  ========================== */
-  const payload = {
-    community_id: communityId,
-    channel_uuid: channelUuid
-  };
+    const newName = nameInput?.value.trim() || null;
+    const newTopic = topicInput?.value.trim() || null;
 
-  if (newName !== meta?.name) payload.name = newName;
-  if (newTopic !== meta?.topic) payload.topic = newTopic;
-  if (newSlowmode !== meta?.slowmode_seconds) {
-    payload.slowmode_seconds = newSlowmode;
-  }
-  if (newIsPrivate !== meta?.is_private) {
-    payload.is_private = newIsPrivate;
-  }
+    if (!newName) {
+      alert("Channel name can not be empty");
+      return;
+    }
 
-  // 🔥 THIS NOW WORKS
-  payload.category_uuid = newCategoryUuid; // null = uncategorize
+    const newSlowmode = getCurrentSlowmodeSeconds();
+    const newIsPrivate = getPrivateToggleState();
 
-  /* ==========================
-     NOTHING CHANGED
-  ========================== */
-  if (Object.keys(payload).length <= 2) {
+    const newCategoryUuid = ChannelCategoryState.uuid ?? null;
+
+    const payload = {
+      community_id: communityId,
+      channel_uuid: channelUuid
+    };
+
+    if (newName !== meta?.name) payload.name = newName;
+    if (newTopic !== meta?.topic) payload.topic = newTopic;
+    if (newSlowmode !== meta?.slowmode_seconds) {
+      payload.slowmode_seconds = newSlowmode;
+    }
+    if (newIsPrivate !== meta?.is_private) {
+      payload.is_private = newIsPrivate;
+    }
+
+    payload.category_uuid = newCategoryUuid;
+
+    if (Object.keys(payload).length <= 2) {
+      closeChannelSettings();
+      return;
+    }
+
+    const res = await fetch("/api/channel/update", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": csrfToken
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      alert(data.error || "Update failed");
+      return;
+    }
+
+    applyUpdatedChannel(data.channel);
     closeChannelSettings();
-    return;
+
+  } catch (err) {
+    console.error(err);
+    alert("Something went wrong");
+  } finally {
+    // ✅ ALWAYS reset (even if error happens)
+    isSavingChannel = false;
+
+    if (saveBtn) {
+      saveBtn.innerText = originalText || "Save";
+      saveBtn.disabled = false;
+    }
   }
-
-  /* ==========================
-     SEND
-  ========================== */
-  const res = await fetch("/api/channel/update", {
-    method: "POST",
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      "X-CSRFToken": csrfToken
-    },
-    body: JSON.stringify(payload)
-  });
-
-  const data = await res.json();
-  if (!res.ok) {
-    alert(data.error || "Update failed");
-    return;
-  }
-
-  applyUpdatedChannel(data.channel);
-  closeChannelSettings();
 }
 
-
-document
-  .getElementById("save-recent-update-cha")
-  ?.addEventListener("click", saveChannelSettings);
 
 
   function getPrivateToggleState() {
@@ -16977,22 +16992,6 @@ document.addEventListener("keydown", (e) => {
   const sectionLabel = document.querySelector(".section-label");
   const muteCard = document.getElementById("muteCard");
 
-function closeCreateChannelModal() {
-  closeModalWhenshowed();
-  createModal.style.display = "none";
-  createModal.classList.remove("cr-show");
-
-  if (is_mobile) {
-    allContainer?.classList.remove("hide");
-    chatPanel?.classList.remove("hide");
-    sectionLabel?.classList.remove("hide");
-    muteCard?.classList.remove("hide");
-    questUpdate?.classList.remove("hide");
-    QuestCard?.classList.remove("hide");
-  }
-}
-
-
 
 
 
@@ -17097,6 +17096,9 @@ createChannelBtnamd.addEventListener("click", (e) => {
 
 
 
+
+
+
 function closeCreateChannelModal() {
   // Hide modal
   closeModalWhenshowed();
@@ -17106,7 +17108,6 @@ function closeCreateChannelModal() {
   // Restore UI (desktop only)
   if (!is_mobile) {
     uiAllContainer?.classList.remove("hide");
-    uiChatPanel?.classList.remove("hide");
     uiSectionLabel?.classList.remove("hide");
     uiMuteCard?.classList.remove("hide");
     uiQuestUpdate?.classList.remove("hide");
@@ -17153,8 +17154,7 @@ document.querySelectorAll('.cr-option').forEach(opt => {
 
 const crSwitch = document.getElementById('cr-privateSwitch');
 crSwitch.onclick = () => crSwitch.classList.toggle('cr-on');
-
-document.getElementById("cr-createBtn").onclick = crSubmit;
+ 
 function channelExists(community, uuid) {
   if (!community) return false;
 
@@ -17201,56 +17201,82 @@ socket.on("channel_create_comm_message", (data) => {
 
 
 
-async function crSubmit() {
-  const name = document.getElementById("cr-channelName").value.trim();
-  const isPrivate =
-    document.getElementById("cr-privateSwitch")
-      .classList.contains("cr-on");
+let isCreatingChannel = false;
 
-  const categoryUuid = MobileCategoryHoldState.categoryUuid;
-  const communityId = CurrentActiveChat.communityId;
+async function crSubmit(e) {
+  e.preventDefault();
+  e.stopPropagation();
 
-  if (!name || !communityId) {
-    alert("Enter Channel Name");
-    return;
+  if (isCreatingChannel) return; // 🚫 stop double click
+  isCreatingChannel = true;
+
+  const btn = document.getElementById("cr-createBtn"); // ✅ correct id
+  const originalText = btn?.innerText;
+
+  if (btn) {
+    btn.innerText = "Creating...";
+    btn.disabled = true;
   }
 
-  const res = await fetch("/api/channel/create", {
-    method: "POST",
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      "X-CSRFToken": csrfToken
-    },
-    body: JSON.stringify({
-      name,
-      category_uuid: categoryUuid,
-      community_id: communityId,
-      is_private: isPrivate
-    })
-  });
+  try {
+    const name = document.getElementById("cr-channelName").value.trim();
+    const isPrivate =
+      document.getElementById("cr-privateSwitch")
+        .classList.contains("cr-on");
 
-  const data = await res.json();
+    const categoryUuid = MobileCategoryHoldState.categoryUuid;
+    const communityId = CurrentActiveChat.communityId;
 
-  if (!res.ok) {
-    alert(data.error || "Channel creation failed");
-    return;
+    if (!name || !communityId) {
+      alert("Enter Channel Name");
+      return;
+    }
+
+    const res = await fetch("/api/channel/create", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": csrfToken
+      },
+      body: JSON.stringify({
+        name,
+        category_uuid: categoryUuid,
+        community_id: communityId,
+        is_private: isPrivate
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      alert(data.error || "Channel creation failed");
+      return;
+    }
+
+    if (!is_mobile){
+      closeCreateChannelModal();
+    } else{
+      closeCreateChannel();
+    }
+
+    injectNewChannelIntoUI(data);
+
+    document.getElementById("cr-channelName").value = "";
+    document.getElementById("cr-privateSwitch").classList.remove("cr-on");
+
+  } catch (err) {
+    console.error(err);
+    alert("Something went wrong");
+  } finally {
+    isCreatingChannel = false;
+
+    if (btn) {
+      btn.innerText = originalText || "Create";
+      btn.disabled = false;
+    }
   }
-
-  if (!is_mobile){
-    closeCreateChannelModal();
-  } else{
-    closeCreateChannel();
-  }
-
-
-  injectNewChannelIntoUI(data);
-  RightclickMenuDES()
-
-  document.getElementById("cr-channelName").value = "";
-  document.getElementById("cr-privateSwitch").classList.remove("cr-on");
 }
-
 
 
 function injectNewChannelIntoUI(channel) {
@@ -17478,8 +17504,9 @@ crNameInput.addEventListener("paste", (e) => {
 
 
 <script>
-function closeEditCategory() {
-
+function closeEditCategory(e) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
   closeModalWhenshowed();
   showEditCategory?.classList.remove("show");
   showEditCategory?.classList.add("hide");
@@ -17487,7 +17514,6 @@ function closeEditCategory() {
   // Restore main UI (desktop only)
   if (!is_mobile) {
     allContainer?.classList.remove("hide");
-    chatPanel?.classList.remove("hide");
     sectionLabel?.classList.remove("hide");
     muteCard?.classList.remove("hide");
     questUpdate?.classList.remove("hide");
@@ -17496,9 +17522,8 @@ function closeEditCategory() {
   CategoryContext.data = null;  
 }
 
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", function (e) {
 
-    const showEditCategory = document.querySelector(".show-editcategoty");
 
     // Elements to hide when editing category
     const allContainer = document.querySelector(".all-container");
@@ -17555,70 +17580,70 @@ document.addEventListener("DOMContentLoaded", function () {
         closeDeleteModal(e);
         closeRoleSheet();
         closePermissionsCAT(e);
-        closeEditCategory();
+        closeEditCategory(e);
       }
     });
-function isElementVisible(el) {
-  if (!el) return false;
+  function isElementVisible(el) {
+    if (!el) return false;
 
-  return (
-    el.getAttribute("aria-hidden") !== "true" &&
-    el.style.display !== "none" &&
-    el.offsetParent !== null
+    return (
+      el.getAttribute("aria-hidden") !== "true" &&
+      el.style.display !== "none" &&
+      el.offsetParent !== null
+    );
+  }
+
+      // ---- DESKTOP: ESC KEY ----
+  document.addEventListener(
+    "keydown",
+    (e) => {
+      if (e.key !== "Escape") return;
+
+      const deleteModal = document.getElementById("confi-delete-modal");
+      const addRoleSheet = document.getElementById("addRoleSheet");
+      const permissionsPage = document.getElementById("permissionsPage");
+
+      /* =========================
+        TOP PRIORITY — Delete Modal
+      ========================= */
+      if (isElementVisible(deleteModal)) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        closeDeleteModal(e);
+        return;
+      }
+
+      /* =========================
+        CASE 2 — Add Role Sheet
+      ========================= */
+      if (isElementVisible(addRoleSheet)) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        closeRoleSheet();
+        return;
+      }
+
+      /* =========================
+        CASE 3 — Permissions Page
+      ========================= */
+      if (isElementVisible(permissionsPage)) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        closePermissionsCAT(e);
+        return;
+      }
+
+
+      if (
+        showEditCategory &&
+        showEditCategory.classList.contains("show")
+      ) {
+        e.preventDefault();
+        closeEditCategory(e);
+      }
+    },
+    true // 👈 CAPTURE PHASE (IMPORTANT)
   );
-}
-
-    // ---- DESKTOP: ESC KEY ----
-document.addEventListener(
-  "keydown",
-  (e) => {
-    if (e.key !== "Escape") return;
-
-    const deleteModal = document.getElementById("confi-delete-modal");
-    const addRoleSheet = document.getElementById("addRoleSheet");
-    const permissionsPage = document.getElementById("permissionsPage");
-
-    /* =========================
-       TOP PRIORITY — Delete Modal
-    ========================= */
-    if (isElementVisible(deleteModal)) {
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      closeDeleteModal(e);
-      return;
-    }
-
-    /* =========================
-       CASE 2 — Add Role Sheet
-    ========================= */
-    if (isElementVisible(addRoleSheet)) {
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      closeRoleSheet();
-      return;
-    }
-
-    /* =========================
-       CASE 3 — Permissions Page
-    ========================= */
-    if (isElementVisible(permissionsPage)) {
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      closePermissionsCAT(e);
-      return;
-    }
-
-
-    if (
-      showEditCategory &&
-      showEditCategory.classList.contains("show")
-    ) {
-      e.preventDefault();
-      closeEditCategory();
-    }
-  },
-  true // 👈 CAPTURE PHASE (IMPORTANT)
-);
 
 
   }
@@ -18362,8 +18387,26 @@ if (is_mobile) {
     let startY = 0;
     let currentTranslate = 0;
 
-    function openCategoryMenu(name) {
-      categoryMenuTitle.textContent = name;
+    function openCategoryMenuMobile(header) {
+      if (!header) return;
+
+      const categoryName = getCategoryNameFromHeader(header);
+      const categoryUuid = header.dataset.categoryUuid;
+
+      // 🔥 SAME DATASET LOGIC AS DESKTOP
+      const categoryInput = document.querySelector(".confi-input");
+      if (categoryInput) {
+        categoryInput.value = categoryName;
+        categoryInput.defaultValue = categoryName;
+
+        categoryInput.dataset.section = categoryName;
+        categoryInput.dataset.categoryUuid = categoryUuid;
+
+        console.log("MOBILE SET:", categoryInput.dataset.categoryUuid);
+      }
+
+      // 🔥 YOUR MOBILE UI
+      categoryMenuTitle.textContent = categoryName;
       categoryMenuOverlay.style.display = "block";
 
       categoryMenu.style.transition = "transform 0.25s ease";
@@ -18420,12 +18463,14 @@ if (is_mobile) {
 
         longPressTimer = setTimeout(() => {
           const name = header.innerText.trim();
-          openCategoryMenu(name);
-        }, 450);
-      clearMobileCategoryHold();
-      MobileCategoryHoldState.categoryUuid =
-        header.dataset.categoryUuid;
 
+          clearMobileCategoryHold(); // optional but safer
+
+          MobileCategoryHoldState.categoryUuid =
+            header.dataset.categoryUuid; 
+
+          openCategoryMenuMobile(header);
+        }, 450);
 
       });
       ["touchend", "touchmove", "touchcancel"].forEach(ev => {
@@ -21414,43 +21459,68 @@ privateSwitch.addEventListener("click", () => {
   console.log("Private:", isPrivate);
 });
 
+let isCreatingCategory = false;
+
 document.querySelector(".subhit-save-btn")
-  ?.addEventListener("click", async () => {
+  ?.addEventListener("click", async (e) => {
 
-  const nameInput = document.getElementById("categoty-create");
-  const name = nameInput.value.trim();
-  const isPrivate = privateSwitch.classList.contains("subhit-cr-on");
+  if (isCreatingCategory) return; // 🚫 stop double click
+  isCreatingCategory = true;
 
-  if (!name) return alert("Category name required");
+  const btn = e.currentTarget; // ✅ always correct button
+  const originalText = btn.innerText;
 
-  const communityId = CurrentActiveChat.communityId;
+  btn.innerText = "Creating...";
+  btn.disabled = true;
 
-  const res = await fetch("/api/category/create", {
-    method: "POST",
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      "X-CSRFToken": csrfToken
-    },
-    body: JSON.stringify({
-      name,
-      community_id: communityId,
-      is_private: isPrivate
-    })
-  });
+  try {
+    const nameInput = document.getElementById("categoty-create");
+    const name = nameInput.value.trim();
+    const privateSwitch = document.getElementById("cr-privateSwitch")
+    const isPrivate = privateSwitch.classList.contains("subhit-cr-on");
 
-  const data = await res.json();
+    if (!name) {
+      alert("Category name required");
+      return;
+    }
 
-  if (!res.ok) {
-    alert(data.error || "Create failed");
-    return;
+    const communityId = CurrentActiveChat.communityId;
+
+    const res = await fetch("/api/category/create", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": csrfToken
+      },
+      body: JSON.stringify({
+        name,
+        community_id: communityId,
+        is_private: isPrivate
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      alert(data.error || "Create failed");
+      return;
+    }
+
+    // ✅ APPLY LOCALLY
+    applyCreatedCategory(data);
+
+    closeCreateCategory();
+
+  } catch (err) {
+    console.error(err);
+    alert("Something went wrong");
+  } finally {
+    isCreatingCategory = false;
+
+    btn.innerText = originalText || "Create";
+    btn.disabled = false;
   }
-
-  // ✅ APPLY LOCALLY
-  applyCreatedCategory(data);
-
-  closeCreateCategory();
-  closeCreateCategoryModal();
 });
 
 
@@ -21695,11 +21765,13 @@ async function confirmDelete(e) {
   if(is_mobile){
    CallOffHide();
 
+  } else {
+    closeContextCategory();
   }
 
   closeDeleteModal();
-  closeContextCategory();
-  closeEditCategory();
+  
+  closeEditCategory(e);
  
   // cleanup
   MobileCategoryHoldState.categoryUuid = null;
@@ -28573,6 +28645,7 @@ function updateScrollButtonPosition() {
 }
 
 function handleScrollUI() {
+  if (!document.querySelector(".chat-panel")?.classList.contains("active")) return;
   const el = document.getElementById("messages");
   const btn = document.getElementById("scroll-down-btn");
   if (!el || !btn) return;

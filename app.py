@@ -15624,6 +15624,7 @@ def publish_subquest(community_slug):
                     send_discord_message_async(setting.channel_id, message)
 
             subs = get_community_push_subs(community.id)
+            print("📦 PUSH SUB COUNT:", len(subs))
 
             if subs:
                 send_push_notification_async(
@@ -23053,42 +23054,7 @@ def edit_comm_message():
 
 
 
-def _send_push_notification(user_id, title, body, data):
-    with app.app_context():
-
-        subs = PushSubscription.query.filter_by(user_id=user_id).all()
-
-        for sub in subs:
-            try:
-                webpush(
-                    subscription_info={
-                        "endpoint": sub.endpoint,
-                        "keys": {
-                            "p256dh": sub.p256dh,
-                            "auth": sub.auth
-                        }
-                    },
-                    data=json.dumps({
-                        "title": str(title),
-                        "body": str(body),
-                        "url": str(data.get("url", "")),
-                        "type": str(data.get("type", "")),
-                        "community_slug": str(data.get("community_slug", "")),
-                        "channel_uuid": str(data.get("channel_uuid", "")),
-                    }),
-                    vapid_private_key=VAPID_PRIVATE_KEY,
-                    vapid_claims={"sub": "mailto:admin@example.com"},
-                    ttl=86400
-                )
-
-            except WebPushException as e:
-                print("❌ Push failed:", e)
-
-                if "410" in str(e) or "404" in str(e):
-                    db.session.delete(sub)
-                    db.session.commit()
-
-
+ 
 
 def notify_community_pin(
     *,
@@ -23557,21 +23523,23 @@ def comm_message_audio():
                         f"{message.uuid}"
                     )
 
+                user_subs = subs_map.get(replied_user_id, [])
 
-                send_push_notification_async(
-                    user_id=replied_user_id,
-                    title=f"{community.name} • Reply in #{channel.name}",
-                    body="🎙️ Replied with a voice message",
-                    data={
-                        "url": target_url,
-                        "community_slug": community.slug,
-                        "channel_uuid": channel.uuid,
-                        "category_uuid": channel.category.uuid if channel.category else None,
-                        "type": "reply",
-                        "message_uuid": message.uuid,
-                        "message_kind": "audio"   # 🔥 optional but future-proof
-                    }
-                )
+                if user_subs:
+                    send_push_notification_async(
+                        subs=user_subs,
+                        title=f"{community.name} • Reply in #{channel.name}",
+                        body="🎙️ Replied with a voice message",
+                        data={
+                            "url": target_url,
+                            "community_slug": community.slug,
+                            "channel_uuid": channel.uuid,
+                            "category_uuid": channel.category.uuid if channel.category else None,
+                            "type": "reply",
+                            "message_uuid": message.uuid,
+                            "message_kind": "audio"   # 🔥 optional but future-proof
+                        }
+                    )
 
     members = (
         db.session.query(CommunityUserRole)
@@ -23977,8 +23945,14 @@ def comm_message():
         if isinstance(m, str) and m.strip()
     } | parsed_mentions
 
-
- 
+    print("\n====== 🧪 NEW MESSAGE DEBUG ======")
+    print("👤 sender:", current_user.id)
+    print("💬 content:", content)
+    print("📩 reply_to_uuid:", reply_to_uuid)
+    print("🏷 frontend_mentions:", frontend_mentions)
+    print("🧠 parsed_mentions:", parsed_mentions)
+    print("✅ final mentions:", mentions)
+    
 
     if not community_id:
         print(community_id)
@@ -24103,6 +24077,7 @@ def comm_message():
   
     reply_to = None
     if reply_to_uuid:
+        print("🔁 Looking for reply_to:", reply_to_uuid)
         q = CommunityMessage.query.filter_by(uuid=reply_to_uuid)
 
         if channel:
@@ -24111,7 +24086,8 @@ def comm_message():
             q = q.filter_by(ticket_id=ticket.id)
 
         reply_to = q.first()
-
+        print("🔁 reply_to found:", reply_to.id if reply_to else None)
+        print("🔁 reply_to user:", reply_to.user_id if reply_to else None)
     is_mention = frontend_is_mention if reply_to else False
 
     message = CommunityMessage(
@@ -24163,7 +24139,23 @@ def comm_message():
         cooldown_ends_at = state.cooldown_ends_at.isoformat()
 
 
+    members = (
+        db.session.query(CommunityUserRole)
+        .filter_by(community_id=community_id, banned=False)
+        .all()
+    )
 
+    user_ids = [m.user_id for m in members]
+
+    subs = PushSubscription.query.filter(
+        PushSubscription.user_id.in_(user_ids)
+    ).all()
+
+    subs_map = {}
+    for sub in subs:
+        subs_map.setdefault(sub.user_id, []).append(sub)
+
+    print("🧪 DEBUG subs_map:", {k: len(v) for k, v in subs_map.items()})
 
     from flask import current_app
 
@@ -24193,6 +24185,11 @@ def comm_message():
 
             # ✅ MENTIONS → only if explicitly mentioned
             elif level == "mentions":
+                matched_users = db.session.query(Users).filter(
+                    db.func.lower(Users.username).in_(mentions)
+                ).all()
+
+                print("👀 mention matched users:", [u.username for u in matched_users])
                 if any(
                     replied_user_id == u.id
                     for u in db.session.query(Users)
@@ -24200,7 +24197,8 @@ def comm_message():
                     .all()
                 ):
                     send_reply_notification = True
-
+            print("📣 send_reply_notification:", send_reply_notification)
+            print("📣 mentions considered:", mentions)
             if send_reply_notification:
                 notified_user_ids.add(replied_user_id)
 
@@ -24221,20 +24219,22 @@ def comm_message():
                         f"{channel.uuid}/"
                         f"{message.uuid}"
                     )
+                user_subs = subs_map.get(replied_user_id, [])
 
-                send_push_notification_async(
-                    user_id=replied_user_id,
-                    title=f"{community.name} • Reply in #{channel.name}",
-                    body=content,
-                    data={
-                        "url": target_url,
-                        "community_slug": community.slug,
-                        "channel_uuid": channel.uuid,
-                        "category_uuid": channel.category.uuid if channel.category else None,
-                        "type": "reply",
-                        "message_uuid": message.uuid
-                    }
-                )
+                if user_subs:
+                    send_push_notification_async(
+                        subs=user_subs,
+                        title=f"{community.name} • Reply in #{channel.name}",
+                        body=content,
+                        data={
+                            "url": target_url,
+                            "community_slug": community.slug,
+                            "channel_uuid": channel.uuid,
+                            "category_uuid": channel.category.uuid if channel.category else None,
+                            "type": "reply",
+                            "message_uuid": message.uuid
+                        }
+                    )
 
 
 
@@ -24260,6 +24260,7 @@ def comm_message():
             )
 
             for user in mentioned_users:
+                print(f"\n📌 Mention → {user.username} (ID: {user.id})")
                 if user.id == current_user.id:
                     continue  # ❌ self mention
 
@@ -24300,48 +24301,26 @@ def comm_message():
                         f"{channel.uuid}/"
                         f"{message.uuid}"
                     )
+                user_subs = subs_map.get(user.id, [])
+                if user_subs:
+                    send_push_notification_async(
 
-                send_push_notification_async(
-
-                    user_id=user.id,
-                    title=f"{community.name} • Mention in #{channel.name}",
-                    body=content,
-                    data={
-                        "url": target_url,
-                        "community_slug": community.slug,
-                        "channel_uuid": channel.uuid,
-                        "category_uuid": channel.category.uuid if channel.category else None,
-                        "type": "mention",
-                        "message_uuid": message.uuid
-                    }
-                )
+                        subs=user_subs,
+                        title=f"{community.name} • Mention in #{channel.name}",
+                        body=content,
+                        data={
+                            "url": target_url,
+                            "community_slug": community.slug,
+                            "channel_uuid": channel.uuid,
+                            "category_uuid": channel.category.uuid if channel.category else None,
+                            "type": "mention",
+                            "message_uuid": message.uuid
+                        }
+                    )
                 notified_user_ids.add(user.id)
 
 
-    # ============================
-    # 🔔 ALL-MESSAGES BROADCAST
-    # ============================
 
-    members = (
-        db.session.query(CommunityUserRole)
-        .filter_by(
-            community_id=community_id,
-            banned=False
-        )
-        .all()
-    )
-
-    user_ids = [m.user_id for m in members]
-
-    # 🔥 2. Fetch ALL subscriptions in ONE query
-    subs = PushSubscription.query.filter(
-        PushSubscription.user_id.in_(user_ids)
-    ).all()
-
-    # 🔥 3. Group by user_id
-    subs_map = {}
-    for sub in subs:
-        subs_map.setdefault(sub.user_id, []).append(sub)
     if channel:
         for member in members:
             user_id = member.user_id
@@ -24392,7 +24371,7 @@ def comm_message():
             send_push_notification_async(
                 subs=user_subs,
                 title=f"{community.name} • New message in #{channel.name}",
-                body="🎙️ Sent a voice message",
+                body = content if content else "📎 Sent an attachment",
                 data={
                     "url": target_url,
                     "community_slug": community.slug,
@@ -24473,8 +24452,8 @@ def comm_message():
             payload,
             room=f"user_{ticket.user_id}"
         )
-
-
+    print("\n✅ FINAL notified_user_ids:", notified_user_ids)
+    print("====== END DEBUG ======\n")
 
     return jsonify({
         "ok": True,

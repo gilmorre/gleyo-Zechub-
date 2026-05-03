@@ -46,7 +46,13 @@ def upload_async(file_bytes, storage_name, content_type):
 
 
 def send_push_notification_async(subs, title, body, data):
-    return executor.submit(_send_push_notification, subs, title, body, data)
+    app = current_app._get_current_object()
+
+    def task():
+        with app.app_context():
+            _send_push_notification(subs, title, body, data)
+
+    return executor.submit(task)
 
 
 def _send_discord_message(channel_id, content):
@@ -81,8 +87,17 @@ def _send_discord_message(channel_id, content):
 def _send_push_notification(subs, title, body, data):
     app = current_app._get_current_object()
 
-    with app.app_context():  
-        for sub in subs:
+    print("🚀 PUSH TASK STARTED")
+    print("🔔 Total subscriptions:", len(subs))
+
+    with app.app_context():
+        for i, sub in enumerate(subs, start=1):
+            print("\n-----------------------------")
+            print(f"📡 Sending to sub #{i}")
+            print("👉 Endpoint:", sub.endpoint[:120] + "..." if sub.endpoint else "NONE")
+            print("🔑 p256dh:", "OK" if sub.p256dh else "MISSING")
+            print("🔐 auth:", "OK" if sub.auth else "MISSING")
+
             payload = {
                 "title": str(title),
                 "body": str(body),
@@ -92,8 +107,10 @@ def _send_push_notification(subs, title, body, data):
                 "channel_uuid": str(data.get("channel_uuid", "")),
             }
 
+            print("📦 Payload:", payload)
+
             try:
-                webpush(
+                response = webpush(
                     subscription_info={
                         "endpoint": sub.endpoint,
                         "keys": {
@@ -103,16 +120,42 @@ def _send_push_notification(subs, title, body, data):
                     },
                     data=json.dumps(payload),
                     vapid_private_key=VAPID_PRIVATE_KEY,
-                    vapid_claims={"sub": "mailto:admin@example.com"},
+                    vapid_claims={"sub": "mailto:admin@gleyo.app"},
                     ttl=86400
                 )
 
-            except WebPushException as e:
-                print("❌ Push failed:", e)
+                # pywebpush may return None, but log anyway
+                print("✅ Push sent successfully")
 
+            except WebPushException as e:
+                print("❌ Push failed (FULL ERROR):", repr(e))
+
+                # try extracting response details
+                if hasattr(e, "response") and e.response is not None:
+                    try:
+                        print("❌ Status code:", e.response.status_code)
+                        print("❌ Response body:", e.response.text)
+                    except Exception as inner_err:
+                        print("⚠️ Could not read error response:", inner_err)
+
+                # common cleanup case
                 if "410" in str(e) or "404" in str(e):
-                    db.session.delete(sub)
-                    db.session.commit()
+                    print("🧹 Removing invalid subscription")
+                    try:
+                        db.session.delete(sub)
+                        db.session.commit()
+                    except Exception as db_err:
+                        print("❌ Failed to delete sub:", db_err)
+
+            except Exception as e:
+                print("💥 Unexpected error:", repr(e))
+
+        print("\n🏁 PUSH TASK FINISHED\n")
+
+
+
+
+
 
 def send_discord_message_async(channel_id, content):
     

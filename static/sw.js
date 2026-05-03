@@ -1,5 +1,6 @@
 self.addEventListener("push", event => {
   if (!event.data) return;
+  console.log("📩 PUSH RECEIVED:", event);
 
   const data = event.data.json();
 
@@ -10,7 +11,7 @@ self.addEventListener("push", event => {
         url: data.url,
         type: data.type
       },
-      icon: "https://xpcqiovfesvllsljxhac.supabase.co/storage/v1/object/public/uploads/1/logos/4f88da54-69ef-447b-a82b-209778bd5135.png"
+      icon: "https://gleyo.app/static/my_logo.png"
     })
   );
 });

@@ -76,10 +76,10 @@
   {% if user_id %}
   <!-- Desktop: show feature links when logged in -->
   <nav class="nav-center-auth">
-    <a href="/product" onclick="event.preventDefault(); navigateTo(this.href);">Features</a>
-    <a href="/what-is-gleyo" onclick="event.preventDefault(); navigateTo(this.href);">What is Gleyo</a>
-    <a href="/documentation" onclick="event.preventDefault(); navigateTo(this.href);">Docs</a>
-    <a href="{{ url_for('admin_panel') }}" onclick="event.preventDefault(); navigateTo(this.href);">Create Community</a>
+    <a href="/product">Features</a>
+    <a href="/what-is-gleyo">What is Gleyo</a>
+    <a href="/documentation">Docs</a>
+    <a href="{{ url_for('admin_panel') }}">Create Community</a>
   </nav>
   {% else %}
   <!-- Desktop: show nav when logged out -->
@@ -134,7 +134,7 @@
 
     {% else %}
 
-      <a href="{{ url_for('create_account') }}" class="nav-btn primary" onclick="event.preventDefault(); navigateTo(this.href);">
+      <a href="{{ url_for('create_account') }}" class="nav-btn primary">
         Start Free
       </a>
 
@@ -295,16 +295,16 @@
 
       <div class="hero-buttons">
         {% if user_id %}
-          <a href="{{ url_for('admin_panel') }}" class="btn-cta primary" onclick="event.preventDefault(); navigateTo(this.href);">
+          <a href="{{ url_for('admin_panel') }}" class="btn-cta primary">
             Create a Community
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
           </a>
         {% else %}
-          <a href="{{ url_for('create_account') }}" class="btn-cta primary" onclick="event.preventDefault(); navigateTo(this.href);">
+          <a href="{{ url_for('create_account') }}" class="btn-cta primary">
             Get Started Free
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
           </a>
-          <a href="{{ url_for('login') }}" class="btn-cta secondary" onclick="event.preventDefault(); navigateTo(this.href);">Login</a>
+          <a href="{{ url_for('login') }}" class="btn-cta secondary">Login</a>
         {% endif %}
       </div>
 
@@ -352,7 +352,7 @@
          <h2 class="section-title">Explore what’s possible with Gleyo.</h2>
       </div>
       <div class="initer-upper">
-          <a href="/prodshort/quest" class="spotlight-link" onclick="event.preventDefault(); navigateTo(this.href);">
+          <a href="/prodshort/quest" class="spotlight-link">
           <div class="spotlight-card">
             <div class="spotlight-image">
               <img src="https://xpcqiovfesvllsljxhac.supabase.co/storage/v1/object/public/uploads/3/logos/ce7f6505-d88c-4846-ba5b-9d21afcb9cf7.png" alt="Prodshort">
@@ -366,7 +366,7 @@
         </a> 
 
 
-        <a href="/gleyo/quest" class="spotlight-link" onclick="event.preventDefault(); navigateTo(this.href);">
+        <a href="/gleyo/quest" class="spotlight-link">
           <div class="spotlight-card">
             <div class="spotlight-image">
               <img src="https://zupdpwnloewdkjqsymdm.supabase.co/storage/v1/object/public/uploads/communities/7/logos/511f4996-5748-4f1f-b74c-5d5c33f7124c.png" alt="Gleyo">
@@ -389,7 +389,7 @@
         <div class="section-label">Why Gleyo</div>
         <h2>Everything your community needs to grow.</h2>
         <p>We help you build thriving communities with smart tools for onboarding, engagement, and rewards. Connect your Discord, Twitter, and more — all in one place.</p>
-        <a href="/what-is-gleyo" class="info-link" onclick="event.preventDefault(); navigateTo(this.href);">
+        <a href="/what-is-gleyo" class="info-link">
           Learn more
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
         </a>
@@ -862,14 +862,14 @@
       <p>Gleyo is free during early access. Be among the first to build and grow.</p>
 
       {% if user_id %}
-        <a href="{{ url_for('admin_panel') }}" class="btn-cta primary" onclick="event.preventDefault(); navigateTo(this.href);">
+        <a href="{{ url_for('admin_panel') }}" class="btn-cta primary">
           Create your community →
         </a>
       {% else %}
-        <a href="{{ url_for('create_account') }}" class="btn-cta primary" onclick="event.preventDefault(); navigateTo(this.href);">
+        <a href="{{ url_for('create_account') }}" class="btn-cta primary">
           Get started free →
         </a>
-        <a href="{{ url_for('login') }}" class="btn-cta secondary" onclick="event.preventDefault(); navigateTo(this.href);">
+        <a href="{{ url_for('login') }}" class="btn-cta secondary">
           Login
         </a>
       {% endif %}
@@ -929,10 +929,7 @@
   </div>
 </footer>
 
-<div id="push-banner">
-  <span>Enable notifications for replies & mentions?</span>
-  <button id="enable-push-btn">Enable</button>
-</div>
+
 
 
 

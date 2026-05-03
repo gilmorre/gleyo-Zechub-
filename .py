@@ -6,20 +6,18 @@ engine = create_engine(
 
 sql = """
 
--- Drop old constraint
-ALTER TABLE subquest_run
-DROP CONSTRAINT IF EXISTS subquest_run_subquest_id_fkey;
+-- 1. Add column if not exists
+ALTER TABLE community_channels
+ADD COLUMN IF NOT EXISTS is_quest_alert BOOLEAN DEFAULT FALSE;
 
--- Allow NULL (VERY IMPORTANT)
-ALTER TABLE subquest_run
-ALTER COLUMN subquest_id DROP NOT NULL;
+-- 2. Remove wrong constraint if you ever added it
+ALTER TABLE community_channels
+DROP CONSTRAINT IF EXISTS unique_quest_alert_per_community;
 
--- Add new constraint with SET NULL
-ALTER TABLE subquest_run
-ADD CONSTRAINT subquest_run_subquest_id_fkey
-FOREIGN KEY (subquest_id)
-REFERENCES subquest(id)
-ON DELETE SET NULL;
+-- 3. Create partial unique index (🔥 THIS IS THE REAL FIX)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_one_quest_alert_per_community
+ON community_channels (community_id)
+WHERE is_quest_alert = TRUE;
 
 """
 
@@ -27,7 +25,7 @@ with engine.connect() as conn:
     conn.execute(text(sql))
     conn.commit()
 
-print("✅ FK updated successfully")
+print("✅ Quest alert constraint applied successfully")
 # from instance import db
 # from models import PasswordResetToken  # adjust import
 

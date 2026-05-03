@@ -1,6 +1,8 @@
 from instance import db
 from datetime import datetime
 import uuid
+from sqlalchemy import UniqueConstraint
+
 
 class CommunityChannel(db.Model):
     __tablename__ = "community_channels"
@@ -37,6 +39,7 @@ class CommunityChannel(db.Model):
     topic = db.Column(db.String(255), nullable=True)
 
     is_private = db.Column(db.Boolean, default=False)
+    is_quest_alert = db.Column(db.Boolean, default=False)
 
     slowmode_seconds = db.Column(db.Integer, default=0)
 

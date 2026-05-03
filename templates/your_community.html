@@ -6929,9 +6929,7 @@ async function loadMainSettingsSection(path, push = true, previewMode = false, n
     !finalPath.includes("/quest/admin"));
 
 
-  const isAdminQuest =
-    cleanPath === "/quest/admin";
-
+ 
   document.body.classList.remove("itquest-time");
 
   if (
@@ -6967,9 +6965,7 @@ const html = await res.text();
 
 let cssToLoad = null;
 
-if (isAdminQuest) {
-  cssToLoad = "/static/quest.css?v=2";;
-} else if (isUserQuest) {
+ if (isUserQuest) {
   cssToLoad = "/static/p_quest.css";
 }
 

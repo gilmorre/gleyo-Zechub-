@@ -137,23 +137,23 @@
         setErrorState();
       }
       if (data.hard) {
-          navigateTo(data.redirect);
-          return;
+        window.location.href = data.redirect;
+        return;
       }
-        if (data.redirect) {
-            const response = await fetch(data.redirect, {
-                headers: { "X-Requested-With": "XMLHttpRequest" }
-            });
+      if (data.redirect) {
+          const response = await fetch(data.redirect, {
+              headers: { "X-Requested-With": "XMLHttpRequest" }
+          });
 
-            const html = await response.text();
+          const html = await response.text();
 
-            const container = document.getElementById("innerconntect");
-            container.innerHTML = html;
+          const container = document.getElementById("innerconntect");
+          container.innerHTML = html;
 
-            window.history.pushState({}, "", data.redirect);
+          window.history.pushState({}, "", data.redirect);
 
-            await runPageScript(); 
-        }
+          await runPageScript(); 
+      }
     }
 
      

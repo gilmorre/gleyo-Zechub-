@@ -96,6 +96,7 @@ function saveAccountBackRoute() {
 
 async function logoutUser(url) {
   const res = await fetch(url, { method: "POST", credentials: "include", headers: { "X-CSRFToken": csrfToken } });
+  sessionStorage.removeItem("push_dismissed");
   if (res.redirected) { window.location.replace(res.url); return; }
   const ct = res.headers.get("content-type");
   if (ct && ct.includes("application/json")) {
@@ -120,62 +121,3 @@ const revealObserver = new IntersectionObserver(entries => {
   entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add("active"); });
 }, { threshold: 0.12 });
 document.querySelectorAll(".reveal").forEach(el => revealObserver.observe(el));
-
-/* ---- Service Worker ---- */
-let swRegistration = null;
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("/static/sw.js")
-    .then(reg => { swRegistration = reg; })
-    .catch(err => console.error("SW failed", err));
-}
-
-/* ---- Push notifications ---- */
-function PushOutnot() {
-  const isAuth = document.body.dataset.auth === "1";
-  if (!isAuth) return;
-  if (Notification.permission === "granted") enablePushNotifications();
-  else if (Notification.permission === "default") {
-    const banner = document.getElementById("push-banner");
-    if (banner) banner.style.display = "flex";
-  }
-  const btn = document.getElementById("enable-push-btn");
-  if (btn) btn.addEventListener("click", enablePushNotifications);
-}
-
-function urlBase64ToUint8Array(base64String) {
-  const padding = '='.repeat((4 - base64String.length % 4) % 4);
-  const base64 = (base64String + padding)
-    .replace(/-/g, '+')
-    .replace(/_/g, '/');
-
-  const rawData = window.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i);
-  }
-  return outputArray;
-}
-
-async function enablePushNotifications() {
-  if (!("Notification" in window)) return;
-  const perm = await Notification.requestPermission();
-  if (perm !== "granted") return;
-  if (!swRegistration) return;
-  const existing = await swRegistration.pushManager.getSubscription();
-  if (existing) return;
-  const VAPID_PUBLIC_KEY = document.body.dataset.vapid;
-  const sub = await swRegistration.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-  });
-  await fetch("/api/push/subscribe", {
-    method: "POST", credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(sub)
-  });
-  const banner = document.getElementById("push-banner");
-  if (banner) banner.style.display = "none";
-}
-
-PushOutnot();

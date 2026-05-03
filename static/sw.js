@@ -9,7 +9,7 @@ self.addEventListener("push", event => {
       url: data.url,
       type: data.type
     },
-    icon: "/static/icon.png"
+    icon: "https://xpcqiovfesvllsljxhac.supabase.co/storage/v1/object/public/uploads/1/logos/4f88da54-69ef-447b-a82b-209778bd5135.png"
   });
 });
 

@@ -119,6 +119,8 @@ function updateSettingsHeader(path) {
       }
     });
 
+    sessionStorage.removeItem("push_dismissed");
+
     if (res.redirected) {
       window.location.replace(res.url);
       return;

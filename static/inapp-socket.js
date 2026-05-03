@@ -62,8 +62,30 @@ if (!window.__INAPP_SOCKET__) {
     socket.on("connect", () => {
       console.log("🔌 In-app socket connected:", socket.id);
     });
+    socket.on("community_publish_notification", (payload) => {
+      const active = window.CurrentActiveChat;
 
+      if (!active || !active.communityId) {
+        showTopCommunityModal(payload);
+        return;
+      }
+
+      const sameCommunity =
+        String(active.communityId) === String(payload.community_id);
+
+      const isSameChannel =
+        sameCommunity &&
+        payload.channel_uuid &&
+        active.channelUuid &&
+        active.channelUuid === payload.channel_uuid;
+
+      if (isSameChannel) return;
+
+
+      showTopCommunityModal(payload);
+    });
     socket.on("community_notification", (payload) => {
+      if (payload.type === "community_publish") return;
       const active = window.CurrentActiveChat;
 
       if (!active || !active.communityId) {
@@ -195,7 +217,7 @@ function showTopCommunityModal(data) {
       showTopCommunityModal(data); // 🔁 re-call AFTER exit
     });
 
-    return; // ⛔ stop current execution
+    return;  
   }
 
 
@@ -486,3 +508,242 @@ function escapeHtml(text) {
 }
 
 
+
+
+let swRegistration = null;
+let __pushInitDone = false;
+
+function initPushSystem() {
+  if (__pushInitDone) return;
+  __pushInitDone = true;
+
+  if (!("serviceWorker" in navigator)) return;
+
+  navigator.serviceWorker.register("/static/sw.js")
+    .then(async (reg) => {
+      swRegistration = reg;
+
+      setTimeout(checkPushState, 1200);
+    })
+    .catch(err => console.error("SW failed", err));
+}
+
+
+
+async function checkPushState() {
+
+
+  try {
+    let existingSub = null;
+
+    if (swRegistration) {
+      existingSub = await swRegistration.pushManager.getSubscription();
+    }
+
+    if (existingSub) {
+      const res = await fetch("/api/push/check", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(existingSub)
+      });
+
+      const data = await res.json();
+
+      // ❌ not in DB → show banner
+      if (!data.exists) {
+        showPushBanner();
+      }
+
+      return;
+    }
+
+    showPushBanner();
+
+  } catch (err) {
+    console.error("Push check failed:", err);
+
+    showPushBanner();
+  }
+}
+
+
+
+function showPushBanner() {
+
+  if (sessionStorage.getItem("push_dismissed")) return;
+
+  if (document.getElementById("push-banner")) return;
+
+  const banner = document.createElement("div");
+  banner.id = "push-banner";
+
+  banner.innerHTML = `
+    <button id="push-close-btn">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+        <path d="M6 6L18 18M18 6L6 18" stroke="white" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </button>
+
+    <span id="push-text">
+      Get alerts for new replies, mentions & quests instantly
+    </span>
+
+    <button id="enable-push-btn">Enable</button>
+  `;
+
+  document.body.appendChild(banner);
+
+  Object.assign(banner.style, {
+    position: "fixed",
+    bottom: "20px",
+    left: "50%",
+    transform: "translateX(-50%)",
+    background: "rgba(18,18,30,0.96)",
+    backdropFilter: "blur(14px)",
+    border: "0.9px solid #2f2f4a",
+    color: "#e5e7eb",
+    boxShadow: "0 10px 40px rgba(0,0,0,0.4)",
+    zIndex: "9998",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    textAlign: "center",
+    gap: "12px",
+    fontFamily: "'DM Sans', sans-serif",
+    padding: "18px 16px 16px",
+    width: "calc(100% - 32px)",
+    maxWidth: "420px",
+    borderRadius: "20px",
+    fontSize: "14px"
+  });
+
+  const btn = banner.querySelector("#enable-push-btn");
+  const closeBtn = banner.querySelector("#push-close-btn");
+
+  // ✅ Enable button
+  Object.assign(btn.style, {
+    background: "#7c6fff",
+    color: "#fff",
+    border: "none",
+    cursor: "pointer",
+    width: "100%",
+    maxWidth: "140px",
+    padding: "10px",
+    borderRadius: "20px",
+    fontSize: "14px",
+    transition: "opacity 0.2s"
+  });
+
+  btn.addEventListener("mouseenter", () => {
+    btn.style.opacity = "0.85";
+  });
+
+  btn.addEventListener("mouseleave", () => {
+    btn.style.opacity = "1";
+  });
+
+  // ✅ Close button (circle background)
+  Object.assign(closeBtn.style, {
+    position: "absolute",
+    top: "10px",
+    right: "10px",
+    width: "26px",
+    height: "26px",
+    borderRadius: "50%",
+    background: "rgba(255,255,255,0.08)",
+    border: "none",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+    opacity: "0.8",
+    transition: "opacity 0.2s, background 0.2s"
+  });
+
+  closeBtn.addEventListener("mouseenter", () => {
+    closeBtn.style.opacity = "1";
+    closeBtn.style.background = "rgba(255,255,255,0.15)";
+  });
+
+  closeBtn.addEventListener("mouseleave", () => {
+    closeBtn.style.opacity = "0.8";
+    closeBtn.style.background = "rgba(255,255,255,0.08)";
+  });
+
+  // ✅ Save dismiss in SESSION (not permanent)
+  closeBtn.addEventListener("click", () => {
+    sessionStorage.setItem("push_dismissed", "1");
+    banner.remove();
+  });
+
+  btn.addEventListener("click", enablePushNotifications);
+}
+
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding)
+    .replace(/-/g, "+")
+    .replace(/_/g, "/");
+
+  const rawData = atob(base64);
+  return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+}
+
+
+async function enablePushNotifications() {
+  try {
+    if (!swRegistration) return;
+
+    const perm = await Notification.requestPermission();
+    if (perm !== "granted") {
+      sessionStorage.setItem("push_dismissed", "1");
+
+      const banner = document.getElementById("push-banner");
+      if (banner) banner.remove();
+
+      return;
+    }
+
+    const existing = await swRegistration.pushManager.getSubscription();
+    if (existing) return;
+
+    const VAPID_PUBLIC_KEY = document.body.dataset.vapid;
+
+    const sub = await swRegistration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+    });
+
+    await fetch("/api/push/subscribe", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(sub)
+    });
+
+    const banner = document.getElementById("push-banner");
+    if (banner) banner.remove();
+
+    console.log("✅ Push subscribed");
+
+  } catch (err) {
+    console.error("❌ Push error:", err);
+  }
+}
+
+function ensureFontLoaded() {
+  if (document.getElementById("dm-sans-font")) return;
+
+  const link = document.createElement("link");
+  link.id = "dm-sans-font";
+  link.rel = "stylesheet";
+  link.href = "https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap";
+
+  document.head.appendChild(link);
+}
+ensureFontLoaded();
+window.addEventListener("load", () => {
+  initPushSystem();
+});

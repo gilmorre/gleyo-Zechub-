@@ -33,6 +33,7 @@ from supabase import create_client
 import resend
 import base58
 from flask_socketio import SocketIO, join_room, emit
+from flask import abort  
 from sqlalchemy.exc import IntegrityError
 from nacl.signing import VerifyKey
 from nacl.exceptions import BadSignatureError
@@ -2948,9 +2949,7 @@ def debug_session():
 
 
 
-from flask import abort  # make sure this is imported
-from upload_service import upload_async, send_push_notification_async
-
+from upload_service import upload_async, send_push_notification_async, send_discord_message_async
 
 def upload_to_supabase(file_bytes, storage_name, content_type):
     return upload_async(file_bytes, storage_name, content_type)
@@ -4140,7 +4139,8 @@ def create_default_community_structure(community_id, user_id):
             category_id=quest_category.id,
             created_by_id=user_id,
             name="quest-alerts",
-            position=0
+            position=0,
+            is_quest_alert=True 
         ),
         CommunityChannel(
             community_id=community_id,
@@ -4268,13 +4268,11 @@ def create_community_api():
             file.mimetype
         )
 
-        # ✅ 3. Attach callback safely
         def callback(f):
             save_community_logo_when_done(f, community_id)
 
         future.add_done_callback(callback)
 
-        # ✅ 4. Continue normal logic
         create_default_community_structure(community_id, user.id)
         create_default_roles_and_styles(community_id, user.id)
 
@@ -8107,10 +8105,15 @@ import pytz
 
 #     return response
 
+from flask_login import current_user
+
 @app.after_request
 def inject_global_socket(response):
-    if response.content_type and "text/html" in response.content_type.lower():
-
+    if (
+        response.content_type
+        and "text/html" in response.content_type.lower()
+        and current_user.is_authenticated   
+    ):
         script_tag = '<script src="/static/inapp-socket.js" defer></script>'
         html = response.get_data(as_text=True)
 
@@ -8118,8 +8121,6 @@ def inject_global_socket(response):
             html = html.replace("</body>", script_tag + "\n</body>")
             response.set_data(html)
 
-
- # 🚨 ONLY disable cache for HTML
     return response
  
 from functools import wraps
@@ -15164,23 +15165,7 @@ def get_quests_and_subquests(community_slug, subquest_uuid):
 
 from flask import current_app
 
-def send_discord_message(channel_id, content):
-    token = current_app.config.get("DISCORD_BOT_TOKEN") or os.getenv("DISCORD_BOT_TOKEN")
-    if not token:
-        print("❌ No Discord bot token configured")
-        return False
 
-    url = f"https://discord.com/api/v10/channels/{channel_id}/messages"
-    headers = {"Authorization": f"Bot {token}"}
-    data = {"content": content}
-
-    resp = requests.post(url, headers=headers, json=data)
-    if resp.status_code not in (200, 201):
-        print(f"❌ Discord message failed: {resp.text}")
-        return False
-
-    print("✅ Discord message sent!")
-    return True
 
 def save_subquest_blocks_when_done(future, subquest_id, block_index):
     import json
@@ -15268,7 +15253,37 @@ def upload_description_blocks(blocks, subquest_uuid):
     return processed, upload_jobs
 
 
+def get_bot_user():
+    bot = Users.query.filter_by(email="bot@gleyo.app").first()
 
+    if not bot:
+        bot = Users(
+            username="Gleyo Bot",
+            email="bot@gleyo.app",
+            password="!",
+            admin_display_name=Users.generate_unique_admin_display_name(db.session)
+        )
+
+        db.session.add(bot)
+        db.session.commit()
+
+    return bot
+def get_community_push_subs(community_id):
+    user_ids = db.session.query(CommunityUserRole.user_id).filter_by(
+        community_id=community_id,
+        banned=False
+    ).all()
+
+    user_ids = [u[0] for u in user_ids]
+
+    if not user_ids:
+        return []
+
+    subs = PushSubscription.query.filter(
+        PushSubscription.user_id.in_(user_ids)
+    ).all()
+
+    return subs
 
 @app.route('/<community_slug>/publish_subquest', methods=['POST'])
 @login_required
@@ -15369,7 +15384,7 @@ def publish_subquest(community_slug):
     subquest = Subquest.query.filter_by(uuid=subquest_uuid, quest_id=quest.id).first()
     if not subquest:
         return jsonify({'success': False, 'error': 'Subquest not found'}), 404
-
+    was_draft = subquest.is_draft
 
 
     if invite_total > 0:
@@ -15542,38 +15557,86 @@ def publish_subquest(community_slug):
 
 
         db.session.commit()
+        if was_draft:
 
-        socketio.emit(
-            "community_notification",
-            {
-                "type": "community_publish",
-                "community_name": community.name,
-                "community_logo": community.logo_path,
-                "content": "🎉 A new quest has been published",
-                "created_at": datetime.utcnow().isoformat(),
-                "link": f"/{community.slug}/quest/{quest.uuid}/{subquest.uuid}"
-            },
-            room = f"community_{community_id}"
-        )
-        
-        # inside publish_subquest route, just before sending Discord message
-        if community.discord_guild:
-            setting = DiscordNotificationSetting.query.filter_by(
-                guild_id=community.discord_guild.id,
-                type="new_quest"
+            bot_user = get_bot_user()
+
+            quest_channel = CommunityChannel.query.filter_by(
+                community_id=community.id,
+                is_quest_alert=True
             ).first()
 
-            if setting and setting.channel_id:
-                role_mention = f"<@&{setting.role_id}>" if setting.role_id else ""
+            if quest_channel:
+                message = CommunityMessage(
+                    channel_id=quest_channel.id,
+                    user_id=bot_user.id,
+                    content=f"🎉 New quest: {subquest.name} | /{community.slug}/quest/{quest.uuid}/{subquest.uuid}"
+                )
 
-                # ✅ Differentiate between first-time publish vs re-publish
-                if subquest.updated_at and subquest.is_draft is False:
-                    message = f"📢 A quest has been re-published! {role_mention}"
-                else:
+                db.session.add(message)
+                db.session.commit()
+
+            socketio.emit(
+                "community_publish_notification",
+                {
+                    "community_id": community.id, 
+                    "channel_uuid": quest_channel.uuid if quest_channel else None, 
+                    "community_name": community.name,
+                    "community_logo": community.logo_path,
+                    "content": "🎉 A new quest has been published",
+                    "created_at": datetime.utcnow().isoformat(),
+                    "link": f"/{community.slug}/quest/{quest.uuid}/{subquest.uuid}"
+                },
+                room = f"community_{community_id}"
+            )
+            socketio.emit(
+                "community_notification",
+                {
+                    "uuid": message.uuid,
+                    "type": "community_publish",
+                    "channel_uuid": quest_channel.uuid,
+                    "community_id": community.id,
+                    "content": message.content,
+                    "created_at": message.created_at.isoformat(),
+                    "user_id": bot_user.id,
+                    "username": bot_user.username,
+                    "avatar": bot_user.profile_pic,
+                    "is_bot": True,
+                    "sender_role": "bot",
+                    "is_creator": False,
+                    "user_color": "#5865f2",
+                    "reactions": [],
+                    "files": [],
+                    "audio": None
+                },
+                room=f"community_{community.id}"
+            )
+            # inside publish_subquest route, just before sending Discord message
+            if community.discord_guild:
+                setting = DiscordNotificationSetting.query.filter_by(
+                    guild_id=community.discord_guild.id,
+                    type="new_quest"
+                ).first()
+
+                if setting and setting.channel_id:
+                    role_mention = f"<@&{setting.role_id}>" if setting.role_id else ""
                     message = f"📢 A new quest has been published! {role_mention}"
+                    send_discord_message_async(setting.channel_id, message)
 
-                send_discord_message(setting.channel_id, message)
+            subs = get_community_push_subs(community.id)
 
+            if subs:
+                send_push_notification_async(
+                    subs,
+                    title=f"{community.name}",
+                    body="🎉 A new quest has been published!",
+                    data={
+                        "url": f"/{community.slug}/quest/{quest.uuid}/{subquest.uuid}",
+                        "type": "new_quest",
+                        "community_slug": community.slug,
+                        "channel_uuid": quest_channel.uuid if quest_channel else None,
+                    }
+                )
 
         return jsonify({'success': True})
 
@@ -23117,6 +23180,21 @@ def notify_community_pin(
 
 def message_mentions_user(content, user):
     return f"@{user.username}" in content
+
+@app.route("/api/push/check", methods=["POST"])
+@login_required
+@csrf.exempt
+def push_check():
+    sub = request.json
+
+    endpoint = sub.get("endpoint")
+
+    exists = False
+    if endpoint:
+        exists = PushSubscription.query.filter_by(endpoint=endpoint).first() is not None
+
+    return {"exists": exists}
+
 @app.route("/api/push/subscribe", methods=["POST"])
 @login_required
 @csrf.exempt
@@ -25228,6 +25306,8 @@ def get_comm_messages():
         query = query.filter_by(ticket_id=ticket.id)
     has_more = True
 
+    bot_user = get_bot_user()
+
     if after:
         try:
             after_dt = datetime.fromisoformat(after)
@@ -25405,6 +25485,7 @@ def get_comm_messages():
             "is_edited": m.is_edited,
             "created_at": m.created_at.isoformat(),
             "reply_to": m.reply_to.uuid if m.reply_to else None,
+            "is_bot": m.user_id == bot_user.id,  
             "forwarded_from": m.forwarded_from.uuid if m.forwarded_from else None,
             "reactions": reactions,
             "files": files,
@@ -25452,6 +25533,11 @@ def delete_channel():
     if not channel:
         return jsonify({"error": "Channel not found"}), 404
 
+    if channel.is_quest_alert:
+        return jsonify({
+            "error": "This channel is protected and cannot be deleted"
+        }), 403
+    
     db.session.delete(channel)
     db.session.commit()
 
@@ -29157,15 +29243,33 @@ class CommunityChannelAdmin(BaseAdmin):
     column_list = (
         "id", "uuid", "community", "category",
         "name", "topic", "is_private",
+        "is_quest_alert",  
         "slowmode_seconds", "position",
         "created_by", "created_at"
     )
 
     column_searchable_list = ("name", "topic")
-    column_filters = ("community", "category", "is_private")
+
+    column_filters = (
+        "community",
+        "category",
+        "is_private",
+        "is_quest_alert"  
+    )
+
     column_default_sort = ("position", False)
 
-
+    form_columns = (
+        "community",
+        "category",
+        "name",
+        "topic",
+        "is_private",
+        "is_quest_alert",  
+        "slowmode_seconds",
+        "position",
+        "created_by"
+    )
 
 
 

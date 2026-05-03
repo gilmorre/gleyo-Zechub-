@@ -3,7 +3,8 @@ import requests
 import os, json
 from communitynotification import CommunityNotificationSettings, PushSubscription, CategoryNotificationSettings, ChannelNotificationSettings
 from pywebpush import webpush, WebPushException
-
+from instance import db
+from flask import current_app
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
@@ -48,10 +49,39 @@ def send_push_notification_async(subs, title, body, data):
     return executor.submit(_send_push_notification, subs, title, body, data)
 
 
+def _send_discord_message(channel_id, content):
+    from flask import current_app
+    import requests, os
+
+    token = current_app.config.get("DISCORD_BOT_TOKEN") or os.getenv("DISCORD_BOT_TOKEN")
+    if not token:
+        print("❌ No Discord bot token configured")
+        return False
+
+    url = f"https://discord.com/api/v10/channels/{channel_id}/messages"
+    headers = {"Authorization": f"Bot {token}"}
+    data = {"content": content}
+
+    try:
+        resp = requests.post(url, headers=headers, json=data, timeout=10)
+
+        if resp.status_code not in (200, 201):
+            print(f"❌ Discord message failed: {resp.text}")
+            return False
+
+        print("✅ Discord message sent!")
+        return True
+
+    except Exception as e:
+        print("❌ Discord error:", e)
+        return False
+
 
 
 def _send_push_notification(subs, title, body, data):
-    with app.app_context():  # 🔥 important for threads
+    app = current_app._get_current_object()
+
+    with app.app_context():  
         for sub in subs:
             payload = {
                 "title": str(title),
@@ -83,3 +113,13 @@ def _send_push_notification(subs, title, body, data):
                 if "410" in str(e) or "404" in str(e):
                     db.session.delete(sub)
                     db.session.commit()
+
+def send_discord_message_async(channel_id, content):
+    
+    app = current_app._get_current_object()
+
+    def task():
+        with app.app_context():
+            _send_discord_message(channel_id, content)
+
+    return executor.submit(task)

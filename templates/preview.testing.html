@@ -166,7 +166,7 @@ body.dark {
   --bg-first-child-side: #181827;
   --bg-first-child-side-main: #181827;
   --bg-sidebar: #1e1e2f;
-  --bg-chat: #2323365874;
+  --bg-chat: #232336;
   --bg-chat-react-pops: #2323368d;
   --card-background: #181826;
   --bg-input: #1b1b29;
@@ -1736,6 +1736,66 @@ input:checked + .slider::before {
 .confi-card-btn:hover {
   background: var(--card-bg-hover);
 }
+/* BOT MESSAGE CONTAINER */
+/* .bot-message .message {
+  background: rgba(88, 101, 242, 0.08);
+  border-left: 4px solid #5865f2;
+  border-radius: 10px;
+} */
+
+.bot-badge {
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: #5865f2;
+  color: #fff;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+.quest-card {
+  padding: 12px 16px;
+  background: rgba(88, 101, 242, 0.08);
+  border-radius: 20px;
+  display: flex;
+  border: 0.5px solid var(--border);
+
+  border-left: 2px solid #4285f4;  
+  flex-direction: column;
+  gap: 4px;
+  max-width: 320px;
+  min-width: 320px;
+  width: 320px;
+}
+
+
+
+.quest-title {
+  font-size: 14px;
+  font-weight: 550;
+  margin: 0;
+}
+
+.quest-link {
+  align-self: flex-end;
+  margin-top: 8px;
+  font-size: 13px;
+  color: #4285f4;
+  text-decoration: none;
+  font-weight: 550;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(66, 133, 244, 0.4);
+  background: rgba(66, 133, 244, 0.1);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  transition: background 0.15s;
+}
+
+.quest-link:hover {
+  background: rgba(66, 133, 244, 0.2);
+}
+
 
 .confi-card-btned {
   background: var(--card-bg);
@@ -3916,6 +3976,13 @@ body.dark .container-slow-mode {
 
 }
 
+
+.quest-wrapper {
+  padding: 10px 0;
+  max-width: 320px;
+  min-width: 320px;
+  width: 320px;
+}
 
 
 
@@ -7472,8 +7539,7 @@ function ShubShowRemove() {
   background: var(--bg-chat);
   border: var(--bg-emoji-border);
   border-radius: 18px;
-    overflow-y: hidden;
-
+  overflow-y: hidden;
   display: flex;
   flex-direction: column;
 }
@@ -10396,7 +10462,7 @@ function closeReactionModal() {
   width: 220px;
   max-height: 220px;
   min-height: 120px;
-  background: var(--bg-chat);
+  background: var(--bg-card);
   border-radius: 18px;
   box-shadow: var(--box-shadow);
   display: flex;
@@ -10421,7 +10487,7 @@ function closeReactionModal() {
 
   .reaction-view-header {
     padding: 16px 12px;
-    border-bottom: 1px solid #e5e5e5;
+    border-bottom: 1px solid var(--border);
   }
 
   .reaction-view-title {
@@ -10453,6 +10519,7 @@ function closeReactionModal() {
   .reaction-view-avatar {
     width: 30px;
     height: 30px;
+    object-fit: cover;
     border-radius: 50%;
   }
 
@@ -10960,8 +11027,7 @@ function clearTicketContent() {
 async function renderMessagesFromServer(messages, pins = []) {
   const messagesEl = document.getElementById("messages");
   if (!messagesEl) return;
-  await ensureMentionCache(); 
-
+  
   const messageIndex = {};
   const timeline = [];
   const ticketUuid = CurrentActiveChat.ticketUuid;
@@ -11025,11 +11091,25 @@ async function renderMessagesFromServer(messages, pins = []) {
   timeline.forEach(item => {
     if (item.type === "message") {
       const msg = item.data;
+      const isBot = msg.is_bot === true;
       if (msg.is_deleted) return;
     try {
       const rawText = msg.content || "";
       const escaped = escapeHTML(rawText);
       let safeHTML = stylizeLinks(escaped);
+      if (isBot && msg.content.includes("/quest/")) {
+        const match = msg.content.match(/\/[^\s]+\/quest\/[^\s]+/);
+        if (match) {
+          const link = match[0];
+          const title = escapeHTML(msg.content.split("|")[0].trim());
+          safeHTML = `
+            <div class="quest-card">
+              <p class="quest-title">${title}</p>
+              <a href="${link}" class="quest-link" target="_blank">View Quest</a>
+            </div>
+          `;
+        }
+      }
       const hasAudio = msg.audio && msg.audio.type === "audio";
       const finalRender = hasAudio ? AUDIO : TEXT_FILES;
       if (!is_mobile) {
@@ -11041,6 +11121,7 @@ async function renderMessagesFromServer(messages, pins = []) {
 
       const wrapper = document.createElement("div");
       wrapper.classList.add("message-wrapper");
+      
       wrapper.dataset.msgIds = msg.uuid;
       wrapper.dataset.msgSent = msg.is_sender ? "true" : "false";
       wrapper.dataset.senderRole = msg.sender_role; // admin | member
@@ -11060,7 +11141,10 @@ async function renderMessagesFromServer(messages, pins = []) {
           <div class="message-content reaction-target">
             <div class="message-main">
               <div class="message-meta">
-                <span class="author"  style="color: ${authorColor};" data-colored-user="${authorColor}">${msg.username}</span>
+                <span class="author" style="color: ${authorColor};">
+                  ${msg.username}
+                  ${isBot ? '<span class="bot-badge">BOT</span>' : ''}
+                </span>
                 <time class="timestamp-message">
                   ${formatTimeFromISO(msg.created_at)}
                 </time>
@@ -11078,15 +11162,26 @@ async function renderMessagesFromServer(messages, pins = []) {
 
       messagesEl.appendChild(wrapper);
       messageIndex[msg.uuid] = wrapper;
+      const isQuestCard = isBot && safeHTML.includes("quest-card");
+      if (isQuestCard) {
+        const box = wrapper.querySelector(".voice-and-reactions");
+        if (!box) return;
 
-      buildVoiceContent({
-        wrapper,
-        safeHTML,
-        hasText: !!rawText,
-        hasFiles: Array.isArray(msg.files) && msg.files.length > 0,
-        files: msg.files || [],
-        text: rawText
-      });
+        const div = document.createElement("div");
+        div.className = "quest-wrapper";
+        div.innerHTML = safeHTML;
+
+        box.appendChild(div)
+      } else {
+        buildVoiceContent({
+          wrapper,
+          safeHTML,
+          hasText: !!rawText,
+          hasFiles: Array.isArray(msg.files) && msg.files.length > 0,
+          files: msg.files || [],
+          text: rawText
+        });
+      }
       if (msg.audio && msg.audio.type === "audio") {
         appendAudioFromServer(wrapper, msg.audio);
       }
@@ -11173,7 +11268,7 @@ async function renderMessagesFromServer(messages, pins = []) {
       // 🧠 CASE 2: replied message was deleted
       injectReplyHeader(currentWrapper, {
         username: null,
-        avatar: "https://i.pravatar.cc/40?img=64",
+        avatar: "https://xpcqiovfesvllsljxhac.supabase.co/storage/v1/object/public/uploads/1/logos/4f88da54-69ef-447b-a82b-209778bd5135.png",
         userColor: null,
         previewHTML: "<em>Message deleted</em>",
         replyToUuid: msg.reply_to
@@ -11247,6 +11342,7 @@ socket.on("community_notification", (data) => {
     community_id: Number(data.community_id),
     content: data.content,
     created_at: data.created_at,
+    is_bot: data.is_bot || null,
 
     reply_to: data.reply_to || null,
     is_mention: !!data.is_mention,
@@ -20664,7 +20760,7 @@ function buildVoiceContent({
 
   /* ---------------- TEXT ---------------- */
   if (hasText && safeHTML.trim()) {
-    textEl = document.createElement("span");
+    textEl = document.createElement("div");
     textEl.className = "text";
     textEl.innerHTML = safeHTML;
     box.appendChild(textEl);
@@ -21843,7 +21939,7 @@ function markRepliesAsDeleted(deletedMsgUuid) {
 
     injectReplyHeader(wrapper, {
       username: null,
-      avatar: "https://i.pravatar.cc/40?img=64",
+      avatar: "https://xpcqiovfesvllsljxhac.supabase.co/storage/v1/object/public/uploads/1/logos/4f88da54-69ef-447b-a82b-209778bd5135.png",
       userColor: null,
       previewHTML: "<em>Message deleted</em>",
       replyToUuid: deletedMsgUuid
@@ -28430,11 +28526,25 @@ async function buildMessageElement(messages = [], pins = [], insertBefore = fals
     list.forEach(item => {
     if (item.type === "message") {
       const msg = item.data;
+      const isBot = msg.is_bot === true;
       if (msg.is_deleted) return;
     try {
       const rawText = msg.content || "";
       const escaped = escapeHTML(rawText);
       let safeHTML = stylizeLinks(escaped);
+      if (isBot && msg.content.includes("/quest/")) {
+        const match = msg.content.match(/\/[^\s]+\/quest\/[^\s]+/);
+        if (match) {
+          const link = match[0];
+          const title = escapeHTML(msg.content.split("|")[0].trim());
+          safeHTML = `
+            <div class="quest-card">
+              <p class="quest-title">${title}</p>
+              <a href="${link}" class="quest-link" target="_blank">View Quest</a>
+            </div>
+          `;
+        }
+      }
       const hasAudio = msg.audio && msg.audio.type === "audio";
       const finalRender = hasAudio ? AUDIO : TEXT_FILES;
       if (!is_mobile) {
@@ -28445,6 +28555,9 @@ async function buildMessageElement(messages = [], pins = [], insertBefore = fals
 
       const wrapper = document.createElement("div");
       wrapper.classList.add("message-wrapper");
+      if (isBot) {
+        wrapper.classList.add("bot-message");
+      }
       wrapper.dataset.msgIds = msg.uuid;
       wrapper.dataset.msgSent = msg.is_sender ? "true" : "false";
       wrapper.dataset.senderRole = msg.sender_role; // admin | member
@@ -28464,7 +28577,10 @@ async function buildMessageElement(messages = [], pins = [], insertBefore = fals
           <div class="message-content reaction-target">
             <div class="message-main">
               <div class="message-meta">
-                <span class="author"  style="color: ${authorColor};" data-colored-user="${authorColor}">${msg.username}</span>
+                <span class="author" style="color: ${authorColor};">
+                  ${msg.username}
+                  ${isBot ? '<span class="bot-badge">BOT</span>' : ''}
+                </span>
                 <time class="timestamp-message">
                   ${formatTimeFromISO(msg.created_at)}
                 </time>
@@ -28484,15 +28600,26 @@ async function buildMessageElement(messages = [], pins = [], insertBefore = fals
         messagesEl.appendChild(wrapper);
       }
       messageIndex[msg.uuid] = wrapper;
+      const isQuestCard = isBot && safeHTML.includes("quest-card");
+      if (isQuestCard) {
+        const box = wrapper.querySelector(".voice-and-reactions");
+        if (!box) return;
 
-      buildVoiceContent({
-        wrapper,
-        safeHTML,
-        hasText: !!rawText,
-        hasFiles: Array.isArray(msg.files) && msg.files.length > 0,
-        files: msg.files || [],
-        text: rawText
-      });
+        const div = document.createElement("div");
+        div.className = "quest-wrapper";
+        div.innerHTML = safeHTML;
+
+        box.appendChild(div)
+      } else {
+        buildVoiceContent({
+          wrapper,
+          safeHTML,
+          hasText: !!rawText,
+          hasFiles: Array.isArray(msg.files) && msg.files.length > 0,
+          files: msg.files || [],
+          text: rawText
+        });
+      }
       if (msg.audio && msg.audio.type === "audio") {
         appendAudioFromServer(wrapper, msg.audio);
       }
@@ -28583,7 +28710,7 @@ async function buildMessageElement(messages = [], pins = [], insertBefore = fals
       // 🧠 CASE 2: replied message was deleted
       injectReplyHeader(currentWrapper, {
         username: null,
-        avatar: "https://i.pravatar.cc/40?img=64",
+        avatar: "https://xpcqiovfesvllsljxhac.supabase.co/storage/v1/object/public/uploads/1/logos/4f88da54-69ef-447b-a82b-209778bd5135.png",
         userColor: null,
         previewHTML: "<em>Message deleted</em>",
         replyToUuid: msg.reply_to

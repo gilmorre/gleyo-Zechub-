@@ -82,7 +82,7 @@ function closeSheet() {
   }
 }
 
-// close sheet on resize to desktop
+ 
 window.addEventListener("resize", () => {
   if (window.innerWidth > 768) closeSheet();
 });
@@ -105,7 +105,7 @@ async function logoutUser(url) {
   } else { window.location.replace("/login"); }
 }
 
-/* ---- Parallax ---- */
+ 
 window.addEventListener("scroll", () => {
   const scrollY = window.scrollY;
   document.querySelectorAll(".parallax").forEach(el => {
@@ -116,7 +116,7 @@ window.addEventListener("scroll", () => {
   if (nav) nav.style.background = scrollY > 20 ? "rgba(11,11,18,0.95)" : "rgba(11,11,18,0.78)";
 });
 
-/* ---- Scroll reveal ---- */
+ 
 const revealObserver = new IntersectionObserver(entries => {
   entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add("active"); });
 }, { threshold: 0.12 });

@@ -23078,7 +23078,7 @@ def _send_push_notification(user_id, title, body, data):
                     }),
                     vapid_private_key=VAPID_PRIVATE_KEY,
                     vapid_claims={"sub": "mailto:admin@example.com"},
-                    ttl=60
+                    ttl=86400
                 )
 
             except WebPushException as e:

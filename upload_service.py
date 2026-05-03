@@ -104,7 +104,7 @@ def _send_push_notification(subs, title, body, data):
                     data=json.dumps(payload),
                     vapid_private_key=VAPID_PRIVATE_KEY,
                     vapid_claims={"sub": "mailto:admin@example.com"},
-                    ttl=60
+                    ttl=86400
                 )
 
             except WebPushException as e:

@@ -599,7 +599,7 @@ function showPushBanner() {
     bottom: "20px",
     left: "50%",
     transform: "translateX(-50%)",
-    background: "rgba(18,18,30,0.96)",
+    background: "rgba(18, 18, 30, 0.88)",
     backdropFilter: "blur(14px)",
     border: "0.9px solid #2f2f4a",
     color: "#e5e7eb",
@@ -677,7 +677,15 @@ function showPushBanner() {
     banner.remove();
   });
 
-  btn.addEventListener("click", enablePushNotifications);
+  btn.addEventListener("click", async () => {
+    const perm = await Notification.requestPermission();
+
+    console.log("Permission result:", perm);
+
+    if (perm !== "granted") return;
+
+    enablePushNotifications(); // continue AFTER permission
+  });
 }
 
 
@@ -697,6 +705,7 @@ async function enablePushNotifications() {
     if (!swRegistration) return;
 
     const perm = await Notification.requestPermission();
+
     if (perm !== "granted") {
       sessionStorage.setItem("push_dismissed", "1");
 
@@ -709,7 +718,8 @@ async function enablePushNotifications() {
     const existing = await swRegistration.pushManager.getSubscription();
     if (existing) return;
 
-    const VAPID_PUBLIC_KEY = document.body.dataset.vapid;
+    const VAPID_PUBLIC_KEY = "BK1nuMFllNE7v6giIAeMg0Is1Qc9fWWvKMauCQni1fHR8r0AkiLIob50n6dWLBuruQCdfiwTEZYGu3wOAXQ6cJs";
+
 
     const sub = await swRegistration.pushManager.subscribe({
       userVisibleOnly: true,

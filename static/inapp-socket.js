@@ -580,7 +580,7 @@ function showPushBanner() {
 
   banner.innerHTML = `
     <button id="push-close-btn">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+      <svg width="12" height="12" style="flex-shrink: 0" viewBox="0 0 24 24" fill="none">
         <path d="M6 6L18 18M18 6L6 18" stroke="white" stroke-width="2" stroke-linecap="round"/>
       </svg>
     </button>

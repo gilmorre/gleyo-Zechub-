@@ -4102,6 +4102,7 @@ def slugify(text):
     return re.sub(r'[\W_]+', '-', text.lower()).strip('-')
 
 def create_default_community_structure(community_id, user_id):
+    # ───── Categories ─────
     info_category = CommunityCategory(
         community_id=community_id,
         created_by_id=user_id,
@@ -4109,49 +4110,88 @@ def create_default_community_structure(community_id, user_id):
         position=0
     )
 
+    chat_category = CommunityCategory(
+        community_id=community_id,
+        created_by_id=user_id,
+        name="COMMUNITY CHAT",
+        position=1
+    )
+
     quest_category = CommunityCategory(
         community_id=community_id,
         created_by_id=user_id,
         name="QUEST",
+        position=2
+    )
+
+    db.session.add_all([info_category, chat_category, quest_category])
+    db.session.flush()
+
+    # ───── Channels ─────
+    announcement = CommunityChannel(
+        community_id=community_id,
+        category_id=info_category.id,
+        created_by_id=user_id,
+        name="announcement",
+        position=0
+    )
+
+    introduction = CommunityChannel(
+        community_id=community_id,
+        category_id=info_category.id,
+        created_by_id=user_id,
+        name="introduction",
         position=1
     )
 
-    db.session.add_all([info_category, quest_category])
-    db.session.flush()   
+    general = CommunityChannel(
+        community_id=community_id,
+        category_id=chat_category.id,
+        created_by_id=user_id,
+        name="general",
+        position=0
+    )
 
-    channels = [
-        CommunityChannel(
-            community_id=community_id,
-            category_id=info_category.id,
-            created_by_id=user_id,
-            name="announcement",
-            position=0
-        ),
-        CommunityChannel(
-            community_id=community_id,
-            category_id=info_category.id,
-            created_by_id=user_id,
-            name="introduction",
-            position=1
-        ),
-        CommunityChannel(
-            community_id=community_id,
-            category_id=quest_category.id,
-            created_by_id=user_id,
-            name="quest-alerts",
-            position=0,
-            is_quest_alert=True 
-        ),
-        CommunityChannel(
-            community_id=community_id,
-            category_id=quest_category.id,
-            created_by_id=user_id,
-            name="reward-distribution",
-            position=1
-        )
+    quest_alerts = CommunityChannel(
+        community_id=community_id,
+        category_id=quest_category.id,
+        created_by_id=user_id,
+        name="quest-alerts",
+        position=0,
+        is_quest_alert=True
+    )
+
+    reward_distribution = CommunityChannel(
+        community_id=community_id,
+        category_id=quest_category.id,
+        created_by_id=user_id,
+        name="reward-distribution",
+        position=1
+    )
+
+    db.session.add_all([
+        announcement,
+        introduction,
+        general,
+        quest_alerts,
+        reward_distribution
+    ])
+    db.session.flush()
+
+    # ───── Permissions (ADMIN ONLY CHANNELS) ─────
+    restricted_channels = [
+        announcement,
+        quest_alerts,
+        reward_distribution
     ]
 
-    db.session.add_all(channels)
+    for ch in restricted_channels:
+        db.session.add(ChannelAllowedRole(
+            channel_id=ch.id,
+            role="admin"
+        ))
+
+
 
 @app.route("/community-logo", methods=["GET", "POST"])
 @login_required

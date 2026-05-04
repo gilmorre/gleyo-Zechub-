@@ -18252,7 +18252,7 @@ def handle_invite(community_slug, invitation_code):
 @app.route("/join_community/<community_slug>", methods=["POST"])
 @login_required
 @community_not_deleted()
-def join_community(community_slug):
+def join_community_mapper(community_slug):
 
     data = request.get_json() or {}
     community = Community.query.filter_by(slug=community_slug).first_or_404()

@@ -26,9 +26,9 @@ html, body {
   background: radial-gradient(circle at 30% 20%, #151528 0%, #0b0b12 60%);
   color: var(--text-main);
   height: 100dvh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
   width: 100%;
 }
 
@@ -46,7 +46,7 @@ html, body {
 
 .container {
   width: 100%;
-  max-width: 500px;
+  max-width: 100%;
   padding: 48px 40px;
   backdrop-filter: blur(20px);
   text-align: center;
@@ -160,9 +160,7 @@ button:hover {
   }
 }
 </style>
-</head>
 
-<body>
 
 <div class="container">
   <h1>Create your username</h1>

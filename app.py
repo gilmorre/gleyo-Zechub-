@@ -6913,32 +6913,31 @@ from datetime import datetime
 from datetime import datetime
 
 @app.route("/<string:community_slug>/join_community", methods=["POST"])
-@login_required
-def join_community_normal(community_slug):
+@community_not_deleted()
+def join_community(community_slug):
 
     user = current_user
-    community = Community.query.filter_by(slug=community_slug).first_or_404()
-
     data = request.get_json() or {}
+
+    community = Community.query.filter_by(slug=community_slug).first_or_404()
     invitation_code = data.get("invitation_code")
 
-    inviter_user_id = None
+    # 🚫 1. Anti-spam (2 min cooldown)
+    recent_join = CommunityMembershipEvent.query.filter(
+        CommunityMembershipEvent.user_id == user.id,
+        CommunityMembershipEvent.community_id == community.id,
+        CommunityMembershipEvent.event_type == "join",
+        CommunityMembershipEvent.created_at >= datetime.utcnow() - timedelta(minutes=2)
+    ).first()
 
-    if invitation_code:
-        invite = InvitationCode.query.filter_by(
-            code=invitation_code,
-            community_id=community.id
-        ).first()
-
-        if not invite:
-            return jsonify({
-                "success": False,
-                "message": "Invalid invitation code."
-            }), 400
-
-        inviter_user_id = invite.user_id
+    if recent_join:
+        return jsonify({
+            "success": False,
+            "message": "You're joining too fast."
+        }), 429
 
 
+    # 🚫 2. Already a member
     existing_role = CommunityUserRole.query.filter_by(
         user_id=user.id,
         community_id=community.id
@@ -6947,65 +6946,120 @@ def join_community_normal(community_slug):
     if existing_role:
         return jsonify({
             "success": False,
-            "message": f"You are already a {existing_role.role} in this community."
-        }), 400
+            "message": "Already a member"
+        }), 200
 
 
+    # 🔥 3. Membership history (THIS is your real guard)
+    has_joined_before = CommunityMembershipEvent.query.filter_by(
+        user_id=user.id,
+        community_id=community.id,
+        event_type="join"
+    ).first() is not None
+
+
+    status = "active"
+    invite_used = False
+    inviter_user_id = None
+
+
+    # 🔥 4. INVITE LOGIC (FORCED LOG + GUARDED)
+    if invitation_code:
+
+        invite = InvitationCode.query.filter_by(
+            code=invitation_code,
+            community_id=community.id
+        ).first()
+
+        if invite:
+            inviter_user_id = invite.user_id
+
+            # 🚫 HARD GUARD: only first-ever join can use invite
+            if not has_joined_before:
+
+                # 🚫 Prevent duplicate logs
+                existing_log = CommunityInviteLog.query.filter_by(
+                    invited_user_id=user.id,
+                    community_id=community.id
+                ).first()
+
+                if not existing_log:
+
+                    status = check_invite_status(
+                        user.id,
+                        community.id,
+                        invitation_code
+                    )
+
+                    log = CommunityInviteLog(
+                        invited_user_id=user.id,
+                        inviter_user_id=inviter_user_id,
+                        community_id=community.id,
+                        invitation_code=invitation_code,
+                        status=status,
+                        consumed_at=datetime.utcnow()
+                        if status == "active" else None
+                    )
+
+                    db.session.add(log)
+                    invite_used = True
+
+            else:
+                # 🚫 User has joined before → DO NOT allow invite credit
+                status = "ignored"
+
+
+    # ✅ 5. Create membership
     new_role = CommunityUserRole(
         user_id=user.id,
         community_id=community.id,
         role="member"
     )
-
     db.session.add(new_role)
 
 
+    # ✅ 6. Create membership event (SOURCE OF TRUTH)
     join_event = CommunityMembershipEvent(
         user_id=user.id,
         community_id=community.id,
         event_type="join"
     )
-
     db.session.add(join_event)
 
+
+    # ✅ 7. Ensure personal invite code exists
+    existing_code = InvitationCode.query.filter_by(
+        user_id=user.id,
+        community_id=community.id
+    ).first()
+
+    if not existing_code:
+        new_invite = InvitationCode(
+            user_id=user.id,
+            community_id=community.id
+        )
+        db.session.add(new_invite)
+    else:
+        new_invite = existing_code
+
+
+    # ✅ COMMIT
     db.session.commit()
 
 
-    # ⭐ Decide redirect
-    now = datetime.utcnow()
-
-    active_sprint = (
-        Sprint.query
-        .filter(
-            Sprint.community_id == community.id,
-            Sprint.start_date <= now,
-            Sprint.end_date >= now
-        )
-        .first()
-    )
-
-    if active_sprint:
-        redirect_url = url_for("p_quest_sprint", community_slug=community.slug)
-    else:
-        redirect_url = url_for("p_quest", community_slug=community.slug)
+    # ✅ 8. Update invite system (only if legit)
+    if invite_used:
+        check_and_update_invite_status(user.id, community.id)
 
 
     return jsonify({
         "success": True,
-        "message": f"You joined {community.name}!",
-        "community": {
-            "slug": community.slug,
-            "name": community.name,
-            "logo": (
-                url_for("static", filename=community.logo_path)
-                if community.logo_path else None
-            ),
-            "redirect": redirect_url
-        }
-    })
-
-    
-
+        "message": f"Joined {community.name}",
+        "status": status,
+        "invite_used": invite_used,
+        "inviter_user_id": inviter_user_id,
+        "invite_code": new_invite.code
+    }), 200
 @app.route('/live_view')
 @login_required
 def live_view():
@@ -15285,6 +15339,46 @@ def get_community_push_subs(community_id):
 
     return subs
 
+
+
+def attach_invite_code(task, user_id, community_id):
+    if task.type != "invite":
+        return {
+            "type": task.type,
+            "config": task.config or {}
+        }
+
+    # ✅ ALWAYS PARSE CONFIG FIRST
+    config = task.config
+    if isinstance(config, str):
+        try:
+            config = json.loads(config)
+        except:
+            config = {}
+
+    invite = InvitationCode.query.filter_by(
+        user_id=user_id,
+        community_id=community_id
+    ).first()
+
+    if not invite:
+        invite = InvitationCode(
+            user_id=user_id,
+            community_id=community_id
+        )
+        db.session.add(invite)
+        db.session.commit()
+
+    # ✅ NOW attach code
+    config["invite_code"] = invite.code
+
+    return {
+        "type": task.type,
+        "config": config
+    }
+
+
+
 @app.route('/<community_slug>/publish_subquest', methods=['POST'])
 @login_required
 def publish_subquest(community_slug):
@@ -16595,10 +16689,9 @@ def subquest_content(community_slug, quest_uuid, subquest_uuid):
 
     task_dicts = []
     for t in tasks:
-        config = t.config
-        if isinstance(config, str):
-            try: config = json.loads(config)
-            except: config = {}
+        task_with_code = attach_invite_code(t, user.id, community.id)
+        config = task_with_code["config"]
+
         task_dicts.append({
             "id": t.id,
             "type": t.type,
@@ -16610,7 +16703,7 @@ def subquest_content(community_slug, quest_uuid, subquest_uuid):
             "config": config,
             "quest_uuid": t.quest_uuid
         })
-
+        
     task = Task.query.filter_by(subquest_id=subquest.id, type='invite').first()
 
     rewards = []
@@ -16757,7 +16850,7 @@ def subquest_content(community_slug, quest_uuid, subquest_uuid):
 
 def utcnow():
     return datetime.now(timezone.utc)
-@app.route('/apiinit//<community_slug>/quest/<string:quest_uuid>/<string:subquest_uuid>')
+@app.route('/apiinit/<community_slug>/quest/<string:quest_uuid>/<string:subquest_uuid>')
 @login_required
 def quester_view(community_slug, quest_uuid, subquest_uuid):
     user = current_user
@@ -16865,7 +16958,8 @@ def quester_view(community_slug, quest_uuid, subquest_uuid):
     tasks = Task.query.filter_by(subquest_id=subquest.id).all()
     task_dicts = []
     for t in tasks:
-        config = t.config
+        task_with_code = attach_invite_code(t, user.id, community.id)
+        config = task_with_code["config"]
         if isinstance(config, str):
             try:
                 config = json.loads(config)
@@ -18160,8 +18254,9 @@ def handle_invite(community_slug, invitation_code):
 @community_not_deleted()
 def join_community(community_slug):
 
+    data = request.get_json() or {}
     community = Community.query.filter_by(slug=community_slug).first_or_404()
-    data = request.get_json(silent=True) or {}
+
     invitation_code = data.get("invitation_code")
 
     # 1️⃣ Check if already member
@@ -22541,7 +22636,7 @@ def update_category_permissions():
     return jsonify({"ok": True, **payload}), 200
 
 
-
+    
 
 @app.route("/api/channel/permissions", methods=["POST"])
 @login_required

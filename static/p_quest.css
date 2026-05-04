@@ -16,12 +16,41 @@
   min-height: 25vh;
   box-sizing: border-box;
 }
-
+.invite-text-title {
+  font-size: 14px;
+}
 .dot {
   fill: #4f46e5;
   transform-origin: 100px 100px;
   animation: rotateDot 3s linear infinite;
 }
+.copy-btn-quest {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 18px;
+  min-width: 78px;
+  border: 0.9px solid #4286f4cd;
+  background: #4286f4cd;
+  color: var(--text-main);
+  width: 40px !important;
+  max-width: 40px !important;
+  font-weight: 700;
+  font-size: 14px;
+  border-top-right-radius: 14px;
+  border-bottom-right-radius: 14px;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.copy-btn-quest:hover {
+  background: #4286f4cd;;
+}
+
+.copy-btn-quest:active {
+  transform: scale(0.97);
+}
+
 
 
 

@@ -35,7 +35,26 @@ function detectSprintMode(){
   return "all";
 }
 
+window.copyInviteLink = copyInviteLink
 
+async function copyInviteLink(btn) {
+  const link = btn.dataset.copyLink;
+  if (!link) return;
+
+  try {
+    await navigator.clipboard.writeText(link);
+
+    const originalText = btn.innerText;
+    btn.innerText = "Copied";
+
+    setTimeout(() => {
+      btn.innerText = originalText;
+    }, 1500);
+
+  } catch (err) {
+    console.error("Copy failed:", err);
+  }
+}
 
 function updateURL(mode){
 
@@ -1555,7 +1574,7 @@ function renderSubquest(subquest, questUUID) {
   }
 
   if (!isBlocked) {
-    el.href = `${communitySlug}/quest/${questUUID}/${subquest.uuid}`;   // ✅ only open modules
+    el.href = `${communitySlug}/quest/${questUUID}/${subquest.uuid}`; 
   }
 
   el.className = classes.join(" ");
@@ -2954,7 +2973,6 @@ function gobacktoquest(e){
 
 function renderTask(task){
   if(!task || !task.type) return "";
-
   /* ============================
      INPUT TASKS (UI ONLY)
      ============================ */
@@ -3710,7 +3728,7 @@ else if (task.type === "puzzle") {
                 ${inviteLink}
               </div>
             </div>
-            <button class="copy-btn-quest" data-copy-link="${inviteLink}">Copy</button>
+            <button class="copy-btn-quest" data-copy-link="${inviteLink}" onclick="copyInviteLink(this)">Copy</button>
           </div>
 
           <!-- Conditions -->

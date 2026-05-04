@@ -22490,16 +22490,18 @@ def update_category_permissions():
     category_uuid = data.get("category_uuid")
     roles = data.get("roles", [])
 
+    # 🚫 validate input
     if not community_id or not category_uuid:
         return jsonify({"error": "Missing data"}), 400
 
-    # 🔒 normalize + dedupe + order
+    # 🔒 normalize + dedupe
     roles = sorted({
         r.strip().lower()
         for r in roles
         if isinstance(r, str) and r.strip()
     })
 
+    # 🔍 ensure category belongs to community
     category = CommunityCategory.query.filter_by(
         uuid=category_uuid,
         community_id=community_id
@@ -22508,10 +22510,12 @@ def update_category_permissions():
     if not category:
         return jsonify({"error": "Category not found"}), 404
 
+    # 🧹 remove old roles
     CategoryAllowedRole.query.filter_by(
         category_id=category.id
     ).delete()
 
+    # ✅ insert new roles (one row per role)
     for role in roles:
         db.session.add(CategoryAllowedRole(
             category_id=category.id,
@@ -22520,19 +22524,22 @@ def update_category_permissions():
 
     db.session.commit()
 
+    # 📡 payload for frontend + socket
     payload = {
         "community_id": community_id,
         "category_uuid": category_uuid,
         "roles": roles
     }
 
+    # 🔥 realtime update
     socketio.emit(
         "category_permissions_comm_message",
         payload,
         room=f"community_{community_id}"
     )
 
-    return jsonify({ "ok": True, **payload }), 200
+    return jsonify({"ok": True, **payload}), 200
+
 
 
 
@@ -24780,6 +24787,17 @@ def create_channel():
 
     return jsonify(payload), 201
 
+
+
+def get_next_ticket_number(community_id):
+    last_ticket = (
+        db.session.query(CommunityTicket.community_ticket_number)
+        .filter_by(community_id=community_id)
+        .order_by(CommunityTicket.community_ticket_number.desc())
+        .first()
+    )
+
+    return 1 if last_ticket is None else last_ticket[0] + 1
 
 @app.route("/api/tickets/create", methods=["POST"])
 @login_required

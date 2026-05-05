@@ -716,7 +716,20 @@ async function enablePushNotifications() {
     }
 
     const existing = await swRegistration.pushManager.getSubscription();
-    if (existing) return;
+    if (existing) {
+      await fetch("/api/push/subscribe", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(existing)
+      });
+
+      const banner = document.getElementById("push-banner");
+      if (banner) banner.remove();
+
+      console.log("✅ Re-synced existing push subscription to server");
+      return;
+    }
 
     const VAPID_PUBLIC_KEY = "BK1nuMFllNE7v6giIAeMg0Is1Qc9fWWvKMauCQni1fHR8r0AkiLIob50n6dWLBuruQCdfiwTEZYGu3wOAXQ6cJs";
 

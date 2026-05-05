@@ -124,6 +124,7 @@ def _send_push_notification(subs, title, body, data):
 
                 if hasattr(e, "response") and e.response is not None:
                     try:
+                        status = e.response.status_code
                         print("❌ Status code:", status)
                         print("❌ Response body:", e.response.text)
 

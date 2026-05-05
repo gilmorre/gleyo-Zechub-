@@ -92,12 +92,7 @@ def _send_push_notification(subs, title, body, data):
 
     with app.app_context():
         for i, sub in enumerate(subs, start=1):
-            print("\n-----------------------------")
-            print(f"📡 Sending to sub #{i}")
-            print("👉 Endpoint:", sub.endpoint[:120] + "..." if sub.endpoint else "NONE")
-            print("🔑 p256dh:", "OK" if sub.p256dh else "MISSING")
-            print("🔐 auth:", "OK" if sub.auth else "MISSING")
-
+ 
             payload = {
                 "title": str(title),
                 "body": str(body),
@@ -107,10 +102,9 @@ def _send_push_notification(subs, title, body, data):
                 "channel_uuid": str(data.get("channel_uuid", "")),
             }
 
-            print("📦 Payload:", payload)
 
             try:
-                response = webpush(
+                webpush(
                     subscription_info={
                         "endpoint": sub.endpoint,
                         "keys": {
@@ -124,35 +118,35 @@ def _send_push_notification(subs, title, body, data):
                     ttl=86400
                 )
 
-                # pywebpush may return None, but log anyway
                 print("✅ Push sent successfully")
 
             except WebPushException as e:
-                print("❌ Push failed (FULL ERROR):", repr(e))
 
-                # try extracting response details
                 if hasattr(e, "response") and e.response is not None:
                     try:
-                        print("❌ Status code:", e.response.status_code)
+                        print("❌ Status code:", status)
                         print("❌ Response body:", e.response.text)
+
+                        if status in (404, 410):
+                            try:
+                                sub_in_session = db.session.merge(sub)
+                                db.session.delete(sub_in_session)
+                                db.session.commit()
+                                print("✅ Dead sub removed")
+                            except Exception as db_err:
+                                print("❌ Failed to delete sub:", db_err)
+                                db.session.rollback()
+
                     except Exception as inner_err:
                         print("⚠️ Could not read error response:", inner_err)
-
-                # common cleanup case
-                if "410" in str(e) or "404" in str(e):
-                    print("🧹 Removing invalid subscription")
-                    try:
-                        db.session.delete(sub)
-                        db.session.commit()
-                    except Exception as db_err:
-                        print("❌ Failed to delete sub:", db_err)
+                else:
+                    # No response at all — network/timeout issue, don't delete
+                    print("⚠️ No response object — likely a network error, skipping delete")
 
             except Exception as e:
                 print("💥 Unexpected error:", repr(e))
 
         print("\n🏁 PUSH TASK FINISHED\n")
-
-
 
 
 

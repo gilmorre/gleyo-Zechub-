@@ -15957,7 +15957,7 @@ PLATFORM_ICONS = {
 """,
         "color": "#000000"
     },
-    "visit link": {
+    "visit-link": {
         "icon": """
 <svg fill="#fff" stroke="#fff" width="12" height="12" viewBox="0 0 54.971 54.971" xmlns="http://www.w3.org/2000/svg">
   <g transform="translate(1,1) scale(0.96)">
@@ -22159,8 +22159,17 @@ def preview():
 
         def get_canonical():
             tag = soup.find("link", rel="canonical")
-            return abs_url(tag["href"]) if tag and tag.get("href") else url
 
+            canonical = abs_url(tag["href"]) if tag and tag.get("href") else url
+
+            # 🔥 preserve original query params
+            original = urlparse(url)
+            canon = urlparse(canonical)
+
+            canonical = canon._replace(query=original.query).geturl()
+
+            return canonical
+        
         def get_largest_image():
             imgs = []
             for img in soup.find_all("img"):
@@ -22218,6 +22227,7 @@ def sprint_panel(community_slug, sprint_uuid):
         return redirect(url_for("dashboard"))
     
     username = session.get("username")
+
 
 
     banned = check_banned(user_id, community.id)

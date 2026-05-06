@@ -6356,7 +6356,7 @@ async function handleVisitLinkUpdate(input, value){
     /* ===== APPLY UI ===== */
 
     // link
-    card.href = data.canonical || value;
+    card.href = value;
 
     if(previewBox){
       previewBox.style.display = "flex";

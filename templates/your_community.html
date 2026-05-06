@@ -6031,10 +6031,8 @@ function renderQuestSkeleton(target, count = 4, layout = null) {
 }
 
 
-let __CURRENT_CSS__ = null;
 
 async function loadCSS(href) {
-  if (__CURRENT_CSS__ === href) return;
 
   const container = document.getElementById("inject-main-card");
   if (!container) return;
@@ -6972,7 +6970,7 @@ async function loadMainSettingsSection(path, push = true, previewMode = false, n
   let cssToLoad = null;
 
   if (isUserQuest) {
-    cssToLoad = "/static/p_quest.css?v=9";
+    cssToLoad = "/static/p_quest.css?v=7";
   }
 
   if (cssToLoad) {

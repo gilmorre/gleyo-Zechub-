@@ -491,6 +491,24 @@ if (!isDesktop) {
 
 }
 
+
+function isIosUnsupportedPush() {
+  const ua = navigator.userAgent || navigator.vendor || window.opera;
+
+  const isIOS =
+    /iPad|iPhone|iPod/.test(ua) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+  const isStandalone =
+    window.matchMedia('(display-mode: standalone)').matches ||
+    window.navigator.standalone === true;
+
+  // 👉 block if iOS AND not installed PWA
+  return isIOS && !isStandalone;
+}
+
+
+
 /* helpers */
 function formatTimeAgo(date) {
   const diff = Math.floor((Date.now() - date.getTime()) / 1000);
@@ -516,7 +534,10 @@ let __pushInitDone = false;
 function initPushSystem() {
   if (__pushInitDone) return;
   __pushInitDone = true;
-
+  if (isIosUnsupportedPush()) {
+    console.log("🚫 iOS push not supported in browser — skipping");
+    return;
+  }
   if (!("serviceWorker" in navigator)) return;
 
   navigator.serviceWorker.register("/static/sw.js")
@@ -569,7 +590,10 @@ async function checkPushState() {
 
 
 
+
+
 function showPushBanner() {
+  if (isIosUnsupportedPush()) return;
 
   if (sessionStorage.getItem("push_dismissed")) return;
 

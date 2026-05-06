@@ -8193,7 +8193,6 @@ function closeReactionPopupMoobile() {
 
 
 document.addEventListener("touchstart", (e) => {
-    //  alert("called")
   
   const popup = getReactionPopup();
   if (!popup || popup.style.display !== "flex") return;
@@ -15422,29 +15421,33 @@ function getMuteValue() {
 
 
 async function saveNotificationSettings() {
-  const ctx = NotificationScopeContext;
+  const ctxSnapshot = { ...NotificationScopeContext }; // ✅ freeze it
 
-  const level = getSelectedRadioLevel(); // "all" | "mentions" | "none"
+  const level = getSelectedRadioLevel();  
   const isMuted = document
     .getElementById("muteCard")
     ?.classList.contains("muted");
 
   const payload = {
-    scope: ctx.scope,
-    community_id: ctx.communityId,
-    category_uuid: ctx.categoryUuid,
-    channel_uuid: ctx.channelUuid,
+    scope: ctxSnapshot.scope,
+    community_id: ctxSnapshot.communityId,
+    category_uuid: ctxSnapshot.categoryUuid,
+    channel_uuid: ctxSnapshot.channelUuid,
     notification_level: level,
     is_muted: isMuted,
     mute_seconds: getMuteSeconds(),
     mute_value: getMuteValue(),
-
-    // ✅ QUEST SETTINGS
     notify_new_quest: document.getElementById("newquest")?.checked,
     notify_reward_payout: document.getElementById("get-reward")?.checked
   };
 
-  console.log(payload)
+  // ✅ OPTIMISTIC UPDATE (BEFORE FETCH)
+  if (ctxSnapshot.scope === "channel") {
+    NotificationStore.channel[ctxSnapshot.channelUuid] = {
+      notification_level: level,
+      is_muted: isMuted
+    };
+  }
 
   const res = await fetch("/api/notifications/update", {
     method: "POST",
@@ -15456,24 +15459,16 @@ async function saveNotificationSettings() {
     body: JSON.stringify(payload)
   });
 
-  if (!res.ok) {
-    console.error("Failed to save notification settings");
-    return;
-  }
+  if (!res.ok) return;
 
   const data = await res.json();
 
-  // 🔥 UPDATE LOCAL STORE (SOURCE OF TRUTH)
-  if (ctx.scope === "community") {
-    NotificationStore.community[ctx.communityId] = data;
-  }
-  if (ctx.scope === "category") {
-    NotificationStore.category[ctx.categoryUuid] = data;
-  }
-  if (ctx.scope === "channel") {
-    NotificationStore.channel[ctx.channelUuid] = data;
+  // ✅ SAFE UPDATE (using snapshot, not live ctx)
+  if (ctxSnapshot.scope === "channel") {
+    NotificationStore.channel[ctxSnapshot.channelUuid] = data;
   }
 }
+
 
 let notifSaveTimer = null;
 

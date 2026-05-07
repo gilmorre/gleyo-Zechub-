@@ -3966,6 +3966,7 @@ function renderClaimSection(subquest, ui, socials_to_show) {
   const completed = ui?.completed_subquests?.includes(subquest.id);
 
   const socialsBlocked = hasBlockingSocials(socials_to_show);
+  const isLoggedIn = currentUserId && currentUserId !== "None";
 
   return `
     <div class="claim-button">
@@ -3993,13 +3994,26 @@ function renderClaimSection(subquest, ui, socials_to_show) {
       </div>
 
       ${!completed ? `
-        <button id="claim-task" 
-                data-subquest-id="${subquest.id}"
+        ${
+          !isLoggedIn
+            ? `
+              <button
                 style="outline:none; ${remaining > 0 ? "display:none;" : ""}"
-                class="claim-task disable ${socialsBlocked ? "disabled-task" : ""}"
-                ${socialsBlocked ? "disabled aria-disabled='true'" : ""}>
-          Claim
-        </button>
+                class="claim-task"
+                onclick="openAuthModal()">
+                Log in
+              </button>
+            `
+            : `
+              <button id="claim-task" 
+                      data-subquest-id="${subquest.id}"
+                      style="outline:none; ${remaining > 0 ? "display:none;" : ""}"
+                      class="claim-task disable ${socialsBlocked ? "disabled-task" : ""}"
+                      ${socialsBlocked ? "disabled aria-disabled='true'" : ""}>
+                Claim
+              </button>
+            `
+        }
       ` : ``}
 
       <button class="arrow-btn right" style="outline:none;">

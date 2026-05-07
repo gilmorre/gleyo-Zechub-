@@ -2,9 +2,39 @@
 <html lang="en" class lazy-load="true">
 <head>
   
-  <meta charset="UTF-8" />
+<meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="csrf-token" content="{{ csrf_token() }}">
+<meta name="color-scheme" content="light">
+
+<!-- Primary -->
+<title>{{ community.name }} — Quests</title>
+<meta name="description" content="{{ community.about or 'Complete quests, earn rewards, and level up in ' ~ community.name }}">
+
+<!-- Open Graph (Facebook, WhatsApp, Telegram, Discord, iMessage…) -->
+<meta property="og:type"        content="website">
+<meta property="og:site_name"   content="{{ community.name }}">
+<meta property="og:title"       content="{{ community.name }} — Quests">
+<meta property="og:description" content="{{ community.about or 'Complete quests, earn rewards, and level up in ' ~ community.name }}">
+<meta property="og:url"         content="{{ request.url }}">
+{% if community.logo_path %}
+<meta property="og:image"       content="{{ community.logo_path }}">
+<meta property="og:image:alt"   content="{{ community.name }} logo">
+{% endif %}
+
+<!-- Twitter / X card -->
+<meta name="twitter:card"        content="summary{% if community.logo_path %}_large_image{% endif %}">
+<meta name="twitter:title"       content="{{ community.name }} — Quests">
+<meta name="twitter:description" content="{{ community.about or 'Complete quests, earn rewards, and level up in ' ~ community.name }}">
+{% if community.logo_path %}
+<meta name="twitter:image"       content="{{ community.logo_path }}">
+<meta name="twitter:image:alt"   content="{{ community.name }} logo">
+{% endif %}
+
+<!-- Favicon (logo as favicon if available) -->
+{% if community.logo_path %}
+<link rel="icon" href="{{ community.logo_path }}">
+{% endif %}
 
 <meta name="color-scheme" content="light">
 <link rel="shortcut icon" href="https://gleyo.app/static/my_logo.png">
@@ -267,7 +297,7 @@
   #{{ "%02x%02x%02x" % (r, g, b) }}
 {% endmacro %}
 
-{% set color_index = user.id % colors|length %}
+{% set color_index = (user.id if user else 0) % colors|length %}
 {% set bg_color = colors[color_index] %}
 
 {# compute brightness to decide whether to lighten or darken text color #}
@@ -508,11 +538,15 @@
               Join the community to start completing quests and earning rewards.
           </p>
           {% endif %}
-          <button 
-            onclick="acceptInviteNormal('{{ community.slug }}', '{{ invitation_code or '' }}')" 
-            class="join-btn">
+          {% if not is_authenticated %}
+          <button onclick="openAuthModal()" class="join-btn">
+            Login to Continue
+          </button>
+          {% else %}
+          <button onclick="acceptInviteNormal('{{ community.slug }}', '{{ invitation_code or '' }}')" class="join-btn">
             Join
           </button>
+          {% endif %}
       </div>
       <div class="welcome-right">
           <img src="#" alt="Welcome Art" decoding="async">
@@ -579,12 +613,17 @@
         {% else %}
             <div class="community-info init"> Join <strong>{{ community.name }}</strong> to start completing quests and earning rewards. </div>
         {% endif %}
-
-        <span 
-            class="name-join join-bts"
+      {% if not is_authenticated %}
+      <span class="name-join join-bts"
+            onclick="openAuthModal()">
+        Login to Join
+      </span>
+      {% else %}
+      <span class="name-join join-bts"
             onclick="acceptInviteNormal('{{ community.slug }}','{{ invitation_code or '' }}')">
-            Join
-        </span>
+        Join
+      </span>
+      {% endif %}
 
       </div>
 
@@ -748,7 +787,7 @@
 
           <div class="spacer-contents {% if is_banned %}banned-nav{% endif %}">
                 <div class="nav">
-                  {% if has_role(current_user.id, community.id, "admin") %}
+                  {% if is_authenticated and has_role(current_user.id, community.id, "admin") %}
                       <a class="naved-item"
                         href="/{{ community.slug }}/dashboard"
                         data-path="/{{ community.slug }}/dashboard"
@@ -792,7 +831,7 @@
                       <div class="content-ci-mmrtt-i">
                         
                         <a class="naved-item content-svginit" 
-                          {% if has_role(current_user.id, community.id, "editor") %}
+                          {% if current_user.is_authenticated and has_role(current_user.id, community.id, "editor") %}
                             href="/{{ community.slug }}/quest/admin" 
                             data-path="/{{ community.slug }}/quest/admin"
                           {% else %} 
@@ -867,7 +906,7 @@
                   {% else %}
 
                     <a class="naved-item"
-                        {% if has_role(current_user.id, community.id, "editor") %}
+                        {% if is_authenticated and has_role(current_user.id, community.id, "editor") %}
                           href="/{{ community.slug }}/quest/admin" 
                           data-path="/{{ community.slug }}/quest/admin"
                         {% else %} 
@@ -919,7 +958,7 @@
                       <span  style="padding-left: 22px;">Inbox</span>
                   </a>
 
-                  {% if has_role(current_user.id, community.id, "reviewer") %}
+                  {% if is_authenticated and has_role(current_user.id, community.id, "reviewer") %}
 
                   
                   <a class="naved-item reviews-init" 
@@ -934,7 +973,7 @@
                   </a>
                   {% endif %}
 
-                  {% if has_role(current_user.id, community.id, "admin") %}
+                  {% if is_authenticated and has_role(current_user.id, community.id, "admin") %}
                       <a class="naved-item"
                         href="/{{ community.slug }}/partnerships"
                         data-path="/{{ community.slug }}/partnerships"
@@ -990,7 +1029,7 @@
                         Partnerships
                       </a>
                   {% endif %}
-                      <a class="naved-item"
+                      <a class="naved-item reward-init"
                         href="/{{ community.slug }}/rewards"
                         data-path="/{{ community.slug }}/rewards"
                         onclick="event.preventDefault(); loadMainSettingsSection(this.dataset.path)">
@@ -1005,6 +1044,8 @@
 
 
           </div>
+
+          {% if is_authenticated %}
 
           <div class="container-setup">
               <div class="profile-card">
@@ -1047,7 +1088,7 @@
                 </div>
               </div>
           </div>
-
+          {% endif %}
 
               
 
@@ -1171,7 +1212,7 @@
     </a>
   </div>
   <div class="community-dropdown" style="display: none;">
-    <a href="/community/{{ community.slug }}/settings/general" class="{% if not has_role(current_user.id, community.id, 'admin') and not is_banned %}show-only-when{% endif %}"
+    <a href="/community/{{ community.slug }}/settings/general" class="{% if current_user.is_authenticated and not has_role(current_user.id, community.id, 'admin') and not is_banned %}show-only-when{% endif %}"
       onclick="event.preventDefault(); saveCommunityBackRoute(event, this); navigateTo(this.href);"> 
         <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z"/>
@@ -1180,7 +1221,7 @@
         Community Settings
     </a>
 
-    <a style="font-size: 14px;" class="open-message {% if not has_role(current_user.id, community.id, 'admin') and not is_banned %}show-only-when{% endif %}">  
+    <a style="font-size: 14px;" class="open-message {% if is_authenticated and not has_role(current_user.id, community.id, 'admin') and not is_banned %}show-only-when{% endif %}">  
       <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" stroke="currentColor" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
         <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z" />
       </svg> Open Chat
@@ -4725,12 +4766,20 @@ function addDropdown(nav, label, icon, items = []) {
 }
 
 
+function openAuthModal() {
+  const nextPath = window.location.pathname + window.location.search;
 
-const currentUserId = "{{ user.id }}"; 
+  window.location.href =
+    `/login?next=${encodeURIComponent(nextPath)}`;
+}
+
+
+const currentUserId = "{{ user.id if user else '' }}";
 
 window.currentCommunity = {
   slug: communitySlug,
 };
+
 
 
 function updateChatLink(slug) {
@@ -6865,6 +6914,16 @@ function openLeaveCommunityModal() {
 
 
 async function loadMainSettingsSection(path, push = true, previewMode = false, noSkeleton = false) {
+  const protectedRoutes = ["/rewards", "/inbox"];
+
+  const isProtected = protectedRoutes.some(route =>
+    path.includes(route)
+  );
+
+  if (!currentUserId && isProtected) {
+    showToast("Please log in to access this page.");
+    return;
+  }
   if (__IS_LOADING__) return;
   if (__CURRENT_PATH__ === path) return;
   if (!noSkeleton) {

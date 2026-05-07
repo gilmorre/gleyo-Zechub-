@@ -242,8 +242,17 @@ ALLOWED_ROUTES = {
     "landing_page",
     "about",
     'documentation',
-
-
+    "quester_view",
+    "p_quest",
+    "quester_view",
+    "quester_view",
+    "api_quests",
+    "api_sprint_leaderboard",
+    "leaderboard",
+    "api_alltime_leaderboard",
+    "sprint_view",
+    "quester_view_init",
+    "p_quest_sprint",
     "send_code",
     "verify_code",
     "pick_username",
@@ -7319,108 +7328,86 @@ def api_get_quests(community_slug):
         "quests": data
     })
 
-
-
 @app.route('/api/<community_slug>/leaderboard')
-@login_required
 def api_alltime_leaderboard(community_slug):
 
     community = Community.query.filter_by(slug=community_slug).first_or_404()
 
-    # ✅ ORDER BY XP, THEN BY EARLIEST ENTRY (IMPORTANT)
     leaderboard = (
         db.session.query(
             Users.id,
             Users.username,
             Users.profile_pic,
             CommunityUserXP.xp,
-            CommunityUserXP.id  # or created_at if you have it
+            CommunityUserXP.id
         )
         .join(Users, Users.id == CommunityUserXP.user_id)
         .filter(CommunityUserXP.community_id == community.id)
         .order_by(
             CommunityUserXP.xp.desc(),
-            CommunityUserXP.id.asc()  # ✅ first to join wins tie
+            CommunityUserXP.id.asc()
         )
         .limit(30)
         .all()
     )
 
     leaderboard_data = []
-
-    # ✅ ASSIGN RANK BASED ON FINAL ORDER
     for index, user in enumerate(leaderboard, start=1):
         leaderboard_data.append({
-            "user_id": user.id,
+            "user_id":  user.id,
             "username": user.username,
-            "image": user.profile_pic,
-            "xp": user.xp,
-            "rank": index
+            "image":    user.profile_pic,
+            "xp":       user.xp,
+            "rank":     index
         })
 
-    # ✅ GET CURRENT USER FROM SAME ORDERED LIST
+    # ── current user rank (guests skip entirely) ─────────────────────────────
     current_user_data = None
 
-    full_rank = (
-        db.session.query(CommunityUserXP)
-        .filter_by(
-            community_id=community.id,
-            user_id=current_user.id
-        )
-        .first()
-    )
-
-    if full_rank:
-        # count how many people have more XP
-        higher_count = (
+    if current_user.is_authenticated:
+        full_rank = (
             db.session.query(CommunityUserXP)
-            .filter(
-                CommunityUserXP.community_id == community.id,
-                (
-                    (CommunityUserXP.xp > full_rank.xp) |
+            .filter_by(community_id=community.id, user_id=current_user.id)
+            .first()
+        )
+
+        if full_rank:
+            higher_count = (
+                db.session.query(CommunityUserXP)
+                .filter(
+                    CommunityUserXP.community_id == community.id,
                     (
-                        (CommunityUserXP.xp == full_rank.xp) &
-                        (CommunityUserXP.id < full_rank.id)
+                        (CommunityUserXP.xp > full_rank.xp) |
+                        (
+                            (CommunityUserXP.xp == full_rank.xp) &
+                            (CommunityUserXP.id  < full_rank.id)
+                        )
                     )
                 )
+                .count()
             )
-            .count()
-        )
 
-        current_user_data = {
-            "username": current_user.username,
-            "image": current_user.profile_pic,
-            "xp": full_rank.xp,
-            "rank": higher_count + 1
-        }
-    else:
-        current_user_data = None
+            current_user_data = {
+                "username": current_user.username,
+                "image":    current_user.profile_pic,
+                "xp":       full_rank.xp,
+                "rank":     higher_count + 1
+            }
 
     return jsonify({
-        "leaderboard": leaderboard_data,
-        "current_user": current_user_data
+        "leaderboard":  leaderboard_data,
+        "current_user": current_user_data   # null for guests
     })
 
 
-
-
-import logging
-
 @app.route('/api/<community_slug>/leaderboard/<sprint_uuid>')
-@login_required
 def api_sprint_leaderboard(community_slug, sprint_uuid):
 
     community = Community.query.filter_by(slug=community_slug).first()
-
     if not community:
         return jsonify({"error": "Community not found"}), 404
 
-    sprint = Sprint.query.filter_by(
-        uuid=sprint_uuid,
-        community_id=community.id
-    ).first()
-
-
+    sprint = Sprint.query.filter_by(uuid=sprint_uuid, community_id=community.id).first()
     if not sprint:
         return jsonify({"error": "Sprint not found"}), 404
 
@@ -7430,73 +7417,65 @@ def api_sprint_leaderboard(community_slug, sprint_uuid):
             Users.username,
             Users.profile_pic,
             SprintUserXP.xp,
-            SprintUserXP.id  
+            SprintUserXP.id
         )
         .join(Users, Users.id == SprintUserXP.user_id)
         .filter(SprintUserXP.sprint_id == sprint.id)
         .order_by(
             SprintUserXP.xp.desc(),
-            SprintUserXP.id.asc()  
+            SprintUserXP.id.asc()
         )
         .limit(30)
         .all()
     )
 
-
     leaderboard_data = []
-
     for index, user in enumerate(leaderboard, start=1):
         leaderboard_data.append({
-            "user_id": user.id,
+            "user_id":  user.id,
             "username": user.username,
-            "image": user.profile_pic,
-            "xp": user.xp or 0,
-            "rank": index
+            "image":    user.profile_pic,
+            "xp":       user.xp or 0,
+            "rank":     index
         })
 
+    # ── current user rank (guests skip entirely) ─────────────────────────────
     current_user_data = None
 
-    current_user_entry = (
-        db.session.query(SprintUserXP)
-        .filter_by(
-            sprint_id=sprint.id,
-            user_id=current_user.id
-        )
-        .first()
-    )
-
-
-    if current_user_entry:
-        higher_count = (
+    if current_user.is_authenticated:
+        current_user_entry = (
             db.session.query(SprintUserXP)
-            .filter(
-                SprintUserXP.sprint_id == sprint.id,
-                (
-                    (SprintUserXP.xp > current_user_entry.xp) |
+            .filter_by(sprint_id=sprint.id, user_id=current_user.id)
+            .first()
+        )
+
+        if current_user_entry:
+            higher_count = (
+                db.session.query(SprintUserXP)
+                .filter(
+                    SprintUserXP.sprint_id == sprint.id,
                     (
-                        (SprintUserXP.xp == current_user_entry.xp) &
-                        (SprintUserXP.id < current_user_entry.id)  
+                        (SprintUserXP.xp > current_user_entry.xp) |
+                        (
+                            (SprintUserXP.xp == current_user_entry.xp) &
+                            (SprintUserXP.id  < current_user_entry.id)
+                        )
                     )
                 )
+                .count()
             )
-            .count()
-        )
 
-        current_user_data = {
-            "username": current_user.username,
-            "image": current_user.profile_pic,
-            "xp": current_user_entry.xp or 0,
-            "rank": higher_count + 1
-        }
+            current_user_data = {
+                "username": current_user.username,
+                "image":    current_user.profile_pic,
+                "xp":       current_user_entry.xp or 0,
+                "rank":     higher_count + 1
+            }
 
     return jsonify({
-        "leaderboard": leaderboard_data,
-        "current_user": current_user_data
+        "leaderboard":  leaderboard_data,
+        "current_user": current_user_data   # null for guests
     })
-
-
-
-
 
 
 @app.route("/api/<community_slug>/user/<username>/activity")
@@ -16891,114 +16870,98 @@ def subquest_content(community_slug, quest_uuid, subquest_uuid):
 def utcnow():
     return datetime.now(timezone.utc)
 @app.route('/apiinit/<community_slug>/quest/<string:quest_uuid>/<string:subquest_uuid>')
-@login_required
 def quester_view(community_slug, quest_uuid, subquest_uuid):
-    user = current_user
-    user_id = current_user.id
-    
-    community = Community.query.filter_by(slug=community_slug).first_or_404()
-    theme_mode = get_user_theme_mode(user.id, community.id)
-    quest = Quest.query.filter_by(uuid=quest_uuid, community_id=community.id).first_or_404()
-    subquest = Subquest.query.filter_by(uuid=subquest_uuid, quest_id=quest.id).first_or_404()
+    user    = current_user if current_user.is_authenticated else None
+    user_id = int(user.id) if user else None
+
+    community  = Community.query.filter_by(slug=community_slug).first_or_404()
+    theme_mode = get_user_theme_mode(user_id, community.id) if user else "light"
+    quest      = Quest.query.filter_by(uuid=quest_uuid, community_id=community.id).first_or_404()
+    subquest   = Subquest.query.filter_by(uuid=subquest_uuid, quest_id=quest.id).first_or_404()
     fcfs_claimed_count = get_fcfs_claimed_count(subquest.id)
 
+    # ── role / permissions ───────────────────────────────────────────────────
     existing_role = CommunityUserRole.query.filter_by(
-        user_id=user.id,
-        community_id=community.id
-    ).first()
+        user_id=user_id, community_id=community.id
+    ).first() if user else None
 
+    has_any_role  = bool(existing_role)
+    can_view_info = has_role(user_id, community.id, "editor") if user else False
+    banned        = check_banned(user_id, community.id)       if user else False
 
-    has_any_role = bool(existing_role)
-    can_view_info = has_role(user.id, community.id, "editor")
-
-    # Fetch community security settings
+    # ── security / socials ───────────────────────────────────────────────────
     security = CommunitySecurity.query.filter_by(community_id=community.id).first()
-    # Fetch completed subquests for current user
-    completed_subquests = {
-        sc.subquest_id
-        for sc in SubquestCompletion.query.filter_by(
-            user_id=user.id,
-            status="success"
-        ).all()
-    }
-    pending_subquests = {
-        sc.subquest_id
-        for sc in SubquestCompletion.query.filter_by(
-            user_id=user.id,
-            status="pending"
-        ).all()
-    }
 
+    if user:
+        socials_to_show = {
+            "twitter":  security.require_twitter  if security else False,
+            "discord":  security.require_discord  if security else False,
+            "youtube":  security.require_youtube  if security else False,
+            "telegram": security.require_telegram if security else False,
+        }
+        latest_twitter  = UserTwitter.query.filter_by(user_id=user_id).order_by(UserTwitter.timestamp.desc()).first()
+        if latest_twitter  and latest_twitter.action  == "connected": socials_to_show["twitter"]  = False
+        latest_discord  = UserDiscord.query.filter_by(user_id=user_id).order_by(UserDiscord.timestamp.desc()).first()
+        if latest_discord  and latest_discord.action  == "connected": socials_to_show["discord"]  = False
+        latest_youtube  = UserYouTube.query.filter_by(user_id=user_id).order_by(UserYouTube.timestamp.desc()).first()
+        if latest_youtube  and latest_youtube.action  == "connected": socials_to_show["youtube"]  = False
+        latest_telegram = UserTelegram.query.filter_by(user_id=user_id).order_by(UserTelegram.timestamp.desc()).first()
+        if latest_telegram and latest_telegram.action == "connected": socials_to_show["telegram"] = False
+    else:
+        socials_to_show = {"twitter": False, "discord": False, "youtube": False, "telegram": False}
 
+    # ── completions / pending ────────────────────────────────────────────────
+    if user:
+        completed_subquests = {
+            sc.subquest_id
+            for sc in SubquestCompletion.query.filter_by(user_id=user_id, status="success").all()
+        }
+        pending_subquests = {
+            sc.subquest_id
+            for sc in SubquestCompletion.query.filter_by(user_id=user_id, status="pending").all()
+        }
+    else:
+        completed_subquests = set()
+        pending_subquests   = set()
 
-    socials_to_show = {
-        "twitter": security.require_twitter if security else False,
-        "discord": security.require_discord if security else False,
-        "youtube": security.require_youtube if security else False,
-        "telegram": security.require_telegram if security else False,
-    }
+    # ── xp / level ───────────────────────────────────────────────────────────
+    if user:
+        total_xp   = get_total_xp(user_id, community.id)
+        level_data = get_level(total_xp)
+    else:
+        total_xp   = 0
+        level_data = {"level": 0}
 
+    # ── cooldown ─────────────────────────────────────────────────────────────
+    active_cooldown_until = None
+    if user:
+        active_cooldown = (
+            SubquestCooldown.query
+            .filter_by(user_id=user_id, subquest_id=subquest.id)
+            .order_by(SubquestCooldown.created_at.desc())
+            .first()
+        )
+        if (
+            active_cooldown
+            and active_cooldown.cooldown_until
+            and active_cooldown.cooldown_until > datetime.utcnow()
+        ):
+            active_cooldown_until = active_cooldown.cooldown_until.isoformat()
 
-    latest_twitter = UserTwitter.query.filter_by(user_id=user.id).order_by(UserTwitter.timestamp.desc()).first()
-    if latest_twitter and latest_twitter.action == "connected":
-        socials_to_show["twitter"] = False
-
-    latest_discord = UserDiscord.query.filter_by(user_id=user.id).order_by(UserDiscord.timestamp.desc()).first()
-    if latest_discord and latest_discord.action == "connected":
-        socials_to_show["discord"] = False
-
-    latest_youtube = UserYouTube.query.filter_by(user_id=user.id).order_by(UserYouTube.timestamp.desc()).first()
-    if latest_youtube and latest_youtube.action == "connected":
-        socials_to_show["youtube"] = False
-
-    latest_telegram = UserTelegram.query.filter_by(user_id=user.id).order_by(UserTelegram.timestamp.desc()).first()
-    if latest_telegram and latest_telegram.action == "connected":
-        socials_to_show["telegram"] = False
-
-
-
-    # ✅ Fetch all quests with their subquests
+    # ── quests list ──────────────────────────────────────────────────────────
     all_quests = (
         Quest.query
         .filter_by(community_id=community.id)
         .options(joinedload(Quest.subquests).joinedload(Subquest.rewards))
         .all()
     )
-
-    # Filter out quests that have no valid (non-draft) subquests
     quests = [q for q in all_quests if any(not sq.is_draft for sq in q.subquests)]
 
-    # ✅ Fetch the exact subquest by UUID
-
-    # 🔥 ACTIVE SUBQUEST COOLDOWN (ONLY THIS SUBQUEST)
-    active_cooldown = (
-        SubquestCooldown.query
-        .filter_by(
-            user_id=user.id,
-            subquest_id=subquest.id
-        )
-        .order_by(SubquestCooldown.created_at.desc())
-        .first()
-    )
-
-    if (
-        active_cooldown
-        and active_cooldown.cooldown_until
-        and active_cooldown.cooldown_until > datetime.utcnow()
-    ):
-        active_cooldown_until = active_cooldown.cooldown_until.isoformat()
-    else:
-        active_cooldown_until = None
-
-
-
-
-
-    # ✅ Fetch tasks for this subquest
-    tasks = Task.query.filter_by(subquest_id=subquest.id).all()
+    # ── tasks ────────────────────────────────────────────────────────────────
+    tasks      = Task.query.filter_by(subquest_id=subquest.id).all()
     task_dicts = []
     for t in tasks:
-        task_with_code = attach_invite_code(t, user.id, community.id)
+        task_with_code = attach_invite_code(t, user_id, community.id)
         config = task_with_code["config"]
         if isinstance(config, str):
             try:
@@ -17006,183 +16969,140 @@ def quester_view(community_slug, quest_uuid, subquest_uuid):
             except Exception:
                 config = {}
         task_dicts.append({
-            "id": t.id,
-            "type": t.type,
-            "title": config.get("title", ""),
+            "id":          t.id,
+            "type":        t.type,
+            "title":       config.get("title", ""),
             "description": config.get("description", ""),
-            "labels": config.get("labels", {"left": "", "right": ""}),
-            "scale": config.get("scale", {"from": 1, "to": 10}),
-            "starCount": int(config.get("starCount", 0)),
-            "config": config
+            "labels":      config.get("labels", {"left": "", "right": ""}),
+            "scale":       config.get("scale", {"from": 1, "to": 10}),
+            "starCount":   int(config.get("starCount", 0)),
+            "config":      config
         })
 
-    # ✅ Fetch conditions for this subquest
+    # ── conditions ───────────────────────────────────────────────────────────
     conditions = [
         {"condition_type": c.condition_type, "condition_value": c.condition_value, "operator": c.operator}
         for c in subquest.conditions
     ]
 
-    # ✅ Fetch current sprint
+    # ── sprint ───────────────────────────────────────────────────────────────
     current_sprint = (
         Sprint.query
         .filter(
             Sprint.community_id == community.id,
-            Sprint.start_date <= datetime.utcnow(), 
-            Sprint.end_date >= datetime.utcnow()
+            Sprint.start_date <= datetime.utcnow(),
+            Sprint.end_date   >= datetime.utcnow()
         )
         .order_by(Sprint.start_date.desc())
         .first()
     )
 
-    # ✅ Process rewards for all quests/subquests (avoid overwriting subquest variable)
+    # ── rewards ──────────────────────────────────────────────────────────────
     for q in quests:
         for sq in q.subquests:
             for r in sq.rewards:
-                try:
-                    r.reward_data_parsed = json.loads(r.reward_data or "{}")
-                except json.JSONDecodeError:
-                    r.reward_data_parsed = {}
+                try:    r.reward_data_parsed = json.loads(r.reward_data or "{}")
+                except: r.reward_data_parsed = {}
 
-    # ✅ Fetch rewards for the selected subquest
-    
     rewards = []
-    for r in sorted(subquest.rewards, key=lambda x: x.id):  # <-- key: consistent ordering
-        try: reward_data = json.loads(r.reward_data) if r.reward_data else {}
+    for r in sorted(subquest.rewards, key=lambda x: x.id):
+        try:    reward_data = json.loads(r.reward_data) if r.reward_data else {}
         except: reward_data = {}
         rewards.append({
-            "id": r.id,
-            "reward_type": r.reward_type,
+            "id":                r.id,
+            "reward_type":       r.reward_type,
             "distribution_type": r.distribution_type,
-            "reward_data": reward_data
+            "reward_data":       reward_data
         })
-    completed_counts = {}
+
+    # ── progress ─────────────────────────────────────────────────────────────
+    completed_counts  = {}
     progress_percents = {}
 
     for q in quests:
-        # ✅ Only include subquests that are NOT drafts
         visible_subquests = [sq for sq in q.subquests if not sq.is_draft]
-        total_visible = len(visible_subquests)
+        total_visible     = len(visible_subquests)
 
         if total_visible == 0:
-            completed_counts[q.id] = 0
+            completed_counts[q.id]  = 0
             progress_percents[q.id] = 0
             continue
 
-        # ✅ Count only completed subquests among visible ones
         completed_visible = (
             SubquestCompletion.query.filter(
                 SubquestCompletion.subquest_id.in_([sq.id for sq in visible_subquests]),
-                SubquestCompletion.user_id == user.id,
-                SubquestCompletion.status == "success"
+                SubquestCompletion.user_id == user_id,
+                SubquestCompletion.status  == "success"
             ).count()
-        )
+        ) if user else 0
 
-        completed_counts[q.id] = completed_visible
+        completed_counts[q.id]  = completed_visible
         progress_percents[q.id] = (completed_visible / total_visible) * 100
 
-    user_role_entry = CommunityUserRole.query.filter_by(
-        user_id=user_id, community_id=community.id
-    ).first()
-
-    banned = check_banned(user_id, community.id)
-
-
-
-
-
-    # ✅ Discord roles
-    discord_roles = []
-    discord_connected = False
-   
-   
-    total_xp = get_total_xp(user.id, community.id)
-    level_data = get_level(total_xp)
+    # ── integrations ─────────────────────────────────────────────────────────
     community_twitter = CommunityTwitter.query.filter_by(
-        community_id=community.id,
-        action="connected"
+        community_id=community.id, action="connected"
     ).order_by(CommunityTwitter.timestamp.desc()).first()
+
     community_discord = DiscordGuild.query.filter_by(
-        community_id=community.id,
-        removed_at=None  # only consider active connection
+        community_id=community.id, removed_at=None
     ).first()
 
+    # ── description blocks ───────────────────────────────────────────────────
     raw_desc = []
-
-    # If DB already stores JSON blocks
     if isinstance(subquest.description, (list, dict)):
         raw_desc = subquest.description
-
-    # If stored as stringified JSON
     elif isinstance(subquest.description, str):
-        try:
-            raw_desc = json.loads(subquest.description)
-        except Exception:
-            raw_desc = []
+        try:    raw_desc = json.loads(subquest.description)
+        except: raw_desc = []
 
     parsed_blocks = []
-
     for block in raw_desc:
-        if block.get("type") == "text":
-            html = block.get("html", "")
-            parsed_html = (html)  
-            parsed_blocks.append({
-                "type": "text",
-                "html": parsed_html
-            })
+        if   block.get("type") == "text":  parsed_blocks.append({"type": "text",  "html": block.get("html", "")})
+        elif block.get("type") == "image": parsed_blocks.append({"type": "image", "src":  block.get("src")})
+        elif block.get("type") == "video": parsed_blocks.append({"type": "video", "src":  block.get("src")})
 
-        elif block.get("type") == "image":
-            parsed_blocks.append({
-                "type": "image",
-                "src": block.get("src")
-            })
-
-        elif block.get("type") == "video":
-            parsed_blocks.append({
-                "type": "video",
-                "src": block.get("src")
-            })
-
+    # ── response ─────────────────────────────────────────────────────────────
     return jsonify({
         "user": {
-            "id": user.id,
-            "username": user.username,
-            "profile_pic": user.profile_pic,
-            "level_data": level_data,
-            "total_xp": total_xp
-        },
+            "id":          user_id,
+            "username":    user.username    if user else None,
+            "profile_pic": user.profile_pic if user else None,
+            "level_data":  level_data,
+            "total_xp":    total_xp
+        } if user else None,
 
         "community": {
-            "id": community.id,
-            "name": community.name,
-            "slug": community.slug,
-            "theme_mode": theme_mode,
-            "is_banned": banned,
+            "id":           community.id,
+            "name":         community.name,
+            "slug":         community.slug,
+            "theme_mode":   theme_mode,
+            "is_banned":    banned,
             "can_view_info": can_view_info,
             "has_any_role": has_any_role
         },
 
-
         "subquest": {
-            "id": subquest.id,
-            "uuid": subquest.uuid,
-            "title": subquest.name,
-            "desc": parsed_blocks,
-            "recurrence": subquest.recurrence,
-            "cooldown": subquest.cooldown,
+            "id":           subquest.id,
+            "uuid":         subquest.uuid,
+            "title":        subquest.name,
+            "desc":         parsed_blocks,
+            "recurrence":   subquest.recurrence,
+            "cooldown":     subquest.cooldown,
             "cooldown_until": active_cooldown_until,
-            "sprint_id": subquest.sprint_id,
-            "sprint_name": subquest.sprint_name, 
-            "max_claim": subquest.max_claim,
-            "claim_count": subquest.claim_count
+            "sprint_id":    subquest.sprint_id,
+            "sprint_name":  subquest.sprint_name,
+            "max_claim":    subquest.max_claim,
+            "claim_count":  subquest.claim_count
         },
 
         "ui_state": {
             "current_subquest_uuid": subquest.uuid,
-            "fcfs_claimed_count": fcfs_claimed_count,
-            "completed_subquests": list(completed_subquests),
-            "pending_subquests": list(pending_subquests),
-            "progress_percents": progress_percents,
-            "completed_counts": completed_counts
+            "fcfs_claimed_count":    fcfs_claimed_count,
+            "completed_subquests":   list(completed_subquests),
+            "pending_subquests":     list(pending_subquests),
+            "progress_percents":     progress_percents,
+            "completed_counts":      completed_counts
         },
 
         "security": {
@@ -17191,32 +17111,24 @@ def quester_view(community_slug, quest_uuid, subquest_uuid):
 
         "sprint": {
             "current": {
-                "id": current_sprint.id if current_sprint else None,
-                "name": current_sprint.title if current_sprint else None,
+                "id":    current_sprint.id             if current_sprint else None,
+                "name":  current_sprint.title          if current_sprint else None,
                 "start": current_sprint.start_date.isoformat() if current_sprint else None,
-                "end": current_sprint.end_date.isoformat() if current_sprint else None
+                "end":   current_sprint.end_date.isoformat()   if current_sprint else None
             }
         },
 
-        "tasks": task_dicts,
-
+        "tasks":      task_dicts,
         "conditions": conditions,
-
-        "rewards": rewards,
+        "rewards":    rewards,
 
         "integrations": {
-            "community_twitter": {
-                "id": community_twitter.id if community_twitter else None
-            },
-            "community_discord": {
-                "id": community_discord.id if community_discord else None
-            },
-            "discord_connected": discord_connected,
-            "discord_roles": discord_roles
+            "community_twitter":  {"id": community_twitter.id if community_twitter else None},
+            "community_discord":  {"id": community_discord.id if community_discord else None},
+            "discord_connected":  False,
+            "discord_roles":      []
         }
     })
-
-
 import re
 from markupsafe import Markup
 
@@ -18395,16 +18307,36 @@ from flask import redirect, url_for
 from datetime import datetime
 
 @app.route('/<community_slug>/quest')
-@login_required
 def p_quest(community_slug):
 
-    user = current_user
+    community = Community.query.filter_by(
+        slug=community_slug
+    ).first_or_404()
 
-    community = Community.query.filter_by(slug=community_slug).first_or_404()
-    user_communities = get_user_communities(user.id)
+    user = current_user if current_user.is_authenticated else None
 
-    member_ctx = get_member_context(user.id, community.id)
     invitation_code = session.get("invite_code")
+
+    user_communities = []
+    member_ctx = {
+        "is_new_onto_this": True,
+        "user_was_invited": False,
+        "is_banned": False,
+        "inviter_username": None,
+        "inviter_profile_pic": None
+    }
+
+    total_xp = 0
+    level_data = None
+
+    if user:
+        user_communities = get_user_communities(user.id)
+
+        member_ctx = get_member_context(user.id, community.id)
+
+        total_xp = get_total_xp(user.id, community.id)
+
+        level_data = get_level(total_xp)
 
     if request.headers.get("X-Partial"):
         return render_template(
@@ -18413,13 +18345,12 @@ def p_quest(community_slug):
             community=community,
             from_slug_route=False,
             is_new_onto_this=member_ctx["is_new_onto_this"],
-            user_was_invited=member_ctx["user_was_invited"]
+            user_was_invited=member_ctx["user_was_invited"],
+            is_authenticated=current_user.is_authenticated
         )
 
-    total_xp = get_total_xp(user.id, community.id)
-    level_data = get_level(total_xp)
-
     latest_sprint = get_latest_valid_sprint(community.id)
+
     return render_template(
         "your_community.html",
         user=user,
@@ -18428,11 +18359,16 @@ def p_quest(community_slug):
         latest_sprint=latest_sprint,
         level_data=level_data,
         from_slug_route=False,
+
+        is_authenticated=current_user.is_authenticated,
+
         is_new_onto_this=member_ctx["is_new_onto_this"],
         user_was_invited=member_ctx["user_was_invited"],
         is_banned=member_ctx["is_banned"],
+
         inviter_username=member_ctx["inviter_username"],
         inviter_profile_pic=member_ctx["inviter_profile_pic"],
+
         invitation_code=invitation_code
     )
 
@@ -18463,11 +18399,12 @@ def p_quest(community_slug):
     #     limited_code=invite_entry.code if invite_entry else "",
     #     community_tuples=user_communities
     # )
-@app.route('/<community_slug>/quest/<string:quest_uuid>/<string:subquest_uuid>')
-@login_required
-def quester_view_init(community_slug, quest_uuid, subquest_uuid):
 
-    user = current_user
+
+@app.route('/<community_slug>/quest/<string:quest_uuid>/<string:subquest_uuid>')
+def quester_view_init(community_slug, quest_uuid, subquest_uuid):
+    user_id = current_user.id if current_user.is_authenticated else None
+    user = current_user if current_user.is_authenticated else None
 
     community = Community.query.filter_by(slug=community_slug).first_or_404()
 
@@ -18481,9 +18418,14 @@ def quester_view_init(community_slug, quest_uuid, subquest_uuid):
         quest_id=quest.id
     ).first_or_404()
 
-    user_communities = get_user_communities(user.id)
-
-    member_ctx = get_member_context(user.id, community.id)
+    user_communities = get_user_communities(user_id) if user_id else []
+    member_ctx = get_member_context(user_id, community.id) if user_id else {
+        "is_new_onto_this": False,
+        "user_was_invited": False,
+        "is_banned": False,
+        "inviter_username": None,
+        "inviter_profile_pic": None,
+    }
     invitation_code = session.get("invite_code")
 
     if request.headers.get("X-Partial"):
@@ -18498,9 +18440,10 @@ def quester_view_init(community_slug, quest_uuid, subquest_uuid):
             user_was_invited=member_ctx["user_was_invited"]
         )
 
-    total_xp = get_total_xp(user.id, community.id)
+    total_xp = get_total_xp(user_id, community.id) if user_id else 0
     level_data = get_level(total_xp)
     latest_sprint = get_latest_valid_sprint(community.id)
+
     return render_template(
         "your_community.html",
         community=community,
@@ -18520,18 +18463,22 @@ def quester_view_init(community_slug, quest_uuid, subquest_uuid):
     )
 
 
-
 @app.route('/<community_slug>/quest/sprint')
-@login_required
 def p_quest_sprint(community_slug):
-
-    user = current_user
+    user_id = current_user.id if current_user.is_authenticated else None
+    user = current_user if current_user.is_authenticated else None
     now = datetime.utcnow()
 
     community = Community.query.filter_by(slug=community_slug).first_or_404()
-    user_communities = get_user_communities(user.id)
+    user_communities = get_user_communities(user_id) if user_id else []
 
-    member_ctx = get_member_context(user.id, community.id)
+    member_ctx = get_member_context(user_id, community.id) if user_id else {
+        "is_new_onto_this": False,
+        "user_was_invited": False,
+        "is_banned": False,
+        "inviter_username": None,
+        "inviter_profile_pic": None,
+    }
     invitation_code = session.get("invite_code")
 
     active_sprint = (
@@ -18559,9 +18506,10 @@ def p_quest_sprint(community_slug):
             user_was_invited=member_ctx["user_was_invited"]
         )
 
-    total_xp = get_total_xp(user.id, community.id)
+    total_xp = get_total_xp(user_id, community.id) if user_id else 0
     level_data = get_level(total_xp)
     latest_sprint = get_latest_valid_sprint(community.id)
+
     return render_template(
         "your_community.html",
         user=user,
@@ -18578,6 +18526,9 @@ def p_quest_sprint(community_slug):
         inviter_profile_pic=member_ctx["inviter_profile_pic"],
         invitation_code=invitation_code
     )
+
+
+
 
 @app.route('/<community_slug>/quffest')
 @login_required
@@ -18857,93 +18808,74 @@ def extract_first_text_html(desc_blocks):
     return None
 
 
+
 @app.route('/api/quests/<community_slug>')
-@login_required
 def api_quests(community_slug):
-    user = current_user
-    user_id = int(user.id)
+    user = current_user if current_user.is_authenticated else None
+    user_id = int(user.id) if user else None
 
     community = Community.query.filter_by(slug=community_slug).first_or_404()
 
-    # roles
     existing_role = CommunityUserRole.query.filter_by(
-        user_id=user.id,
+        user_id=user_id,
         community_id=community.id
-    ).first()
+    ).first() if user else None
 
     latest_sprint = (
         Sprint.query
         .filter(Sprint.community_id == community.id)
-        .order_by(Sprint.start_date.desc())   # or 
+        .order_by(Sprint.start_date.desc())
         .first()
     )
 
     current_sprint_data = None
-
     if latest_sprint:
         current_sprint_data = {
             "id": latest_sprint.id,
             "uuid": latest_sprint.uuid,
             "title": latest_sprint.title,
-            "end_date": (
-                latest_sprint.end_date.isoformat()
-                if latest_sprint.end_date else None
-            ),
+            "end_date": latest_sprint.end_date.isoformat() if latest_sprint.end_date else None,
             "created_at": latest_sprint.start_date.isoformat()
         }
 
-    # completed / pending
-    completed_subquests = {
-        sc.subquest_id
-        for sc in SubquestCompletion.query.filter_by(
-            user_id=user.id,
-            status="success"
-        ).all()
-    }
+    # ── guest-safe completion state ──────────────────────────────────────────
+    if user:
+        completed_subquests = {
+            sc.subquest_id
+            for sc in SubquestCompletion.query.filter_by(user_id=user_id, status="success").all()
+        }
+        pending_subquests = {
+            sc.subquest_id
+            for sc in SubquestCompletion.query.filter_by(user_id=user_id, status="pending").all()
+        }
+        user_subquest_completions = {
+            sc.subquest.uuid: sc
+            for sc in SubquestCompletion.query.filter_by(user_id=user_id, status="success").all()
+        }
+        total_xp = get_total_xp(user_id, community.id)
+        level_data = get_level(total_xp)
+    else:
+        completed_subquests       = set()
+        pending_subquests         = set()
+        user_subquest_completions = {}
+        level_data                = {"level": 0}
+    # ─────────────────────────────────────────────────────────────────────────
 
-    pending_subquests = {
-        sc.subquest_id
-        for sc in SubquestCompletion.query.filter_by(
-            user_id=user.id,
-            status="pending"
-        ).all()
-    }
-
-    # load quests with relations
     quests = (
         Quest.query
         .filter(Quest.community_id == community.id)
         .options(
-            joinedload(Quest.subquests)
-                .joinedload(Subquest.tasks),
-            joinedload(Quest.subquests)
-                .joinedload(Subquest.rewards),
-            joinedload(Quest.subquests)
-                .joinedload(Subquest.conditions),
+            joinedload(Quest.subquests).joinedload(Subquest.tasks),
+            joinedload(Quest.subquests).joinedload(Subquest.rewards),
+            joinedload(Quest.subquests).joinedload(Subquest.conditions),
         )
         .order_by(Quest.id.desc())
         .all()
     )
 
-    # user completions map
-    user_subquest_completions = {
-        sc.subquest.uuid: sc
-        for sc in SubquestCompletion.query.filter_by(
-            user_id=user.id,
-            status="success"
-        ).all()
-    }
-
-    total_xp = get_total_xp(user.id, community.id)
-    level_data = get_level(total_xp)
-
     payload = []
-    progress_percents = {}
-    completed_counts = {}
 
     for q in quests:
-
-        # only visible subquests (not drafts)
         visible_subquests = [sq for sq in q.subquests if not sq.is_draft]
         if not visible_subquests:
             continue
@@ -18953,10 +18885,10 @@ def api_quests(community_slug):
         completed_visible = (
             SubquestCompletion.query.filter(
                 SubquestCompletion.subquest_id.in_([sq.id for sq in visible_subquests]),
-                SubquestCompletion.user_id == user.id,
+                SubquestCompletion.user_id == user_id,
                 SubquestCompletion.status == "success"
             ).count()
-        )
+        ) if user else 0
 
         progress = (completed_visible / total_visible) * 100 if total_visible else 0
 
@@ -18972,26 +18904,19 @@ def api_quests(community_slug):
             "subquests": []
         }
 
-        # process subquests
         for sq in visible_subquests:
-            if sq.max_claim is not None:
-                if sq.claim_count == sq.max_claim:   # 🔥 EXACT EQUALITY ONLY
+            if sq.max_claim is not None and sq.claim_count == sq.max_claim:
+                if sq.id not in completed_subquests:
+                    continue
 
-                    if sq.max_claim is not None and sq.claim_count == sq.max_claim:
-                        if sq.id not in completed_subquests:
-                            continue
-            # parse reward json
             for reward in sq.rewards:
                 try:
                     reward.reward_data_parsed = json.loads(reward.reward_data or "{}")
                 except Exception:
                     reward.reward_data_parsed = {}
 
-            # conditions
             parsed_conditions = []
-
             for cond in getattr(sq, "conditions", []):
-
                 cond_result = {
                     "id": cond.id,
                     "type": cond.condition_type,
@@ -18999,80 +18924,57 @@ def api_quests(community_slug):
                     "operator": cond.operator,
                     "subquest_uuid": cond.subquest_uuid,
                     "quest_uuid": resolve_quest_uuid(cond.subquest_uuid),
-                    "is_completed": False
+                    "is_completed": False   # always False for guests
                 }
 
-                if cond.condition_type == "Quest":
-                    is_completed = cond.subquest_uuid in user_subquest_completions
-                    cond_result["is_completed"] = is_completed
+                if user:  # only evaluate conditions for logged-in users
+                    if cond.condition_type == "Quest":
+                        cond_result["is_completed"] = cond.subquest_uuid in user_subquest_completions
 
-                elif cond.condition_type == "Level":
-                    required_level = int(cond.condition_value)
-                    user_level = level_data["level"]
-                    cond_result["is_completed"] = user_level >= required_level
+                    elif cond.condition_type == "Level":
+                        required_level = int(cond.condition_value)
+                        cond_result["is_completed"] = level_data["level"] >= required_level
 
-                elif cond.condition_type in ["Role", "Followers"]:
-                    user_condition = UserConditionStatus.query.filter_by(
-                        user_id=user.id,
-                        subquest_id=sq.id,
-                        condition_id=cond.id
-                    ).first()
-                    cond_result["is_completed"] = bool(user_condition and user_condition.met)
-
-                
-                elif cond.condition_type == "Date":
-                    cond_result["is_completed"] = False   
-
-
+                    elif cond.condition_type in ["Role", "Followers"]:
+                        user_condition = UserConditionStatus.query.filter_by(
+                            user_id=user_id,
+                            subquest_id=sq.id,
+                            condition_id=cond.id
+                        ).first()
+                        cond_result["is_completed"] = bool(user_condition and user_condition.met)
 
                 parsed_conditions.append(cond_result)
 
-
-
+            # cooldown — guests have none
             cooldown_until = None
             no_retry = False
 
-            cd = (
-                SubquestCooldown.query
-                .filter_by(
-                    user_id=user.id,
-                    subquest_id=sq.id
+            if user:
+                cd = (
+                    SubquestCooldown.query
+                    .filter_by(user_id=user_id, subquest_id=sq.id)
+                    .order_by(SubquestCooldown.created_at.desc())
+                    .first()
                 )
-                .order_by(SubquestCooldown.created_at.desc())
-                .first()
-            )
+                if cd and cd.cooldown_until:
+                    cd_time = cd.cooldown_until
+                    if cd_time.tzinfo is None:
+                        cd_time = cd_time.replace(tzinfo=timezone.utc)
+                    if cd_time > datetime.now(timezone.utc):
+                        cooldown_until = cd_time.isoformat()
+                        no_retry = bool(cd.is_no_retry)
 
-            if cd and cd.cooldown_until:
-                cd_time = cd.cooldown_until
-
-                # 🔥 fix naive datetime
-                if cd_time.tzinfo is None:
-                    cd_time = cd_time.replace(tzinfo=timezone.utc)
-
-                now_utc = datetime.now(timezone.utc)
-
-                # ✅ only send ACTIVE cooldowns
-                if cd_time > now_utc:
-                    cooldown_until = cd_time.isoformat()
-                    no_retry = bool(cd.is_no_retry)
-
-                            
-
-            is_completed = sq.id in completed_subquests
-            is_pending   = sq.id in pending_subquests
             sq_data = {
                 "uuid": sq.uuid,
                 "name": sq.name,
                 "description": extract_first_text_html(sq.description),
                 "recurrence": None if sq.recurrence == "None" else sq.recurrence,
                 "cooldown_until": cooldown_until,
-                "no_retry": no_retry, 
-                "is_completed": is_completed,
-                "is_pending": is_pending,
+                "no_retry": no_retry,
+                "is_completed": sq.id in completed_subquests,
+                "is_pending": sq.id in pending_subquests,
                 "conditions": parsed_conditions,
-                "is_in_current_sprint": bool(
-                    latest_sprint and sq.sprint_id == latest_sprint.id
-                ),
+                "is_in_current_sprint": bool(latest_sprint and sq.sprint_id == latest_sprint.id),
                 "sprint_end": (
                     latest_sprint.end_date.isoformat()
                     if (latest_sprint and sq.sprint_id == latest_sprint.id and latest_sprint.end_date)
@@ -19083,48 +18985,35 @@ def api_quests(community_slug):
             }
 
             for t in sq.tasks:
-                task_type = (t.type or "").lower()
-
-                icon_data = PLATFORM_ICONS.get(task_type, PLATFORM_ICONS["globe"])
-
+                icon_data = PLATFORM_ICONS.get((t.type or "").lower(), PLATFORM_ICONS["globe"])
                 sq_data["tasks"].append({
                     "icon_color": icon_data.get("color", "#2c2c2c"),
-                    "icon_svg": icon_data.get("icon", ""),   # 🔥 real SVG
+                    "icon_svg": icon_data.get("icon", ""),
                 })
-
 
             for r in sq.rewards:
                 dist_type = (getattr(r, "distribution_type", "ALL") or "ALL").upper()
-
                 reward_payload = {
                     "type": r.reward_type,
                     "data": r.reward_data_parsed,
-                    "distribution_type": dist_type,   # 🔥 JUST SEND TYPE
+                    "distribution_type": dist_type,
                 }
-
-                # FCFS metadata
                 if dist_type == "FCFS":
                     reward_payload["fcfs"] = {
                         "claim_count": sq.claim_count or 0,
                         "max_claim": sq.max_claim or 0
                     }
-
                 sq_data["rewards"].append(reward_payload)
-
-
 
             quest_data["subquests"].append(sq_data)
 
-            
         if not quest_data["subquests"]:
             continue
 
         payload.append(quest_data)
 
-    return jsonify({
-        "status": "success",
-        "data": payload
-    })
+    return jsonify({"status": "success", "data": payload})
+
 
 
 
@@ -20816,16 +20705,16 @@ def nft_info():
 from datetime import datetime
 
 @app.route('/<community_slug>/leaderboard/<sprint_uuid>')
-@login_required
 def sprint_view(community_slug, sprint_uuid):
-    user = current_user
-    user_communities = get_user_communities(user.id)
+    user_id = current_user.id if current_user.is_authenticated else None
+    user = current_user if current_user.is_authenticated else None
+    user_communities = get_user_communities(user_id) if user_id else []
 
     community = Community.query.filter_by(slug=community_slug).first()
     if not community:
         abort(404)
 
-    theme_mode = get_user_theme_mode(user.id, community.id)
+    theme_mode = get_user_theme_mode(user_id, community.id) if user_id else "light"
     current_community = community
 
     sprint = Sprint.query.filter_by(
@@ -20837,36 +20726,25 @@ def sprint_view(community_slug, sprint_uuid):
         return "No sprint found for this community", 404
 
     user_role_entry = CommunityUserRole.query.filter_by(
-        user_id=user.id,
+        user_id=user_id,
         community_id=community.id
-    ).first()
+    ).first() if user_id else None
 
-    banned = check_banned(user.id, community.id)
+    banned = check_banned(user_id, community.id) if user_id else False
 
-    # --- Ensure datetime objects ---
     if isinstance(sprint.start_date, str):
         sprint.start_date = datetime.fromisoformat(sprint.start_date)
-
     if isinstance(sprint.end_date, str):
         sprint.end_date = datetime.fromisoformat(sprint.end_date)
 
-    # --- TIME LOGIC (ORDERED PROPERLY) ---
     now = datetime.utcnow()
-
     sprint_has_started = now >= sprint.start_date
-    sprint_has_ended = False
+    sprint_has_ended = sprint_has_started and now >= sprint.end_date
 
-    if sprint_has_started:
-        sprint_has_ended = now >= sprint.end_date
-
-
-
-    # --- Mark community unpaid ONLY if sprint truly ended ---
     if sprint_has_ended and community.is_paid:
         community.is_paid = False
         db.session.commit()
         print(f"✅ Sprint ended. Community '{community.name}' marked unpaid.")
-
 
     community_twitter = CommunityTwitter.query.filter_by(
         community_id=community.id,
@@ -20879,25 +20757,25 @@ def sprint_view(community_slug, sprint_uuid):
     ).first()
 
     state = UserCommunityFabState.query.filter_by(
-        user_id=user.id,
+        user_id=user_id,
         community_id=community.id
-    ).first()
+    ).first() if user_id else None
 
     community_list_visible = session.get("community_list_visible", True)
 
-    community_list_visible = session.get("community_list_visible", True)
     if request.headers.get("X-Partial"):
         return render_template(
             "sprint_view.html",
             user=user,
             community=community,
-            sprint=sprint,             
+            sprint=sprint,
             sprint_has_ended=sprint_has_ended,
         )
 
-    total_xp = get_total_xp(user.id, community.id)
+    total_xp = get_total_xp(user_id, community.id) if user_id else 0
     level_data = get_level(total_xp)
     latest_sprint = get_latest_valid_sprint(community.id)
+
     return render_template(
         'your_community.html',
         community_visible=community_list_visible,
@@ -20913,8 +20791,6 @@ def sprint_view(community_slug, sprint_uuid):
         current_community=current_community,
         sprint=sprint,
     )
-
-
 
 
 @app.route('/<community_slug>/pay')
@@ -21215,36 +21091,29 @@ sprints = []
 
 
 @app.route('/<community_slug>/leaderboard')
-@login_required
 @community_not_deleted()
 def leaderboard(community_slug):
-    user = current_user
-    user_communities = get_user_communities(user.id)
+    user_id = current_user.id if current_user.is_authenticated else None
+    user = current_user if current_user.is_authenticated else None
+    user_communities = get_user_communities(user_id) if user_id else []
 
     community = Community.query.filter_by(slug=community_slug).first()
     if not community:
         abort(404)
 
-
-    user_id = current_user.id if current_user.is_authenticated else None
-
-
     user_role_entry = CommunityUserRole.query.filter_by(
         user_id=user_id, community_id=community.id
-    ).first()
+    ).first() if user_id else None
 
-    banned = check_banned(user_id, community.id)
+    banned = check_banned(user_id, community.id) if user_id else False
 
-
-    # ✅ Fetch ALL sprints for this community by this user
     sprints = (
         Sprint.query
         .filter_by(created_by_id=user_id, community_id=community.id)
         .order_by(Sprint.start_date.desc())
         .all()
-    )
+    ) if user_id else []
 
-    # Keep your old single-sprint logic for "status card"
     sprint = sprints[0] if sprints else None
     sprint_status = "none"
 
@@ -21262,22 +21131,23 @@ def leaderboard(community_slug):
         else:
             sprint_status = "completed"
 
-
     if request.args.get("open") == "sprint" and sprint_status in ("upcoming", "live"):
         flash("❌ You cannot create a new sprint while one is upcoming or live.", "error")
         return redirect(url_for("leaderboard", community_slug=community_slug))
-    
- 
-    total_xp = get_total_xp(user.id, community.id)
+
+    total_xp = get_total_xp(user_id, community.id) if user_id else 0
     level_data = get_level(total_xp)
+
     community_twitter = CommunityTwitter.query.filter_by(
         community_id=community.id,
         action="connected"
     ).order_by(CommunityTwitter.timestamp.desc()).first()
+
     community_discord = DiscordGuild.query.filter_by(
         community_id=community.id,
-        removed_at=None  # only consider active connection
-    ).first()  
+        removed_at=None
+    ).first()
+
     community_list_visible = session.get("community_list_visible", True)
     latest_sprint = get_latest_valid_sprint(community.id)
 
@@ -21288,14 +21158,12 @@ def leaderboard(community_slug):
             community=community,
             is_premium=community.is_paid,
             current_time=datetime.utcnow(),
-            sprints=sprints,             
-            sprint=sprint,             
+            sprints=sprints,
+            sprint=sprint,
             latest_sprint=latest_sprint,
             sprint_status=sprint_status,
         )
 
-    total_xp = get_total_xp(user.id, community.id)
-    level_data = get_level(total_xp)
     return render_template(
         'your_community.html',
         community_visible=community_list_visible,
@@ -21304,17 +21172,17 @@ def leaderboard(community_slug):
         logo=community.logo_path,
         is_banned=banned,
         community=community,
-        sprint=sprint,             
+        sprint=sprint,
         community_tuples=user_communities,
         latest_sprint=latest_sprint,
-        sprints=sprints,             
+        sprints=sprints,
         sprint_status=sprint_status,
         is_premium=community.is_paid,
         community_name=community.name,
         current_time=datetime.utcnow(),
         community_twitter=community_twitter,
         community_discord=community_discord,
-        created_by_id=current_user.id, 
+        created_by_id=user_id,       # ← was current_user.id, now None-safe
         community_slug=community_slug,
     )
 

@@ -14709,3 +14709,9 @@ background-color: var(--bg-app);
     opacity: 0.2;
   }
 }
+
+
+.locked-nav {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

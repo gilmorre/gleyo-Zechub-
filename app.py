@@ -17091,6 +17091,7 @@ def quester_view(community_slug, quest_uuid, subquest_uuid):
         "subquest": {
             "id":           subquest.id,
             "uuid":         subquest.uuid,
+            "streak_enabled":         subquest.streak_enabled,
             "title":        subquest.name,
             "desc":         parsed_blocks,
             "recurrence":   subquest.recurrence,

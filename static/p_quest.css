@@ -4007,3 +4007,22 @@ background-color: var(--bg-app);
 }
 
 
+
+
+.span-con.streak {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 4px 10px;
+  border-radius: 999px;
+
+  border: 1px solid rgba(59, 130, 246, 0.45);
+
+  background: rgba(59, 130, 246, 0.12);
+
+  color: #60a5fa;
+
+  font-size: 12px;
+  font-weight: 600;
+}

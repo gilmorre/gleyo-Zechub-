@@ -10121,14 +10121,70 @@ def is_valid_sprint(subquest):
     return True
 
 
-def remove_xp_everywhere(completion, xp_amount):
+def remove_xp_everywhere(completion):
+    """
+    Reverse ALL XP attached to this completion.
+
+    Includes:
+    - base XP
+    - streak bonus XP
+    - free XP
+    - community XP
+    - sprint XP
+
+    Then deletes the UserXP ledger rows.
+    """
+
+    xp_logs = UserXP.query.filter_by(
+        user_id=completion.user_id,
+        completion_id=completion.id
+    ).all()
+
+    if not xp_logs:
+        print(
+            f"⚠️ No XP logs found for completion "
+            f"{completion.id}"
+        )
+        return
+
+    total_xp_to_remove = 0
+
+    for xp_log in xp_logs:
+
+        amount = int(xp_log.amount or 0)
+
+        # include explicit bonus field if needed
+        bonus = int(xp_log.bonus_xp_reward or 0)
+
+        # 🛡️ prevent double-counting
+        # amount already includes streak bonus
+        total_xp_to_remove += amount
+
+    print(
+        f"🧨 Removing XP | "
+        f"user={completion.user_id} "
+        f"completion={completion.id} "
+        f"total={total_xp_to_remove}"
+    )
+
+    # =========================
+    # COMMUNITY XP
+    # =========================
+
     community_xp = CommunityUserXP.query.filter_by(
         user_id=completion.user_id,
         community_id=completion.subquest.quest.community_id
     ).first()
 
     if community_xp:
-        community_xp.xp = max(0, community_xp.xp - xp_amount)
+        community_xp.xp = max(
+            0,
+            community_xp.xp - total_xp_to_remove
+        )
+
+    # =========================
+    # SPRINT XP
+    # =========================
 
     if completion.subquest.sprint_id:
 
@@ -10138,7 +10194,24 @@ def remove_xp_everywhere(completion, xp_amount):
         ).first()
 
         if sprint_xp:
-            sprint_xp.xp = max(0, sprint_xp.xp - xp_amount)
+            sprint_xp.xp = max(
+                0,
+                sprint_xp.xp - total_xp_to_remove
+            )
+
+    # =========================
+    # DELETE XP LEDGER
+    # =========================
+
+    UserXP.query.filter_by(
+        user_id=completion.user_id,
+        completion_id=completion.id
+    ).delete()
+
+    print(
+        f"✅ XP fully reversed for completion "
+        f"{completion.id}"
+    )
 
 
 
@@ -10300,60 +10373,18 @@ def process_single_review(completion, task_review, status, reviewer_id,
         # XP
         if xp_amount > 0:
 
-            UserXP.query.filter_by(
-                user_id=completion.user_id,
-                completion_id=completion.id
-            ).delete()
+            # cleanup old xp first
+            remove_xp_everywhere(completion)
 
-            bonus_xp = int(free_xp) if free_xp and int(free_xp) > 0 else None
-
-            db.session.add(UserXP(
-                user_id=completion.user_id,
-                completion_id=completion.id,
-                amount=xp_amount,
-                bonus_xp_reward=bonus_xp,
-                reason=f"XP reward for subquest {completion.subquest.name}"
-            ))
-
-            # =========================
-            # 👉 ONLY ADDITION (community + sprint XP)
-            # =========================
-            total_xp = xp_amount + (int(free_xp) if free_xp and int(free_xp) > 0 else 0)
-
-            # COMMUNITY XP
-            community_xp = CommunityUserXP.query.filter_by(
-                user_id=completion.user_id,
-                community_id=completion.subquest.quest.community_id
-            ).first()
-
-            if not community_xp:
-                community_xp = CommunityUserXP(
-                    user_id=completion.user_id,
-                    community_id=completion.subquest.quest.community_id,
-                    xp=0
+            commit_streak_bonus_xp(
+                user=completion.user,
+                subquest=completion.subquest,
+                subquest_completion=completion,
+                base_xp_amount=(
+                    int(xp_amount) +
+                    int(free_xp or 0)
                 )
-                db.session.add(community_xp)
-
-            community_xp.xp += total_xp
-
-            # SPRINT XP
-            if is_valid_sprint(completion.subquest):
-
-                sprint_xp = SprintUserXP.query.filter_by(
-                    user_id=completion.user_id,
-                    sprint_id=completion.subquest.sprint_id
-                ).first()
-
-                if not sprint_xp:
-                    sprint_xp = SprintUserXP(
-                        user_id=completion.user_id,
-                        community_id=completion.subquest.quest.community_id,
-                        sprint_id=completion.subquest.sprint_id,
-                        xp=0
-                    )
-                    db.session.add(sprint_xp)
-
-                sprint_xp.xp += total_xp
+            )
 
 
 
@@ -10372,13 +10403,8 @@ def process_single_review(completion, task_review, status, reviewer_id,
         if run:
             run.finished_at = None
 
-        if xp_amount > 0:
-            remove_xp_everywhere(completion, xp_amount)
+        remove_xp_everywhere(completion)
 
-        UserXP.query.filter_by(
-            user_id=completion.user_id,
-            completion_id=completion.id
-        ).delete()
 
     # =========================
     # FAIL
@@ -10398,13 +10424,7 @@ def process_single_review(completion, task_review, status, reviewer_id,
         if run:
             run.finished_at = None
 
-        if xp_amount > 0:
-            remove_xp_everywhere(completion, xp_amount)
-
-        UserXP.query.filter_by(
-            user_id=completion.user_id,
-            completion_id=completion.id
-        ).delete()
+        remove_xp_everywhere(completion)
 
     # =========================
     completion.reviewed_at = datetime.now(timezone.utc)
@@ -19728,6 +19748,267 @@ def save_file_upload_when_done(public_url, attempt_id=None, original_name=None, 
 
 
 
+from datetime import datetime, timedelta
+from instance import db
+from instance.models import SubquestCompletion, UserXP
+
+
+STREAK_REWARDS = {
+    3: 10,
+    7: 90,
+    10: 110,
+    14: 180,
+    21: 300,
+    30: 500,
+}
+
+
+def calculate_user_streak(user_id, subquest_id):
+    """
+    Calculate consecutive daily streak for a user/subquest.
+    """
+
+    completions = (
+        SubquestCompletion.query
+        .filter_by(
+            user_id=user_id,
+            subquest_id=subquest_id,
+            status="success"
+        )
+        .order_by(SubquestCompletion.completed_at.desc())
+        .all()
+    )
+
+    if not completions:
+        return 0
+
+    streak = 1
+
+    previous_date = completions[0].completed_at.date()
+
+    for completion in completions[1:]:
+        current_date = completion.completed_at.date()
+
+        diff = (previous_date - current_date).days
+
+        if diff == 1:
+            streak += 1
+            previous_date = current_date
+        elif diff == 0:
+            # same day duplicate
+            continue
+        else:
+            break
+
+    return streak
+
+
+def handle_streak_bonus(
+    *,
+    user,
+    subquest,
+    completion,
+):
+    """
+    Gives milestone streak XP rewards.
+    """
+
+    if not subquest.streak_enabled:
+        return 0
+
+    streak = calculate_user_streak(
+        user_id=user.id,
+        subquest_id=subquest.id
+    )
+
+    bonus_xp = STREAK_REWARDS.get(streak, 0)
+
+    if bonus_xp <= 0:
+        print(f"No streak reward for streak={streak}")
+        return 0
+
+    # anti duplicate protection
+    existing_bonus = UserXP.query.filter_by(
+        user_id=user.id,
+        completion_id=completion.id,
+        bonus_xp_reward=bonus_xp
+    ).first()
+
+    if existing_bonus:
+        print("⚠️ streak bonus already exists")
+        return 0
+
+    xp_entry = UserXP(
+        user_id=user.id,
+        completion_id=completion.id,
+        amount=bonus_xp,
+        bonus_xp_reward=bonus_xp,
+        reason=f"{streak} day streak bonus"
+    )
+
+    db.session.add(xp_entry)
+
+    print(f"🔥 Awarded {bonus_xp} streak XP for {streak} day streak")
+
+    return bonus_xp
+
+
+
+
+
+from sqlalchemy import desc
+
+
+
+STREAK_XP_REWARDS = {
+    3: 10,
+    7: 90,
+    10: 110,
+    14: 180,
+    21: 300,
+    30: 500,
+}
+
+
+def calculate_user_streak(user_id, subquest_id):
+    """
+    Calculate consecutive DAILY streak for a subquest.
+
+    Rules:
+    - Only successful completions count
+    - Only one completion per day counts
+    - Must be consecutive days
+    """
+
+    completions = (
+        SubquestCompletion.query
+        .filter(
+            SubquestCompletion.user_id == user_id,
+            SubquestCompletion.subquest_id == subquest_id,
+            SubquestCompletion.status == "success",
+            SubquestCompletion.completed_at.isnot(None)
+        )
+        .order_by(desc(SubquestCompletion.completed_at))
+        .all()
+    )
+
+    if not completions:
+        return 0
+
+    # unique completion dates only
+    completion_dates = []
+
+    for c in completions:
+        day = c.completed_at.date()
+
+        if day not in completion_dates:
+            completion_dates.append(day)
+
+    if not completion_dates:
+        return 0
+
+    streak = 1
+    previous_day = completion_dates[0]
+
+    for current_day in completion_dates[1:]:
+
+        # must be exactly previous day
+        if previous_day - current_day == timedelta(days=1):
+            streak += 1
+            previous_day = current_day
+        else:
+            break
+
+    return streak
+
+
+def get_streak_bonus_xp(streak_count):
+    """
+    Return bonus XP for streak milestone.
+    """
+
+    return STREAK_XP_REWARDS.get(streak_count, 0)
+
+
+def commit_streak_bonus_xp(
+    *,
+    user,
+    subquest,
+    subquest_completion,
+    base_xp_amount
+):
+    """
+    Commit:
+    - base XP
+    - streak bonus XP
+
+    into SAME UserXP ledger row.
+    """
+
+    # 🛡️ prevent duplicates
+    existing_xp = UserXP.query.filter_by(
+        user_id=user.id,
+        completion_id=subquest_completion.id
+    ).first()
+
+    if existing_xp:
+        print(
+            f"⚠️ XP already exists for completion "
+            f"{subquest_completion.id}"
+        )
+        return
+
+    streak_count = 0
+    bonus_xp = 0
+
+    # 🔥 only streak-enabled subquests
+    if subquest.streak_enabled:
+        streak_count = calculate_user_streak(
+            user.id,
+            subquest.id
+        )
+
+        bonus_xp = get_streak_bonus_xp(streak_count)
+
+    total_xp = int(base_xp_amount) + int(bonus_xp)
+
+    xp_entry = UserXP(
+        user_id=user.id,
+        completion_id=subquest_completion.id,
+
+        # ✅ total xp committed together
+        amount=total_xp,
+
+        # ✅ store bonus separately for analytics/UI
+        bonus_xp_reward=bonus_xp,
+
+        reason=(
+            f"Completed subquest: {subquest.name}"
+            f" | streak={streak_count}"
+        )
+    )
+
+    db.session.add(xp_entry)
+
+    # 🔥 leaderboard gets TOTAL XP
+    update_leaderboards(
+        user_id=user.id,
+        community_id=subquest.quest.community_id,
+        xp_amount=total_xp,
+        sprint_id=subquest.sprint_id
+    )
+
+    print(
+        f"🔥 Streak XP committed | "
+        f"base={base_xp_amount} "
+        f"bonus={bonus_xp} "
+        f"streak={streak_count} "
+        f"total={total_xp}"
+    )
+
+
+
+
 
 
 @app.route("/claim/<int:subquest_id>", methods=["POST"])
@@ -20368,20 +20649,11 @@ def claim_subquest(subquest_id):
                     print(f"⚠️ XP already committed for completion {subquest_completion.id}, skipping")
                     continue
 
-                xp_entry = UserXP(
-                    user_id=user.id,
-                    completion_id=subquest_completion.id,
-                    amount=int(xp_amount),
-                    bonus_xp_reward=0,
-                    reason=f"Completed subquest: {subquest.name}"
-                )
-
-                db.session.add(xp_entry)
-                update_leaderboards(
-                    user_id=user.id,
-                    community_id=subquest.quest.community_id,
-                    xp_amount=int(xp_amount),
-                    sprint_id=subquest.sprint_id
+                commit_streak_bonus_xp(
+                    user=user,
+                    subquest=subquest,
+                    subquest_completion=subquest_completion,
+                    base_xp_amount=int(xp_amount)
                 )
 
         else:

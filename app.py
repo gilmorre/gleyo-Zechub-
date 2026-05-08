@@ -19748,10 +19748,6 @@ def save_file_upload_when_done(public_url, attempt_id=None, original_name=None, 
 
 
 
-from datetime import datetime, timedelta
-from instance import db
-from instance.models import SubquestCompletion, UserXP
-
 
 STREAK_REWARDS = {
     3: 10,

@@ -6,18 +6,8 @@ engine = create_engine(
 
 sql = """
 
--- 1. Add column if not exists
-ALTER TABLE community_channels
-ADD COLUMN IF NOT EXISTS is_quest_alert BOOLEAN DEFAULT FALSE;
-
--- 2. Remove wrong constraint if you ever added it
-ALTER TABLE community_channels
-DROP CONSTRAINT IF EXISTS unique_quest_alert_per_community;
-
--- 3. Create partial unique index (🔥 THIS IS THE REAL FIX)
-CREATE UNIQUE INDEX IF NOT EXISTS idx_one_quest_alert_per_community
-ON community_channels (community_id)
-WHERE is_quest_alert = TRUE;
+ALTER TABLE subquest
+ADD COLUMN IF NOT EXISTS streak_enabled BOOLEAN NOT NULL DEFAULT FALSE;
 
 """
 
@@ -25,7 +15,11 @@ with engine.connect() as conn:
     conn.execute(text(sql))
     conn.commit()
 
-print("✅ Quest alert constraint applied successfully")
+print("✅ streak_enabled column added successfully")
+
+
+
+
 # from instance import db
 # from models import PasswordResetToken  # adjust import
 

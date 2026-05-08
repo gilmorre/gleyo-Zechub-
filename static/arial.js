@@ -117,6 +117,55 @@ function restoreSelectedSprint() {
     }
   }
 
+  function parseDisplayDate(str) {
+    // "03 Feb 00:00 2026"
+    const parts = str.split(" ");
+    if (parts.length !== 4) return null;
+
+    const [day, mon, time, year] = parts;
+    const [hh, mm] = time.split(":");
+
+    const months = {
+      Jan:0, Feb:1, Mar:2, Apr:3, May:4, Jun:5,
+      Jul:6, Aug:7, Sep:8, Oct:9, Nov:10, Dec:11
+    };
+
+    if (!(mon in months)) return null;
+
+    return new Date(
+      Number(year),
+      months[mon],
+      Number(day),
+      Number(hh),
+      Number(mm),
+      0,
+      0
+    );
+  }
+
+function formatDisplayDate(date) {
+  const months = [
+    "Jan","Feb","Mar","Apr","May","Jun",
+    "Jul","Aug","Sep","Oct","Nov","Dec"
+  ];
+
+  let hours = date.getHours();
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+
+  return `${String(date.getDate()).padStart(2, "0")} ${
+    months[date.getMonth()]
+  } ${hours}:${minutes} ${date.getFullYear()}`;
+}
+
+window.addEventListener("calendar:select", (e) => {
+  if (!activeCalendarTarget) return;
+
+  const d = e.detail.date;
+
+  const formatted = formatDisplayDate(d);
+
+  activeCalendarTarget.onSelect(d, formatted);
+});
 
 getUuidsFromUrl();
 
@@ -8588,6 +8637,8 @@ async function buildSubquestPayload() {
     const val = parseInt(maxClaimInput.value, 10);
     if (!isNaN(val)) max_claim = val;
   }
+  const streak_enabled =
+    document.getElementById("streakToggle")?.checked || false;
 
   const autovalidation =
     document.querySelector('input[name="autovalidation"]')?.value || "0";
@@ -8599,6 +8650,7 @@ async function buildSubquestPayload() {
     sprint_name: sprintName,
     tasks,
     subquest_name,
+    streak_enabled,
     subquest_desc,
     recurrence,
     cooldown,
@@ -9227,6 +9279,7 @@ function validateForm() {
   }
 
 function updateRewardColumnState() {
+    validateForm(); 
 
   updateConditionColumnState() 
   const rewardParent = document.getElementById("rewardContainerParent");
@@ -9249,6 +9302,8 @@ function updateRewardColumnState() {
 
 
 function updateConditionColumnState() {
+    validateForm(); 
+
   const conditionParent = document.getElementById("conditionContainerParent");
   const conditionCount = conditionParent
   ? conditionParent.querySelectorAll(".condition-block").length
@@ -11228,31 +11283,6 @@ function updateConditionColumnState() {
 
 
 
-  function parseDisplayDate(str) {
-    // "03 Feb 00:00 2026"
-    const parts = str.split(" ");
-    if (parts.length !== 4) return null;
-
-    const [day, mon, time, year] = parts;
-    const [hh, mm] = time.split(":");
-
-    const months = {
-      Jan:0, Feb:1, Mar:2, Apr:3, May:4, Jun:5,
-      Jul:6, Aug:7, Sep:8, Oct:9, Nov:10, Dec:11
-    };
-
-    if (!(mon in months)) return null;
-
-    return new Date(
-      Number(year),
-      months[mon],
-      Number(day),
-      Number(hh),
-      Number(mm),
-      0,
-      0
-    );
-  }
 
 
 
@@ -11428,23 +11458,38 @@ function updateConditionColumnState() {
     openFloatingMenu(cooldownTrigger, cooldownMenu);
   });
 
-  document.querySelectorAll(".options .option").forEach(opt => {
-    opt.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const value = opt.innerText.trim();
+const streakRow    = document.getElementById("streakRow");
+const streakToggle = document.getElementById("streakToggle");
 
-      if (opt.closest(".options.recurrence")) {
-        recurrenceTrigger.querySelector("span").innerText = value;
+document.querySelectorAll(".options .option").forEach(opt => {
+  opt.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const value = opt.innerText.trim();
+
+    if (opt.closest(".options.recurrence")) {
+      recurrenceTrigger.querySelector("span").innerText = value;
+
+      // streak only for Daily
+      if (value === "Daily") {
+        streakRow.classList.add("visible");
+      } else {
+        streakRow.classList.remove("visible");
+        streakToggle.checked = false; // reset if they switch away
       }
+    }
 
-      if (opt.closest(".options.cooldown")) {
-        cooldownTrigger.querySelector("span").innerText = value;
-      }
+    if (opt.closest(".options.cooldown")) {
+      cooldownTrigger.querySelector("span").innerText = value;
+    }
 
-      closeAllMenus();
-    });
+    closeAllMenus();
   });
+});
 
+// on page load — if backend already has recurrence = Daily, show the row
+if ("{{ subquest.recurrence }}" === "Daily") {
+  streakRow.classList.add("visible");
+}
   document.addEventListener("click", (e) => {
     if (
       e.target.closest(".options") ||

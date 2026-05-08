@@ -8,7 +8,7 @@
 
 
 .closer-all-ppp-qq-init {
-  height: calc(76dvh - 60px);              /* REAL height */
+  height: calc(76dvh - 60px);           
   display: flex;
   flex-direction: column;
 }
@@ -2019,7 +2019,17 @@ display: inline-flex !important;
   -webkit-touch-callout: none !important; 
 }
 
+.setting {
+    margin: 18px 0;
+}
 
+.setting:first-child {
+    margin-top: 0;
+}
+
+.setting:last-child {
+    margin-bottom: 0;
+}
 
 .shifted {
   position: relativex;
@@ -3461,7 +3471,6 @@ display: inline-flex !important;
   margin: 0;
   padding: 0;
   flex-direction: column;
-  gap: 30px;
 }
 
 .setting label {
@@ -3888,3 +3897,81 @@ display: inline-flex !important;
 
 /* links untouched in editor */
 /* a{all:unset} */
+
+
+
+
+
+
+ 
+.streak-row {
+  overflow: hidden;
+  max-height: 0;
+  width: 100% !important;
+  height: 40px;
+  opacity: 0;
+  margin-top: 0;
+  transition: max-height 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.22s ease,
+              margin-top 0.32s;
+}
+.streak-row.visible {
+  max-height: 60px;
+  opacity: 1;
+  margin-top: 4px;
+}
+
+/* XP pill */
+.streak-xp-pill {
+  font-size: 11px;
+  padding: 2px 8px;
+  background: #fff7ed;
+  color: #c2410c;
+  border-radius: 20px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* toggle — margin: 0 kills browser default label spacing */
+.streak-toggle {
+  position: relative;
+  display: inline-block;
+  width: 34px;
+  height: 19px;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin: 0;
+}
+.streak-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+.streak-slider {
+  position: absolute;
+  inset: 0;
+  background: var(--bg-hover);
+  border-radius: 20px;
+  transition: background 0.2s;
+}
+.streak-slider::before {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  left: 2.5px;
+  top: 2.5px;
+  background: #ffffffd9;
+  border-radius: 50%;
+  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.streak-toggle input:checked + .streak-slider {
+  background: #4285f4;
+  outline: 0.9px solid #4286f4da;
+  outline-offset: 2px;
+}
+.streak-toggle input:checked + .streak-slider::before {
+  transform: translateX(15px);
+
+}

@@ -15419,7 +15419,9 @@ def publish_subquest(community_slug):
     quest_uuid = data.get('quest_uuid')
     subquest_uuid = data.get('subquest_uuid')
     tasks_data = data.get('tasks', [])
-
+    streak_enabled = str(
+        data.get("streak_enabled", False)
+    ).lower() in ["1", "true", "yes", "on"]
 
 
     invite_total = 0
@@ -15498,6 +15500,8 @@ def publish_subquest(community_slug):
     if not subquest:
         return jsonify({'success': False, 'error': 'Subquest not found'}), 404
     was_draft = subquest.is_draft
+    if recurrence.lower() != "daily":
+        streak_enabled = False
 
 
     if invite_total > 0:
@@ -15611,6 +15615,8 @@ def publish_subquest(community_slug):
         subquest.cooldown = cooldown
         subquest.max_claim = max_claim
         subquest.claim_count = subquest_claim_count
+        subquest.streak_enabled = streak_enabled
+
 
         subquest.autovalidation = autovalidation
 

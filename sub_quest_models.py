@@ -24,6 +24,7 @@ class Subquest(db.Model):
     quest = db.relationship("Quest", back_populates="subquests")
     is_archive = db.Column(db.Boolean, nullable=False, default=False)
 
+    streak_enabled = db.Column(db.Boolean, nullable=False, default=False)
     # ✅ A Subquest has many Tasks
     tasks = db.relationship("Task", back_populates="subquest", cascade="all, delete")
 

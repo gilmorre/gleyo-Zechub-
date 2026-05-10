@@ -1,7 +1,6 @@
 import os, random, smtplib, time, secrets
 from functools import wraps
 from email.message import EmailMessage   
-from werkzeug.security import check_password_hash
 from threading import Thread
 from utils import has_role, check_banned, create_user_session, get_latest_valid_sprint, is_safe_url, get_subquest_attempt_stats
 import os
@@ -144,43 +143,14 @@ limiter = Limiter(
 
 limiter.init_app(app)
  
-# app.secret_key = os.getenv("SECRET_KEY")
-# app.config.update(
-#     SESSION_TYPE="filesystem",
-#     SESSION_COOKIE_NAME="gleyo_session",
-#     SESSION_COOKIE_HTTPONLY=False,
-#     SESSION_COOKIE_SECURE=False, 
-#     SESSION_COOKIE_SAMESITE="Lax",
-#     SESSION_PERMANENT=False, 
-#     PERMANENT_SESSION_LIFETIME=timedelta(days=30),
-#     MAX_CONTENT_LENGTH=5 * 1024 * 1024,
-#     MAIL_SERVER="smtp.gmail.com",
-#     MAIL_PORT=587,
-#     MAIL_USE_TLS=True,
-#     MAIL_USERNAME=os.getenv("MAIL_USER"),
-#     MAIL_PASSWORD=os.getenv("MAIL_PASS"),
-#     MAIL_DEFAULT_SENDER="florishisreal@gmail.com",
-#     REMEMBER_COOKIE_DURATION = timedelta(days=30),
-#     REMEMBER_COOKIE_HTTPONLY = True,
-#     REMEMBER_COOKIE_SAMESITE = "Lax",
-#     REMEMBER_COOKIE_SECURE = True  
-# )
-
-
-redis_url = os.getenv("REDIS_URL")
-
-if not redis_url:
-    raise RuntimeError("REDIS_URL is not set. Add Redis service in Railway.")
- 
 app.secret_key = os.getenv("SECRET_KEY")
 app.config.update(
-    SESSION_TYPE="redis",
-    SESSION_REDIS=redis.from_url(redis_url),
+    SESSION_TYPE="filesystem",
     SESSION_COOKIE_NAME="gleyo_session",
-    SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_HTTPONLY=False,
+    SESSION_COOKIE_SECURE=False, 
     SESSION_COOKIE_SAMESITE="Lax",
-    SESSION_PERMANENT=True,
+    SESSION_PERMANENT=False, 
     PERMANENT_SESSION_LIFETIME=timedelta(days=30),
     MAX_CONTENT_LENGTH=5 * 1024 * 1024,
     MAIL_SERVER="smtp.gmail.com",
@@ -189,11 +159,40 @@ app.config.update(
     MAIL_USERNAME=os.getenv("MAIL_USER"),
     MAIL_PASSWORD=os.getenv("MAIL_PASS"),
     MAIL_DEFAULT_SENDER="florishisreal@gmail.com",
-    REMEMBER_COOKIE_DURATION=timedelta(days=30),
-    REMEMBER_COOKIE_HTTPONLY=True,
-    REMEMBER_COOKIE_SAMESITE="Lax",
-    REMEMBER_COOKIE_SECURE=True
+    REMEMBER_COOKIE_DURATION = timedelta(days=30),
+    REMEMBER_COOKIE_HTTPONLY = True,
+    REMEMBER_COOKIE_SAMESITE = "Lax",
+    REMEMBER_COOKIE_SECURE = True  
 )
+
+
+# redis_url = os.getenv("REDIS_URL")
+
+# if not redis_url:
+#     raise RuntimeError("REDIS_URL is not set. Add Redis service in Railway.")
+ 
+# app.secret_key = os.getenv("SECRET_KEY")
+# app.config.update(
+#     SESSION_TYPE="redis",
+#     SESSION_REDIS=redis.from_url(redis_url),
+#     SESSION_COOKIE_NAME="gleyo_session",
+#     SESSION_COOKIE_HTTPONLY=True,
+#     SESSION_COOKIE_SECURE=True,
+#     SESSION_COOKIE_SAMESITE="Lax",
+#     SESSION_PERMANENT=True,
+#     PERMANENT_SESSION_LIFETIME=timedelta(days=30),
+#     MAX_CONTENT_LENGTH=5 * 1024 * 1024,
+#     MAIL_SERVER="smtp.gmail.com",
+#     MAIL_PORT=587,
+#     MAIL_USE_TLS=True,
+#     MAIL_USERNAME=os.getenv("MAIL_USER"),
+#     MAIL_PASSWORD=os.getenv("MAIL_PASS"),
+#     MAIL_DEFAULT_SENDER="florishisreal@gmail.com",
+#     REMEMBER_COOKIE_DURATION=timedelta(days=30),
+#     REMEMBER_COOKIE_HTTPONLY=True,
+#     REMEMBER_COOKIE_SAMESITE="Lax",
+#     REMEMBER_COOKIE_SECURE=True
+# )
 
 
 basedir = os.path.abspath(os.path.dirname(__file__))

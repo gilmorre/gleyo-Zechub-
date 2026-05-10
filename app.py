@@ -273,7 +273,7 @@ ALLOWED_ROUTES = {
 }
 
 with app.app_context():
-    db.create_all()cd ./
+    db.create_all()
 
 blocked_ips = set()
 

@@ -214,7 +214,11 @@ app.jinja_env.globals.update(human_readable_number=human_readable_number)
 
 
 csrf.init_app(app)
-socketio = SocketIO(app, async_mode="eventlet")
+socketio = SocketIO(
+    app,
+    async_mode="eventlet",
+    cors_allowed_origins="*"
+)
 CORS(app)
 
 Session(app)

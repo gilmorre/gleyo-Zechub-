@@ -214,7 +214,7 @@ app.jinja_env.globals.update(human_readable_number=human_readable_number)
 
 
 csrf.init_app(app)
-socketio = SocketIO(app, async_mode="threading")
+socketio = SocketIO(app, async_mode="eventlet")
 CORS(app)
 
 Session(app)
@@ -272,8 +272,7 @@ ALLOWED_ROUTES = {
     "discord.discord_callback",
 }
 
-with app.app_context():
-    db.create_all()
+
 
 blocked_ips = set()
 

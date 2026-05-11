@@ -13971,8 +13971,10 @@ def quest_analytics_init(slug):
 
     durations_rows = (
         db.session.query(
-            func.strftime('%s', SubquestRun.finished_at) -
-            func.strftime('%s', SubquestRun.started_at)
+            (
+                func.extract('epoch', SubquestRun.finished_at) -
+                func.extract('epoch', SubquestRun.started_at)
+            ).label("duration")
         )
         .join(Subquest)
         .join(Quest)
@@ -13995,8 +13997,10 @@ def quest_analytics_init(slug):
 
     prev_rows = (
         db.session.query(
-            func.strftime('%s', SubquestRun.finished_at) -
-            func.strftime('%s', SubquestRun.started_at)
+            (
+                func.extract('epoch', SubquestRun.finished_at) -
+                func.extract('epoch', SubquestRun.started_at)
+            ).label("duration")
         )
         .join(Subquest)
         .join(Quest)

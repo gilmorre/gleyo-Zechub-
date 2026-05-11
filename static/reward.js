@@ -37,27 +37,23 @@ function revealID(el) {
   const cover = el.querySelector('.id-cover');
   const rect = cover.getBoundingClientRect();
   
-  // 🔥 Create particles that scatter in all directions
   for (let i = 0; i < 50; i++) {
     const p = document.createElement('span');
     p.className = 'particle';
     
-    // Random start position within the cover
     const startX = Math.random() * 100;
     const startY = Math.random() * 100;
     p.style.left = startX + '%';
     p.style.top = startY + '%';
     
-    // 🔥 Safari-style scatter: radial outward motion with variation
-    const angle = Math.random() * Math.PI * 2; // Random direction
-    const distance = 40 + Math.random() * 80; // Random distance
+    const angle = Math.random() * Math.PI * 2; 
+    const distance = 40 + Math.random() * 80;  
     const driftX = Math.cos(angle) * distance;
-    const driftY = Math.sin(angle) * distance - Math.random() * 20; // Slight upward bias
+    const driftY = Math.sin(angle) * distance - Math.random() * 20;  
     
     p.style.setProperty('--dx', driftX + 'px');
     p.style.setProperty('--dy', driftY + 'px');
     
-    // 🔥 Stagger particle animations slightly
     p.style.animationDelay = Math.random() * 0.1 + 's';
     
     cover.appendChild(p);
@@ -107,7 +103,6 @@ function doCopy(b){
     fallbackCopy();
   }
 
-  // UI feedback (unchanged)
   b.classList.add('ok');
   b.innerHTML = `
     <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
@@ -126,7 +121,6 @@ function doCopy(b){
   }, 1600);
 }
 
-/* WITHDRAW */
 function openWithdraw(){
   if (CURRENT_BAL <= 0) {
     showToast("You don’t have any funds to withdraw.", "error");
@@ -226,7 +220,7 @@ function doSend(){
 
   open2FA();  
 }
-/* 2FA */
+
 function open2FA(){
   const blocked=document.getElementById('tfaBlocked');
   const verify=document.getElementById('tfaVerify');
@@ -306,13 +300,11 @@ function setupOTPInputs() {
     input.addEventListener('input', (e) => {
       let v = e.target.value.replace(/\D/g, '');
 
-      // 🔥 FIX: handle keyboard autofill ANYWHERE
       if (v.length > 1) {
         distributeFrom(idx, v);
         return;
       }
 
-      // normal single digit
       input.value = v ? v[0] : '';
       input.classList.remove('err');
 

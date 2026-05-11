@@ -7,11 +7,9 @@
 <meta name="csrf-token" content="{{ csrf_token() }}">
 <meta name="color-scheme" content="light">
 
-<!-- Primary -->
 <title>{{ community.name }} — Quests</title>
 <meta name="description" content="{{ community.about or 'Complete quests, earn rewards, and level up in ' ~ community.name }}">
 
-<!-- Open Graph (Facebook, WhatsApp, Telegram, Discord, iMessage…) -->
 <meta property="og:type"        content="website">
 <meta property="og:site_name"   content="{{ community.name }}">
 <meta property="og:title"       content="{{ community.name }} — Quests">
@@ -22,7 +20,6 @@
 <meta property="og:image:alt"   content="{{ community.name }} logo">
 {% endif %}
 
-<!-- Twitter / X card -->
 <meta name="twitter:card"        content="summary{% if community.logo_path %}_large_image{% endif %}">
 <meta name="twitter:title"       content="{{ community.name }} — Quests">
 <meta name="twitter:description" content="{{ community.about or 'Complete quests, earn rewards, and level up in ' ~ community.name }}">
@@ -31,7 +28,6 @@
 <meta name="twitter:image:alt"   content="{{ community.name }} logo">
 {% endif %}
 
-<!-- Favicon (logo as favicon if available) -->
 {% if community.logo_path %}
 <link rel="icon" href="{{ community.logo_path }}">
 {% endif %}
@@ -695,7 +691,7 @@
           </div>
           </div>
 
-          <!-- Community Logos List -->
+   
         <div class="community-scroll">
           {% for comm in community_tuples %}
             <a
@@ -709,7 +705,7 @@
               <div class="logo-wrapper {% if community.id == comm['id'] %}active{% endif %}">
                 
                 {% if comm['logo'] %}
-                  <img src="{{ comm['logo'] }}"  >
+                  <img src="{{ comm['logo'] }}">
                 {% else %}
                   <div class="logo-placeholder">{{ comm['name'][0]|upper }}</div>
                 {% endif %}
@@ -1404,9 +1400,9 @@ function showSuccess(msg) {
 let globalInputModal = null;
 let globalInputState = {};
 
-/* ===============================
-   GENERIC INPUT MODAL
-=============================== */
+
+
+
 function showInputModal({ title = "Enter value", message = "Provide a value", placeholder = "", defaultValue = "", cancelText = "Cancel", confirmText = "Confirm", onConfirm = null, onCancel = null, modalId = "globalInputModal"}) {
 
   globalInputState = { onConfirm, onCancel };
@@ -1505,9 +1501,7 @@ function showInputModal({ title = "Enter value", message = "Provide a value", pl
   openInputModal();
 }
 
-/* ===============================
-   HELPERS
-=============================== */
+
 
 function updateInputModalContent({ title, message, placeholder, defaultValue, cancelText, confirmText }) {
   document.getElementById("inputModalTitle").textContent = title;
@@ -1599,12 +1593,12 @@ function toggleSidebar() {
  
 
 searchToggle.addEventListener('click', (e) => {
-  e.stopPropagation(); // prevents sidebar close
+  e.stopPropagation();  
   document.body.classList.add('expanded');
   inputSerachComm.focus();
 });
 
-// 🔒 Prevent Enter from blurring / submitting
+ 
 inputSerachComm.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
     inputSerachComm.blur()

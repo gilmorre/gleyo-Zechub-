@@ -65,7 +65,6 @@
 </head>
 <body data-auth="{{ '1' if user_id else '0' }}" data-vapid="{{ vapid_public_key }}">
 
-<!-- ===== NAV ===== -->
 <header class="top-nav">
 
   <div class="nav-left">
@@ -74,7 +73,6 @@
   </div>
 
   {% if user_id %}
-  <!-- Desktop: show feature links when logged in -->
   <nav class="nav-center-auth">
     <a href="/product">Features</a>
     <a href="/what-is-gleyo">What is Gleyo</a>
@@ -82,7 +80,6 @@
     <a href="{{ url_for('admin_panel') }}">Create Community</a>
   </nav>
   {% else %}
-  <!-- Desktop: show nav when logged out -->
   <nav class="nav-center">
     <a href="/product">Features</a>
     <a href="/what-is-gleyo">About</a>
@@ -121,7 +118,6 @@
         <input type="text" placeholder="Search community..." class="nav-search">
       </div>
 
-      <!-- Profile circle — desktop opens dropdown, mobile opens sheet -->
       <div class="profile-circle" id="profile-trigger" onclick="handleProfileClick()">
         {% if current_user.profile_pic %}
           <img src="{{ current_user.profile_pic }}" alt="Profile">
@@ -134,7 +130,7 @@
 
     {% else %}
 
-      <a href="{{ url_for('create_account') }}" class="nav-btn primary">
+      <a href="{{ url_for('create_account') }}?next=/dashboard" class="nav-btn primary">
         Start Free
       </a>
 
@@ -143,7 +139,6 @@
 </header>
 
 
-<!-- ===== MOBILE BOTTOM SHEET (logged in only) ===== -->
 {% if user_id %}
 <div class="sheet-overlay" id="sheet-overlay" onclick="closeSheet()"></div>
 
@@ -254,7 +249,6 @@
 {% endif %}
 
 
-<!-- ===== DESKTOP DROPDOWN (logged in) ===== -->
 <div id="profile-dropdown" class="profile-dropdown">
   <a href="{{ url_for('account_settings_general') }}" onclick="event.preventDefault(); saveAccountBackRoute(); navigateTo(this.href);">
     <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -275,7 +269,6 @@
 </div>
 
 
-<!-- ===== MAIN CONTENT ===== -->
 <div id="main-content">
 
   <header class="hero">
@@ -300,11 +293,13 @@
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
           </a>
         {% else %}
-          <a href="{{ url_for('create_account') }}" class="btn-cta primary">
+          <a href="{{ url_for('create_account') }}?next=/dashboard" class="btn-cta primary">
             Get Started Free
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
           </a>
-          <a href="{{ url_for('login') }}" class="btn-cta secondary">Login</a>
+<a href="{{ url_for('login', next='/dashboard') }}" class="btn-cta secondary">
+  Login
+</a>
         {% endif %}
       </div>
 
@@ -866,10 +861,10 @@
           Create your community →
         </a>
       {% else %}
-        <a href="{{ url_for('create_account') }}" class="btn-cta primary">
+        <a href="{{ url_for('create_account') }}?next=/dashboard" class="btn-cta primary">
           Get started free →
         </a>
-        <a href="{{ url_for('login') }}" class="btn-cta secondary">
+        <a href="{{ url_for('login', next='/dashboard') }}" class="btn-cta secondary">
           Login
         </a>
       {% endif %}

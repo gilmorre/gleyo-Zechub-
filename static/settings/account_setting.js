@@ -111,12 +111,13 @@ function updateSettingsHeader(path) {
   });
 
   async function logoutUser(url) {
+    const nextPath = window.location.pathname + window.location.search;
+    const loginUrl = `/login?next=${encodeURIComponent(nextPath)}`;
+
     const res = await fetch(url, {
       method: "POST",
       credentials: "include",
-      headers: {
-        "X-CSRFToken": csrfToken
-      }
+      headers: { "X-CSRFToken": csrfToken }
     });
 
     sessionStorage.removeItem("push_dismissed");
@@ -126,16 +127,16 @@ function updateSettingsHeader(path) {
       return;
     }
 
-    const contentType = res.headers.get("content-type");
+    const ct = res.headers.get("content-type");
 
-    if (contentType && contentType.includes("application/json")) {
+    if (ct && ct.includes("application/json")) {
       const data = await res.json();
 
       if (data.success) {
-        window.location.replace("/login");
+        window.location.replace(loginUrl);
       }
     } else {
-      window.location.replace("/login");
+      window.location.replace(loginUrl);
     }
   }
 

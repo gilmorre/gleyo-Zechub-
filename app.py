@@ -239,6 +239,7 @@ ALLOWED_ROUTES = {
     "logoutinner",
     "sitemap",
     "about_us",
+    "gleyo_base",
     "create_account",
     "claim_subquest",
     "static",

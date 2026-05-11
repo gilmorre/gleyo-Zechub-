@@ -1,6 +1,5 @@
 const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute("content");
 
-/* ---- Search ---- */
 const searchInput = document.querySelector(".nav-search");
 const mainContent = document.getElementById("main-content");
 const resultsContainer = document.getElementById("community-search-results");
@@ -31,7 +30,6 @@ if (searchInput) {
   });
 }
 
-/* ---- Profile click: desktop = dropdown, mobile = bottom sheet ---- */
 function handleProfileClick() {
   if (window.innerWidth <= 768) {
     openSheet();
@@ -40,7 +38,6 @@ function handleProfileClick() {
   }
 }
 
-/* ---- Desktop dropdown ---- */
 function toggleDropdown() {
   const dropdown = document.getElementById("profile-dropdown");
   const trigger = document.getElementById("profile-trigger");
@@ -59,12 +56,10 @@ window.addEventListener("click", function (e) {
   if (!trigger.contains(e.target) && !dropdown.contains(e.target)) dropdown.style.display = "none";
 });
 
-/* ---- Mobile bottom sheet ---- */
 function openSheet() {
   const overlay = document.getElementById("sheet-overlay");
   const sheet = document.getElementById("bottom-sheet");
   if (!sheet) return;
-  // stop body scroll
   document.body.style.overflow = "hidden";
   if (overlay) { overlay.style.display = "block"; requestAnimationFrame(() => overlay.classList.add("open")); }
   requestAnimationFrame(() => sheet.classList.add("open"));
@@ -87,7 +82,6 @@ window.addEventListener("resize", () => {
   if (window.innerWidth > 768) closeSheet();
 });
 
-/* ---- Routing helpers ---- */
 function saveAccountBackRoute() {
   let path = window.location.pathname + window.location.search;
   if (path.includes("/settings")) path = "/";
@@ -95,16 +89,34 @@ function saveAccountBackRoute() {
 }
 
 async function logoutUser(url) {
-  const res = await fetch(url, { method: "POST", credentials: "include", headers: { "X-CSRFToken": csrfToken } });
+  const nextPath = window.location.pathname + window.location.search;
+  const loginUrl = `/login?next=${encodeURIComponent(nextPath)}`;
+
+  const res = await fetch(url, {
+    method: "POST",
+    credentials: "include",
+    headers: { "X-CSRFToken": csrfToken }
+  });
+
   sessionStorage.removeItem("push_dismissed");
-  if (res.redirected) { window.location.replace(res.url); return; }
+
+  if (res.redirected) {
+    window.location.replace(res.url);
+    return;
+  }
+
   const ct = res.headers.get("content-type");
+
   if (ct && ct.includes("application/json")) {
     const data = await res.json();
-    if (data.success) window.location.replace("/login");
-  } else { window.location.replace("/login"); }
-}
 
+    if (data.success) {
+      window.location.replace(loginUrl);
+    }
+  } else {
+    window.location.replace(loginUrl);
+  }
+}
  
 window.addEventListener("scroll", () => {
   const scrollY = window.scrollY;

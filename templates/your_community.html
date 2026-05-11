@@ -7238,7 +7238,7 @@ async function loadMainSettingsSection(path, push = true, previewMode = false, n
 
 
 
-      __CURRENT_SCRIPT__ = "/static/analytics.js";
+      __CURRENT_SCRIPT__ = "/static/analytics.js?v=1";
 
     const isPremiumOpened = !document
       .querySelector(".shell")
@@ -7247,7 +7247,7 @@ async function loadMainSettingsSection(path, push = true, previewMode = false, n
 
     if (isPremiumOpened) {
 
-      await loadScript("/static/analytics.js");
+      await loadScript("/static/analytics.js?v=1");
 
       if (window.AnalyticsModule) {
         window.AnalyticsModule.init();

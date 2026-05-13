@@ -1121,8 +1121,19 @@ body::before {
 }
 
 @media (max-width: 500px) {
-  .footer-grid { grid-template-columns: 1fr 1fr; }
-  .nav-left .logo { display: none; }
+  .footer-grid { 
+    grid-template-columns: 1fr 1fr; 
+  }
+  .nav-left .logo { 
+    display: none; 
+  }
+  .cta-buttons {
+    justify-content: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
 }
 
 @media (min-width: 769px) {
@@ -1132,3 +1143,4 @@ body::before {
 @media (max-width: 768px) {
   .profile-dropdown { display: none !important; }
 }
+

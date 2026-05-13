@@ -297,9 +297,9 @@
             Get Started Free
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
           </a>
-<a href="{{ url_for('login', next='/dashboard') }}" class="btn-cta secondary">
-  Login
-</a>
+        <a href="{{ url_for('login', next='/dashboard') }}" class="btn-cta secondary">
+          Login
+        </a>
         {% endif %}
       </div>
 
@@ -861,13 +861,17 @@
           Create your community →
         </a>
       {% else %}
-        <a href="{{ url_for('create_account') }}?next=/dashboard" class="btn-cta primary">
-          Get started free →
-        </a>
-        <a href="{{ url_for('login', next='/dashboard') }}" class="btn-cta secondary">
-          Login
-        </a>
-      {% endif %}
+    <div class="cta-buttons">
+      <a href="{{ url_for('create_account') }}?next=/dashboard" class="btn-cta primary">
+        Get started free →
+      </a>
+
+      <a href="{{ url_for('login', next='/dashboard') }}" class="btn-cta secondary">
+        Login
+      </a>
+    </div>
+    {% endif %}
+
 </div>
 
   </main>

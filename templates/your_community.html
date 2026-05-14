@@ -6158,12 +6158,10 @@ function isDynamicQuest(path) {
 function isAdminDynamic(path) {
   return /\/quest\/admin\/[^/]+\/[^/]+$/.test(path);
 }
-// ✅ ONLY /quest
 function isQuestHome(path) {
   return path === "/quest";
 }
 
-// ✅ ONLY /quest/sprint
 function isQuestSprint(path) {
   return path === "/quest/sprint";
 }
@@ -6714,7 +6712,6 @@ function showReWardsSkeleton(containerSelector) {
           <div class="sk-page">
             <div class="sk-grid">
 
-              <!-- LEFT SIDE -->
               <div>
                 <div class="sk-wallet">
                   <div class="sk-w-head">

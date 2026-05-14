@@ -65,7 +65,7 @@ from Subquestcondition import SubquestCondition
 from SubquestCooldown import SubquestCooldown
 from xplevel import UserXP
 from BugReport import BugReport
-from wallet import Wallet
+from wallet import Wallet, SolanaWallet
 from subquestreward import SubquestReward
 from community_models import Community, CommunityInteractionSettings, AIConversation, CommunityClaimUsage, CommunityWallet, CommunityWalletTransaction, EarlyAccessApplication, ProWaitlist, SprintUserXP, CommunityUserXP, CommunityInviteUsage, ReviewNotification, InboxNotification
 import redis
@@ -143,14 +143,16 @@ limiter = Limiter(
 
 limiter.init_app(app)
  
+
+ 
 app.secret_key = os.getenv("SECRET_KEY")
 app.config.update(
     SESSION_TYPE="filesystem",
     SESSION_COOKIE_NAME="gleyo_session",
-    SESSION_COOKIE_HTTPONLY=False,
-    SESSION_COOKIE_SECURE=False, 
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SECURE=True,
     SESSION_COOKIE_SAMESITE="Lax",
-    SESSION_PERMANENT=False, 
+    SESSION_PERMANENT=True,
     PERMANENT_SESSION_LIFETIME=timedelta(days=30),
     MAX_CONTENT_LENGTH=5 * 1024 * 1024,
     MAIL_SERVER="smtp.gmail.com",
@@ -159,40 +161,11 @@ app.config.update(
     MAIL_USERNAME=os.getenv("MAIL_USER"),
     MAIL_PASSWORD=os.getenv("MAIL_PASS"),
     MAIL_DEFAULT_SENDER="florishisreal@gmail.com",
-    REMEMBER_COOKIE_DURATION = timedelta(days=30),
-    REMEMBER_COOKIE_HTTPONLY = True,
-    REMEMBER_COOKIE_SAMESITE = "Lax",
-    REMEMBER_COOKIE_SECURE = True  
+    REMEMBER_COOKIE_DURATION=timedelta(days=30),
+    REMEMBER_COOKIE_HTTPONLY=True,
+    REMEMBER_COOKIE_SAMESITE="Lax",
+    REMEMBER_COOKIE_SECURE=True
 )
-
-
-# redis_url = os.getenv("REDIS_URL")
-
-# if not redis_url:
-#     raise RuntimeError("REDIS_URL is not set. Add Redis service in Railway.")
- 
-# app.secret_key = os.getenv("SECRET_KEY")
-# app.config.update(
-#     SESSION_TYPE="redis",
-#     SESSION_REDIS=redis.from_url(redis_url),
-#     SESSION_COOKIE_NAME="gleyo_session",
-#     SESSION_COOKIE_HTTPONLY=True,
-#     SESSION_COOKIE_SECURE=True,
-#     SESSION_COOKIE_SAMESITE="Lax",
-#     SESSION_PERMANENT=True,
-#     PERMANENT_SESSION_LIFETIME=timedelta(days=30),
-#     MAX_CONTENT_LENGTH=5 * 1024 * 1024,
-#     MAIL_SERVER="smtp.gmail.com",
-#     MAIL_PORT=587,
-#     MAIL_USE_TLS=True,
-#     MAIL_USERNAME=os.getenv("MAIL_USER"),
-#     MAIL_PASSWORD=os.getenv("MAIL_PASS"),
-#     MAIL_DEFAULT_SENDER="florishisreal@gmail.com",
-#     REMEMBER_COOKIE_DURATION=timedelta(days=30),
-#     REMEMBER_COOKIE_HTTPONLY=True,
-#     REMEMBER_COOKIE_SAMESITE="Lax",
-#     REMEMBER_COOKIE_SECURE=True
-# )
 
 
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -4940,27 +4913,26 @@ def account_settings_general():
 @app.route("/settings/wallets", methods=["GET", "POST"])
 @login_required
 def account_settings_wallet():
-
     guard = passcode_required()
     if guard:
         return guard
-
     ctx = load_account_settings_context()
     user = ctx["user"]
-
     wallet = Wallet.query.filter_by(user_id=user.id, is_active=True).first()
+    sol_wallet = SolanaWallet.query.filter_by(user_id=user.id, is_active=True).first()
 
     if request.headers.get("X-Partial"):
         return render_template(
             "accounts/wallets.html",
             user=user,
-            wallet=wallet  
+            wallet=wallet,
+            sol_wallet=sol_wallet
         )
-
     return render_template(
         "account_settings.html",
         user=user,
-        wallet=wallet   
+        wallet=wallet,
+        sol_wallet=sol_wallet
     )
     
 
@@ -5901,7 +5873,7 @@ from pydub import AudioSegment
 
 
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, UTC
 
 
 typing_status = {}
@@ -10866,7 +10838,6 @@ def get_wallet_nonce():
 
     address = address.lower()
 
-    # 🔒 ONLY FETCH USER'S WALLET
     wallet = Wallet.query.filter_by(
         address=address,
         user_id=current_user.id
@@ -10884,10 +10855,9 @@ def get_wallet_nonce():
         wallet.is_active = True
         wallet.disconnected_at = None
 
-    # 🔥 GENERATE NONCE
     nonce = str(uuid.uuid4())
     wallet.nonce = nonce
-    wallet.nonce_created_at = datetime.utcnow()
+    wallet.nonce_created_at = datetime.now(UTC)
 
     db.session.commit()
 
@@ -10908,7 +10878,6 @@ def connect_wallet():
 
     address = address.lower()
 
-    # 🔒 ONLY FETCH USER'S WALLET
     wallet = Wallet.query.filter_by(
         address=address,
         user_id=current_user.id
@@ -10917,20 +10886,21 @@ def connect_wallet():
     if not wallet:
         return jsonify({"error": "Nonce not found. Request a new one."}), 400
 
-    # 🔥 MUST BE ACTIVE
     if not wallet.is_active:
         return jsonify({"error": "Wallet is inactive"}), 400
 
-    # 🔥 NONCE VALIDATION
     if not wallet.nonce or wallet.nonce not in message:
         return jsonify({"error": "Invalid nonce"}), 400
 
-    # 🔥 EXPIRY CHECK
-    if not wallet.nonce_created_at or \
-       datetime.utcnow() - wallet.nonce_created_at > timedelta(minutes=5):
+    created_at = wallet.nonce_created_at
+
+    if created_at and created_at.tzinfo is None:
+        created_at = created_at.replace(tzinfo=UTC)
+
+    if not created_at or \
+    datetime.now(UTC) - created_at > timedelta(minutes=5):
         return jsonify({"error": "Nonce expired"}), 400
 
-    # 🔥 VERIFY SIGNATURE
     try:
         msg = encode_defunct(text=message.strip())
         recovered = Account.recover_message(msg, signature=signature)
@@ -10941,13 +10911,12 @@ def connect_wallet():
     except Exception:
         return jsonify({"error": "Verification failed"}), 400
 
-    # 🔥 SUCCESS → MARK ACTIVE + ROTATE NONCE
     wallet.is_active = True
     wallet.disconnected_at = None
 
     wallet.last_signature = signature
     wallet.nonce = str(uuid.uuid4())
-    wallet.nonce_created_at = datetime.utcnow()
+    wallet.nonce_created_at = datetime.now(UTC)
 
     db.session.commit()
 
@@ -10963,11 +10932,9 @@ def disconnect_wallet():
     if not wallet:
         return jsonify({"error": "No wallet found"}), 404
 
-    # 🔒 mark as disconnected instead of deleting
     wallet.is_active = False
     wallet.disconnected_at = datetime.utcnow()
 
-    # optional: clear sensitive stuff
     wallet.nonce = None
     wallet.last_signature = None
 
@@ -10975,7 +10942,112 @@ def disconnect_wallet():
 
     return jsonify({"status": "disconnected"})
 
+@app.route("/api/wallet/solana/nonce", methods=["POST"])
+@login_required
+def get_solana_nonce():
+    data = request.get_json()
+    address = data.get("address")
+    if not address:
+        return jsonify({"error": "Missing address"}), 400
 
+    wallet = SolanaWallet.query.filter_by(
+        address=address,
+        user_id=current_user.id
+    ).first()
+
+    if not wallet:
+        wallet = SolanaWallet(
+            user_id=current_user.id,
+            address=address,
+            is_active=True
+        )
+        db.session.add(wallet)
+    else:
+        wallet.is_active = True
+        wallet.disconnected_at = None
+
+    nonce = str(uuid.uuid4())
+    wallet.nonce = nonce
+    wallet.nonce_created_at = datetime.now(UTC)
+    db.session.commit()
+    return jsonify({"nonce": nonce})
+
+
+@app.route("/api/wallet/solana/connect", methods=["POST"])
+@login_required
+def connect_solana_wallet():
+    data = request.get_json()
+    address   = data.get("address")
+    signature = data.get("signature")    
+    message   = data.get("message")    
+
+    if not address or not signature or not message:
+        return jsonify({"error": "Missing data"}), 400
+
+    wallet = SolanaWallet.query.filter_by(
+        address=address,
+        user_id=current_user.id
+    ).first()
+
+    if not wallet:
+        return jsonify({"error": "Nonce not found. Request a new one."}), 400
+    if not wallet.is_active:
+        return jsonify({"error": "Wallet is inactive"}), 400
+    if not wallet.nonce or wallet.nonce not in message:
+        return jsonify({"error": "Invalid nonce"}), 400
+    created_at = wallet.nonce_created_at
+
+    if created_at and created_at.tzinfo is None:
+        created_at = created_at.replace(tzinfo=UTC)
+
+    if not created_at or \
+    datetime.now(UTC) - created_at > timedelta(minutes=5):
+        return jsonify({"error": "Nonce expired"}), 400
+
+    try:
+        import nacl.signing
+        import nacl.encoding
+        import base58
+
+        msg_bytes = message.encode("utf-8")
+
+        # signature can arrive as base58 string or list of ints
+        if isinstance(signature, list):
+            sig_bytes = bytes(signature)
+        else:
+            sig_bytes = base58.b58decode(signature)
+
+        pub_bytes = base58.b58decode(address)
+
+        verify_key = nacl.signing.VerifyKey(pub_bytes)
+        verify_key.verify(msg_bytes, sig_bytes)   # raises if invalid
+
+    except Exception as e:
+        return jsonify({"error": "Invalid signature"}), 401
+
+    wallet.is_active = True
+    wallet.disconnected_at = None
+    wallet.last_signature = signature if isinstance(signature, str) else str(signature)
+    wallet.nonce = str(uuid.uuid4())
+    wallet.nonce_created_at = datetime.now(UTC)
+    db.session.commit()
+    return jsonify({"status": "connected"})
+
+
+@app.route("/api/wallet/solana/disconnect", methods=["POST"])
+@login_required
+def disconnect_solana_wallet():
+    wallet = SolanaWallet.query.filter_by(user_id=current_user.id, is_active=True).first()
+    if not wallet:
+        return jsonify({"error": "No active Solana wallet found"}), 404
+
+    wallet.is_active = False
+    wallet.disconnected_at = datetime.now(UTC)
+    wallet.nonce = None
+    wallet.last_signature = None
+    db.session.commit()
+    return jsonify({"status": "disconnected"})
+    
 
 @app.route("/api/start-payment", methods=["POST"])
 def start_payment():
@@ -30757,9 +30829,86 @@ class CommunityInviteUsageAdmin(BaseAdmin):
     }
     
 
-# -------------------------------
-# ✅ Register all views
-# -------------------------------
+class SolanaWalletAdmin(BaseAdmin):
+
+    column_list = (
+        'id',
+        'user_id',
+        'address',
+        'wallet_name',
+        'is_active',
+        'connected_at',
+        'disconnected_at'
+    )
+
+    column_labels = {
+        'id': 'ID',
+        'user_id': 'User ID',
+        'address': 'Wallet Address',
+        'wallet_name': 'Wallet',
+        'is_active': 'Active',
+        'connected_at': 'Connected At',
+        'disconnected_at': 'Disconnected At'
+    }
+
+    column_searchable_list = (
+        'address',
+        'wallet_name'
+    )
+
+    column_filters = (
+        'wallet_name',
+        'is_active',
+        'connected_at'
+    )
+
+    form_columns = (
+        'user_id',
+        'address',
+        'wallet_name',
+        'nonce',
+        'last_signature',
+        'is_active',
+        'disconnected_at'
+    )
+
+    can_view_details = True
+
+    def _address_formatter(self, context, model, name):
+        if not model.address:
+            return '—'
+
+        address = model.address
+
+        short_address = f"{address[:6]}...{address[-6:]}"
+
+        return (
+            f'<div style="max-width:220px; '
+            f'white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" '
+            f'title="{address}">{short_address}</div>'
+        )
+
+    def _signature_formatter(self, context, model, name):
+        if not model.last_signature:
+            return '—'
+
+        sig = model.last_signature
+
+        short_sig = f"{sig[:12]}...{sig[-12:]}"
+
+        return (
+            f'<div style="max-width:240px; '
+            f'white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" '
+            f'title="{sig}">{short_sig}</div>'
+        )
+
+    column_formatters = {
+        'address': _address_formatter,
+        'last_signature': _signature_formatter
+    }
+
+
+
 admin.add_view(UserAdmin(Users, db.session))
 admin.add_view(UserTwoFactorAdmin(UserTwoFactor, db.session))
 admin.add_view(UserSessionAdmin(UserSession, db.session))
@@ -30767,6 +30916,7 @@ admin.add_view(UserDiscordAdmin(UserDiscord, db.session))
 admin.add_view(UserTwitterAdmin(UserTwitter, db.session))
 admin.add_view(UserYouTubeAdmin(UserYouTube, db.session))
 admin.add_view(WalletAdmin(Wallet, db.session))
+admin.add_view(SolanaWalletAdmin(SolanaWallet, db.session))
 admin.add_view(UserTikTokAdmin(UserTikTok, db.session))
 admin.add_view(UserTelegramAdmin(UserTelegram, db.session))
 admin.add_view(EarlyAccessApplicationAdmin(EarlyAccessApplication, db.session))

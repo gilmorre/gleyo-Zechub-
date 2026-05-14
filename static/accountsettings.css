@@ -85,14 +85,9 @@
   overflow-y: hidden !important;
 }
 
-/* =======================
-   LAYOUT
-======================= */
 
 
-/* =======================
-   SIDEBAR
-======================= */
+
 .settings-sidebar {
   width: 260px;
   min-height: 100dvh;
@@ -200,9 +195,9 @@
   color: var(--text-main);
 }
 
-/* =======================
-   CHAT GROUP
-======================= */
+
+
+
 .nav-group {
   margin-top: 6px;
 }
@@ -228,7 +223,7 @@
   opacity: 0.6;
 }
 
-/* SUB ITEMS */
+ 
 .nav-sub {
   position: relative;
   margin-left: 14px;
@@ -247,7 +242,7 @@
 .nav-group.collapsed .chevron {
   transform: rotate(-90deg); 
 }
-/* vertical guide line */
+ 
 .nav-sub::before {
   content: "";
   position: absolute;
@@ -790,6 +785,52 @@ html.swiped-locked, body.swipe-locked {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s ease;
+}
+@media(max-width: 1000px) {
+  .shell { 
+    padding: 12px 14px;
+    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
+    padding-top: 20px !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
+}
+
+
+@media(min-width: 1001px) {
+  .shell { 
+    display: flex;
+    width: 100% !important;
+    min-width: 100% !important;
+    padding-top: 40px !important;
+    gap: 24px;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+.sk-card.wallet {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  padding: 28px 24px;
+  max-width: 410px;
+  min-width: 310px;
+  height: 210px;
+  position: relative;
+  overflow: hidden;
+}
+
+
+@media(max-width: 767px) {
+  .sk-card.wallet {
+  min-width: 350px;
+    
+  }
 }
 
  
@@ -1674,9 +1715,7 @@ html.swiped-locked, body.swipe-locked {
     .forgot { margin-top: 16px; font-family: 'DM Mono', monospace; font-size: 12px; letter-spacing: .1em; color: var(--text-main); cursor: pointer; transition: color .2s; text-decoration: none; }
     .forgot:hover { color: var(--flumbo); }
 
-    /* ══════════════════════════════════════
-       SUCCESS SCREEN
-    ══════════════════════════════════════ */
+ 
     .success-check {
       width: 68px; height: 68px; border-radius: 50%;
       background: rgba(79,255,160,0.1); border: 1.5px solid rgba(79,255,160,0.35);
@@ -1686,10 +1725,7 @@ html.swiped-locked, body.swipe-locked {
     .success-check svg { width: 32px; height: 32px; }
     .success-title { font-size: 22px; font-weight: 800; color: var(--dot-success); margin-bottom: 6px; }
     .success-sub   { font-size: 13px; color: var(--text-secondary); text-align: center; }
-
-    /* ══════════════════════════════════════
-       FORGOT OPTIONS SCREEN
-    ══════════════════════════════════════ */
+ 
     .screen-icon {
       width: 64px; height: 64px; border-radius: 50%;
       background: rgba(201,184,255,0.08); border: 1.5px solid rgba(201,184,255,0.2);
@@ -1720,9 +1756,7 @@ html.swiped-locked, body.swipe-locked {
     .opt-lbl { font-size: 13px; font-weight: 600; color: var(--text-primary); }
     .opt-dsc { font-size: 11px; color: var(--text-secondary); }
 
-    /* ══════════════════════════════════════
-       EMAIL RESET SCREEN
-    ══════════════════════════════════════ */
+ 
     .input-group { width: 100%; margin-bottom: 12px; }
     .input-label { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--text-label); margin-bottom: 7px; display: block; }
     .text-input {
@@ -1745,7 +1779,7 @@ html.swiped-locked, body.swipe-locked {
     .primary-btn:hover  { background: rgba(201,184,255,0.18); }
     .primary-btn:active { transform: scale(0.97); }
 
-    /* sent confirmation */
+    
     .sent-badge {
       display: none; align-items: center; gap: 10px;
       background: rgba(79,255,160,0.07); border: 1px solid rgba(79,255,160,0.2);
@@ -1755,9 +1789,8 @@ html.swiped-locked, body.swipe-locked {
     .sent-badge-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--dot-success); flex-shrink: 0; }
     .sent-badge-txt { font-size: 12px; color: var(--dot-success); }
 
-    /* ══════════════════════════════════════
-       2FA SCREEN
-    ══════════════════════════════════════ */
+    
+
     .otp-row { display: flex; gap: 8px; width: 100%; margin-bottom: 12px; }
     .otp-box {
       flex: 1; height: 52px; background: rgba(255,255,255,0.04);
@@ -1848,29 +1881,22 @@ html.swiped-locked, body.swipe-locked {
 
 
 
-
-/* Card */
-.sk-card.wallet {
-background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:28px 24px;position:relative;overflow:hidden; width: 100%; max-width: 520px !important; height: 195px !important;
-}
+ 
 
 .sk-card.wallet::before{content:"";position:absolute;top:0;left:15%;right:15%;height:1px;background:linear-gradient(90deg,transparent,rgba(99,102,241,.7),transparent)}
 
 
 .shell{width:100%;max-width:540px}
 
-/* Lines */
 .sk-line {
   height: 6px;
   border-radius: 999px;
 }
 
-/* Variants */
 .sk-sm   { width: 90px; height: 20px;}
 .sk-mid  { width: 75%; margin: 0 auto; }
 .sk-full { width: 100%; }
 
-/* Block (big skeleton area) */
 .sk-block {
   height: 50px;
   width: 100%;

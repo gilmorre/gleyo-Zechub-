@@ -1,22 +1,135 @@
-from sqlalchemy import create_engine, text
+import sqlite3
+import os
 
-engine = create_engine(
-    "postgresql://postgres:hMXYgnwItGgdAAterUPCtgpNECnWyuhj@tramway.proxy.rlwy.net:17313/railway"
+DB_PATH = os.path.join(os.path.dirname(__file__), "project.db")
+
+conn = sqlite3.connect(DB_PATH)
+cur = conn.cursor()
+
+print("🚀 Migrating wallet datetime columns to timezone-aware schema...")
+
+# ---------------- wallets ----------------
+
+cur.execute("""
+CREATE TABLE wallets_new (
+    id INTEGER PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+
+    address VARCHAR(100) UNIQUE NOT NULL,
+    chain VARCHAR(20),
+
+    connected_at DATETIME,
+
+    nonce VARCHAR(255),
+
+    last_signature TEXT,
+
+    token_holdings JSON,
+
+    nonce_created_at DATETIME,
+
+    is_active BOOLEAN,
+
+    disconnected_at DATETIME,
+
+    FOREIGN KEY(user_id) REFERENCES users(id)
 )
+""")
 
-sql = """
+cur.execute("""
+INSERT INTO wallets_new (
+    id,
+    user_id,
+    address,
+    chain,
+    connected_at,
+    nonce,
+    last_signature,
+    token_holdings,
+    nonce_created_at,
+    is_active,
+    disconnected_at
+)
+SELECT
+    id,
+    user_id,
+    address,
+    chain,
+    connected_at,
+    nonce,
+    last_signature,
+    token_holdings,
+    nonce_created_at,
+    is_active,
+    disconnected_at
+FROM wallets
+""")
 
-ALTER TABLE subquest
-ADD COLUMN IF NOT EXISTS streak_enabled BOOLEAN NOT NULL DEFAULT FALSE;
+cur.execute("DROP TABLE wallets")
+cur.execute("ALTER TABLE wallets_new RENAME TO wallets")
 
-"""
+# ---------------- solana_wallets ----------------
 
-with engine.connect() as conn:
-    conn.execute(text(sql))
-    conn.commit()
+cur.execute("""
+CREATE TABLE solana_wallets_new (
+    id INTEGER PRIMARY KEY,
 
-print("✅ streak_enabled column added successfully")
+    user_id INTEGER NOT NULL,
 
+    address VARCHAR(100) UNIQUE NOT NULL,
+
+    wallet_name VARCHAR(20),
+
+    connected_at DATETIME,
+
+    nonce VARCHAR(255),
+
+    nonce_created_at DATETIME,
+
+    last_signature TEXT,
+
+    is_active BOOLEAN,
+
+    disconnected_at DATETIME,
+
+    FOREIGN KEY(user_id) REFERENCES users(id)
+)
+""")
+
+cur.execute("""
+INSERT INTO solana_wallets_new (
+    id,
+    user_id,
+    address,
+    wallet_name,
+    connected_at,
+    nonce,
+    nonce_created_at,
+    last_signature,
+    is_active,
+    disconnected_at
+)
+SELECT
+    id,
+    user_id,
+    address,
+    wallet_name,
+    connected_at,
+    nonce,
+    nonce_created_at,
+    last_signature,
+    is_active,
+    disconnected_at
+FROM solana_wallets
+""")
+
+cur.execute("DROP TABLE solana_wallets")
+cur.execute("ALTER TABLE solana_wallets_new RENAME TO solana_wallets")
+
+conn.commit()
+conn.close()
+
+print("✅ Wallet datetime migration completed.")
 
 
 

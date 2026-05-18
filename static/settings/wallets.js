@@ -79,7 +79,6 @@ async function resetAndInitWC() {
 
 const IsloadingInit=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="20" height="20"><radialGradient id="a11" cx=".66" fx=".66" cy=".3125" fy=".3125" gradientTransform="scale(1.5)"><stop offset="0" stop-color="currentColor" stop-opacity="0"/><stop offset=".2" stop-color="currentColor" stop-opacity=".3"/><stop offset=".4" stop-color="currentColor" stop-opacity=".6"/><stop offset=".7" stop-color="currentColor" stop-opacity=".9"/><stop offset="1" stop-color="currentColor"/></radialGradient><circle transform-origin="center" fill="none" stroke="url(#a11)" stroke-width="20" stroke-linecap="round" stroke-dasharray="200 1000" stroke-dashoffset="0" cx="100" cy="100" r="70"><animateTransform type="rotate" attributeName="transform" calcMode="spline" dur="1" values="0;360" keyTimes="0;1" keySplines="0 0 1 1" repeatCount="indefinite"/></circle><circle transform-origin="center" fill="none" opacity=".2" stroke="currentColor" stroke-width="20" stroke-linecap="round" cx="100" cy="100" r="70"/></svg>`;
 
-// ─── EVM ─────────────────────────────────────────────────────────────────────
 
 async function openEvmModal() {
   const btn=document.getElementById('connect-btn');
@@ -322,7 +321,6 @@ async function sendWalletToBackend(name,address,signature,message){
   } catch(e){ console.error(e); alert('Network error'); }
 }
 
-// ─── SOLANA ──────────────────────────────────────────────────────────────────
 
 const SOL = {
   connected: false,
@@ -337,7 +335,6 @@ const SOL_LOGOS = {
 
 function shortenSol(addr){ return addr?addr.slice(0,4)+'…'+addr.slice(-4):'—'; }
 
-// ─── SOL MODAL ───────────────────────────────────────────────────────────────
 
 async function openSolModal() {
   const btn = document.querySelector('.sol-connect-btn');
@@ -379,7 +376,6 @@ function updateSolDetectionBadges(){
   if(phDesc) phDesc.textContent = hasPhantom ? 'Detected · Ready to connect' : 'Popular multi-chain wallet';
 }
 
-// ─── SOL CONNECT ─────────────────────────────────────────────────────────────
 
 async function connectSolanaWallet(walletName) {
   const logoEl = document.getElementById('sol-conn-logo-bg');
@@ -394,7 +390,6 @@ async function connectSolanaWallet(walletName) {
   try {
     let provider, address;
 
-    // ── resolve provider ──
     if (walletName === 'solflare') {
       provider = window.solflare || window.Solflare;
       if (!provider) {
@@ -415,17 +410,15 @@ async function connectSolanaWallet(walletName) {
 
     // ── clear stale session without blocking the service worker ──
     if (provider.isConnected || provider.publicKey) {
-      try { provider.disconnect(); } catch (_) {}   // fire-and-forget, no await
-      await new Promise(r => setTimeout(r, 150));   // let service worker settle
+      try { provider.disconnect(); } catch (_) {}   
+      await new Promise(r => setTimeout(r, 150));   
     }
 
-    // ── connect — will always show the approval popup ──
     const resp = await provider.connect({ onlyIfTrusted: false });
     address = resp?.publicKey?.toString() || provider.publicKey?.toString();
 
     if (!address) throw new Error('Wallet returned no address');
 
-    // ── Step 1: nonce ──
     document.getElementById('sol-conn-status').textContent = 'Requesting nonce…';
     const nonceRes = await fetch('/api/wallet/solana/nonce', {
       method: 'POST', credentials: 'include',
@@ -435,7 +428,6 @@ async function connectSolanaWallet(walletName) {
     const nonceData = await nonceRes.json();
     if (!nonceRes.ok) throw new Error(nonceData.error || 'Failed to get nonce');
 
-    // ── Step 2: sign ──
     document.getElementById('sol-conn-status').textContent = 'Sign in your wallet…';
     const message = `Welcome to Gleyo\n\nSign this message to verify your Solana wallet.\n\nNonce: ${nonceData.nonce}\nTime: ${new Date().toISOString()}`;
     const msgBytes = new TextEncoder().encode(message);
@@ -526,7 +518,6 @@ function onSolanaConnected(walletName, address) {
   document.getElementById('sol-state-c').classList.add('active');
 }
 
-// ─── TOUCH SWIPE TO DISMISS ──────────────────────────────────────────────────
 
 ['evm-sheet','sol-sheet'].forEach(sheetId => {
   const s = document.getElementById(sheetId);
@@ -541,7 +532,6 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { closeEvmModal(); closeSolModal(); }
 });
 
-// ─── EXPORTS ─────────────────────────────────────────────────────────────────
 
 Object.assign(window, {
   openModal: openEvmModal,

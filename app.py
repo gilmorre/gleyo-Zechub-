@@ -4919,21 +4919,21 @@ def account_settings_wallet():
         return guard
     ctx = load_account_settings_context()
     user = ctx["user"]
-    wallet = Wallet.query.filter_by(user_id=user.id, is_active=True).first()
-    sol_wallet = SolanaWallet.query.filter_by(user_id=user.id, is_active=True).first()
+    wallet = SolanaWallet.query.filter_by(user_id=user.id, is_active=True).first()
+    # sol_wallet = SolanaWallet.query.filter_by(user_id=user.id, is_active=True).first()
 
     if request.headers.get("X-Partial"):
         return render_template(
             "accounts/wallets.html",
             user=user,
             wallet=wallet,
-            sol_wallet=sol_wallet
+            # sol_wallet=sol_wallet
         )
     return render_template(
         "account_settings.html",
         user=user,
         wallet=wallet,
-        sol_wallet=sol_wallet
+        # sol_wallet=sol_wallet
     )
     
 

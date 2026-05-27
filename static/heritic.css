@@ -252,6 +252,16 @@ html, body {
   margin-bottom: 4px !important;
 }
 
+
+.email-fieldset.error input {
+  caret-color: rgb(254, 41, 41) !important; 
+}
+
+.email-fieldset input {
+  caret-color: #4285F4 !important; 
+}
+
+
 .error-legend {
   color: rgb(254, 41, 41) !important; 
 }

@@ -421,6 +421,19 @@ function showWalletSkeleton(target) {
         <div class="sk-line sk-mid" style="margin-top: 13px"></div>
 
       </div>
+
+
+      
+      <div class="sk-card wallet">
+        
+        <div class="sk-line sk-sm"></div>
+        <div class="sk-line sk-full" style="margin-top: 10px"></div>
+
+        <div class="sk-block" style="margin-top: 30px"></div>
+
+        <div class="sk-line sk-mid" style="margin-top: 13px"></div>
+
+      </div>
       
     </div>
   `;

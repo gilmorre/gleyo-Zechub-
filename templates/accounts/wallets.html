@@ -106,7 +106,6 @@
   font-family: inherit;
   letter-spacing: .01em;
   transition: opacity .2s, transform .15s, box-shadow .2s;
-  box-shadow: 0 4px 24px rgba(99, 102, 241, .25);
 }
 
 .connect-btn:hover {
@@ -216,7 +215,7 @@ body.modal-open {
 }
 .modal-overlay.open{display:flex}
 
-.sheet{background:var(--surface);border: 0.9px solid var(--border2);width:100%;max-width:440px;position:relative;overflow:hidden}
+.sheet, #zec-sheet{background:var(--surface) !important;border: 0.9px solid var(--border2);width:100%;max-width:440px;position:relative;overflow:hidden}
 
 @media(min-width:600px){
   .sheet{border-radius:22px;max-height:90vh;overflow-y:auto}
@@ -299,6 +298,14 @@ body.modal-open {
 
 .view {
   display: none;
+}
+
+.zec-connect-btn:hover{
+  filter: brightness(1.03);
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.04),
+    0 10px 24px rgba(255, 214, 0, 0.18),
+    0 0 18px rgba(255, 214, 0, 0.10);
 }
 
 .view.active {
@@ -727,6 +734,11 @@ body.modal-open {
 }
 
 
+.zec-connect-btn{
+  background:linear-gradient(135deg,#F4B728,#c9890a);
+  color:#140b00;
+  font-weight:700;
+}
 
 
 .card-header-top {
@@ -754,13 +766,22 @@ body.modal-open {
   border: 1px solid rgba(153, 69, 255, .22);
 }
 
+.zec-badge{
+  background:rgba(244,183,40,.12);
+  color:#f4b728;
+  border:1px solid rgba(244,183,40,.22);
+}
+
 .sol-card::before {
   background: linear-gradient(90deg, transparent, rgba(153, 69, 255, .5), transparent);
 }
 
+.zec-card::before {
+  background: linear-gradient(90deg, transparent, rgba(228, 239, 82, 0.5), transparent);
+}
+
 .sol-connect-btn {
   background: linear-gradient(135deg, #9945FF, #6d28d9);
-  box-shadow: 0 4px 24px rgba(153, 69, 255, .25);
 }
 .sol-connect-btn:hover {
   opacity: .9;
@@ -835,6 +856,129 @@ body.modal-open {
 <title>Wallet</title>
 
 <div class="shell">
+
+<div class="card-wall zec-card">
+
+  <div class="card-header">
+    <div class="card-header-top">
+
+      <div class="chain-badge zec-badge">
+        <svg fill="#000000" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="13" height="13">
+          <circle cx="12" cy="12" r="9" style="fill: #F3B724; stroke-width: 2;"></circle>
+          <polyline points="9 9 15 9 9 15 15 15" style="fill: none; stroke: #fff; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2;"></polyline>
+          <path d="M12,9V7m0,8v2M12,3a9,9,0,1,0,9,9A9,9,0,0,0,12,3Z" style="fill: none; stroke: #fff; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2;"></path>
+        </svg>
+        Zcash
+      </div>
+
+    </div>
+
+    <h1>Zcash Wallet</h1>
+
+    <p style="font-size:13px;line-height:1.5;color:var(--muted)">
+      Shielded privacy payments with memo verification. Native ZEC authentication.
+    </p>
+  </div>
+
+ 
+  <div id="zec-state-nc"
+       class="state {% if not zec_wallet or not zec_wallet.is_active %}active{% endif %}">
+
+    <button class="connect-btn zec-connect-btn"
+            onclick="loadZecModal(this)">
+      Verify with Zcash
+    </button>
+
+    <div class="note">
+      YWallet · Zingo! · ZecWallet Lite
+    </div>
+  </div>
+
+ 
+  <div id="zec-state-c"
+       class="state {% if zec_wallet and zec_wallet.is_active %}active{% endif %}">
+
+    <div class="info-box">
+
+      <div class="row">
+        <span class="lbl">Wallet</span>
+
+        <span id="zec-wallet-lbl"
+              style="font-size:13px;font-weight:550;">
+          {{ zec_wallet.wallet_name|capitalize if zec_wallet and zec_wallet.wallet_name else "—" }}
+        </span>
+      </div>
+
+      <div class="row">
+        <span class="lbl">Address</span>
+
+        <span id="zec-addr" class="addr">
+          {% if zec_wallet and zec_wallet.address %}
+            {{ zec_wallet.address[:8] }}…{{ zec_wallet.address[-6:] }}
+          {% else %}
+            —
+          {% endif %}
+        </span>
+      </div>
+
+      <div class="row">
+        <span class="lbl">Network</span>
+
+        <span style="font-size:12px;color:var(--muted)">
+          Zcash Mainnet · Shielded
+        </span>
+      </div>
+
+      <div class="row">
+        <span class="lbl">Verification</span>
+
+        <span id="zec-sig-status"
+              style="font-size:11px;
+                     font-weight:550;
+                     color:{% if zec_wallet and zec_wallet.last_verified_tx %}var(--green){% else %}var(--muted){% endif %}">
+
+          {% if zec_wallet and zec_wallet.last_verified_tx %}
+
+          <svg xmlns="http://www.w3.org/2000/svg"
+               width="15"
+               height="16"
+               viewBox="-5 -10 110 135"
+               fill="currentColor"
+               stroke="currentColor">
+
+            <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
+          </svg>
+
+          Verified
+
+          {% else %}
+
+          Not verified
+
+          {% endif %}
+        </span>
+      </div>
+
+    </div>
+
+   
+    <div id="zec-proof-display"
+         class="sig-box still-hide {% if not zec_wallet or not zec_wallet.last_verified_tx %}hidden{% endif %}">
+
+      {% if zec_wallet and zec_wallet.last_verified_tx %}
+        {{ zec_wallet.last_verified_tx[:16] }}...{{ zec_wallet.last_verified_tx[-10:] }}
+      {% endif %}
+    </div>
+
+    <button class="disc-btn zec-disc-btn"
+            onclick="disconnectZec()">
+      Disconnect Zcash
+    </button>
+
+  </div>
+
+</div>
+
 
   <div class="card-wall">
     <div class="card-header">

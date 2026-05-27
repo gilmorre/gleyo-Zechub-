@@ -531,12 +531,79 @@ function onSolanaConnected(walletName, address) {
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { closeEvmModal(); closeSolModal(); }
 });
+async function loadAuth(path) {
 
+  return new Promise((resolve, reject) => {
+
+    if (document.querySelector(`script[src="${path}"]`)) {
+      resolve();
+      return;
+    }
+
+    const script = document.createElement("script");
+
+    script.src = path;
+
+    script.onload = () => {
+      resolve();
+    };
+
+    script.onerror = (err) => {
+      reject(err);
+    };
+
+    document.body.appendChild(script);
+  });
+}
+
+let __zecLoaded = false;
+
+async function loadZecModal(btn) {
+
+  if (!btn) return;
+
+  if (btn.dataset.loading === "1") return;
+
+  const original = btn.innerHTML;
+
+  if (!__zecLoaded) {
+
+    btn.dataset.loading = "1";
+    btn.style.pointerEvents = "none";
+
+    btn.innerHTML = IsloadingInit;
+
+    try {
+
+      await loadAuth("/static/z-cash.js");
+
+      __zecLoaded = true;
+
+    } catch (err) {
+
+      console.error("Failed loading ZEC modal:", err);
+
+      btn.innerHTML = original;
+
+      btn.style.pointerEvents = "";
+      btn.dataset.loading = "0";
+
+      return;
+    }
+
+    btn.innerHTML = original;
+
+    btn.style.pointerEvents = "";
+    btn.dataset.loading = "0";
+  }
+
+  openZecModal();
+}
 
 Object.assign(window, {
   openModal: openEvmModal,
   openEvmModal, closeEvmModal, evmOverlayClick, evmBackToList,
-  openSolModal, closeSolModal, solOverlayClick,
+  openSolModal, closeSolModal, solOverlayClick, loadZecModal,
   connectSolanaWallet, disconnectSolana,
   pick, showUniversalQR, openDeepLink, disconnect,
   overlayClick: evmOverlayClick,

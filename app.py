@@ -14,6 +14,7 @@ from flask_login import login_required
 import requests
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="flask_admin.contrib")
+import secrets, time, requests as req
 from flask_sqlalchemy import SQLAlchemy
 import base64, uuid, requests, json, time, sqlite3, os
 from utils import csrf
@@ -65,7 +66,7 @@ from Subquestcondition import SubquestCondition
 from SubquestCooldown import SubquestCooldown
 from xplevel import UserXP
 from BugReport import BugReport
-from wallet import Wallet, SolanaWallet
+from wallet import Wallet, SolanaWallet, ZecAuthSession, ZecWallet
 from subquestreward import SubquestReward
 from community_models import Community, CommunityInteractionSettings, AIConversation, CommunityClaimUsage, CommunityWallet, CommunityWalletTransaction, EarlyAccessApplication, ProWaitlist, SprintUserXP, CommunityUserXP, CommunityInviteUsage, ReviewNotification, InboxNotification
 import redis
@@ -210,6 +211,8 @@ ALLOWED_ROUTES = {
     # public
     "login",
     "logoutinner",
+    "zec_login_session",
+    "zec_login_poll",
     "sitemap",
     "about_us",
     "gleyo_base",
@@ -2724,7 +2727,6 @@ def verify_code():
     if not entry:
         return jsonify({"error": "expired"})
 
-    # ✅ use per-code expiry
     if time.time() > entry["expires"]:
         return jsonify({"error": "expired"})
 
@@ -2740,7 +2742,6 @@ def verify_code():
     log_user_in(user)
     create_user_session(user)
 
-    # ✅ FORCE redirect for demo email
     if DEMO_MODE and email == DEMO_EMAIL:
         return jsonify({
             "redirect": url_for("p_quest", community_slug=DEMO_COMMUNITY_SLUG),
@@ -11034,6 +11035,9 @@ def connect_solana_wallet():
     return jsonify({"status": "connected"})
 
 
+
+
+
 @app.route("/api/wallet/solana/disconnect", methods=["POST"])
 @login_required
 def disconnect_solana_wallet():
@@ -11108,9 +11112,259 @@ def check_payment(ref):
 
 
 
+ 
 
 
+YOUR_ZEC_TADDR = "u1cz5t5zs38spfgy5at3s7jvmtefz9qha4w4vttaugr09avpc0v8087zyvrnq9f6vddkrr2dnjjy6wejlurtq5fjuauc4rwa2h6zmvlwpujdvxnundn2png37rkj3y97jz09clhxzuqu72wmwy3e4qmhq2jr3h5lkyced448u38rtxsv9826wkcly2xnwkexln2jslyv3f3j3pvujpgyl"
 
+
+def _create_zec_auth_session(wallet_name=None):
+
+    code = secrets.token_urlsafe(6).upper()[:8]
+
+    expires_at = datetime.now(UTC) + timedelta(minutes=15)
+
+    auth_session = ZecAuthSession(
+        verification_code=code,
+        deposit_address=YOUR_ZEC_TADDR,
+        wallet_name=wallet_name,
+        status="pending",
+        expires_at=expires_at
+    )
+
+    db.session.add(auth_session)
+    db.session.commit()
+
+    return auth_session
+
+
+@app.route("/api/zec/session", methods=["POST"])
+@login_required
+@csrf.exempt
+def zec_session():
+
+    data = request.get_json() or {}
+
+    wallet_name = data.get("wallet")
+
+    auth_session = _create_zec_auth_session(wallet_name)
+
+    return jsonify({
+        "session_id": auth_session.session_id,
+        "address": YOUR_ZEC_TADDR,
+        "code": auth_session.verification_code,
+        "expires_in": 900
+    })
+
+
+@app.route("/api/zec/poll/<session_id>")
+@login_required
+@csrf.exempt
+def zec_poll(session_id):
+
+    auth_session = ZecAuthSession.query.filter_by(
+        session_id=session_id
+    ).first()
+
+    if not auth_session:
+        return jsonify({"status": "expired"}), 404
+
+    if datetime.now(UTC) > auth_session.expires_at:
+
+        auth_session.status = "expired"
+        db.session.commit()
+
+        return jsonify({"status": "expired"})
+
+    if auth_session.status == "confirmed":
+        return jsonify({"status": "confirmed"})
+
+    hit = _check_zec_payment(
+        auth_session.deposit_address,
+        auth_session.verification_code
+    )
+
+    if not hit:
+        return jsonify({"status": "pending"})
+
+    auth_session.status = "confirmed"
+    auth_session.txid = hit.get("txid")
+    auth_session.verified_wallet_address = hit.get("from_address")
+
+    wallet_address = hit.get("from_address")
+
+    wallet = ZecWallet.query.filter_by(
+        address=wallet_address
+    ).first()
+
+    if not wallet:
+
+        wallet = ZecWallet(
+            user_id=current_user.id,
+            address=wallet_address,
+            wallet_name=auth_session.wallet_name,
+            verified=True,
+            last_txid=hit.get("txid"),
+            is_active=True
+        )
+
+        db.session.add(wallet)
+
+    else:
+
+        wallet.user_id = current_user.id
+        wallet.wallet_name = auth_session.wallet_name
+        wallet.verified = True
+        wallet.last_txid = hit.get("txid")
+        wallet.is_active = True
+        wallet.disconnected_at = None
+
+    db.session.commit()
+
+    return jsonify({
+        "status": "confirmed"
+    })
+
+
+@app.route("/api/zec/login/session", methods=["POST"])
+@csrf.exempt
+def zec_login_session():
+
+    data = request.get_json() or {}
+
+    wallet_name = data.get("wallet")
+
+    auth_session = _create_zec_auth_session(wallet_name)
+
+    return jsonify({
+        "session_id": auth_session.session_id,
+        "address": YOUR_ZEC_TADDR,
+        "code": auth_session.verification_code,
+        "expires_in": 900
+    })
+
+
+@app.route("/api/zec/login/poll/<session_id>")
+@csrf.exempt
+def zec_login_poll(session_id):
+
+    auth_session = ZecAuthSession.query.filter_by(
+        session_id=session_id
+    ).first()
+
+    if not auth_session:
+        return jsonify({"status": "expired"}), 404
+
+    if datetime.now(UTC) > auth_session.expires_at:
+
+        auth_session.status = "expired"
+        db.session.commit()
+
+        return jsonify({"status": "expired"})
+
+    hit = _check_zec_payment(
+        auth_session.deposit_address,
+        auth_session.verification_code
+    )
+
+    if not hit:
+        return jsonify({"status": "pending"})
+
+    auth_session.status = "confirmed"
+    auth_session.txid = hit.get("txid")
+    auth_session.verified_wallet_address = hit.get(
+        "from_address"
+    )
+
+    wallet_address = hit.get("from_address")
+
+
+    user = Users.query.filter_by(
+        zec_address=wallet_address
+    ).first()
+
+    if not user:
+
+        db.session.commit()
+
+        return jsonify({
+            "status": "no_account",
+            "error": "No account found with this wallet"
+        }), 404
+
+    wallet = ZecWallet.query.filter_by(
+        address=wallet_address
+    ).first()
+
+    if wallet:
+
+        wallet.user_id = user.id
+        wallet.wallet_name = auth_session.wallet_name
+        wallet.verified = True
+        wallet.last_txid = hit.get("txid")
+        wallet.is_active = True
+        wallet.disconnected_at = None
+
+    db.session.commit()
+
+    log_user_in(user)
+    create_user_session(user)
+
+    next_url = session.pop("next", None)
+
+    return jsonify({
+        "status": "confirmed",
+        "redirect": next_url or url_for("dashboard")
+    })
+
+
+def _check_zec_payment(address, code):
+
+    try:
+
+        r = req.get(
+            f"https://api.zcha.in/v2/mainnet/accounts/{address}/recv",
+            params={
+                "limit": 20,
+                "offset": 0,
+                "sort": "timestamp",
+                "direction": "desc"
+            },
+            timeout=6
+        )
+
+        if not r.ok:
+            return None
+
+        txs = r.json()
+
+        for tx in txs:
+
+            memo = tx.get("memo") or ""
+
+            try:
+
+                decoded = bytes.fromhex(memo).decode(
+                    "utf-8",
+                    errors="ignore"
+                ).strip("\x00")
+
+            except Exception:
+
+                decoded = memo
+
+            if code.lower() in decoded.lower():
+
+                return {
+                    "from_address": tx.get("fromAddress"),
+                    "txid": tx.get("hash")
+                }
+
+    except Exception as e:
+
+        print("ZEC CHECK ERROR:", e)
+
+    return None 
 
 
 
@@ -27175,7 +27429,6 @@ from CommunityInviteTask import  CommunityInviteTask
 from markupsafe import Markup
 from community_invite_log import CommunityInviteLog
 from community_tracking import CommunityOnlineStatus
-from wallet import Wallet
 from task_models import Task
 from invitation_code import InvitationCode
 from twitter_models import CommunityTwitter
@@ -30909,6 +31162,197 @@ class SolanaWalletAdmin(BaseAdmin):
 
 
 
+
+class ZecWalletAdmin(BaseAdmin):
+
+    column_list = (
+        'id',
+        'user_id',
+        'address',
+        'wallet_name',
+        'verified',
+        'is_active',
+        'last_txid',
+        'connected_at',
+        'disconnected_at'
+    )
+
+    column_labels = {
+        'id': 'ID',
+        'user_id': 'User ID',
+        'address': 'Wallet Address',
+        'wallet_name': 'Wallet',
+        'verified': 'Verified',
+        'is_active': 'Active',
+        'last_txid': 'Last TXID',
+        'connected_at': 'Connected At',
+        'disconnected_at': 'Disconnected At'
+    }
+
+    column_searchable_list = (
+        'address',
+        'wallet_name',
+        'last_txid'
+    )
+
+    column_filters = (
+        'wallet_name',
+        'verified',
+        'is_active',
+        'connected_at'
+    )
+
+    form_columns = (
+        'user_id',
+        'address',
+        'wallet_name',
+        'verified',
+        'last_txid',
+        'is_active',
+        'disconnected_at'
+    )
+
+    can_view_details = True
+
+    def _address_formatter(self, context, model, name):
+        if not model.address:
+            return '—'
+
+        address = model.address
+
+        short_address = f"{address[:12]}...{address[-12:]}"
+
+        return (
+            f'<div style="max-width:240px; '
+            f'white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" '
+            f'title="{address}">{short_address}</div>'
+        )
+
+    def _txid_formatter(self, context, model, name):
+        if not model.last_txid:
+            return '—'
+
+        txid = model.last_txid
+
+        short_txid = f"{txid[:12]}...{txid[-12:]}"
+
+        return (
+            f'<div style="max-width:240px; '
+            f'white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" '
+            f'title="{txid}">{short_txid}</div>'
+        )
+
+    column_formatters = {
+        'address': _address_formatter,
+        'last_txid': _txid_formatter
+    }
+
+
+class ZecAuthSessionAdmin(BaseAdmin):
+
+    column_list = (
+        'id',
+        'session_id',
+        'wallet_name',
+        'verification_code',
+        'status',
+        'verified_wallet_address',
+        'txid',
+        'expires_at',
+        'created_at'
+    )
+
+    column_labels = {
+        'id': 'ID',
+        'session_id': 'Session ID',
+        'wallet_name': 'Wallet',
+        'verification_code': 'Code',
+        'status': 'Status',
+        'verified_wallet_address': 'Verified Wallet',
+        'txid': 'TXID',
+        'expires_at': 'Expires At',
+        'created_at': 'Created At'
+    }
+
+    column_searchable_list = (
+        'session_id',
+        'verification_code',
+        'verified_wallet_address',
+        'txid'
+    )
+
+    column_filters = (
+        'wallet_name',
+        'status',
+        'created_at',
+        'expires_at'
+    )
+
+    form_columns = (
+        'session_id',
+        'verification_code',
+        'deposit_address',
+        'wallet_name',
+        'status',
+        'verified_wallet_address',
+        'txid',
+        'expires_at'
+    )
+
+    can_view_details = True
+
+    def _session_formatter(self, context, model, name):
+        if not model.session_id:
+            return '—'
+
+        sid = model.session_id
+
+        short_sid = f"{sid[:10]}...{sid[-10:]}"
+
+        return (
+            f'<div style="max-width:220px; '
+            f'white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" '
+            f'title="{sid}">{short_sid}</div>'
+        )
+
+    def _wallet_formatter(self, context, model, name):
+        if not model.verified_wallet_address:
+            return '—'
+
+        addr = model.verified_wallet_address
+
+        short_addr = f"{addr[:12]}...{addr[-12:]}"
+
+        return (
+            f'<div style="max-width:240px; '
+            f'white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" '
+            f'title="{addr}">{short_addr}</div>'
+        )
+
+    def _txid_formatter(self, context, model, name):
+        if not model.txid:
+            return '—'
+
+        txid = model.txid
+
+        short_txid = f"{txid[:12]}...{txid[-12:]}"
+
+        return (
+            f'<div style="max-width:240px; '
+            f'white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" '
+            f'title="{txid}">{short_txid}</div>'
+        )
+
+    column_formatters = {
+        'session_id': _session_formatter,
+        'verified_wallet_address': _wallet_formatter,
+        'txid': _txid_formatter
+    }
+
+
+
+
+
 admin.add_view(UserAdmin(Users, db.session))
 admin.add_view(UserTwoFactorAdmin(UserTwoFactor, db.session))
 admin.add_view(UserSessionAdmin(UserSession, db.session))
@@ -31003,7 +31447,8 @@ admin.add_view(ChannelNotificationSettingsAdmin(ChannelNotificationSettings, db.
 admin.add_view(PushSubscriptionAdmin(PushSubscription, db.session))
 admin.add_view(CommunityExtraRoleAdmin(CommunityExtraRole, db.session))
 admin.add_view(CommunityUserExtraRoleAdmin(CommunityUserExtraRole, db.session))
-
+admin.add_view(ZecWalletAdmin(ZecWallet, db.session))
+admin.add_view(ZecAuthSessionAdmin(ZecAuthSession, db.session))
 
 
 application = app

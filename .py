@@ -1,40 +1,40 @@
-from sqlalchemy import create_engine, text
+# from sqlalchemy import create_engine, text
 
-engine = create_engine(
-    "postgresql://postgres:Okirichimex1234,,@gleyo-db.cj2m8seueknq.eu-north-1.rds.amazonaws.com:5432/postgres"
-)
+# engine = create_engine(
+#     "postgresql://postgres:Okirichimex1234,,@gleyo-db.cj2m8seueknq.eu-north-1.rds.amazonaws.com:5432/postgres"
+# )
 
-sql = """
+# sql = """
 
-CREATE TABLE IF NOT EXISTS solana_wallets (
-    id SERIAL PRIMARY KEY,
+# CREATE TABLE IF NOT EXISTS solana_wallets (
+#     id SERIAL PRIMARY KEY,
 
-    user_id INTEGER NOT NULL REFERENCES users(id),
+#     user_id INTEGER NOT NULL REFERENCES users(id),
 
-    address VARCHAR(100) UNIQUE NOT NULL,
+#     address VARCHAR(100) UNIQUE NOT NULL,
 
-    wallet_name VARCHAR(20) DEFAULT 'solflare',
+#     wallet_name VARCHAR(20) DEFAULT 'solflare',
 
-    connected_at TIMESTAMPTZ DEFAULT NOW(),
+#     connected_at TIMESTAMPTZ DEFAULT NOW(),
 
-    nonce VARCHAR(255),
+#     nonce VARCHAR(255),
 
-    nonce_created_at TIMESTAMPTZ,
+#     nonce_created_at TIMESTAMPTZ,
 
-    last_signature TEXT,
+#     last_signature TEXT,
 
-    is_active BOOLEAN DEFAULT TRUE,
+#     is_active BOOLEAN DEFAULT TRUE,
 
-    disconnected_at TIMESTAMPTZ
-);
+#     disconnected_at TIMESTAMPTZ
+# );
 
-"""
+# """
 
-with engine.connect() as conn:
-    conn.execute(text(sql))
-    conn.commit()
+# with engine.connect() as conn:
+#     conn.execute(text(sql))
+#     conn.commit()
 
-print("✅ solana_wallets table created successfully")
+# print("✅ solana_wallets table created successfully")
 
 
 

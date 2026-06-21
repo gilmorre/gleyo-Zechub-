@@ -486,8 +486,8 @@ html, body {
 
 @keyframes arrow-bounce {
   0%   { transform: translateY(0); }
-  50%  { transform: translateY(4px); } /* move down */
-  100% { transform: translateY(0); }   /* back to original */
+  50%  { transform: translateY(4px); } 
+  100% { transform: translateY(0); }  
 }
 
 .arrow-animate {
@@ -28978,7 +28978,6 @@ function showToast(msg, type = "error") {
   const t = document.createElement("div");
   t.className = `toast ${type}`;
 
-  // ✅ allow HTML rendering (SVG, spans, layout, etc)
   t.innerHTML = msg;
 
   document.body.appendChild(t);

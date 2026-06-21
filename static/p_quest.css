@@ -790,7 +790,7 @@ background-color: var(--bg-app);
   box-shadow: 0 4px 12px rgba(0,0,0,0.5);
 }
 .badge-custom {
-  background-image: url("{{ url_for('static', filename='treasure_chest.png') }}");
+  background-image: url("https://xpcqiovfesvllsljxhac.supabase.co/storage/v1/object/public/uploads/treasure_chest.png");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -801,7 +801,7 @@ background-color: var(--bg-app);
   width: 8dvh;
   height: 8dvh;
   border-radius: 12px;
-  background-image: url("{{ url_for('static', filename='token.png') }}");
+  background-image: url("https://xpcqiovfesvllsljxhac.supabase.co/storage/v1/object/public/uploads/zcashreward.png");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -2354,7 +2354,7 @@ background-color: var(--bg-app);
 
 
 .card-custom {
-  background-image: url("{{ url_for('static', filename='treasure_chest.png') }}");
+  background-image: url("https://xpcqiovfesvllsljxhac.supabase.co/storage/v1/object/public/uploads/treasure_chest.png");
   background-size: cover;       
   background-position: center; 
   background-repeat: no-repeat;
@@ -2374,7 +2374,7 @@ background-color: var(--bg-app);
 
 
 .card-token {
-  background-image: url("{{ url_for('static', filename='token.png') }}");
+  background-image: url("https://xpcqiovfesvllsljxhac.supabase.co/storage/v1/object/public/uploads/zcashreward.png");
   background-size: cover;      
   background-position: center; 
   background-repeat: no-repeat;
@@ -3104,7 +3104,7 @@ background-color: var(--bg-app);
 
 .token-modal-image-bg {
   width: 100%;
-  background-image: url('{{ url_for("static", filename="token.png") }}');
+  background-image: url("https://xpcqiovfesvllsljxhac.supabase.co/storage/v1/object/public/uploads/zcashreward.png");
   background-size: cover;
   background-position: center;
   border-radius: 16px;
@@ -3233,7 +3233,7 @@ background-color: var(--bg-app);
 
 
 .card-custom {
-  background-image: url("{{ url_for('static', filename='treasure_chest.png') }}");
+  background-image: url("https://xpcqiovfesvllsljxhac.supabase.co/storage/v1/object/public/uploads/treasure_chest.png");
   background-size: cover;       
   background-position: center; 
   background-repeat: no-repeat;
@@ -3253,7 +3253,7 @@ background-color: var(--bg-app);
 
 
 .card-token {
-  background-image: url("{{ url_for('static', filename='token.png') }}");
+  background-image: url("https://xpcqiovfesvllsljxhac.supabase.co/storage/v1/object/public/uploads/zcashreward.png");
   background-size: cover;      
   background-position: center; 
   background-repeat: no-repeat;
@@ -3983,7 +3983,7 @@ background-color: var(--bg-app);
 
 .token-modal-image-bg {
   width: 100%;
-  background-image: url('{{ url_for("static", filename="token.png") }}');
+  background-image: url("https://xpcqiovfesvllsljxhac.supabase.co/storage/v1/object/public/uploads/zcashreward.png");
   background-size: cover;
   background-position: center;
   border-radius: 16px;

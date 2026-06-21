@@ -733,13 +733,13 @@
     if (rewardInput && previewReward) {
       renderLines(
         previewReward,
-        rewardInput.value || "Top 3 get $USDT + Gleyo XP"
+        rewardInput.value || "Top 3 get $ZEC + Gleyo XP"
       );
 
       rewardInput.addEventListener("input", () => {
         renderLines(
           previewReward,
-          rewardInput.value || "Top 3 get $USDT + Gleyo XP"
+          rewardInput.value || "Top 3 get $ZEC + Gleyo XP"
         );
       });
     }

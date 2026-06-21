@@ -1,103 +1,102 @@
 <style>
 
 
-@media (min-width: 768px) {
-#twitter {
-  padding-top: 34px;
+  @media (min-width: 768px) {
+  #twitter {
+    padding-top: 34px;
 
-}
-}
-
-
-
-@media (max-width: 768px) {
-#twitter {
-  padding: 0 10px;
-  padding-top: 34px;
-
-
-}
-}
+  }
+  }
 
 
 
-#twitter .linked-card {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 16px 18px;
-  max-width: 420px;
-}
+  @media (max-width: 768px) {
+  #twitter {
+    padding: 0 10px;
+    padding-top: 34px;
 
-#twitter .linked-card img {
-  width: 38px;
-  height: 38px;
-}
 
-#twitter .linked-card span:first-of-type {
-  font-weight: 600;
-  font-size: 15px;
-}
+  }
+  }
 
-/* Twitter button = Discord button, different color */
-#twitter .buttos {
-  margin-left: auto;
-  background: rgba(29, 155, 240, 0.85);
-  color: white;
-  padding: 8px 14px;
-  border-radius: 10px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: background 0.2s ease;
-  text-decoration: none;
-}
 
-#twitter .buttos:hover {
-  background: #1a8cd8;
-}
 
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.55);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-}
+  #twitter .linked-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    max-width: 420px;
+  }
 
-.modal-backdrop.show {
-  display: flex;
-}
+  #twitter .linked-card img {
+    width: 38px;
+    height: 38px;
+  }
 
-.modal-card {
-  background: var(--bg-surface);
-  border-radius: 16px;
-  padding: 22px;
-  width: 100%;
-  max-width: 420px;
-}
+  #twitter .linked-card span:first-of-type {
+    font-weight: 600;
+    font-size: 15px;
+  }
 
-.modal-card h4 {
-  margin: 0 0 8px;
-  font-size: 16px;
-  color: #fff;
-}
+  #twitter .buttos {
+    margin-left: auto;
+    background: rgba(29, 155, 240, 0.85);
+    color: white;
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    text-decoration: none;
+  }
 
-.modal-card p {
-  margin: 0 0 18px;
-  font-size: 14px;
-  color: var(--text-muted);
-}
+  #twitter .buttos:hover {
+    background: #1a8cd8;
+  }
 
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-}
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.55);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+  }
+
+  .modal-backdrop.show {
+    display: flex;
+  }
+
+  .modal-card {
+    background: var(--bg-surface);
+    border-radius: 16px;
+    padding: 22px;
+    width: 100%;
+    max-width: 420px;
+  }
+
+  .modal-card h4 {
+    margin: 0 0 8px;
+    font-size: 16px;
+    color: #fff;
+  }
+
+  .modal-card p {
+    margin: 0 0 18px;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
 
 </style>
 

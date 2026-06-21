@@ -645,7 +645,7 @@ html.swiped-locked, body.swipe-locked {
     padding-top: 0  !important;
   }
   .overlay-7457398t4 {
-    overflow-y: auto !important:
+    overflow-y: auto !important;
     height: 100% !important;
   }
 
@@ -662,23 +662,23 @@ html.swiped-locked, body.swipe-locked {
 }
 
 
-  .verify-header {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-    margin-bottom: 15px !important;
+.verify-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 15px !important;
 
-  }
-  .verify-header h3{
-    margin: 0;
-    margin-bottom: 4px !important;
-  
-  }
-  .verify-header .resend-status{
-    margin: 0 !important;
-    padding: 0;
-  }
+}
+.verify-header h3{
+  margin: 0;
+  margin-bottom: 4px !important;
+
+}
+.verify-header .resend-status{
+  margin: 0 !important;
+  padding: 0;
+}
 @media (max-width: 768px) {
 
 
@@ -818,9 +818,9 @@ html.swiped-locked, body.swipe-locked {
   border: 1px solid var(--border);
   border-radius: 22px;
   padding: 28px 24px;
-  max-width: 410px;
-  min-width: 310px;
-  height: 210px;
+  max-width: 410px; 
+  min-width: 410px !important;
+  height: 243px;
   position: relative;
   overflow: hidden;
 }

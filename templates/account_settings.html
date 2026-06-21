@@ -10,15 +10,35 @@
 <script src="{{ url_for('static', filename='settings/account_setting.js') }}?v=8" defer></script>
 
 <style>
-@keyframes skshimmer {
-  0%   { background-position: -600px 0; }
-  100% { background-position:  600px 0; }
-}
-.sk-shimmer {
-  background: linear-gradient(90deg, var(--surface2) 25%, var(--surface3) 50%, var(--surface2) 75%);
-  background-size: 600px 100%;
-  animation: skshimmer 1.5s infinite linear;
-}
+  @keyframes skshimmer {
+    0%   { background-position: -600px 0; }
+    100% { background-position:  600px 0; }
+  }
+  .sk-shimmer {
+    background: linear-gradient(90deg, var(--surface2) 25%, var(--surface3) 50%, var(--surface2) 75%);
+    background-size: 600px 100%;
+    animation: skshimmer 1.5s infinite linear;
+  }
+  .card-pro {
+    position: relative;
+    max-height: 80dvh;
+    overflow-y: auto;
+    border: 0.9px solid var(--border-lighter);
+    background: radial-gradient(circle at 30% 20%, #151528 0%, #0b0b12 60%);
+    border-radius: 28px;
+    padding: 48px 44px 40px;
+    width: 380px;
+    display: flex; flex-direction: column; align-items: center;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.03), 0 32px 80px rgba(0,0,0,0.6);
+  }
+
+  .screen {
+    display: none; flex-direction: column; align-items: center; width: 100%;
+    animation: fadeUp 0.35s ease forwards;
+  }
+  .screen.show { display: flex; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
 </style>
 </head>
 
@@ -418,7 +438,7 @@
           <span class="s-arr">›</span>
         </a>
 
-        <a class="support-row" href="mailto:support@gleyo.app">
+        <a class="support-row" href="#">
           <div class="s-ico">
             <svg viewBox="0 0 24 24" fill="none" stroke="#c9b8ff" stroke-width="1.6" stroke-linecap="round" xmlns="http://www.w3.org/2000/svg">
               <rect x="2" y="4" width="20" height="16" rx="3"/><path d="M2 8l10 6 10-6"/>
@@ -426,7 +446,7 @@
           </div>
           <div class="s-txt">
             <span class="s-lbl">Email us</span>
-            <span class="s-dsc">support@gleyo.app</span>
+            <span class="s-dsc">yournamet@gmail.com</span>
           </div>
           <span class="s-arr">›</span>
         </a>
@@ -457,31 +477,6 @@
 </div>
 
 
-
-
-<style>
-    .card-pro {
-      position: relative;
-      max-height: 80dvh;
-      overflow-y: auto;
-      border: 0.9px solid var(--border-lighter);
-      background: radial-gradient(circle at 30% 20%, #151528 0%, #0b0b12 60%);
-      border-radius: 28px;
-      padding: 48px 44px 40px;
-      width: 380px;
-      display: flex; flex-direction: column; align-items: center;
-      box-shadow: 0 0 0 1px rgba(255,255,255,0.03), 0 32px 80px rgba(0,0,0,0.6);
-    }
-
-    /* ── SCREENS ── */
-    .screen {
-      display: none; flex-direction: column; align-items: center; width: 100%;
-      animation: fadeUp 0.35s ease forwards;
-    }
-    .screen.show { display: flex; }
-    @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
-
-</style>
 
 </body>
 </html>

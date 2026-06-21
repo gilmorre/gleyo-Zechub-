@@ -3,212 +3,212 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Community Deletion Scheduled</title>
-    <link rel="shortcut icon" href="https://zupdpwnloewdkjqsymdm.supabase.co/storage/v1/object/public/uploads/communities/7/logos/511f4996-5748-4f1f-b74c-5d5c33f7124c.png">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>Community Deletion Scheduled</title>
+  <link rel="shortcut icon" href="https://zupdpwnloewdkjqsymdm.supabase.co/storage/v1/object/public/uploads/communities/7/logos/511f4996-5748-4f1f-b74c-5d5c33f7124c.png">
 
-<style>
-  :root {
-    --border: #2f2f4a;
-    --text-main-items: #e5e7ebdf;
-    --text-muted: #bbbfc7;
-    --text-muted-bg: #b4b8c0;
+  <style>
+    :root {
+      --border: #2f2f4a;
+      --text-main-items: #e5e7ebdf;
+      --text-muted: #bbbfc7;
+      --text-muted-bg: #b4b8c0;
 
-    --danger: #ef4444;
-    --danger-soft: rgba(239, 68, 68, 0.18);
-  }
-
-  *{
-    box-sizing: border-box;
-    font-family: 'Outfit', sans-serif; 
-    -webkit-tap-highlight-color: transparent; 
-    -webkit-text-size-adjust: 100%;
-    text-decoration: none;
-  }
-  body {
-    margin: 0;
-    min-height: 100vh;
-    background: #1e1e2f;
-    font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
-    display: flex;
-    padding: 0 14px;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-main-items);
-  }
-    body::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    background-image: radial-gradient(
-        rgba(255,255,255,0.03) 1px,
-        transparent 1px
-    );
-    background-size: 5px 5px;
-    pointer-events: none;
+      --danger: #ef4444;
+      --danger-soft: rgba(239, 68, 68, 0.18);
     }
 
-  .card {
-    width: 100%;
-    max-width: 520px;
-    background: rgba(34, 34, 54, 0.448);
-    backdrop-filter: blur(14px);
+    *{
+      box-sizing: border-box;
+      font-family: 'Outfit', sans-serif; 
+      -webkit-tap-highlight-color: transparent; 
+      -webkit-text-size-adjust: 100%;
+      text-decoration: none;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #1e1e2f;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      display: flex;
+      padding: 0 14px;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-main-items);
+    }
+      body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image: radial-gradient(
+          rgba(255,255,255,0.03) 1px,
+          transparent 1px
+      );
+      background-size: 5px 5px;
+      pointer-events: none;
+      }
 
-    border: 0.9px solid var(--border);
-    border-radius: 16px;
-    padding: 24px;
+    .card {
+      width: 100%;
+      max-width: 520px;
+      background: rgba(34, 34, 54, 0.448);
+      backdrop-filter: blur(14px);
 
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-  }
+      border: 0.9px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
 
-  .danger-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 12px;
-    border-radius: 999px;
-    font-size: 13px;
-    background: var(--danger-soft);
-    color: var(--danger);
-    margin-bottom: 14px;
-  }
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    }
 
-  h1 {
-    margin: 0 0 10px;
-    font-size: 20px;
-    font-weight: 600;
-    color: var(--text-main-items);
-  }
+    .danger-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 13px;
+      background: var(--danger-soft);
+      color: var(--danger);
+      margin-bottom: 14px;
+    }
 
-  .community-name {
-    display: inline-block;
-    padding: 6px 12px;
-    border-radius: 999px;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid var(--border);
-    font-size: 14px;
-    margin: 8px 0 16px;
-    color: var(--text-main-items);
-  }
+    h1 {
+      margin: 0 0 10px;
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text-main-items);
+    }
 
-  .muted {
-    color: var(--text-muted);
-    font-size: 14px;
-    line-height: 1.6;
-  }
+    .community-name {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      font-size: 14px;
+      margin: 8px 0 16px;
+      color: var(--text-main-items);
+    }
 
-  .actions {
+    .muted {
+      color: var(--text-muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 26px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 12px 14px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.03);
+      color: var(--text-main-items);
+
+      transition: background .15s ease, border-color .15s ease;
+    }
+
+    .btn:hover {
+      background: rgba(255,255,255,0.06);
+    }
+
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.12);
+      border-color: rgba(239, 68, 68, 0.45);
+      color: #fecaca;
+    }
+
+    .btn-danger:hover {
+      background: rgba(239, 68, 68, 0.18);
+    }
+
+  .countdown {
     display: flex;
-    gap: 12px;
-    margin-top: 26px;
+    gap: 8px;
+    font-size: 32px;
+    font-weight: 600;
+    color: var(--danger);
+    font-variant-numeric: tabular-nums; /* no jumping */
   }
 
-  .btn {
-    flex: 1;
-    padding: 12px 14px;
-    border-radius: 12px;
+  .unit {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+  }
+
+  .num {
+    display: inline-flex;
+    min-width: 2ch;          /* ALWAYS 2 digits */
+    text-align: center;
+    position: relative;
+  }
+
+  .label {
     font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-
-    border: 1px solid var(--border);
-    background: rgba(255,255,255,0.03);
-    color: var(--text-main-items);
-
-    transition: background .15s ease, border-color .15s ease;
+    color: var(--text-muted);
   }
 
-  .btn:hover {
-    background: rgba(255,255,255,0.06);
+  .sep {
+    opacity: 0.6;
   }
 
-  .btn-danger {
-    background: rgba(239, 68, 68, 0.12);
-    border-color: rgba(239, 68, 68, 0.45);
-    color: #fecaca;
+  /* animation */
+  .flip {
+    animation: flip 0.25s ease;
   }
 
-  .btn-danger:hover {
-    background: rgba(239, 68, 68, 0.18);
+  @keyframes flip {
+    from {
+      transform: translateY(-20%);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+  .site-logo {
+      position: fixed;
+      top: 18px;
+      left: 18px;
+      z-index: 10;
+      outline: none;
+      color: var(--text-muted);
+      text-decoration: none;
+      gap: 12px;
+      display: inline-flex;
+      align-items: center;
   }
 
-.countdown {
-  display: flex;
-  gap: 8px;
-  font-size: 32px;
-  font-weight: 600;
-  color: var(--danger);
-  font-variant-numeric: tabular-nums; /* no jumping */
-}
-
-.unit {
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
-}
-
-.num {
-  display: inline-flex;
-  min-width: 2ch;          /* ALWAYS 2 digits */
-  text-align: center;
-  position: relative;
-}
-
-.label {
-  font-size: 14px;
-  color: var(--text-muted);
-}
-
-.sep {
-  opacity: 0.6;
-}
-
-/* animation */
-.flip {
-  animation: flip 0.25s ease;
-}
-
-@keyframes flip {
-  from {
-    transform: translateY(-20%);
-    opacity: 0;
+  .site-logo img {
+    height: 48px; 
+    width: 48px;
+    border-radius: 4px;
+    opacity: 0.9;
+    transition: opacity 0.15s ease;
   }
-  to {
-    transform: translateY(0);
+
+  .site-logo:hover img {
     opacity: 1;
   }
-}
-.site-logo {
-    position: fixed;
-    top: 18px;
-    left: 18px;
-    z-index: 10;
-    outline: none;
-    color: var(--text-muted);
-    text-decoration: none;
-    gap: 12px;
-    display: inline-flex;
-    align-items: center;
-}
-
-.site-logo img {
-  height: 48px; 
-  width: 48px;
-  border-radius: 4px;
-  opacity: 0.9;
-  transition: opacity 0.15s ease;
-}
-
-.site-logo:hover img {
-  opacity: 1;
-}
 
 
 
 
-</style>
+  </style>
 </head>
 <body>
 <a href="/" class="site-logo">
@@ -285,7 +285,8 @@
 
 <script>
   const deleteAt = new Date("{{ delete_at_iso }}Z");
-let deleteCommModal = null
+  window.CURRENT_COMMUNITY_SLUG = "{{ community.slug }}";
+  let deleteCommModal = null
 
   const digits = {
     d: [document.getElementById("d-tens"), document.getElementById("d-units")],
@@ -403,142 +404,44 @@ let deleteCommModal = null
   }
 
 
-function openUndoCommunityDeleteModal(e) {
-  e?.preventDefault();
-  e?.stopPropagation();
+  function openUndoCommunityDeleteModal(e) {
+    e?.preventDefault();
+    e?.stopPropagation();
 
-  // if modal already exists → reuse + SHOW
-  if (deleteCommModal) {
-    deleteCommModal.classList.add("show");
-    renderUndoCommunityDeleteOTP();
-    return;
-  }
-
-  // CREATE MODAL
-  deleteCommModal = document.createElement("div");
-  deleteCommModal.className = "modal-emailch";
-  deleteCommModal.id = "deleteCommunityModal";
-
-  deleteCommModal.innerHTML = `
-    <div class="modal-backdrop-email"></div>
-  `;
-
-  document.body.appendChild(deleteCommModal);
-
-  // 👈 IMPORTANT
-  requestAnimationFrame(() => {
-    deleteCommModal.classList.add("show");
-  });
-
-  // close on backdrop click
-  deleteCommModal.addEventListener("click", (e) => {
-    if (!e.target.closest(".modal-backdrop-email")) {
-      closeDeleteCommunityModal();
+    if (deleteCommModal) {
+      deleteCommModal.classList.add("show");
+      renderUndoCommunityDeleteOTP();
+      return;
     }
-  });
 
-  // render OTP
-  renderUndoCommunityDeleteOTP();
+    // CREATE MODAL
+    deleteCommModal = document.createElement("div");
+    deleteCommModal.className = "modal-emailch";
+    deleteCommModal.id = "deleteCommunityModal";
 
-  // send OTP immediately
-  fetch("/community/send-undo-delete-otp", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-CSRFToken": csrfToken
-    },
-    body: JSON.stringify({
-      slug: window.CURRENT_COMMUNITY_SLUG
-    })
-  });
-}
+    deleteCommModal.innerHTML = `
+      <div class="modal-backdrop-email"></div>
+    `;
 
+    document.body.appendChild(deleteCommModal);
 
+    // 👈 IMPORTANT
+    requestAnimationFrame(() => {
+      deleteCommModal.classList.add("show");
+    });
 
-function closeDeleteCommunityModal() {
-  if (!deleteCommModal) return;
-
-  deleteCommModal.classList.remove("show");
-
-  setTimeout(() => {
-    deleteCommModal.remove();
-    deleteCommModal = null;
-  }, 200); // match your CSS transition
-}
-
-
-// window.CURRENT_COMMUNITY_SLUG
-
-
-
-function renderUndoCommunityDeleteOTP() {
-  const inner = deleteCommModal.querySelector(".modal-backdrop-email");
-
-  inner.innerHTML = `
-    <div class="verify-header">
-      <h3 style="margin:0; padding: 0;">Undo community deletion</h3>
-      <span id="resendStatus" class="resend-status"></span>
-    </div>
-
-    <p>
-      Enter the <b>6-digit code</b> sent to
-      <b>{{ current_user.email }}</b> to undo deletion of
-      <b>{{ community.name }}</b>.
-    </p>
-
-    <div class="otp-row">
-      ${Array.from({ length: 6 }).map(() => `
-        <div class="otp-box">
-          <input
-            type="text"
-            inputmode="numeric"
-            maxlength="1"
-            class="otp-input"
-            autocomplete="one-time-code"
-          />
-        </div>
-      `).join("")}
-    </div>
-
-    <div class="resend-text" id="resendUndoDeleteCode">
-      Didn’t receive a code?
-      <span class="resend-email">Resend</span>
-    </div>
-
-    <div class="modal-actions push-downer">
-      <button id="confirmUndoDeleteBtn" class="delete-comm">
-        Undo deletion
-      </button>
-    </div>
-  `;
-
-  // OTP logic
-  attachOTPLogic({
-    container: inner,
-    submitBtnId: "confirmUndoDeleteBtn",
-    onSubmit: async (code) => {
-      const res = await fetch("/community/confirm-undo-delete", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-CSRFToken": csrfToken
-        },
-        body: JSON.stringify({ otp: code })
-      });
-
-      const data = await res.json();
-
-      if (data.status === "restored") {
-        window.location.href = data.redirect;
-      } else {
-        showOTPStatus(inner, data.message || "Invalid code", "error");
+    // close on backdrop click
+    deleteCommModal.addEventListener("click", (e) => {
+      if (!e.target.closest(".modal-backdrop-email")) {
+        closeDeleteCommunityModal();
       }
-    }
-  });
+    });
 
-  // RESEND
-  inner.querySelector("#resendUndoDeleteCode").onclick = async () => {
-    const res = await fetch("/community/resend-undo-delete-otp", {
+    // render OTP
+    renderUndoCommunityDeleteOTP();
+
+    // send OTP immediately
+    fetch("/community/send-undo-delete-otp", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -548,198 +451,293 @@ function renderUndoCommunityDeleteOTP() {
         slug: window.CURRENT_COMMUNITY_SLUG
       })
     });
+  }
+
+
+
+  function closeDeleteCommunityModal() {
+    if (!deleteCommModal) return;
+
+    deleteCommModal.classList.remove("show");
+
+    setTimeout(() => {
+      deleteCommModal.remove();
+      deleteCommModal = null;
+    }, 200); // match your CSS transition
+  }
+
+
+
+
+
+  function renderUndoCommunityDeleteOTP() {
+    const inner = deleteCommModal.querySelector(".modal-backdrop-email");
+
+    inner.innerHTML = `
+      <div class="verify-header">
+        <h3 style="margin:0; padding: 0;">Undo community deletion</h3>
+        <span id="resendStatus" class="resend-status"></span>
+      </div>
+
+      <p>
+        Enter the <b>6-digit code</b> sent to
+        <b>{{ current_user.email }}</b> to undo deletion of
+        <b>{{ community.name }}</b>.
+      </p>
+
+      <div class="otp-row">
+        ${Array.from({ length: 6 }).map(() => `
+          <div class="otp-box">
+            <input
+              type="text"
+              inputmode="numeric"
+              maxlength="1"
+              class="otp-input"
+              autocomplete="one-time-code"
+            />
+          </div>
+        `).join("")}
+      </div>
+
+      <div class="resend-text" id="resendUndoDeleteCode">
+        Didn’t receive a code?
+        <span class="resend-email">Resend</span>
+      </div>
+
+      <div class="modal-actions push-downer">
+        <button id="confirmUndoDeleteBtn" class="delete-comm">
+          Undo deletion
+        </button>
+      </div>
+    `;
+
+    // OTP logic
+    attachOTPLogic({
+      container: inner,
+      submitBtnId: "confirmUndoDeleteBtn",
+      onSubmit: async (code) => {
+        const res = await fetch("/community/confirm-undo-delete", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": csrfToken
+          },
+          body: JSON.stringify({ otp: code })
+        });
+
+        const data = await res.json();
+
+        if (data.status === "restored") {
+          window.location.href = data.redirect;
+        } else {
+          showOTPStatus(inner, data.message || "Invalid code", "error");
+        }
+      }
+    });
+
+    // RESEND
+    inner.querySelector("#resendUndoDeleteCode").onclick = async () => {
+      const res = await fetch("/community/resend-undo-delete-otp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": csrfToken
+        },
+        body: JSON.stringify({
+          slug: window.CURRENT_COMMUNITY_SLUG
+        })
+      });
+
+      const data = await res.json();
+
+      if (data.status === "sent") {
+        showOTPStatus(inner, `${NewCodeSvgSent} New code sent`, "sent");
+      }
+
+      if (data.status === "wait") {
+        showOTPStatus(inner, `${WaitSvg} Wait ${data.left}s`, "wait");
+      }
+    };
+  }
+
+
+  function attachOTPLogic({
+    container,
+    submitBtnId,
+  }) {
+    const boxes = container.querySelectorAll(".otp-box");
+    const inputs = container.querySelectorAll(".otp-input");
+    const submitBtn = container.querySelector(`#${submitBtnId}`);
+    const resendBtn = container.querySelector("#resendCode");
+
+    function getCode() {
+      return [...inputs].map(i => i.value).join("");
+    }
+
+    function updateState() {
+      submitBtn.classList.toggle("valid", getCode().length === 6);
+
+    }
+
+    inputs.forEach((input, index) => {
+      input.addEventListener("focus", () => {
+        boxes[index].classList.add("active");
+      });
+
+      input.addEventListener("blur", () => {
+        boxes[index].classList.remove("active");
+      });
+
+      input.addEventListener("input", e => {
+        let val = e.target.value.replace(/\D/g, "");
+
+        boxes.forEach(b => b.classList.remove("error"));
+
+        // 📋 paste handling
+        if (val.length > 1) {
+          val
+            .slice(0, 6)
+            .split("")
+            .forEach((char, i) => {
+              if (inputs[i]) inputs[i].value = char;
+            });
+
+          inputs[Math.min(val.length, 5)]?.focus();
+          updateState();
+          return;
+        }
+
+        input.value = val;
+
+        if (val && inputs[index + 1]) {
+          inputs[index + 1].focus();
+        }
+
+        updateState();
+      });
+
+      input.addEventListener("keydown", e => {
+        if (e.key !== "Backspace") return;
+        e.preventDefault();
+
+        boxes.forEach(b => b.classList.remove("error"));
+
+        if (input.value) {
+          input.value = "";
+        } else if (inputs[index - 1]) {
+          inputs[index - 1].value = "";
+          inputs[index - 1].focus();
+        }
+
+        updateState();
+      });
+    });
+
+    container.querySelector(".otp-row").addEventListener("paste", e => {
+      e.preventDefault();
+
+      const pasted = (e.clipboardData || window.clipboardData)
+        .getData("text")
+        .replace(/\D/g, "")
+        .slice(0, 6);
+
+      pasted.split("").forEach((char, i) => {
+        if (inputs[i]) inputs[i].value = char;
+      });
+
+      inputs[Math.min(pasted.length, 5)]?.focus();
+      updateState();
+    });
+      submitBtn.onclick = async () => {
+      if (!submitBtn.classList.contains("valid")) return;
+
+      const result = await confirmUndoDeleteWithOTP(getCode());
+
+      if (result.status === "invalid") {
+          boxes.forEach(b => b.classList.add("error"));
+          return;
+      }
+
+      if (result.status === "expired") {
+          inputs.forEach(i => i.value = "");
+          boxes.forEach(b => b.classList.remove("error"));
+          inputs[0].focus();
+          updateState();
+          showOTPStatus(container, "Code expired. Please resend.", "wait");
+          return;
+      }
+
+      // ✅ RESTORED → TOAST → REDIRECT AFTER 2s
+      if (result.status === "restored") {
+          showSuccess("Community restored successfully");
+
+          setTimeout(() => {
+          window.location.href = result.redirect;
+          }, 2000);
+      }
+      };
+
+  }
+
+
+  async function confirmUndoDeleteWithOTP(code) {
+    const res = await fetch("/community/confirm-undo-delete", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": csrfToken
+      },
+      body: JSON.stringify({
+        otp: code,
+        slug: window.CURRENT_COMMUNITY_SLUG
+      })
+    });
 
     const data = await res.json();
 
-    if (data.status === "sent") {
-      showOTPStatus(inner, `${NewCodeSvgSent} New code sent`, "sent");
-    }
-
-    if (data.status === "wait") {
-      showOTPStatus(inner, `${WaitSvg} Wait ${data.left}s`, "wait");
-    }
-  };
-}
-
-
-function attachOTPLogic({
-  container,
-  submitBtnId,
-}) {
-  const boxes = container.querySelectorAll(".otp-box");
-  const inputs = container.querySelectorAll(".otp-input");
-  const submitBtn = container.querySelector(`#${submitBtnId}`);
-  const resendBtn = container.querySelector("#resendCode");
-
-  function getCode() {
-    return [...inputs].map(i => i.value).join("");
-  }
-
-  function updateState() {
-    submitBtn.classList.toggle("valid", getCode().length === 6);
-
-  }
-
-  inputs.forEach((input, index) => {
-    input.addEventListener("focus", () => {
-      boxes[index].classList.add("active");
-    });
-
-    input.addEventListener("blur", () => {
-      boxes[index].classList.remove("active");
-    });
-
-    input.addEventListener("input", e => {
-      let val = e.target.value.replace(/\D/g, "");
-
-      boxes.forEach(b => b.classList.remove("error"));
-
-      // 📋 paste handling
-      if (val.length > 1) {
-        val
-          .slice(0, 6)
-          .split("")
-          .forEach((char, i) => {
-            if (inputs[i]) inputs[i].value = char;
-          });
-
-        inputs[Math.min(val.length, 5)]?.focus();
-        updateState();
-        return;
+    if (!res.ok) {
+      if (data.error === "expired" || data.error === "code_expired") {
+        return { status: "expired" };
       }
-
-      input.value = val;
-
-      if (val && inputs[index + 1]) {
-        inputs[index + 1].focus();
-      }
-
-      updateState();
-    });
-
-    input.addEventListener("keydown", e => {
-      if (e.key !== "Backspace") return;
-      e.preventDefault();
-
-      boxes.forEach(b => b.classList.remove("error"));
-
-      if (input.value) {
-        input.value = "";
-      } else if (inputs[index - 1]) {
-        inputs[index - 1].value = "";
-        inputs[index - 1].focus();
-      }
-
-      updateState();
-    });
-  });
-
-  container.querySelector(".otp-row").addEventListener("paste", e => {
-    e.preventDefault();
-
-    const pasted = (e.clipboardData || window.clipboardData)
-      .getData("text")
-      .replace(/\D/g, "")
-      .slice(0, 6);
-
-    pasted.split("").forEach((char, i) => {
-      if (inputs[i]) inputs[i].value = char;
-    });
-
-    inputs[Math.min(pasted.length, 5)]?.focus();
-    updateState();
-  });
-    submitBtn.onclick = async () => {
-    if (!submitBtn.classList.contains("valid")) return;
-
-    const result = await confirmUndoDeleteWithOTP(getCode());
-
-    if (result.status === "invalid") {
-        boxes.forEach(b => b.classList.add("error"));
-        return;
+      return { status: "invalid" };
     }
 
-    if (result.status === "expired") {
-        inputs.forEach(i => i.value = "");
-        boxes.forEach(b => b.classList.remove("error"));
-        inputs[0].focus();
-        updateState();
-        showOTPStatus(container, "Code expired. Please resend.", "wait");
-        return;
+    if (data.status === "restored") {
+      return {
+        status: "restored",
+        redirect: data.redirect
+      };
     }
 
-    // ✅ RESTORED → TOAST → REDIRECT AFTER 2s
-    if (result.status === "restored") {
-        showSuccess("Community restored successfully");
-
-        setTimeout(() => {
-        window.location.href = result.redirect;
-        }, 2000);
-    }
-    };
-
-}
-
-window.CURRENT_COMMUNITY_SLUG = "{{ community.slug }}";
-
-async function confirmUndoDeleteWithOTP(code) {
-  const res = await fetch("/community/confirm-undo-delete", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-CSRFToken": csrfToken
-    },
-    body: JSON.stringify({
-      otp: code,
-      slug: window.CURRENT_COMMUNITY_SLUG
-    })
-  });
-
-  const data = await res.json();
-
-  if (!res.ok) {
-    if (data.error === "expired" || data.error === "code_expired") {
-      return { status: "expired" };
-    }
     return { status: "invalid" };
   }
 
-  if (data.status === "restored") {
-    return {
-      status: "restored",
-      redirect: data.redirect
-    };
+
+
+
+  function showToast(msg, type = "error") {
+    document.querySelectorAll(".toast").forEach(t => t.remove());
+
+    const t = document.createElement("div");
+    t.className = `toast ${type}`;
+    t.textContent = msg;
+    document.body.appendChild(t);
+
+    requestAnimationFrame(() => t.classList.add("show"));
+
+    setTimeout(() => {
+      t.classList.remove("show");
+      setTimeout(() => t.remove(), 300);
+    }, 2600);
   }
 
-  return { status: "invalid" };
-}
+  function showError(msg) {
+    showToast(msg, "error");
+  }
 
-
-
-
-function showToast(msg, type = "error") {
-  document.querySelectorAll(".toast").forEach(t => t.remove());
-
-  const t = document.createElement("div");
-  t.className = `toast ${type}`;
-  t.textContent = msg;
-  document.body.appendChild(t);
-
-  requestAnimationFrame(() => t.classList.add("show"));
-
-  setTimeout(() => {
-    t.classList.remove("show");
-    setTimeout(() => t.remove(), 300);
-  }, 2600);
-}
-
-function showError(msg) {
-  showToast(msg, "error");
-}
-
-function showSuccess(msg) {
-  showToast(msg, "success");
-}
+  function showSuccess(msg) {
+    showToast(msg, "success");
+  }
 </script>
 
 

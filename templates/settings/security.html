@@ -1,268 +1,265 @@
 <style>
-/* ================= BASE ================= */
-@media (max-width: 768px) {
+  @media (max-width: 768px) {
 
-.tab-content {
-    padding-top: 20px  !important;
-    padding: 24px 15px;
-}
+    .tab-content {
+      padding-top: 20px  !important;
+      padding: 24px 15px;
+    }
 
-}
-.tab-content {
-    padding-top: 20px  !important;
-}
-.setting-group {
-  padding: 20px 0;
-}
-
-.setting-group:last-child {
-  border-bottom: none;
-}
-
-.h3info {
-  font-size: 15px;
-  font-weight: 600;
-  margin-bottom: 6px;
-}
-
-.desc,
-.section-desc,
-.note {
-  color: rgba(255,255,255,0.65);
-  font-size: 13px;
-  line-height: 1.55;
-}
-
-/* ================= TOGGLE ROW ================= */
-.toggle-row {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  padding: 10px 0;
-}
-
-.toggle-row:not(:last-child) {
-
-  border-bottom: 0.9px solid var(--border);
-  padding: 23px 0 !important;
-}
-
-
-.toggle-row:last-child {
-  padding-top: 23px !important;
-
-}
-
-.toggle-row .span {
-  font-size: 14px;
-  color: rgba(255,255,255,0.9);
-  flex: 1;
-}
-
-/* ================= DESKTOP ALIGNMENT ================= */
-@media (min-width: 992px) {
-  .toggle-row {
-    max-width: 560px;   /* 🔥 keeps toggle from flying right */
+  }
+  .tab-content {
+      padding-top: 20px  !important;
+  }
+  .setting-group {
+    padding: 20px 0;
   }
 
+  .setting-group:last-child {
+    border-bottom: none;
+  }
+
+  .h3info {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  .desc,
+  .section-desc,
+  .note {
+    color: rgba(255,255,255,0.65);
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 10px 0;
+  }
+
+  .toggle-row:not(:last-child) {
+
+    border-bottom: 0.9px solid var(--border);
+    padding: 23px 0 !important;
+  }
+
+
+  .toggle-row:last-child {
+    padding-top: 23px !important;
+
+  }
+
+  .toggle-row .span {
+    font-size: 14px;
+    color: rgba(255,255,255,0.9);
+    flex: 1;
+  }
+
+  /* ================= DESKTOP ALIGNMENT ================= */
+  @media (min-width: 992px) {
+    .toggle-row {
+      max-width: 560px;   /* 🔥 keeps toggle from flying right */
+    }
+
+    .switch {
+      margin-left: auto;
+    }
+  }
+
+  /* ================= MOBILE ================= */
+  @media (max-width: 991px) {
+    .toggle-row {
+      justify-content: space-between;
+    }
+  }
+
+  /* ================= SWITCH ================= */
   .switch {
-    margin-left: auto;
+    position: relative;
+    width: 42px;
+    height: 22px;
+    flex-shrink: 0;
   }
-}
 
-/* ================= MOBILE ================= */
-@media (max-width: 991px) {
-  .toggle-row {
-    justify-content: space-between;
+  .switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
   }
-}
 
-/* ================= SWITCH ================= */
-.switch {
-  position: relative;
-  width: 42px;
-  height: 22px;
-  flex-shrink: 0;
-}
+  /* TRACK */
+  .slider {
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0.18);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 0.25s ease;
+  }
 
-.switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
+  /* KNOB */
+  .slider::before {
+    content: "";
+    position: absolute;
+    height: 16px;
+    width: 16px;
+    left: 3px;
+    top: 3px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.25s ease;
+  }
+  /* ================= GROUP ================= */
+  .setting-group {
+    padding: 20px 0;
+  }
 
-/* TRACK */
-.slider {
-  position: absolute;
-  inset: 0;
-  background: rgba(255,255,255,0.18);
-  border-radius: 999px;
-  cursor: pointer;
-  transition: background 0.25s ease;
-}
+  .setting-group:last-child {
+    border-bottom: none;
+  }
 
-/* KNOB */
-.slider::before {
-  content: "";
-  position: absolute;
-  height: 16px;
-  width: 16px;
-  left: 3px;
-  top: 3px;
-  background: white;
-  border-radius: 50%;
-  transition: transform 0.25s ease;
-}
-/* ================= GROUP ================= */
-.setting-group {
-  padding: 20px 0;
-}
-
-.setting-group:last-child {
-  border-bottom: none;
-}
-
-/* ================= HEADER ROW ================= */
-.setting-head {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-/* keep slider from flying away */
-@media (min-width: 992px) {
+  /* ================= HEADER ROW ================= */
   .setting-head {
-    max-width: 560px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
   }
-}
 
-/* title / label */
-.h3info,
-.setting-head .span {
-  font-size: 15px;
-  font-weight: 600;
-  color: rgba(255,255,255,0.95);
-  flex: 1;
-}
+  /* keep slider from flying away */
+  @media (min-width: 992px) {
+    .setting-head {
+      max-width: 560px;
+    }
+  }
 
-/* description */
-.desc {
-  margin-top: 6px;
-  font-size: 13px;
-  color: rgba(255,255,255,0.65);
-  line-height: 1.5;
-}
+  /* title / label */
+  .h3info,
+  .setting-head .span {
+    font-size: 15px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.95);
+    flex: 1;
+  }
 
-/* ================= SWITCH ================= */
-.switch {
-  position: relative;
-  width: 42px;
-  height: 22px;
-  flex-shrink: 0;
-}
+  /* description */
+  .desc {
+    margin-top: 6px;
+    font-size: 13px;
+    color: rgba(255,255,255,0.65);
+    line-height: 1.5;
+  }
 
-.switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
+  /* ================= SWITCH ================= */
+  .switch {
+    position: relative;
+    width: 42px;
+    height: 22px;
+    flex-shrink: 0;
+  }
 
-.slider {
-  position: absolute;
-  inset: 0;
-  background: rgba(255,255,255,0.18);
-  border-radius: 999px;
-  cursor: pointer;
-  transition: background 0.25s ease;
-}
+  .switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
 
-.slider::before {
-  content: "";
-  position: absolute;
-  height: 16px;
-  width: 16px;
-  left: 3px;
-  top: 3px;
-  background: #fff;
-  border-radius: 50%;
-  transition: transform 0.25s ease;
-}
+  .slider {
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0.18);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 0.25s ease;
+  }
 
-.switch input:checked + .slider {
-  background: #4f7cff;
-}
+  .slider::before {
+    content: "";
+    position: absolute;
+    height: 16px;
+    width: 16px;
+    left: 3px;
+    top: 3px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.25s ease;
+  }
 
-.switch input:checked + .slider::before {
-  transform: translateX(20px);
-}
+  .switch input:checked + .slider {
+    background: #4f7cff;
+  }
 
-.switch input:focus-visible + .slider {
-  box-shadow: 0 0 0 2px rgba(79,124,255,0.4);
-}
+  .switch input:checked + .slider::before {
+    transform: translateX(20px);
+  }
 
-/* ACTIVE */
-.switch input:checked + .slider {
-  background: #4f7cff;
-}
+  .switch input:focus-visible + .slider {
+    box-shadow: 0 0 0 2px rgba(79,124,255,0.4);
+  }
 
-.switch input:checked + .slider::before {
-  transform: translateX(20px);
-}
+  /* ACTIVE */
+  .switch input:checked + .slider {
+    background: #4f7cff;
+  }
 
-/* FOCUS */
-.switch input:focus-visible + .slider {
-  box-shadow: 0 0 0 2px rgba(79,124,255,0.4);
-}
+  .switch input:checked + .slider::before {
+    transform: translateX(20px);
+  }
 
-/* ================= PRIVATE COMMUNITY FIX ================= */
-.setting-group > .switch {
-  margin-top: 10px;
-}
+  /* FOCUS */
+  .switch input:focus-visible + .slider {
+    box-shadow: 0 0 0 2px rgba(79,124,255,0.4);
+  }
 
-/* ================= INPUT AREA ================= */
-.input-label {
-  display: block;
-  margin-bottom: 6px;
-  font-size: 13px;
-  color: rgba(255,255,255,0.75);
-}
+  /* ================= PRIVATE COMMUNITY FIX ================= */
+  .setting-group > .switch {
+    margin-top: 10px;
+  }
 
-.xp-input {
-  width: 140px;
-  padding: 9px 10px;
-  border-radius: 8px;
-  color: white;
-  background: #2c2c3f;
-  border: 1px solid rgba(255,255,255,0.12);
-  font-size: 14px;
-}
+  /* ================= INPUT AREA ================= */
+  .input-label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13px;
+    color: rgba(255,255,255,0.75);
+  }
 
-.xp-input:focus {
-  border-color: #4f7cff;
-}
+  .xp-input {
+    width: 140px;
+    padding: 9px 10px;
+    border-radius: 8px;
+    color: white;
+    background: #2c2c3f;
+    border: 1px solid rgba(255,255,255,0.12);
+    font-size: 14px;
+  }
 
-/* subtle spacing fix */
-.note {
-  margin-top: 6px;
-}
+  .xp-input:focus {
+    border-color: #4f7cff;
+  }
 
-.xp-input::-webkit-outer-spin-button,
-.xp-input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
+  /* subtle spacing fix */
+  .note {
+    margin-top: 6px;
+  }
 
-/* Firefox */
-.xp-input[type="number"] {
-  -moz-appearance: textfield;
-}
+  .xp-input::-webkit-outer-spin-button,
+  .xp-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
 
-.security-card{
-  background: var(--sub-init-app);
-  border-radius: 20px;
-  padding: 20px;
-  border: 1px solid var(--border);
-}
+  .xp-input[type="number"] {
+    -moz-appearance: textfield;
+  }
+
+  .security-card{
+    background: var(--sub-init-app);
+    border-radius: 20px;
+    padding: 20px;
+    border: 1px solid var(--border);
+  }
 </style>
   
   <div class="tab-content" id="security">
@@ -341,6 +338,21 @@
           </label>
         </div>
 
+        <div class="toggle-row">
+          <span class="span">Github</span>
+          <label class="switch">
+            <input type="checkbox" name="require_github" {% if security_settings and security_settings.require_github %}checked{% endif %}>
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="toggle-row">
+          <span class="span">Discord</span>
+          <label class="switch">
+            <input type="checkbox" name="require_discord" {% if security_settings and security_settings.require_discord %}checked{% endif %}>
+            <span class="slider"></span>
+          </label>
+        </div>
 
         <div class="toggle-row">
           <span class="span">YouTube</span>
@@ -358,13 +370,6 @@
           </label>
         </div>
 
-        <div class="toggle-row">
-          <span class="span">Discord</span>
-          <label class="switch">
-            <input type="checkbox" name="require_discord" {% if security_settings and security_settings.require_discord %}checked{% endif %}>
-            <span class="slider"></span>
-          </label>
-        </div>
 
         <div class="toggle-row">
           <span class="span">Twitter</span>

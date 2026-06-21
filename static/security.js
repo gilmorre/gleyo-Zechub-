@@ -1,6 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
 
-  // Logout a single device
   document.querySelectorAll(".logout-device-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       const sessionId = btn.dataset.id;
@@ -20,7 +19,6 @@ document.addEventListener("DOMContentLoaded", () => {
       });
   });
 
-  // Logout all devices including this one
   const logoutAllBtn = document.getElementById("logoutAllBtn");
   logoutAllBtn?.addEventListener("click", () => {
     fetch("/logout_all_devices", { method: "POST" })

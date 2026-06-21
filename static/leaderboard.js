@@ -561,7 +561,7 @@ function initLiveTextPreview() {
   const previewReward = document.getElementById("previewReward");
 
   if (rewardInput && previewReward) {
-    const defaultReward = "Top 3 get $USDT + Gleyo XP";
+    const defaultReward = "Top 3 get $ZEC + Gleyo XP";
 
     renderLines(previewReward, rewardInput.value || defaultReward);
 

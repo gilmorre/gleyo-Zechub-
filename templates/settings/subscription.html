@@ -5,11 +5,17 @@
   padding-top: 24px;
   width: 520px;
   display: flex;
-  font-family: 'Syne', sans-serif !important;
   flex-direction: column;
   padding: 14px 15px;
   gap: 20px;
   max-width: 100%;
+}
+
+
+
+.plan-card-container,
+.plan-card-container * {
+  font-family: 'Syne', sans-serif !important;
 }
 
 
@@ -524,32 +530,13 @@
 
   <div class="plan-card">
 
-    <div class="plan-header" style="display: flex; align-items: center; justify-content: space-between;">
-      <div>
-        <h3>Enterprise Plan</h3>
-        <span class="plan-meta" style="display: inline-flex;">$458 per months
-          <span style="font-size: 30px; display: flex; align-items: center; justify-content: var();">
-            <svg fill="currentColor" viewBox="0 0 20 20" width="16" height="16" xmlns="http://www.w3.org/2000/svg">
-              <path d="M7.8 10a2.2 2.2 0 0 0 4.4 0 2.2 2.2 0 0 0-4.4 0z"/>
-            </svg>
-        </span> Next billing: Oct 12, 2026</span>
-      </div>
-      
-          <a class="plan-cycle manage"
-            href="/community/{{ community.slug }}/settings/billing"
-            data-path="/community/{{ community.slug }}/settings/billing"
-            onclick="event.preventDefault(); loadSettingsSection(this.dataset.path)">
-            Manage plan
-          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path d="M4 12H20M20 12L14 6M20 12L14 18"
-                  stroke="currentColor"
-                  stroke-width="1.5"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"/>
-          </svg>
-      </a>
-
+  <div class="plan-header" style="display:flex;align-items:center;justify-content:space-between;">
+    <div>
+      <h3>Free Plan</h3>
+      <span class="plan-meta">Community tier · No billing</span>
     </div>
+    <span class="plan-status">Active</span>
+  </div>
 
 
 
@@ -567,30 +554,24 @@
   <!-- ===================== -->
 
   <div class="plan-card claim">
-
     <div class="plan-header">
       <div class="claim-usaged-init">
         <h3>Claim Usage this month</h3>
       </div>
     </div>
-
     <div class="claim-box">
-
       <div class="claim-row">
         <span class="claim-title">Claims used</span>
-        <span class="claim-value">1,500 / 50k</span>
+        <span class="claim-value">
+          {{ "{:,}".format(claim_count) }} / {{ "{:,}".format(claim_limit) }}
+        </span>
       </div>
-
       <div class="claim-progress">
-        <div class="claim-progress-bar" style="width:36%;"></div>
+        <div class="claim-progress-bar" style="width:{{ claim_percent }}%;"></div>
       </div>
-
-      <span class="plan-meta">Resets Oct 12, 2026</span>
-
+      <span class="plan-meta">Resets {{ reset_date }}</span>
     </div>
-
   </div>
-
 
   {% set total = (wallet.total_balance or 0) / 100 %}
   {% set available = (wallet.available_balance or 0) / 100 %}
@@ -606,37 +587,48 @@
     </div>
 
     <div class="wallet-stats">
-
       <div class="wallet-item">
         <div class="wallet-label">
           <span class="wallet-dot total"></span>
           Total Fund
         </div>
-        <div class="wallet-amount">
-          ${{ "%.2f"|format(total) }}
+        <div class="wallet-amount" style="display:flex;align-items:center;gap:4px;">
+          <svg viewBox="7 6 10 12" xmlns="http://www.w3.org/2000/svg" width="15" height="15" style="flex-shrink:0;transform:skewX(-8deg);">
+            <polyline points="9 9 15 9 9 15 15 15" style="fill:none;stroke:var(--text-main);stroke-linecap:round;stroke-linejoin:round;stroke-width:2.2;"></polyline>
+            <line x1="12" y1="9" x2="12" y2="7" style="stroke:var(--text-main);stroke-linecap:round;stroke-width:2.2;"></line>
+            <line x1="12" y1="15" x2="12" y2="17" style="stroke:var(--text-main);stroke-linecap:round;stroke-width:2.2;"></line>
+          </svg>
+          {{ "%.3f"|format((wallet.total_balance or 0) / 100_000_000) }}
         </div>
       </div>
-
       <div class="wallet-item">
         <div class="wallet-label">
           <span class="wallet-dot active"></span>
           Available
         </div>
-        <div class="wallet-amount">
-          ${{ "%.2f"|format(available) }}
+        <div class="wallet-amount" style="display:flex;align-items:center;gap:4px;">
+          <svg viewBox="7 6 10 12" xmlns="http://www.w3.org/2000/svg" width="15" height="15" style="flex-shrink:0;transform:skewX(-8deg);">
+            <polyline points="9 9 15 9 9 15 15 15" style="fill:none;stroke:var(--text-main);stroke-linecap:round;stroke-linejoin:round;stroke-width:2.2;"></polyline>
+            <line x1="12" y1="9" x2="12" y2="7" style="stroke:var(--text-main);stroke-linecap:round;stroke-width:2.2;"></line>
+            <line x1="12" y1="15" x2="12" y2="17" style="stroke:var(--text-main);stroke-linecap:round;stroke-width:2.2;"></line>
+          </svg>
+          {{ "%.3f"|format((wallet.available_balance or 0) / 100_000_000) }}
         </div>
       </div>
-
       <div class="wallet-item">
         <div class="wallet-label">
           <span class="wallet-dot locked"></span>
           Locked
         </div>
-        <div class="wallet-amount">
-          ${{ "%.2f"|format(locked) }}
+        <div class="wallet-amount" style="display:flex;align-items:center;gap:4px;">
+          <svg viewBox="7 6 10 12" xmlns="http://www.w3.org/2000/svg" width="15" height="15" style="flex-shrink:0;transform:skewX(-8deg);">
+            <polyline points="9 9 15 9 9 15 15 15" style="fill:none;stroke:var(--text-main);stroke-linecap:round;stroke-linejoin:round;stroke-width:2.2;"></polyline>
+            <line x1="12" y1="9" x2="12" y2="7" style="stroke:var(--text-main);stroke-linecap:round;stroke-width:2.2;"></line>
+            <line x1="12" y1="15" x2="12" y2="17" style="stroke:var(--text-main);stroke-linecap:round;stroke-width:2.2;"></line>
+          </svg>
+          {{ "%.3f"|format((wallet.locked_balance or 0) / 100_000_000) }}
         </div>
       </div>
-
     </div>
 
     <div class="wallet-note">
@@ -695,43 +687,29 @@
 
 
 <div class="modal-overlay" id="topupModal">
-
   <div class="modal-box">
-
     <div class="modal-title">Top Up Wallet</div>
     <div class="modal-desc">
-      Add funds to your wallet to pay for subscriptions and campaigns.
+      Add ZEC to your wallet to pay for subscriptions and campaigns.
     </div>
-
     <div class="amount-grid">
-
-      <div class="amount-option" onclick="selectAmount(50, this)">$50</div>
-      <div class="amount-option" onclick="selectAmount(100, this)">$100</div>
-      <div class="amount-option" onclick="selectAmount(250, this)">$250</div>
-      <div class="amount-option" onclick="selectAmount(500, this)">$500</div>
-      <div class="amount-option" onclick="selectAmount(1000, this)">$1,000</div>
-      <div class="amount-option" onclick="selectAmount(2500, this)">$2,500</div>
-
+      <div class="amount-option" onclick="selectAmount(0.5, this)">0.5 ZEC</div>
+      <div class="amount-option" onclick="selectAmount(1, this)">1 ZEC</div>
+      <div class="amount-option" onclick="selectAmount(2, this)">2 ZEC</div>
+      <div class="amount-option" onclick="selectAmount(3, this)">3 ZEC</div>
+      <div class="amount-option" onclick="selectAmount(5, this)">5 ZEC</div>
+      <div class="amount-option" onclick="selectAmount(10, this)">10 ZEC</div>
     </div>
-
     <div class="custom-input">
-      <input type="number" id="customAmount" placeholder="Enter custom amount ($)">
+      <input type="number" id="customAmount" placeholder="Enter custom amount (ZEC)" step="0.01" min="0.1">
     </div>
-
     <div class="modal-actions">
-
-      <button class="btn-ghost" onclick="closeTopupModal()">
-        Cancel
-      </button>
-
-      <button class="btn-primary" onclick="continueTopup()" id="initerprinamry">
+      <button class="btn-ghost" onclick="closeTopupModal()">Cancel</button>
+      <button class="btn-primary" onclick="continueTopup()" id="initerprinamry" style="cursor: pointer !important;">
         Continue Payment
       </button>
-
     </div>
-
   </div>
-
 </div>
 
 

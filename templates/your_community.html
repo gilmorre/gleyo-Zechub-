@@ -33,7 +33,7 @@
 {% endif %}
 
 <meta name="color-scheme" content="light">
-<link rel="shortcut icon" href="https://gleyo.app/static/my_logo.png">
+<link rel="shortcut icon" href="https://zupdpwnloewdkjqsymdm.supabase.co/storage/v1/object/public/uploads/communities/7/logos/511f4996-5748-4f1f-b74c-5d5c33f7124c.png">
 
 <link rel="stylesheet" href="{{ url_for('static', filename='your_communitys.css') }}?v=10">
 <style>
@@ -176,12 +176,13 @@
   --accent-puzzle: #7026a9c8;
   --accent-nft: #B6FF00;
   --accent-nft-text: #A8E600;
+  --accent-github: #24292e;
 
   --accent-invite: #22c55ee1;
 
   --accent-poh: #4C6EF5;
   --accent-poh-text: #364FC7;
-
+  --accent-github-text: #24292e;
 
 
     /* POH states */
@@ -666,7 +667,7 @@
 
           <div>
             <a href="/" onclick="DestroyCurrentPage(this, event)" style="margin-bottom: 14px; display: flex; align-items: center; gap: 13px; padding-left: 3px; cursor: pointer;">
-              <img src="https://gleyo.app/static/my_logo.png"  alt="" style="border-radius: 50%; width: 32px; height: 32px; ">
+              <img src="https://zupdpwnloewdkjqsymdm.supabase.co/storage/v1/object/public/uploads/communities/7/logos/511f4996-5748-4f1f-b74c-5d5c33f7124c.png"  alt="" style="border-radius: 50%; width: 32px; height: 32px; ">
 
               <div  class="comm-name-list init" style="color: var(--text-muted); font-weight: 550;">Home</div>
             </a>
@@ -1208,7 +1209,7 @@
     </a>
   </div>
   <div class="community-dropdown" style="display: none;">
-    <a href="/community/{{ community.slug }}/settings/general" class="{% if user.id and not has_role(current_user.id, community.id, 'admin') and not is_banned %}show-only-when{% endif %}"
+    <a href="/community/{{ community.slug }}/settings/general" class="{% if user.id and not has_role(current_user.id, community.id, 'admin') and not is_banned %}show-only-when{% endif %}" id="Commsetting-init"
       onclick="event.preventDefault(); saveCommunityBackRoute(event, this); navigateTo(this.href);"> 
         <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z"/>
@@ -1374,7 +1375,6 @@ function showToast(msg, type = "error") {
   const t = document.createElement("div");
   t.className = `toast ${type}`;
 
-  // ✅ allow HTML rendering (SVG, spans, layout, etc)
   t.innerHTML = msg;
 
   document.body.appendChild(t);
@@ -3282,6 +3282,14 @@ const PLATFORM_ICONS = {
     `,
     color: "#5865F2"
   },
+    "github": {
+    icon: `
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
+      </svg>
+    `,
+    color: "#24292e"
+  },
     "twitter": {
             icon: `
 
@@ -3937,6 +3945,7 @@ function initSubquestTasks() {
     let valid = true;
   getValidTaskCards(
     '.card-container-quest.discord,' +
+    '.card-container-quest.github,' +
     '.card-container-quest.youtube,' +
     '.card-container-quest.telegram,' +
     '.card-container-quest.partnership,' +
@@ -4907,6 +4916,14 @@ async function refreshCommunityNav(slug) {
   buildSidebar(ctx);
   syncCommunityAdminMenu(ctx);
   renderBrand(ctx);
+
+  const settingsLink =
+    document.getElementById("Commsetting-init");
+
+  if (settingsLink) {
+    settingsLink.href =
+      `/community/${ctx.community.slug}/settings/general`;
+  }
 }
 
 function toggleVerifiedBadge(ctx) {
@@ -5284,13 +5301,28 @@ window.addEventListener("popstate", async () => {
 let __CURRENT_SCRIPT__ = null;
 
 function unloadCurrentScript() {
+
   if (__CURRENT_SCRIPT__) {
-    const old = document.querySelector(`script[src="${__CURRENT_SCRIPT__}"]`);
-    if (old) old.remove();
+    document
+      .querySelector(
+        `script[src="${__CURRENT_SCRIPT__}"]`
+      )
+      ?.remove();
+
     __CURRENT_SCRIPT__ = null;
   }
-}
 
+  window.__zecPriceInterval &&
+    clearInterval(window.__zecPriceInterval);
+
+  window.__zecWidgetPriceInterval &&
+    clearInterval(window.__zecWidgetPriceInterval);
+
+  window.__rewardPriceCleanup?.();
+
+  window.__rewardPriceCleanup = null;
+
+}
 
 
 async function loadScript(src) {
@@ -6722,7 +6754,7 @@ function showReWardsSkeleton(containerSelector) {
                         <div class="sk-r sk-w-id"></div>
                       </div>
                     </div>
-                    <div class="sk-r sk-usdc"></div>
+                    <div class="sk-r sk-zec"></div>
                   </div>
 
                   <div class="sk-r sk-bal-lbl"></div>
@@ -6993,11 +7025,20 @@ async function loadMainSettingsSection(path, push = true, previewMode = false, n
     document.body.classList.add("itquest-time");
   }
   try {
-  unloadCurrentScript(); 
-  document.body.classList.remove('sidebar-open');
-  document.body.classList.toggle("preview-mode", previewMode);
+    if (window.ZecPriceStore) {
+      window.ZecPriceStore.stop();
+    }
 
-  __CURRENT_PATH__ = path;
+    if (window.__rewardPriceCleanup) {
+      window.__rewardPriceCleanup();
+      window.__rewardPriceCleanup = null;
+    }
+
+    unloadCurrentScript(); 
+    document.body.classList.remove('sidebar-open');
+    document.body.classList.toggle("preview-mode", previewMode);
+
+    __CURRENT_PATH__ = path;
 
   const res = await fetch(finalPath, {
     headers: { "X-Partial": "1" }
@@ -7069,14 +7110,12 @@ async function loadMainSettingsSection(path, push = true, previewMode = false, n
   }
 
 
-  /* ---------------- QUEST USER ---------------- */
-  /* /quest */
 
   else if (
-  path.includes("/quest") &&
-  !path.includes("/quest/admin")
-) {
-      
+    path.includes("/quest") &&
+    !path.includes("/quest/admin")
+  ) {
+        
 
 
 
@@ -8094,12 +8133,10 @@ async function loadNavBadges() {
     const inboxEl = document.querySelector(".inbox-init");
     const reviewEl = document.querySelector(".reviews-init");
 
-    // Inbox → everyone
     if (inboxEl) {
       BadgeManager.set(inboxEl, data.inbox || 0);
     }
 
-    // Reviews → only if exists in DOM (role-based already handled by Jinja)
     if (reviewEl && data.reviews !== undefined) {
       BadgeManager.set(reviewEl, data.reviews || 0);
     }
@@ -8108,6 +8145,68 @@ async function loadNavBadges() {
     console.error("Badge load failed:", err);
   }
 }
+
+
+
+
+window.ZecPriceStore = (() => {
+  let price = 540;
+  let interval = null;
+  let listeners = new Set();
+  console.log("called windows")
+
+  async function fetchPrice() {
+
+    try {
+      const res = await fetch("/api/zec-price", {
+        cache: "no-store"
+      });
+
+      const data = await res.json();
+
+      if (data.price && data.price !== price) {
+        price = data.price;
+
+        listeners.forEach(fn => {
+          try {
+            fn(price);
+          } catch {}
+        });
+      }
+
+    } catch {}
+  }
+
+  function start() {
+    if (interval) return;
+    console.log("Reached")
+
+    fetchPrice();
+
+    interval = setInterval(fetchPrice, 30000);
+  }
+
+  function stop() {
+    clearInterval(interval);
+    interval = null;
+  }
+
+  function subscribe(fn) {
+    listeners.add(fn);
+
+    fn(price);
+
+    return () => listeners.delete(fn);
+  }
+
+  return {
+    start,
+    stop,
+    subscribe,
+    getPrice: () => price
+  };
+
+})();
 </script>
 
 

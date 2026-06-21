@@ -25,7 +25,7 @@ def upgrade():
         sa.Column("available_balance", sa.BigInteger(), nullable=True, server_default="0"),
         sa.Column("locked_balance", sa.BigInteger(), nullable=True, server_default="0"),
 
-        sa.Column("currency", sa.String(length=10), nullable=True, server_default="USD"),
+        sa.Column("currency", sa.String(length=10), nullable=True, server_default="ZEC"),
 
         sa.Column("created_at", sa.DateTime(), nullable=True),
         sa.Column("updated_at", sa.DateTime(), nullable=True),

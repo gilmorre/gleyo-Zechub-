@@ -1809,7 +1809,6 @@ function renderTaskIcons(tasks = []) {
 
 function renderRewards(rewards = []) {
   return rewards.slice(0,3).map(r => {
-
     const type = r.type;
     const data = r.data || {};
     const dist = (r.distribution_type || "ALL").toUpperCase();
@@ -1824,7 +1823,7 @@ let icon = REWARD_ICONS[dist] || REWARD_ICONS.ALL;
 
     if (r.fcfs) {
   const { claim_count, max_claim } = r.fcfs;
-  icon = buildFcfsGradientSvg(claim_count, max_claim); // 🔥 real gradient fill
+  icon = buildFcfsGradientSvg(claim_count, max_claim); 
     }
 
 
@@ -1851,7 +1850,7 @@ let icon = REWARD_ICONS[dist] || REWARD_ICONS.ALL;
         <div class="badge-wrapper">
           <div class="badge-role">
             <div class="badge-inner">
-              <img src="/static/discord_reward.png">
+              <img src="https://xpcqiovfesvllsljxhac.supabase.co/storage/v1/object/public/uploads/discord_reward.png">
               <div class="points"><span>${data.role || ""}</span></div>
               <div class="sparkle one"></div>
               <div class="sparkle two"></div>
@@ -2342,6 +2341,7 @@ function initSocialTooltips(communitySlug) {
 
   const socialMessages = {
     twitter: "Twitter connection is enabled. Turn it off in ",
+    github: "Github connection is enabled. Turn it off in ",
     discord: "Discord connection is enabled. Turn it off in ",
     youtube: "YouTube connection is enabled. Turn it off in ",
     telegram: "Telegram connection is enabled. Turn it off in "
@@ -2477,7 +2477,7 @@ function initSocialTooltips(communitySlug) {
 function renderSocialConnects(socials_to_show = {}, can_view_info = false) {
   if (!socials_to_show) return "";
 
-  const platforms = ["twitter", "discord", "youtube", "telegram"];
+  const platforms = ["twitter", "discord", "youtube", "telegram", "github"];
 
   // only active ones
   const activePlatforms = platforms.filter(p => socials_to_show[p]);
@@ -2487,14 +2487,16 @@ function renderSocialConnects(socials_to_show = {}, can_view_info = false) {
     twitter: "/twitter/login",
     discord: "/discord/connect",
     youtube: "/youtube/login",
-    telegram: "#"
+    github: "{{ url_for('github_bp.github_login', next=url_for('account_settings_linked_accounts')) }}",
+    telegram: "https://oauth.telegram.org/auth?bot_id=7686743241&origin=YOURDOMAIN&return_to=YOURDOMAIN/telegram/callback"
   };
 
   const labels = {
     twitter: "Connect Twitter",
     discord: "Connect Discord",
     youtube: "Connect YouTube",
-    telegram: "Telegram"
+    github: "Link Github",
+    telegram: "Connect Telegram"
   };
 
   return `
@@ -2536,6 +2538,7 @@ function hasBlockingSocials(socials_to_show = {}) {
   return !!(
     socials_to_show.twitter ||
     socials_to_show.discord ||
+    socials_to_show.github ||
     socials_to_show.youtube ||
     socials_to_show.telegram
   );
@@ -3089,7 +3092,64 @@ function renderTask(task){
   </div>
 </div>`;
   }
+  else if (task.type === "github") {
 
+    const repoUrl   = task.config?.link || "";
+    const repoName  = task.config?.repo_name || "";
+    const repoOwner = task.config?.repo_owner || "";
+    const repoAvatar= task.config?.owner_avatar || "";
+    const doStar    = task.config?.star !== false;
+    const doFork    = !!task.config?.fork;
+
+    const ctaLabel = doStar && doFork
+      ? "Star & Fork this repo"
+      : doFork
+        ? "Fork this repo"
+        : "Star this repo";
+
+    return `
+
+    <div class="card-container-quest social-task github"
+        style="color: var(--accent-github)"  data-task-id="${task.id}">
+
+      <div class="badge-quest">
+        <span class="badge-icon-quest">
+          ${PLATFORM_ICONS["github"]?.icon || `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>`}
+        </span>
+        <span>GitHub</span>
+      </div>
+
+      <div class="card-wrapper-quest">
+        <div class="card-quest">
+          <div class="content-quest">
+
+            <div class="avatar-quest">
+              <img src="${repoAvatar}" style="${repoAvatar ? '' : 'display:none'}">
+              <span class="fallback-letter" style="${repoAvatar ? 'display:none' : ''}">
+                ${repoOwner ? repoOwner[0].toUpperCase() : ''}
+              </span>
+            </div>
+
+            <h2 class="community_name">${repoName || "Repository"}</h2>
+
+            <div class="description-parnership" style="font-size:12px;opacity:.6">
+              ${repoOwner ? `@${repoOwner}` : ""}
+            </div>
+
+            <a class="cta-quest js-github-cta"
+              href="${repoUrl}"
+              target="_blank"
+              style="background: var(--accent-github-text)">
+              ${ctaLabel}
+            </a>
+            <p style="display:none" class="github-error">
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  }
   /* ============================
      YOUTUBE
      ============================ */
@@ -4074,6 +4134,7 @@ function renderRewardCard(reward, index, fcfs_claimed_count = {}, has_any_role =
   let cardTypeClass = "";
 
   if (reward.reward_type === "xp") {
+
     cardTypeClass = "card-xp";
     bodyHTML = `
       <h1 class="xp-com">XP</h1>
@@ -4084,7 +4145,7 @@ function renderRewardCard(reward, index, fcfs_claimed_count = {}, has_any_role =
     cardTypeClass = "card-role";
     bodyHTML = `
       <img 
-        src="/static/discord_reward.png"
+        src="https://xpcqiovfesvllsljxhac.supabase.co/storage/v1/object/public/uploads/discord_reward.png"
         alt="Discord Reward"
         draggable="false"
         oncontextmenu="return false;"
@@ -5268,12 +5329,9 @@ if (hasCooldown) {
 }
 
 
-// 🔁 REDIRECT
-if (!data.success && data.error_code === "REDIRECT") {
-  if (data.redirect) {
-    window.location.href = data.redirect;
-  }
-  return; 
+if (!data.success && data.message) {
+  showToast(data.message);
+  return;
 }
 
 if (data?.error_code === "RECURRENCE_BLOCKED") {
@@ -5358,6 +5416,7 @@ if (hasErrors) {
       card.querySelector(".partnership-quest-error") ||
       card.querySelector(".discord-errir") ||
       card.querySelector(".puzzle-error") ||
+      card.querySelector(".github-error") ||
       card.querySelector(".yotube-error") ||
       card.querySelector(".telegram-error") ||
       card.querySelector(".numbers-error") ||
@@ -5368,9 +5427,9 @@ if (hasErrors) {
       if (errorEl) {
 
         if (errorMsg?.type === "HTML" && errorMsg.error_html) {
-          errorEl.innerHTML = errorMsg.error_html;   // ✅ HTML render
+          errorEl.innerHTML = errorMsg.error_html;  
         } else {
-          errorEl.textContent = errorMsg.error || errorMsg; // normal
+          errorEl.textContent = errorMsg.error || errorMsg;  
         }
 
         errorEl.style.display = "block";
@@ -5459,7 +5518,7 @@ function createRewardModal(reward, index) {
           </div>
           <div class="role-image-wrapper">
             <div class="role-modal-bg"></div>
-            <img src="/static/discord_reward.png" alt="Discord Reward">
+            <img src="https://xpcqiovfesvllsljxhac.supabase.co/storage/v1/object/public/uploads/discord_reward.png" alt="Discord Reward">
           </div>
           <div class="role-modal-content">
             <div class="role-reward-title">${reward.reward_data.role || ""}</div>
@@ -5479,148 +5538,54 @@ function createRewardModal(reward, index) {
   }
 
   else if (reward.reward_type === "token") {
-    modalHTML = `
-      <div class="modal-overlay reward-modal" id="modal-${index}" style="display: none;">
-        <div class="modal">
-          <div class="modal-header">
-            <h2>Token Reward</h2>
-            <span class="modal-close" data-index="${index}">
-              <svg class="modal-close-icon" viewBox="0 0 24 24"
-                  stroke="currentColor" stroke-width="2" fill="none"
-                  stroke-linecap="round" stroke-linejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18"/>
-                <line x1="6" y1="6" x2="18" y2="18"/>
-              </svg>
-            </span>
-          </div>
-          <div class="image-wrapper">
-            <div class="token-modal-image-bg"></div>
-            <div class="sparkle one"></div>
-            <div class="sparkle two"></div>
-            <div class="sparkle three"></div>
-          </div>
-          <div class="modal-content">
-            <div class="reward-title">
-              ${reward.reward_data.amount_per_winner || ""} ${reward.reward_data.symbol || ""}
+      modalHTML = `
+        <div class="modal-overlay reward-modal" id="modal-${index}" style="display: none;">
+          <div class="modal">
+            <div class="modal-header">
+              <h2>Token Reward</h2>
+              <span class="modal-close" data-index="${index}">
+                <svg class="modal-close-icon" viewBox="0 0 24 24"
+                    stroke="currentColor" stroke-width="2" fill="none"
+                    stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"/>
+                  <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </span>
             </div>
-            <div class="xp-reward-info token-extra-info">
-              <div class="xp-reward-col">
-                <div class="xp-reward-method-label">Network</div>
-                <div class="xp-reward-method">
-                  ${reward.reward_data.network || ""}
+            <div class="image-wrapper">
+              <div class="token-modal-image-bg"></div>
+              <div class="sparkle one"></div>
+              <div class="sparkle two"></div>
+              <div class="sparkle three"></div>
+            </div>
+            <div class="modal-content">
+              <div class="reward-title">
+                ${reward.reward_data.amount_per_winner || ""} ZEC
+              </div>
+              <div class="xp-reward-info token-extra-info">
+                <div class="xp-reward-col">
+                  <div class="xp-reward-method-label">Network</div>
+                  <div class="xp-reward-method">Zcash</div>
+                </div>
+                <div class="xp-reward-col">
+                  <div class="xp-reward-method-label">Privacy</div>
+                  <div class="xp-reward-method">Shielded</div>
                 </div>
               </div>
-              <div class="xp-reward-col">
-                <div class="xp-reward-method-label">Contract</div>
-                <div class="xp-reward-method contract-address" id="contract-${index}">
-                  Loading...
+              <div class="xp-reward-info">
+                <div class="xp-reward-col">
+                  <div class="xp-reward-method-label">Reward method</div>
+                  <div class="xp-reward-method">
+                    <span class="dist-icon">${distInfo.icon}</span>
+                    <span class="dist-text">${distInfo.text}</span>
+                  </div>
                 </div>
+                ${distExtra}
               </div>
-            </div>
-            <div class="xp-reward-info">
-              <div class="xp-reward-col">
-                <div class="xp-reward-method-label">Reward method</div>
-                <div class="xp-reward-method">
-                  <span class="dist-icon">${distInfo.icon}</span>
-                  <span class="dist-text">${distInfo.text}</span>
-                </div>
-              </div>
-              ${distExtra}
             </div>
           </div>
-        </div>
-      </div>`;
-
-    setTimeout(() => {
-      const net = encodeURIComponent(reward.reward_data.network || "");
-      const sym = encodeURIComponent(reward.reward_data.symbol || "");
-
-      fetch(`/get_contract/${net}/${sym}`)
-        .then(res => res.json())
-        .then(data => {
-          const el = document.getElementById(`contract-${index}`);
-          if (!el) return;
-
-          let fullContract = data.contract || "N/A";
-
-          if (fullContract !== "N/A" && fullContract.length > 10) {
-            const shortContract = fullContract.slice(0, 4) + "..." + fullContract.slice(-4);
-            el.textContent = shortContract;
-            el.style.cursor = "pointer";
-
-            const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-            const handleCopy = () => {
-              if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(fullContract).then(() => {
-                  el.removeAttribute("data-tooltip");
-                  el.textContent = "Copied!";
-                  setTimeout(() => {
-                    el.textContent = shortContract;
-                  }, 1000);
-                }).catch(fallbackCopy);
-              } else {
-                fallbackCopy();
-              }
-            };
-            const fallbackCopy = () => {
-              const textarea = document.createElement("textarea");
-              textarea.value = fullContract;
-
-              // ✅ Make it invisible, offscreen, and non-interactive
-              textarea.setAttribute("readonly", "");
-              textarea.style.position = "absolute";
-              textarea.style.left = "-9999px";
-              textarea.style.top = "0";
-              textarea.style.opacity = "0";
-              textarea.style.pointerEvents = "none";
-              textarea.style.height = "0";
-              textarea.style.zIndex = "-1";
-
-              document.body.appendChild(textarea);
-              textarea.select();
-
-              try {
-                const successful = document.execCommand("copy");
-                if (successful) {
-                  el.textContent = "Copied!";
-                  setTimeout(() => {
-                    el.textContent = shortContract;
-                  }, 1000);
-                }
-              } catch (err) {
-                alert("Failed to copy");
-              }
-
-              document.body.removeChild(textarea);
-            };
-
-          
-            if (isMobile) {
-              el.addEventListener("click", handleCopy);
-            } else {
-              el.setAttribute("data-tooltip", "Click to copy full address");
-              el.addEventListener("mouseenter", () => {
-                el.setAttribute("data-tooltip", "Click to copy full address");
-                const rect = el.getBoundingClientRect();
-                el.style.setProperty("--tooltip-top", `${rect.top + window.scrollY}px`);
-                el.style.setProperty("--tooltip-left", `${rect.left + rect.width / 2}px`);
-              });
-              el.addEventListener("click", () => {
-                handleCopy();
-                el.setAttribute("data-tooltip", "Click to copy full address");
-              });
-            }
-          } else {
-            el.textContent = fullContract;
-          }
-        })
-        .catch(() => {
-          const el = document.getElementById(`contract-${index}`);
-          if (el) el.textContent = "N/A";
-        });
-    }, 100);
-  }
+        </div>`;
+    }
 
   else if (reward.reward_type === "custom") {
     modalHTML = `

@@ -1255,7 +1255,6 @@ function showTOTPSetupView(inner, secret, otp_uri) {
   const qrView = inner.querySelector("#qrView");
   const secretView = inner.querySelector("#secretView");
 
-  // 🔥 LOAD + RENDER QR HERE
   loadQRLibrary().then(() => {
     const qr = new QRCodeStyling({
       width: 300,

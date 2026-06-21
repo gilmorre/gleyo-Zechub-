@@ -1,7 +1,5 @@
 *{
   font-family: 'Outfit', sans-serif !important;
-
-  
 }
 
 body{
@@ -33,7 +31,7 @@ body{
    -webkit-tap-highlight-color: transparent;
    text-align: center;
   cursor: pointer;
-  position: relative;        /* required for ❌ positioning */
+  position: relative;       
   overflow: hidden;
   transition: border-color .3s;
 }
@@ -46,12 +44,11 @@ body{
   width: 100%;
   height: 100%;
   background-color: rgb(168, 167, 167);
-  object-fit: cover; /* 👈 makes the image cover the box */
+  object-fit: cover;  
   border-radius: 12px;
-  display: none; /* hidden until an image is uploaded */
+  display: none; 
 }
 
-/* “remove” (❌) button */
 .remove-btn {
   position: absolute;
   top: 8px;
@@ -63,11 +60,10 @@ body{
   border-radius: 50%;
   background: #fff;
   cursor: pointer;
-  display: none;             /* becomes block after image chosen */
+  display: none;           
 }
 
 
-/* small grey note */
 .hint {
   font-size: .9em;
    -webkit-tap-highlight-color: transparent;
@@ -155,10 +151,10 @@ h4{
 
 
 #nameInput {
-  width: 345px;          /* ⬅ fits your spec        */
-  height: 40px;          /* ⬅ fits your spec        */
-  padding: 4px 6px;      /* keep some inner space   */
-  box-sizing: border-box;/* 160 × 30 includes padding & border */
+  width: 345px;           
+  height: 40px;         
+  padding: 4px 6px;     
+  box-sizing: border-box; 
 
   background: #1e1e2f;
   font-family: "Inter", "Segoe UI", system-ui, sans-serif;
@@ -169,12 +165,9 @@ h4{
   border: 2px solid #cccccc57;
   border-radius: 10px;
 
-  /* smooth border change */
   transition: border-color 0.25s ease, box-shadow 0.25s ease;
   outline: none;
 
-  /* resize has no effect on single-line inputs in most browsers.
-     If you leave it in, it will simply be ignored. */
   resize: vertical;
 }
 
@@ -193,7 +186,7 @@ h4{
 #aboutBox {
   width: 400px;
   height: 150px;
-  padding: 12px 10px 12px 14px; /* More right padding for spacing */
+  padding: 12px 10px 12px 14px; 
   font-size: 0.9rem;
   color: aliceblue;
   font-family: "Inter", "Segoe UI", system-ui, sans-serif;
@@ -219,7 +212,7 @@ h4{
 
 .scrollable {
   overflow-y: auto;
-  scrollbar-gutter: stable both-edges; /* reserves space for scrollbar */
+  scrollbar-gutter: stable both-edges;
 }
 
 #aboutBox::-webkit-scrollbar-thumb:hover {
@@ -236,19 +229,19 @@ h4{
 
 /* WebKit Scrollbar: FULLY visible like ChatGPT */
 #aboutBox::-webkit-scrollbar {
-  width: 10px; /* 👈 Wider so thumb isn't squeezed */
+  width: 10px; 
 }
 
 #aboutBox::-webkit-scrollbar-track {
   background: transparent;
-  margin-block: 8px; /* 👈 Gives top/bottom breathing room */
+  margin-block: 8px;
 }
 
 #aboutBox::-webkit-scrollbar-thumb {
   background-color: #555;
   border-radius: 8px;
   background-clip: content-box;
-  border: 3px solid transparent; /* 👈 Adds internal spacing, makes it "float" */
+  border: 3px solid transparent; 
 }
 
 /* Remove up/down buttons */
@@ -256,38 +249,37 @@ h4{
   display: none;
   height: 0;
 }
- @media (max-width: 768px) {
+@media (max-width: 768px) {
   #aboutBox {
-  width: 100%;
-  height: 150px;
-  padding: 12px 10px 12px 14px; /* More right padding for spacing */
-  font-size: 0.9rem;
-  color: aliceblue;
-  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+    width: 100%;
+    height: 150px;
+    padding: 12px 10px 12px 14px;  
+    font-size: 0.9rem;
+    color: aliceblue;
+    font-family: "Inter", "Segoe UI", system-ui, sans-serif;
 
+    background: #1e1e2f;
+    border: 2px solid #cccccc57;
+    border-radius: 15px;
 
-  background: #1e1e2f;
-  border: 2px solid #cccccc57;
-  border-radius: 15px;
+    outline: none;
+    resize: none;
+    box-sizing: border-box;
+    overflow-y: auto;
+    overflow-x: hidden;
 
-  outline: none;
-  resize: none;
-  box-sizing: border-box;
-  overflow-y: auto;
-  overflow-x: hidden;
+    scrollbar-width: 10px;
+    scrollbar-color: #555 transparent;
 
-  scrollbar-width: 10px;
-  scrollbar-color: #555 transparent;
-
-  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  }
 }
-}
+
 ::placeholder{
-    color: #cccccc57;
+  color: var(--text-main);
+  opacity: 0.7;
 }
 
-
-/* ===== Button Styles ===== */
 
 /* shared look */
 .btn {
@@ -300,13 +292,12 @@ h4{
   cursor: pointer;
   outline: none;
 
-  border-radius: 9999px;          /* circle-pill edges */
-  border: 2px solid transparent;  /* default border */
+  border-radius: 9999px;         
+  border: 2px solid transparent;  
 
   transition: background-color .25s, color .25s, border-color .25s;
 }
 
-/* “Back” – outlined */
 .btn-outline {
   color: aliceblue;
   border-color: #4285F4;
@@ -320,7 +311,6 @@ h4{
   -webkit-tap-highlight-color: transparent;
 }
 
-/* “Create a Community” – filled */
 .btn-primary {
   color: #fff;
   border-color: #4285F4;
@@ -329,6 +319,7 @@ h4{
   white-space: nowrap;
   -webkit-tap-highlight-color: transparent;
 }
+
 .btn-primary:hover,
 .btn-primary:focus {
   background: #4285F4;
@@ -347,15 +338,14 @@ h4{
 .btn {
   -webkit-tap-highlight-color: transparent;
 }
-/* optional wrapper to keep buttons side-by-side */
+
 .button-row {
   display: flex;
   gap: 0.75rem;
-  justify-content: left;  /* change to center or flex-start if needed */
+  justify-content: left;   
   flex-wrap: wrap;
    
  
-            /* stack vertically on very narrow screens */
   margin-top: 30px;
 }
 

@@ -511,45 +511,199 @@ window.clearValue = clearValue
         }
     
         else if (typeKey === "token") {
-            const rewardDisplay = wrapper.querySelector(".reward-display");
+          const rewardDisplay = wrapper.querySelector(".reward-display");
 
-            // Build badge with icon + amount + symbol
-            rewardDisplay.innerHTML = `
-              ${svgIcon}
-              <img class="token-icon" style="width:16px; height:16px; margin-right:2px; ${r.reward_data.icon ? '' : 'display:none;'}"
-                  src="${r.reward_data.icon || ''}" />
-              <span class="amount-text">${r.reward_data.amount_per_winner || ''}</span>
-              <span class="token-symbol">${r.reward_data.symbol || ''}</span>
-            `;
-            rewardDisplay.style.display = "flex";
-            rewardDisplay.style.alignItems = "center";
+          rewardDisplay.innerHTML = `
+            ${svgIcon}
+            <svg fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="25" height="25">
+              <circle cx="12" cy="12" r="9" fill="#F3B724"/>
+              <polyline points="9 9 15 9 9 15 15 15" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+              <line x1="12" y1="7" x2="12" y2="9" stroke="#fff" stroke-linecap="round" stroke-width="2"/>
+              <line x1="12" y1="15" x2="12" y2="17" stroke="#fff" stroke-linecap="round" stroke-width="2"/>
+            </svg>
+            <span class="amount-text" style="font-size:.78rem;font-weight:600;">${r.reward_data.amount_per_winner || '—'}</span>
+            <span style="color:#F4B728;font-size:.7rem;font-weight:700;margin-left:3px;">ZEC</span>
+          `;
+          rewardDisplay.style.display = "flex";
+          rewardDisplay.style.alignItems = "center";
+          rewardDisplay.style.gap = "4px";
+          rewardDisplay.style.cursor = "pointer";
 
-            // Hidden fields so you can still save back cleanly
-            const hiddenNetwork = document.createElement("input");
-            hiddenNetwork.type = "hidden";
-            hiddenNetwork.className = "hidden-network";
-            hiddenNetwork.value = r.reward_data.network || "";
+          const amountSpan = rewardDisplay.querySelector(".amount-text");
 
-            const hiddenToken = document.createElement("input");
-            hiddenToken.type = "hidden";
-            hiddenToken.className = "hidden-token";
-            hiddenToken.value = r.reward_data.contract || r.reward_data.symbol || "";
+          // ── Build container ───────────────────────────────────────────────────────
+          const tokenContainer = document.createElement("div");
+          tokenContainer.className = "zec-inline-reward";
+          tokenContainer.style.display = "none";
+          tokenContainer.innerHTML = `
+            <div class="zec-inline-header">
+              <label class="zec-inline-lbl">ZEC Reward per winner</label>
+              <span class="zec-platform-bal" id="zecPlatBal">Loading…</span>
+            </div>
+            <div class="zec-amt-row">
+              <div class="zec-input-wrap">
+                <div class="zec-badge">
+                  <svg fill="none" viewBox="0 0 24 24" width="14" height="14">
+                    <circle cx="12" cy="12" r="9" fill="#F3B724"/>
+                    <polyline points="9 9 15 9 9 15 15 15" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+                  </svg>
+                  ZEC
+                </div>
+                <input type="number" class="amount-input" placeholder="0.00000000"
+                      step="0.00000001" min="0" value="${r.reward_data.amount_per_winner || ''}"/>
+              </div>
+              <div class="zec-usd-equiv">≈ $0.00 USD</div>
+            </div>
+            <div class="zec-bal-feedback" style="display:none"></div>
+            <input type="hidden" class="hidden-network" name="network" value="Zcash">
+            <input type="hidden" class="hidden-token"   name="token"   value="ZEC">
+            <input type="hidden" class="hidden-amount"  name="amount"  value="${r.reward_data.amount_per_winner || ''}">
+          `;
 
-            const hiddenAmount = document.createElement("input");
-            hiddenAmount.type = "hidden";
-            hiddenAmount.className = "hidden-amount";
-            hiddenAmount.value = r.reward_data.amount_per_winner || "";
+          wrapper.style.position = "relative";
+          wrapper.appendChild(tokenContainer);
 
-            const hiddenIcon = document.createElement("input");
-            hiddenIcon.type = "hidden";
-            hiddenIcon.className = "hidden-token-icon";
-            hiddenIcon.value = r.reward_data.icon || "";
+          const amountInput  = tokenContainer.querySelector(".amount-input");
+          const usdEl        = tokenContainer.querySelector(".zec-usd-equiv");
+          const hiddenAmount = tokenContainer.querySelector(".hidden-amount");
+          const balFeedback  = tokenContainer.querySelector(".zec-bal-feedback");
+          const platBalEl    = tokenContainer.querySelector("#zecPlatBal");
 
-            wrapper.appendChild(hiddenNetwork);
-            wrapper.appendChild(hiddenToken);
-            wrapper.appendChild(hiddenAmount);
-            wrapper.appendChild(hiddenIcon);
-            initTokenReward(wrapper, r);
+          // ── Match width of .contain-all-side ─────────────────────────────────────
+          const syncWidth = () => {
+            const containAll = document.querySelector(".contain-all-side");
+            if (containAll) tokenContainer.style.width = containAll.offsetWidth + "px";
+          };
+
+          // ── Smart positioning ─────────────────────────────────────────────────────
+          const positionPanel = () => {
+            syncWidth();
+            const rect        = rewardDisplay.getBoundingClientRect();
+            const panelHeight = tokenContainer.offsetHeight || 160;
+            const spaceBelow  = window.innerHeight - rect.bottom;
+            if (spaceBelow >= panelHeight + 8) {
+              tokenContainer.style.top    = rewardDisplay.offsetHeight + 4 + "px";
+              tokenContainer.style.bottom = "auto";
+            } else {
+              tokenContainer.style.bottom = rewardDisplay.offsetHeight + 4 + "px";
+              tokenContainer.style.top    = "auto";
+            }
+            tokenContainer.style.left = "0px";
+          };
+
+          // ── Toggle ────────────────────────────────────────────────────────────────
+          rewardDisplay.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const isOpen = tokenContainer.style.display === "block";
+            if (!isOpen) {
+              tokenContainer.style.display = "block";
+              positionPanel();
+              validateForm();
+            } else {
+              tokenContainer.style.display = "none";
+            }
+          });
+
+          // ── Outside click closes ──────────────────────────────────────────────────
+          const handleDocClick = (e) => {
+            if (!tokenContainer.contains(e.target) && !rewardDisplay.contains(e.target)) {
+              tokenContainer.style.display = "none";
+            }
+          };
+          document.addEventListener("click", handleDocClick);
+          tokenContainer.addEventListener("click", (e) => e.stopPropagation());
+
+          // ── Platform balance ──────────────────────────────────────────────────────
+          let platformZecBal = null;
+
+          fetch(`/api/platform/zec-balance?community_slug=${communitySlug}`)
+            .then(r => r.json())
+            .then(data => {
+              platformZecBal = parseFloat(data.balance) || 0;
+              platBalEl.textContent = `${platformZecBal.toFixed(4)} ZEC available`;
+              platBalEl.style.color = platformZecBal > 0 ? 'var(--sub)' : 'var(--red)';
+              updateUsdDisplay();
+              validateForm();
+            })
+            .catch(() => { platBalEl.textContent = ''; });
+
+          // ── Live ZEC price ────────────────────────────────────────────────────────
+          let widgetZecPrice = (typeof ZEC_PRICE_USD !== "undefined") ? ZEC_PRICE_USD : 540;
+
+          const updateUsdDisplay = () => {
+            const amt = parseFloat(amountInput.value) || 0;
+            usdEl.textContent = amt > 0
+              ? `≈ $${(amt * widgetZecPrice).toFixed(2)} USD`
+              : `≈ $0.00 USD`;
+
+            if (amt > 0 && platformZecBal !== null) {
+              balFeedback.style.display = 'block';
+              if (amt > platformZecBal) {
+                balFeedback.textContent = `⚠️ Only ${platformZecBal.toFixed(4)} ZEC available`;
+                balFeedback.className   = 'zec-bal-feedback zec-bal-err';
+              } else {
+                balFeedback.textContent = `Remaining after reward: ${(platformZecBal - amt).toFixed(4)} ZEC`;
+                balFeedback.className   = 'zec-bal-feedback zec-bal-ok';
+              }
+            } else {
+              balFeedback.style.display = 'none';
+            }
+          };
+
+
+
+          window.ZecPriceStore?.start();
+
+          const unsubscribePrice =
+            window.ZecPriceStore?.subscribe((price) => {
+
+              widgetZecPrice = price;
+
+              if (typeof ZEC_PRICE_USD !== "undefined") {
+                ZEC_PRICE_USD = price;
+              }
+
+              updateUsdDisplay();
+
+              usdEl.style.transition = "opacity .15s";
+              usdEl.style.opacity = ".3";
+
+              setTimeout(() => {
+                usdEl.style.opacity = "1";
+              }, 150);
+
+            });
+
+          wrapper.__cleanupPrice = unsubscribePrice;
+
+          // ── Amount input ──────────────────────────────────────────────────────────
+          amountInput.addEventListener("input", () => {
+            const raw = parseFloat(amountInput.value);
+            const amt = isNaN(raw) ? 0 : raw;
+
+            if (raw < 0) {
+              amountInput.value      = "";
+              amountSpan.textContent = "—";
+              hiddenAmount.value     = "";
+            } else {
+              amountSpan.textContent = amt > 0 ? amountInput.value : "—";
+              hiddenAmount.value     = amt > 0 ? amountInput.value : "";
+            }
+
+            updateUsdDisplay();
+            validateForm();
+          });
+
+          // ── Delete ────────────────────────────────────────────────────────────────
+          wrapper.querySelector(".delete-reward").addEventListener("click", () => {
+            clearInterval(priceInterval);
+            wrapper.__cleanupPrice?.();
+            document.removeEventListener("click", handleDocClick);
+            wrapper.remove();
+            updateRewardColumnState();
+          });
+
+          validateForm();
         }
 
 
@@ -1008,7 +1162,8 @@ document.querySelectorAll(".reward-dropdown .option").forEach(option => {
 
         if (text === "Role") {
           const rewardDisplay = wrapper.querySelector(".reward-display");
-
+          const rewardDropdown = document.querySelector(".reward-dropdown");
+          if (rewardDropdown) rewardDropdown.style.display = "none";
           // 🔹 check if Discord is connected (Flask injected bool)
           const discordConnected = "{{ 'true' if discord_connected else 'false' }}" === "true";
 
@@ -1136,6 +1291,8 @@ document.querySelectorAll(".reward-dropdown .option").forEach(option => {
 
 
         if (text === "Custom") {
+          const rewardDropdown = document.querySelector(".reward-dropdown");
+          if (rewardDropdown) rewardDropdown.style.display = "none";
           const rewardDisplay = wrapper.querySelector(".reward-display");
 
           // Show icon only (span hidden at first)
@@ -1226,543 +1383,206 @@ document.querySelectorAll(".reward-dropdown .option").forEach(option => {
 
 
         if (text === "Token") {
+          const rewardDropdown = document.querySelector(".reward-dropdown");
+          if (rewardDropdown) rewardDropdown.style.display = "none";
           const rewardDisplay = wrapper.querySelector(".reward-display");
 
-          // icon + live amount + token + image
           rewardDisplay.innerHTML = `
             ${svgIcon}
-            <img class="token-icon" style="width:16px; height:16px; margin-right: 2px; display:none;" />
-            <span class="amount-text"></span>
-            <span class="token-symbol"></span>
+            <svg fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="25" height="25">
+              <circle cx="12" cy="12" r="9" fill="#F3B724"/>
+              <polyline points="9 9 15 9 9 15 15 15" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+              <line x1="12" y1="7" x2="12" y2="9" stroke="#fff" stroke-linecap="round" stroke-width="2"/>
+              <line x1="12" y1="15" x2="12" y2="17" stroke="#fff" stroke-linecap="round" stroke-width="2"/>
+            </svg>
+            <span class="amount-text" style="font-size:.78rem;font-weight:600;">—</span>
+            <span style="color:#F4B728;font-size:.7rem;font-weight:700;margin-left:3px;">ZEC</span>
           `;
           rewardDisplay.style.display = "flex";
           rewardDisplay.style.alignItems = "center";
+          rewardDisplay.style.gap = "4px";
+          rewardDisplay.style.cursor = "pointer";
 
           const amountSpan = rewardDisplay.querySelector(".amount-text");
-          const tokenSpan = rewardDisplay.querySelector(".token-symbol");
-          const tokenIcon = rewardDisplay.querySelector(".token-icon");
 
-          // ---- Build dropdown ----
+          // ── Build container ───────────────────────────────────────────────────────
           const tokenContainer = document.createElement("div");
-          tokenContainer.className = "tokencontain";
+          tokenContainer.className = "zec-inline-reward";
+          tokenContainer.style.display = "none";
           tokenContainer.innerHTML = `
-            <label class="tokensel">Network</label>
-            <div class="dropdown-input network-wrap">
-              <input type="text" class="network-input" style="box-sizing: border-box; margin:0;" readonly placeholder="Select a network">
-              <span class="arrow">▼</span>
-              <div class="dropdown-panel network-panel" style="display:none">
-                <div class="token-box">
-                  <svg viewBox="0 0 24 24" fill="none">
-                    <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
-                    <path d="M20 20L16.65 16.65" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                  </svg>
-                  <input type="search" class="network-search" placeholder="Search network...">
-                </div>
-                <ul class="network-list"></ul>
-              </div>
+            <div class="zec-inline-header">
+              <label class="zec-inline-lbl">ZEC Reward per winner</label>
+              <span class="zec-platform-bal" id="zecPlatBal">Loading…</span>
             </div>
-
-            <label class="tokensel">Token</label>
-            <div class="dropdown-input token-wrap">
-              <input type="text" class="token-input" style="box-sizing: border-box; margin:0;" readonly placeholder="Select a token">
-              <span class="arrow">▼</span>
-              <div class="dropdown-panel token-panel" style="display:none">
-                <div class="token-box">
-                  <svg viewBox="0 0 24 24" fill="none">
-                    <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
-                    <path d="M20 20L16.65 16.65" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <div class="zec-amt-row">
+              <div class="zec-input-wrap">
+                <div class="zec-badge">
+                  <svg fill="none" viewBox="0 0 24 24" width="14" height="14">
+                    <circle cx="12" cy="12" r="9" fill="#F3B724"/>
+                    <polyline points="9 9 15 9 9 15 15 15" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
                   </svg>
-                  <input type="search" class="token-search" placeholder="Search token...">
+                  ZEC
                 </div>
-                <ul class="token-list"></ul>
+                <input type="number" class="amount-input" placeholder="0.00000000"
+                      step="0.00000001" min="0"/>
               </div>
+              <div class="zec-usd-equiv">≈ $0.00 USD</div>
             </div>
-
-            <label class="tokensel">Amount per winner</label>
-            <input type="number" class="amount-input">
-            <p style="font-size:12px;color: var(--text-muted);">You need to distribute the rewards manually after winners have been decided</p>
-
-            <!-- hidden inputs -->
-            <input type="hidden" class="hidden-network" name="network">
-            <input type="hidden" class="hidden-token" name="token">
-            <input type="hidden" class="hidden-amount" name="amount">
+            <div class="zec-bal-feedback" style="display:none"></div>
+            <input type="hidden" class="hidden-network" name="network" value="Zcash">
+            <input type="hidden" class="hidden-token"   name="token"   value="ZEC">
+            <input type="hidden" class="hidden-amount"  name="amount">
           `;
 
-          wrapper.appendChild(tokenContainer);
-          tokenContainer.style.display = "block";
           wrapper.style.position = "relative";
-          tokenContainer.style.position = "absolute";
+          wrapper.appendChild(tokenContainer);
 
-          // hidden inputs
-          const hiddenNetwork = tokenContainer.querySelector(".hidden-network");
-          const hiddenToken = tokenContainer.querySelector(".hidden-token");
-          const hiddenAmount = tokenContainer.querySelector(".hidden-amount");
-
-          // smart positioning
-          const positionDropdown = () => {
-            const rect = rewardDisplay.getBoundingClientRect();
-            const dropdownHeight = tokenContainer.offsetHeight || 200;
-            const spaceBelow = window.innerHeight - rect.bottom;
-            const spaceAbove = rect.top;
-
-            tokenContainer.style.left = "0px";
-            tokenContainer.style.top =
-              spaceBelow >= dropdownHeight
-                ? rewardDisplay.offsetHeight + "px"
-                : spaceAbove >= dropdownHeight
-                ? -dropdownHeight + "px"
-                : rewardDisplay.offsetHeight + "px";
+          // ── Match width of .contain-all-side ─────────────────────────────────────
+          const syncWidth = () => {
+            const containAll = document.querySelector(".contain-all-side");
+            if (containAll) {
+              tokenContainer.style.width = containAll.offsetWidth + "px";
+            }
           };
-          positionDropdown();
+          // ── Smart positioning — drop down or drop up ──────────────────────────────
+          const positionPanel = () => {
+            syncWidth();
+            const rect        = rewardDisplay.getBoundingClientRect();
+            const panelHeight = tokenContainer.offsetHeight || 160;
+            const spaceBelow  = window.innerHeight - rect.bottom;
+            if (spaceBelow >= panelHeight + 8) {
+              tokenContainer.style.top    = rewardDisplay.offsetHeight + 4 + "px";
+              tokenContainer.style.bottom = "auto";
+            } else {
+              tokenContainer.style.bottom = rewardDisplay.offsetHeight + 4 + "px";
+              tokenContainer.style.top    = "auto";
+            }
+            tokenContainer.style.left = "0px";
+          };
+          tokenContainer.style.display = "block";
+          positionPanel();
+          validateForm();
+          const amountInput  = tokenContainer.querySelector(".amount-input");
+          const usdEl        = tokenContainer.querySelector(".zec-usd-equiv");
+          const hiddenAmount = tokenContainer.querySelector(".hidden-amount");
+          const balFeedback  = tokenContainer.querySelector(".zec-bal-feedback");
+          const platBalEl    = tokenContainer.querySelector("#zecPlatBal");
 
+
+
+          // ── Toggle ────────────────────────────────────────────────────────────────
           rewardDisplay.addEventListener("click", (e) => {
             e.stopPropagation();
-            tokenContainer.style.display =
-              tokenContainer.style.display === "block" ? "none" : "block";
-            positionDropdown();
+            const isOpen = tokenContainer.style.display === "block";
+            if (!isOpen) {
+              tokenContainer.style.display = "block";
+              positionPanel();
+              validateForm();  
+            } else {
+              tokenContainer.style.display = "none";
+            }
           });
 
-          // live preview
-          const amountInput = tokenContainer.querySelector(".amount-input");
-
-          // delete reward
+          // ── Outside click closes ──────────────────────────────────────────────────
           const handleDocClick = (e) => {
             if (!tokenContainer.contains(e.target) && !rewardDisplay.contains(e.target)) {
               tokenContainer.style.display = "none";
-              networkPanel.style.display = "none";
-              tokenPanel.style.display = "none";
             }
           };
+          document.addEventListener("click", handleDocClick);
+          tokenContainer.addEventListener("click", (e) => e.stopPropagation());
+
+          // ── Platform balance ──────────────────────────────────────────────────────
+          let platformZecBal = null;
+
+          fetch(`/api/platform/zec-balance?community_slug=${communitySlug}`)
+            .then(r => r.json())
+            .then(data => {
+              platformZecBal = parseFloat(data.balance) || 0;
+              platBalEl.textContent = `${platformZecBal.toFixed(4)} ZEC available`;
+              platBalEl.style.color = platformZecBal > 0 ? 'var(--sub)' : 'var(--red)';
+              updateUsdDisplay();
+              validateForm();
+            })
+            .catch(() => { platBalEl.textContent = ''; });
+
+          // ── Live ZEC price ────────────────────────────────────────────────────────
+          let widgetZecPrice = window.ZecPriceStore?.getPrice?.() || 540;
+
+          const updateUsdDisplay = () => {
+            const amt = parseFloat(amountInput.value) || 0;
+            usdEl.textContent = amt > 0
+              ? `≈ $${(amt * widgetZecPrice).toFixed(2)} USD`
+              : `≈ $0.00 USD`;
+
+            if (amt > 0 && platformZecBal !== null) {
+              balFeedback.style.display = 'block';
+              if (amt > platformZecBal) {
+                balFeedback.textContent = `⚠️ Only ${platformZecBal.toFixed(4)} ZEC available`;
+                balFeedback.className   = 'zec-bal-feedback zec-bal-err';
+              } else {
+                balFeedback.textContent = `Remaining after reward: ${(platformZecBal - amt).toFixed(4)} ZEC`;
+                balFeedback.className   = 'zec-bal-feedback zec-bal-ok';
+              }
+            } else {
+              balFeedback.style.display = 'none';
+            }
+          };
+
+
+
+          window.ZecPriceStore?.start();
+
+          const unsubscribePrice =
+            window.ZecPriceStore?.subscribe((price) => {
+
+              widgetZecPrice = price;
+
+              if (typeof ZEC_PRICE_USD !== "undefined") {
+                ZEC_PRICE_USD = price;
+              }
+
+              updateUsdDisplay();
+
+              usdEl.style.transition = "opacity .15s";
+              usdEl.style.opacity = ".3";
+
+              setTimeout(() => {
+                usdEl.style.opacity = "1";
+              }, 150);
+
+            });
+
+          wrapper.__cleanupPrice = unsubscribePrice;
+
+          amountInput.addEventListener("input", () => {
+            const raw = parseFloat(amountInput.value);
+            const amt = isNaN(raw) ? 0 : raw;
+
+            // Clamp: reject negatives
+            if (raw < 0) {
+              amountInput.value = "";
+              amountSpan.textContent = "—";
+              hiddenAmount.value = "";
+            } else {
+              amountSpan.textContent = amt > 0 ? amountInput.value : "—";
+              hiddenAmount.value     = amt > 0 ? amountInput.value : "";
+            }
+
+            updateUsdDisplay();
+            validateForm();  
+          });
+
+          // ── Delete ────────────────────────────────────────────────────────────────
           wrapper.querySelector(".delete-reward").addEventListener("click", () => {
+            clearInterval(priceInterval);
+            wrapper.__cleanupPrice?.();
             document.removeEventListener("click", handleDocClick);
             wrapper.remove();
             updateRewardColumnState();
           });
-
-          tokenContainer.addEventListener("click", (e) => e.stopPropagation());
-
-          // ---------------- DATA ----------------
-          const networks = [ "Ethereum","Optimism","Arbitrum","Polygon","Base","Solana","Binance (BNB)",
-            "Linea","Avalanche","Fantom","Cronos","Palm","Gnosis","Chiliz","Moonbeam",
-            "Polygon zkEVM","ZKSync","Ton","Stacks","Gunz Testnet","Gunz","Monad Testnet",
-            "OpBnB","Ronin","Soneium","Sonic","Cardano"
-          ];
-
-          const networkTokens = {
-            Ethereum:["ETH","USDT","USDC","DAI","LINK"],
-            Polygon:["MATIC","USDT","USDC","DAI","WBTC"],
-            Optimism:["ETH","USDT","USDC","DAI","OP"],
-            Arbitrum:["ETH","USDT","USDC","ARB"],
-            Base:["ETH","USDC","USDT","DAI","WBTC"],
-            Solana:["SOL","USDC","USDT","SRM","RAY"],
-            "Binance (BNB)":["BNB","USDT","BUSD"],
-            Linea:["ETH","USDC"],
-            Avalanche:["AVAX","USDT","USDC"],
-            Fantom:["FTM","USDT"],
-            Cronos:["CRO","USDT"],
-            Palm:["PALM","USDC"],
-            Gnosis:["GNO","USDC"],
-            Chiliz:["CHZ"],
-            Moonbeam:["GLMR","USDT"],
-            "Polygon zkEVM":["MATIC","USDC"],
-            ZKSync: ["ETH","USDC","ZKS"], 
-            Ton:["TON"],
-            Stacks:["STX"],
-            "Gunz Testnet":["GNZ"],
-            "Monad Testnet":["MONAD"],
-            OpBnB:["BNB"],
-            Ronin:["RON"],
-            Soneium:["SON"],
-            Sonic:["SONIC"],
-            Cardano:["ADA"]
-          };
-
-          // map tokens → CoinGecko IDs
-          const tokenToCoinId = {
-            // ---- Ethereum ----
-            ETH: "ethereum",
-            USDT: "tether",
-            USDC: "usd-coin",
-            DAI: "dai",
-            LINK: "chainlink",
-            ARB: "arbitrum",
-            ZKS: "zksync",
-
-            // ---- Polygon ----
-            MATIC: "matic-network",
-            WBTC: "wrapped-bitcoin",
-
-            // ---- Optimism ----
-            OP: "optimism",
-
-            // ---- Base ----
-            // (reuses ETH, USDT, USDC, DAI, WBTC above)
-
-            // ---- Solana ----
-            SOL: "solana",
-            SRM: "serum",
-            RAY: "raydium",
-
-            // ---- Binance ----
-            BNB: "binancecoin",
-            BUSD: "binance-usd",
-
-            // ---- Avalanche ----
-            AVAX: "avalanche-2",
-
-            // ---- Fantom ----
-            FTM: "fantom",
-
-            // ---- Cronos ----
-            CRO: "crypto-com-chain",
-
-            // ---- Palm ----
-            PALM: "palm-crypto" || "palm", // (Palm isn’t on CoinGecko; may need fallback)
-
-            // ---- Gnosis ----
-            GNO: "gnosis",
-
-            // ---- Chiliz ----
-            CHZ: "chiliz",
-
-            // ---- Moonbeam ----
-            GLMR: "moonbeam",
-
-            // ---- ZKSync ----
-            // (ETH, USDC already mapped)
-
-            // ---- Ton ----
-            TON: "the-open-network",
-
-            // ---- Stacks ----
-            STX: "blockstack",
-
-            // ---- Gunz Testnet ----
-            GNZ: "gainzy", 
-
-            // ---- Monad Testnet ----
-            MONAD: null, 
-
-            // ---- OpBNB ----
-            // (BNB already mapped)
-
-            // ---- Ronin ----
-            RON: "ronin",
-
-            // ---- Soneium ----
-            SON: null, // not on CoinGecko
-
-            // ---- Sonic ----
-            SONIC: null,
-
-            // ---- Cardano ----
-            ADA: "cardano"
-          };
-
-
-          const trustWalletMap = {
-            Ethereum: {
-              ETH: "0x0000000000000000000000000000000000000000",
-              USDT: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
-              USDC: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-              DAI: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
-              LINK: "0x514910771AF9Ca656af840dff83E8264EcF986CA"
-            },
-            Polygon: {
-              MATIC: "0x0000000000000000000000000000000000001010",
-              USDT: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
-              USDC: "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
-              DAI:  "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063",
-              WBTC: "0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6"
-            },
-            Optimism: {
-              ETH: "0x0000000000000000000000000000000000000000",
-              USDT: "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58",
-              USDC: "0x7F5c764cBc14f9669B88837ca1490cCa17c31607",
-              DAI:  "0xda10009cbd5d07dd0cecc66161fc93d7c9000da1",
-              OP:   "0x4200000000000000000000000000000000000042"
-            },
-            Arbitrum: {
-              ETH: "0x0000000000000000000000000000000000000000",
-              USDT: "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9",
-              USDC: "0xaf88d065e77c8cc2239327c5edb3a432268e5831"
-            },
-            Base: {
-              ETH: "0x0000000000000000000000000000000000000000",
-              USDC: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
-              USDT: "0xfdde0e55c5791ab7f2d1f2a3ebd6bb3f61e4c7aa",
-              DAI:  "0x50c5725949a6f0c72e6c4a641f24049a917db0cb",
-              WBTC: "0x2f2a2543b76a4166549f7aab2e75b52aef9c61a8" // bridged
-            },
-            Solana: {
-              SOL: "solana/info", // non-EVM: just ticker folder
-              USDC: "solana/assets/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-              USDT: "solana/assets/Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
-              SRM:  "solana/assets/9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin",
-              RAY:  "solana/assets/4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R"
-            },
-            "Binance (BNB)": {
-              BNB: "0x0000000000000000000000000000000000000000",
-              USDT: "0x55d398326f99059ff775485246999027b3197955",
-              BUSD: "0xe9e7cea3dedca5984780bafc599bd69add087d56"
-            },
-            Linea: {
-              ETH: "0x0000000000000000000000000000000000000000",
-              USDC: "0x176211869ca2b568f2a7d4ee941e073a821ee1ff"
-            },
-            Avalanche: {
-              AVAX: "0x0000000000000000000000000000000000000000",
-              USDT: "0xc7198437980c041c805a1edcba50c1ce5db95118",
-              USDC: "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"
-            },
-            Fantom: {
-              FTM: "0x0000000000000000000000000000000000000000",
-              USDT: "0x049d68029688eabf473097a2fc38ef61633a3c7a"
-            },
-            Cronos: {
-              CRO: "0x0000000000000000000000000000000000000000",
-              USDT: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F"
-            },
-            Palm: {
-              PALM: null, // not on TrustWallet
-              USDC: null
-            },
-            Gnosis: {
-              GNO: "0x6810e776880c02933d47db1b9fc05908e5386b96",
-              USDC: "0xddafbb505ad214d7b80b1f830fccc89b60fb7a83"
-            },
-            Chiliz: {
-              CHZ: "0x3506424f91fd33084466f402d5d97f05f8e3b4af"
-            },
-            Moonbeam: {
-              GLMR: "0x0000000000000000000000000000000000000000",
-              USDT: "0x8f552a71efe5eefc207bf75485b356a0b3f01ec9"
-            },
-            "Polygon zkEVM": {
-              MATIC: "0x0000000000000000000000000000000000000000",
-              USDC: "0xA8CE8aee21bC8559Ff46d4E3d4E4f478E8d2e2fA"
-            },
-            ZKSync: {
-              ETH: "0x0000000000000000000000000000000000000000",
-              USDC: "0x3355df6D4c9C3035724Fd0e3914dE96A5a83aaf4"
-            },
-            Ton: {
-              TON: "ton/info" // TrustWallet ticker folder
-            },
-            Stacks: {
-              STX: "stacks/info"
-            },
-            Ronin: {
-              RON: "ronin/info"
-            },
-            Cardano: {
-              ADA: "cardano/info"
-            },
-            // testnets / custom chains (no TrustWallet support)
-            "Gunz Testnet": {},
-            Gunz: {},
-            "Monad Testnet": {},
-            Soneium: {},
-            Sonic: {}
-          };
-
-
-          // ------------- Scoped elements -------------
-          const networkWrap  = tokenContainer.querySelector(".network-wrap");
-          const networkInput = tokenContainer.querySelector(".network-input");
-          const networkPanel = tokenContainer.querySelector(".network-panel");
-          const networkSearch = tokenContainer.querySelector(".network-search");
-          const networkList  = tokenContainer.querySelector(".network-list");
-
-          const tokenWrap  = tokenContainer.querySelector(".token-wrap");
-          const tokenInput = tokenContainer.querySelector(".token-input");
-          const tokenPanel = tokenContainer.querySelector(".token-panel");
-          const tokenSearch = tokenContainer.querySelector(".token-search");
-          const tokenList  = tokenContainer.querySelector(".token-list");
-
-          // ------------- Renderers -------------
-          const renderNetworks = (filter = "") => {
-            networkList.innerHTML = "";
-            networks
-              .filter(n => n.toLowerCase().includes(filter.toLowerCase()))
-              .forEach(n => {
-                const li = document.createElement("li");
-                li.textContent = n;
-                li.style.cursor = "pointer";
-                li.addEventListener("click", () => {
-                  networkInput.value = n;
-                  hiddenNetwork.value = n;
-                  tokenInput.value = "";            
-                  amountSpan.textContent = "";
-                  tokenSpan.textContent = "";
-                  tokenIcon.style.display = "none";
-                  hiddenToken.value = "";
-                  hiddenAmount.value = "";
-                  networkPanel.style.display = "none";
-                  renderTokens(n);                  
-                });
-                networkList.appendChild(li);
-                validateForm(); 
-              });
-          };
-
-          const renderTokens = (network) => {
-            tokenList.innerHTML = "";
-            (networkTokens[network] || []).forEach(t => {
-              const li = document.createElement("li");
-              li.textContent = t;
-              li.style.cursor = "pointer";
-              li.addEventListener("click", () => {
-                tokenInput.value = t;
-                hiddenToken.value = t;
-                tokenPanel.style.display = "none";
-                tokenSpan.textContent = t;
-                amountSpan.textContent = amountInput.value || "";
-                hiddenAmount.value = amountInput.value || "";
-
-                // --- fetch token image ---
-                const coinId = tokenToCoinId[t];
-                if (coinId) {
-                  fetch(`/api/coin/${coinId}`)
-                    .then(r => r.json())
-                    .then(data => {
-                      if (data.image && data.image.small) {
-                        tokenIcon.src = data.image.large || data.image.small || data.image.thumb;
-                        tokenIcon.style.display = "inline-block";
-                      }
-                    })
-                    .catch(err => console.error("Icon fetch failed:", err));
-                }
-              });
-              tokenList.appendChild(li);
-              validateForm(); 
-            });
-          };
-
-          renderNetworks();
-          tokenList.innerHTML = "";
-
-          // live update
-          amountInput.addEventListener("input", () => {
-            amountSpan.textContent = amountInput.value;
-            tokenSpan.textContent = tokenInput.value;
-            hiddenAmount.value = amountInput.value;
-            validateForm();
-          });
-
-          // ------------- Toggles -------------
-          const toggle = (panel) => {
-            panel.style.display = panel.style.display === "block" ? "none" : "block";
-          };
-
-          networkWrap.querySelector(".arrow").addEventListener("click", (e) => {
-            e.stopPropagation();
-            toggle(networkPanel);
-          });
-          tokenWrap.querySelector(".arrow").addEventListener("click", (e) => {
-            e.stopPropagation();
-            if (!networkInput.value) return alert("Select a network first!");
-            toggle(tokenPanel);
-          });
-
-          networkInput.addEventListener("click", (e) => {
-            e.stopPropagation();
-            toggle(networkPanel);
-          });
-
-          tokenInput.addEventListener("click", (e) => {
-            e.stopPropagation();
-            if (!networkInput.value) return alert("Select a network first!");
-            toggle(tokenPanel);
-          });
-
-          networkSearch.addEventListener("input", () => renderNetworks(networkSearch.value));
-          tokenSearch.addEventListener("input", () => {
-            const net = networkInput.value;
-            if (!net) return;
-            tokenList.innerHTML = "";
-            (networkTokens[net] || [])
-              .filter(t => t.toLowerCase().includes(tokenSearch.value.toLowerCase()))
-              .forEach(t => {
-                const li = document.createElement("li");
-                li.textContent = t;
-                li.style.cursor = "pointer";
-                li.addEventListener("click", () => {
-                  tokenInput.value = t;
-                  hiddenToken.value = t;
-                  tokenPanel.style.display = "none";
-                  tokenSpan.textContent = t;
-                  amountSpan.textContent = amountInput.value || "";
-                  hiddenAmount.value = amountInput.value || "";
-
-                  // --- load token icon ---
-                  const coinId = tokenToCoinId[t];
-                  const trustAddr = trustWalletMap[network]?.[t];
-
-                  // Try CoinGecko first
-                  if (coinId) {
-                    fetch(`/api/coin/${coinId}`)
-                      .then(r => r.json())
-                      .then(data => {
-                        if (data.image && (data.image.large || data.image.small)) {
-                          tokenIcon.src = data.image.large || data.image.small || data.image.thumb;
-                          tokenIcon.style.display = "inline-block";
-                        } else {
-                          tryTrustWallet();
-                        }
-                      })
-                      .catch(() => tryTrustWallet());
-                  } else {
-                    tryTrustWallet();
-                  }
-
-                  function tryTrustWallet() {
-                    if (!trustAddr) {
-                      tokenIcon.src = "/static/img/token-placeholder.png";
-                      tokenIcon.style.display = "inline-block";
-                      return;
-                    }
-
-                    let url;
-                    if (trustAddr.startsWith("0x")) {
-                      // EVM chain: use contract address
-                      url = `https://assets.trustwalletapp.com/blockchains/${network.toLowerCase()}/assets/${trustAddr}/logo.png`;
-                    } else {
-                      // Non-EVM (Solana, Ton, Cardano, etc.)
-                      url = `https://assets.trustwalletapp.com/blockchains/${trustAddr}/logo.png`;
-                    }
-
-                    tokenIcon.src = url;
-                    tokenIcon.style.display = "inline-block";
-
-                    // store icon in hidden input for form submission
-                    let hiddenIconInput = wrapper.querySelector(".hidden-token-icon");
-                    if (!hiddenIconInput) {
-                      hiddenIconInput = document.createElement("input");
-                      hiddenIconInput.type = "hidden";
-                      hiddenIconInput.className = "hidden-token-icon";
-                      wrapper.appendChild(hiddenIconInput);
-                    }
-                    hiddenIconInput.value = tokenIcon.src;
-                    tokenIcon.onerror = () => {
-                      tokenIcon.src = "/static/img/token-placeholder.png";
-                    };
-                  }
-                });
-                tokenList.appendChild(li);
-                validateForm(); 
-              });
-          });
-
-          renderNetworks();
-          networkInput.value = "Ethereum";
-          hiddenNetwork.value = "Ethereum";
-          renderTokens("Ethereum");
-
-          document.addEventListener("click", handleDocClick);
         }
-
-        // delete reward
+        
         wrapper
           .querySelector(".delete-reward")
           .addEventListener("click", () => {
@@ -3528,570 +3348,7 @@ document.querySelectorAll(".condition .option").forEach(option => {
 
 
 
-  function initTokenReward(wrapper, r) {
-      const rewardDisplay = wrapper.querySelector(".reward-display");
 
-  
-
-      // Don't overwrite rewardDisplay.innerHTML here!
-      rewardDisplay.style.display = "flex";
-      rewardDisplay.style.alignItems = "center";
-
-      const amountSpan = rewardDisplay.querySelector(".amount-text");
-      const tokenSpan = rewardDisplay.querySelector(".token-symbol");
-      const tokenIcon = rewardDisplay.querySelector(".token-icon");
-
-      // Set existing data from r.reward_data
-      amountSpan.textContent = r.reward_data.amount_per_winner || "";
-      tokenSpan.textContent = r.reward_data.symbol || "";
-      if (r.reward_data.icon) {
-          tokenIcon.src = r.reward_data.icon;
-          tokenIcon.style.display = "inline-block";
-      }
-
-    // ---- Build dropdown ----
-    const tokenContainer = document.createElement("div");
-    tokenContainer.className = "tokencontain";
-    tokenContainer.innerHTML = `
-      <label class="tokensel">Network</label>
-      <div class="dropdown-input network-wrap">
-        <input type="text" class="network-input" style="box-sizing: border-box; margin:0;" readonly placeholder="Select a network">
-        <span class="arrow">▼</span>
-        <div class="dropdown-panel network-panel" style="display:none">
-          <div class="token-box">
-            <svg viewBox="0 0 24 24" fill="none">
-              <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
-              <path d="M20 20L16.65 16.65" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-            <input type="search" class="network-search" placeholder="Search network...">
-          </div>
-          <ul class="network-list"></ul>
-        </div>
-      </div>
-
-      <label class="tokensel">Token</label>
-      <div class="dropdown-input token-wrap">
-        <input type="text" class="token-input" style="box-sizing: border-box; margin:0;" readonly placeholder="Select a token">
-        <span class="arrow">▼</span>
-        <div class="dropdown-panel token-panel" style="display:none">
-          <div class="token-box">
-            <svg viewBox="0 0 24 24" fill="none">
-              <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
-              <path d="M20 20L16.65 16.65" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-            <input type="search" class="token-search" placeholder="Search token...">
-          </div>
-          <ul class="token-list"></ul>
-        </div>
-      </div>
-
-      <label class="tokensel">Amount per winner</label>
-      <input type="number" class="amount-input">
-      <p style="font-size:12px;color:grey;">You need to distribute the rewards manually after winners have been decided</p>
-
-      <!-- hidden inputs -->
-      <input type="hidden" class="hidden-network" name="network">
-      <input type="hidden" class="hidden-token" name="token">
-      <input type="hidden" class="hidden-amount" name="amount">
-    `;
-
-    wrapper.appendChild(tokenContainer);
-    tokenContainer.style.display = "none";
-    wrapper.style.position = "relative";
-    tokenContainer.style.position = "absolute";
-
-    // hidden inputs
-    const hiddenNetwork = tokenContainer.querySelector(".hidden-network");
-    const hiddenToken = tokenContainer.querySelector(".hidden-token");
-    const hiddenAmount = tokenContainer.querySelector(".hidden-amount");
-
-    // smart positioning
-    const positionDropdown = () => {
-      const rect = rewardDisplay.getBoundingClientRect();
-      const dropdownHeight = tokenContainer.offsetHeight || 200;
-      const spaceBelow = window.innerHeight - rect.bottom;
-      const spaceAbove = rect.top;
-
-      tokenContainer.style.left = "0px";
-      tokenContainer.style.top =
-        spaceBelow >= dropdownHeight
-          ? rewardDisplay.offsetHeight + "px"
-          : spaceAbove >= dropdownHeight
-          ? -dropdownHeight + "px"
-          : rewardDisplay.offsetHeight + "px";
-    };
-    positionDropdown();
-
-    rewardDisplay.addEventListener("click", (e) => {
-      e.stopPropagation();
-      tokenContainer.style.display =
-        tokenContainer.style.display === "block" ? "none" : "block";
-      positionDropdown();
-    });
-
-    // live preview
-    const amountInput = tokenContainer.querySelector(".amount-input");
-
-    // delete reward
-    const handleDocClick = (e) => {
-      if (!tokenContainer.contains(e.target) && !rewardDisplay.contains(e.target)) {
-        tokenContainer.style.display = "none";
-        networkPanel.style.display = "none";
-        tokenPanel.style.display = "none";
-      }
-    };
-    wrapper.querySelector(".delete-reward").addEventListener("click", () => {
-      document.removeEventListener("click", handleDocClick);
-      wrapper.remove();
-      updateRewardColumnState();
-
-    });
-
-    tokenContainer.addEventListener("click", (e) => e.stopPropagation());
-
-    // ---------------- DATA ----------------
-    const networks = [ "Ethereum","Optimism","Arbitrum","Polygon","Base","Solana","Binance (BNB)",
-      "Linea","Avalanche","Fantom","Cronos","Palm","Gnosis","Chiliz","Moonbeam",
-      "Polygon zkEVM","ZKSync","Ton","Stacks","Gunz Testnet","Gunz","Monad Testnet",
-      "OpBnB","Ronin","Soneium","Sonic","Cardano"
-    ];
-
-    const networkTokens = {
-      Ethereum:["ETH","USDT","USDC","DAI","LINK"],
-      Polygon:["MATIC","USDT","USDC","DAI","WBTC"],
-      Optimism:["ETH","USDT","USDC","DAI","OP"],
-      Arbitrum:["ETH","USDT","USDC","ARB"],
-      Base:["ETH","USDC","USDT","DAI","WBTC"],
-      Solana:["SOL","USDC","USDT","SRM","RAY"],
-      "Binance (BNB)":["BNB","USDT","BUSD"],
-      Linea:["ETH","USDC"],
-      Avalanche:["AVAX","USDT","USDC"],
-      Fantom:["FTM","USDT"],
-      Cronos:["CRO","USDT"],
-      Palm:["PALM","USDC"],
-      Gnosis:["GNO","USDC"],
-      Chiliz:["CHZ"],
-      Moonbeam:["GLMR","USDT"],
-      "Polygon zkEVM":["MATIC","USDC"],
-      ZKSync: ["ETH","USDC","ZKS"], 
-      Ton:["TON"],
-      Stacks:["STX"],
-      "Gunz Testnet":["GNZ"],
-      "Monad Testnet":["MONAD"],
-      OpBnB:["BNB"],
-      Ronin:["RON"],
-      Soneium:["SON"],
-      Sonic:["SONIC"],
-      Cardano:["ADA"]
-    };
-
-    // map tokens → CoinGecko IDs
-    const tokenToCoinId = {
-      // ---- Ethereum ----
-      ETH: "ethereum",
-      USDT: "tether",
-      USDC: "usd-coin",
-      DAI: "dai",
-      LINK: "chainlink",
-      ARB: "arbitrum",
-      ZKS: "zksync",
-
-      // ---- Polygon ----
-      MATIC: "matic-network",
-      WBTC: "wrapped-bitcoin",
-
-      // ---- Optimism ----
-      OP: "optimism",
-
-      // ---- Base ----
-      // (reuses ETH, USDT, USDC, DAI, WBTC above)
-
-      // ---- Solana ----
-      SOL: "solana",
-      SRM: "serum",
-      RAY: "raydium",
-
-      // ---- Binance ----
-      BNB: "binancecoin",
-      BUSD: "binance-usd",
-
-      // ---- Avalanche ----
-      AVAX: "avalanche-2",
-
-      // ---- Fantom ----
-      FTM: "fantom",
-
-      // ---- Cronos ----
-      CRO: "crypto-com-chain",
-
-      // ---- Palm ----
-      PALM: "palm-crypto" || "palm", // (Palm isn’t on CoinGecko; may need fallback)
-
-      // ---- Gnosis ----
-      GNO: "gnosis",
-
-      // ---- Chiliz ----
-      CHZ: "chiliz",
-
-      // ---- Moonbeam ----
-      GLMR: "moonbeam",
-
-      // ---- ZKSync ----
-      // (ETH, USDC already mapped)
-
-      // ---- Ton ----
-      TON: "the-open-network",
-
-      // ---- Stacks ----
-      STX: "blockstack",
-
-      // ---- Gunz Testnet ----
-      GNZ: "gainzy", 
-
-      // ---- Monad Testnet ----
-      MONAD: null, 
-
-      // ---- OpBNB ----
-      // (BNB already mapped)
-
-      // ---- Ronin ----
-      RON: "ronin",
-
-      // ---- Soneium ----
-      SON: null, // not on CoinGecko
-
-      // ---- Sonic ----
-      SONIC: null,
-
-      // ---- Cardano ----
-      ADA: "cardano"
-    };
-
-
-    const trustWalletMap = {
-      Ethereum: {
-        ETH: "0x0000000000000000000000000000000000000000",
-        USDT: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
-        USDC: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-        DAI: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
-        LINK: "0x514910771AF9Ca656af840dff83E8264EcF986CA"
-      },
-      Polygon: {
-        MATIC: "0x0000000000000000000000000000000000001010",
-        USDT: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
-        USDC: "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
-        DAI:  "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063",
-        WBTC: "0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6"
-      },
-      Optimism: {
-        ETH: "0x0000000000000000000000000000000000000000",
-        USDT: "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58",
-        USDC: "0x7F5c764cBc14f9669B88837ca1490cCa17c31607",
-        DAI:  "0xda10009cbd5d07dd0cecc66161fc93d7c9000da1",
-        OP:   "0x4200000000000000000000000000000000000042"
-      },
-      Arbitrum: {
-        ETH: "0x0000000000000000000000000000000000000000",
-        USDT: "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9",
-        USDC: "0xaf88d065e77c8cc2239327c5edb3a432268e5831"
-      },
-      Base: {
-        ETH: "0x0000000000000000000000000000000000000000",
-        USDC: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
-        USDT: "0xfdde0e55c5791ab7f2d1f2a3ebd6bb3f61e4c7aa",
-        DAI:  "0x50c5725949a6f0c72e6c4a641f24049a917db0cb",
-        WBTC: "0x2f2a2543b76a4166549f7aab2e75b52aef9c61a8" // bridged
-      },
-      Solana: {
-        SOL: "solana/info", // non-EVM: just ticker folder
-        USDC: "solana/assets/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-        USDT: "solana/assets/Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
-        SRM:  "solana/assets/9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin",
-        RAY:  "solana/assets/4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R"
-      },
-      "Binance (BNB)": {
-        BNB: "0x0000000000000000000000000000000000000000",
-        USDT: "0x55d398326f99059ff775485246999027b3197955",
-        BUSD: "0xe9e7cea3dedca5984780bafc599bd69add087d56"
-      },
-      Linea: {
-        ETH: "0x0000000000000000000000000000000000000000",
-        USDC: "0x176211869ca2b568f2a7d4ee941e073a821ee1ff"
-      },
-      Avalanche: {
-        AVAX: "0x0000000000000000000000000000000000000000",
-        USDT: "0xc7198437980c041c805a1edcba50c1ce5db95118",
-        USDC: "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"
-      },
-      Fantom: {
-        FTM: "0x0000000000000000000000000000000000000000",
-        USDT: "0x049d68029688eabf473097a2fc38ef61633a3c7a"
-      },
-      Cronos: {
-        CRO: "0x0000000000000000000000000000000000000000",
-        USDT: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F"
-      },
-      Palm: {
-        PALM: null, // not on TrustWallet
-        USDC: null
-      },
-      Gnosis: {
-        GNO: "0x6810e776880c02933d47db1b9fc05908e5386b96",
-        USDC: "0xddafbb505ad214d7b80b1f830fccc89b60fb7a83"
-      },
-      Chiliz: {
-        CHZ: "0x3506424f91fd33084466f402d5d97f05f8e3b4af"
-      },
-      Moonbeam: {
-        GLMR: "0x0000000000000000000000000000000000000000",
-        USDT: "0x8f552a71efe5eefc207bf75485b356a0b3f01ec9"
-      },
-      "Polygon zkEVM": {
-        MATIC: "0x0000000000000000000000000000000000000000",
-        USDC: "0xA8CE8aee21bC8559Ff46d4E3d4E4f478E8d2e2fA"
-      },
-      ZKSync: {
-        ETH: "0x0000000000000000000000000000000000000000",
-        USDC: "0x3355df6D4c9C3035724Fd0e3914dE96A5a83aaf4"
-      },
-      Ton: {
-        TON: "ton/info" // TrustWallet ticker folder
-      },
-      Stacks: {
-        STX: "stacks/info"
-      },
-      Ronin: {
-        RON: "ronin/info"
-      },
-      Cardano: {
-        ADA: "cardano/info"
-      },
-      // testnets / custom chains (no TrustWallet support)
-      "Gunz Testnet": {},
-      Gunz: {},
-      "Monad Testnet": {},
-      Soneium: {},
-      Sonic: {}
-    };
-
-
-    // ------------- Scoped elements -------------
-    const networkWrap  = tokenContainer.querySelector(".network-wrap");
-    const networkInput = tokenContainer.querySelector(".network-input");
-    const networkPanel = tokenContainer.querySelector(".network-panel");
-    const networkSearch = tokenContainer.querySelector(".network-search");
-    const networkList  = tokenContainer.querySelector(".network-list");
-    amountInput.addEventListener("input", validateForm);
-    tokenContainer.querySelector(".token-input").addEventListener("change", validateForm);
-    tokenContainer.querySelector(".network-input").addEventListener("change", validateForm);
-
-    const tokenWrap  = tokenContainer.querySelector(".token-wrap");
-    const tokenInput = tokenContainer.querySelector(".token-input");
-    const tokenPanel = tokenContainer.querySelector(".token-panel");
-    const tokenSearch = tokenContainer.querySelector(".token-search");
-    const tokenList  = tokenContainer.querySelector(".token-list");
-
-    // ------------- Renderers -------------
-    const renderNetworks = (filter = "") => {
-      networkList.innerHTML = "";
-      networks
-        .filter(n => n.toLowerCase().includes(filter.toLowerCase()))
-        .forEach(n => {
-          const li = document.createElement("li");
-          li.textContent = n;
-          li.style.cursor = "pointer";
-          li.addEventListener("click", () => {
-            networkInput.value = n;
-            hiddenNetwork.value = n;
-            tokenInput.value = "";            
-            amountSpan.textContent = "";
-            tokenSpan.textContent = "";
-            tokenIcon.style.display = "none";
-            hiddenToken.value = "";
-            hiddenAmount.value = "";
-            networkPanel.style.display = "none";
-            renderTokens(n);                  
-          });
-          networkList.appendChild(li);
-          validateForm(); 
-        });
-    };
-
-    const renderTokens = (network) => {
-      tokenList.innerHTML = "";
-      (networkTokens[network] || []).forEach(t => {
-        const li = document.createElement("li");
-        li.textContent = t;
-        li.style.cursor = "pointer";
-        li.addEventListener("click", () => {
-          tokenInput.value = t;
-          hiddenToken.value = t;
-          tokenPanel.style.display = "none";
-          tokenSpan.textContent = t;
-          amountSpan.textContent = amountInput.value || "";
-          hiddenAmount.value = amountInput.value || "";
-
-          // --- fetch token image ---
-          const coinId = tokenToCoinId[t];
-          if (coinId) {
-            fetch(`/api/coin/${coinId}`)
-              .then(r => r.json())
-              .then(data => {
-                if (data.image && data.image.small) {
-                  tokenIcon.src = data.image.large || data.image.small || data.image.thumb;
-                  tokenIcon.style.display = "inline-block";
-                }
-              })
-              .catch(err => console.error("Icon fetch failed:", err));
-          }
-        });
-        tokenList.appendChild(li);
-        validateForm(); 
-      });
-    };
-
-    renderNetworks();
-    tokenList.innerHTML = "";
-
-    // live update
-    amountInput.addEventListener("input", () => {
-      amountSpan.textContent = amountInput.value;
-      tokenSpan.textContent = tokenInput.value;
-      hiddenAmount.value = amountInput.value;
-      validateForm();
-    });
-
-    // ------------- Toggles -------------
-    const toggle = (panel) => {
-      panel.style.display = panel.style.display === "block" ? "none" : "block";
-    };
-
-    networkWrap.querySelector(".arrow").addEventListener("click", (e) => {
-      e.stopPropagation();
-      toggle(networkPanel);
-    });
-    tokenWrap.querySelector(".arrow").addEventListener("click", (e) => {
-      e.stopPropagation();
-      if (!networkInput.value) return alert("Select a network first!");
-      toggle(tokenPanel);
-    });
-
-    networkInput.addEventListener("click", (e) => {
-      e.stopPropagation();
-      toggle(networkPanel);
-    });
-
-    tokenInput.addEventListener("click", (e) => {
-      e.stopPropagation();
-      if (!networkInput.value) return alert("Select a network first!");
-      toggle(tokenPanel);
-    });
-
-    networkSearch.addEventListener("input", () => renderNetworks(networkSearch.value));
-    tokenSearch.addEventListener("input", () => {
-      const net = networkInput.value;
-      if (!net) return;
-      tokenList.innerHTML = "";
-      (networkTokens[net] || [])
-        .filter(t => t.toLowerCase().includes(tokenSearch.value.toLowerCase()))
-        .forEach(t => {
-          const li = document.createElement("li");
-          li.textContent = t;
-          li.style.cursor = "pointer";
-          li.addEventListener("click", () => {
-            tokenInput.value = t;
-            hiddenToken.value = t;
-            tokenPanel.style.display = "none";
-            tokenSpan.textContent = t;
-            amountSpan.textContent = amountInput.value || "";
-            hiddenAmount.value = amountInput.value || "";
-
-            // --- load token icon ---
-            const coinId = tokenToCoinId[t];
-            const trustAddr = trustWalletMap[network]?.[t];
-
-            // Try CoinGecko first
-            if (coinId) {
-              fetch(`/api/coin/${coinId}`)
-                .then(r => r.json())
-                .then(data => {
-                  if (data.image && (data.image.large || data.image.small)) {
-                    tokenIcon.src = data.image.large || data.image.small || data.image.thumb;
-                    tokenIcon.style.display = "inline-block";
-                  } else {
-                    tryTrustWallet();
-                  }
-                })
-                .catch(() => tryTrustWallet());
-            } else {
-              tryTrustWallet();
-            }
-
-            function tryTrustWallet() {
-              if (!trustAddr) {
-                tokenIcon.src = "/static/img/token-placeholder.png";
-                tokenIcon.style.display = "inline-block";
-                return;
-              }
-
-              let url;
-              if (trustAddr.startsWith("0x")) {
-                // EVM chain: use contract address
-                url = `https://assets.trustwalletapp.com/blockchains/${network.toLowerCase()}/assets/${trustAddr}/logo.png`;
-              } else {
-                // Non-EVM (Solana, Ton, Cardano, etc.)
-                url = `https://assets.trustwalletapp.com/blockchains/${trustAddr}/logo.png`;
-              }
-
-              tokenIcon.src = url;
-              tokenIcon.style.display = "inline-block";
-
-              // store icon in hidden input for form submission
-              let hiddenIconInput = wrapper.querySelector(".hidden-token-icon");
-              if (!hiddenIconInput) {
-                hiddenIconInput = document.createElement("input");
-                hiddenIconInput.type = "hidden";
-                hiddenIconInput.className = "hidden-token-icon";
-                wrapper.appendChild(hiddenIconInput);
-              }
-              hiddenIconInput.value = tokenIcon.src;
-              tokenIcon.onerror = () => {
-                tokenIcon.src = "/static/img/token-placeholder.png";
-              };
-            }
-          });
-          tokenList.appendChild(li);
-          validateForm(); 
-        });
-    });
-
-    
-    renderNetworks();
-    if (!r.reward_data.network) {
-        networkInput.value = "Ethereum";
-        hiddenNetwork.value = "Ethereum";
-        renderTokens("Ethereum");
-    } else {
-        networkInput.value = r.reward_data.network;
-        hiddenNetwork.value = r.reward_data.network;
-        renderTokens(r.reward_data.network);
-
-        tokenInput.value = r.reward_data.symbol || "";
-        hiddenToken.value = r.reward_data.symbol || "";
-        amountInput.value = r.reward_data.amount_per_winner || "";
-        rewardDisplay.querySelector(".amount-text").textContent = r.reward_data.amount_per_winner || "";
-        rewardDisplay.querySelector(".token-symbol").textContent = r.reward_data.symbol || "";
-
-        if (r.reward_data.icon) {
-            rewardDisplay.querySelector(".token-icon").src = r.reward_data.icon;
-            rewardDisplay.querySelector(".token-icon").style.display = "inline-block";
-        }
-    }
-
-
-    document.addEventListener("click", handleDocClick);
-    validateForm(); 
-  }
 
 
   function updateClearAllRewards() {
@@ -5137,6 +4394,7 @@ async function markBackendValidatedSocialTasks(root = document) {
     }
   });
 
+  
   hookTaskInteractions(container);
 
   // ✅ NOW mark valid AFTER render
@@ -5154,6 +4412,7 @@ function hookTaskInteractions(root = document){
   hookInputTasks(root);
   hookSocialTasks(root);
   hookQuizTasks(root);
+  hookGithubTasks(root);
   hookPollTasks(root);
   hookFileUploadTasks(root);
   hookVisitLinkTasks(root);
@@ -5166,6 +4425,16 @@ function hookTaskInteractions(root = document){
   Loadotherside();
 
 }
+
+
+function hookGithubTasks(root){
+  
+  document.querySelectorAll(".gh-tooltip-wrap").forEach(el => {
+    el.querySelector(".gh-tooltip-box").textContent = el.dataset.tip;
+  });
+}
+
+
 
 function hookPuzzleTasks(root = document){
 
@@ -5246,41 +4515,39 @@ function hookSocialTasks(root){
     }, 0);
   });
 
-  /* ✅ blur triggers fetch */
-/* ✅ blur triggers fetch OR shows error */
-root.addEventListener("blur", e => {
-  const input = e.target.closest(".social-input");
-  if (!input) return;
 
-  const value = input.value.trim();
-  const popup = input.closest(".popup-container");
-  if (!popup) return;
+  root.addEventListener("blur", e => {
+    const input = e.target.closest(".social-input");
+    if (!input) return;
 
-  const errorMsg = popup.querySelector(".social-error-msg");
+    const value = input.value.trim();
+    const popup = input.closest(".popup-container");
+    if (!popup) return;
 
-  // empty input → no error, no fetch
-  if (!value){
+    const errorMsg = popup.querySelector(".social-error-msg");
+
+    // empty input → no error, no fetch
+    if (!value){
+      if(errorMsg) errorMsg.style.display = "none";
+      return;
+    }
+
+    // invalid url → show error
+    if(!looksLikeUrlSocial(value)){
+      if(errorMsg) errorMsg.style.display = "block";
+      return;
+    }
+
+    // valid url → hide error + fetch
     if(errorMsg) errorMsg.style.display = "none";
-    return;
-  }
+    handleSocialUpdate(input, value);
 
-  // invalid url → show error
-  if(!looksLikeUrlSocial(value)){
-    if(errorMsg) errorMsg.style.display = "block";
-    return;
-  }
-
-  // valid url → hide error + fetch
-  if(errorMsg) errorMsg.style.display = "none";
-  handleSocialUpdate(input, value);
-
-}, true);
+  }, true);
 
 }
 
 
 async function handleSocialUpdate(input, value){
-
   const popup = input.closest(".popup-container");
   if (!popup) return;
 
@@ -5367,7 +4634,44 @@ async function handleSocialUpdate(input, value){
 
       card.dataset.community_id = res.id;
     }
+    else if (platform === "github") {
 
+
+      const match = value.match(/github\.com\/([^/]+)\/([^/?#]+)/);
+      if (!match) throw "bad github";
+
+      const owner = match[1];
+      const repo  = match[2].replace(/\.git$/, "");
+
+      // hit your Flask route — it calls GitHub API server-side
+      const data = await fetch(`/api/github_repo_info?owner=${owner}&repo=${repo}`)
+        .then(r => r.json());
+
+      if (data.error || !data.public) throw "not public";
+
+      payload = {
+        title:  data.full_name,          // "owner/repo"
+        desc:   `@${data.owner}`,
+        icon:   data.owner_avatar,
+        link:   `https://github.com/${owner}/${repo}`,
+        action: "Star this repo"         // updated dynamically below
+      };
+
+      // store owner/repo on card for later toggle updates
+      const card = popup.closest(".container-all-contain-yinit");
+      card.dataset.github_owner  = data.owner;
+      card.dataset.github_repo   = data.repo_name;
+      card.dataset.github_avatar = data.owner_avatar;
+
+      // update preview strip
+      const preview = popup.querySelector(".github-repo-preview");
+      if (preview) {
+        preview.style.display = "flex";
+        preview.querySelector(".github-preview-avatar").src = data.owner_avatar;
+        preview.querySelector(".github-preview-name").textContent = data.full_name;
+        preview.querySelector(".github-preview-owner").textContent = `@${data.owner}`;
+      }
+    }
     else if (platform === "partnership_quest") {
  
       const parts = normalizePartnershipQuestUrl(value);
@@ -6129,6 +5433,29 @@ function hookQuizTasks(root = document){
     switchQuizMode(taskWrap, toggle.checked);
   });
 
+
+  root.addEventListener("change", e => {
+    const toggle = e.target.closest(".js-github-star, .js-github-fork");
+    if (!toggle) return;
+
+    const popup   = toggle.closest(".popup-container");
+    const card    = popup?.closest(".container-all-contain-yinit");
+    if (!card) return;
+
+    const doStar = popup.querySelector(".js-github-star")?.checked;
+    const doFork = popup.querySelector(".js-github-fork")?.checked;
+
+    const label = doStar && doFork
+      ? "Star & Fork this repo"
+      : doFork
+        ? "Fork this repo"
+        : doStar
+          ? "Star this repo"
+          : "Visit repo";
+
+    const cta = card.querySelector(".js-github-cta");
+    if (cta) cta.textContent = label;
+  });
 
 
   /* ==============================
@@ -6986,66 +6313,204 @@ function renderTask(task){
 /* ============================
    PUZZLE TASK
    ============================ */
-else if(task.type === "puzzle"){
+  else if(task.type === "puzzle"){
 
-  const accent = "puzzle";
+    const accent = "puzzle";
 
-  const title = task.config?.title || "Puzzle";
-  const desc  = task.config?.description || "Solve the puzzle and enter the correct secret code.";
-  const placeholder = task.config?.placeholder || "Enter secret code...";
+    const title = task.config?.title || "Puzzle";
+    const desc  = task.config?.description || "Solve the puzzle and enter the correct secret code.";
+    const placeholder = task.config?.placeholder || "Enter secret code...";
 
-  const html = `
-  <div class="container-all-contain-yinit input-task-wrapper puzzle"
-      data-platform="puzzle"
+    const html = `
+    <div class="container-all-contain-yinit input-task-wrapper puzzle"
+        data-platform="puzzle"
+        data-task-id="${task.id}">
+
+      <!-- CARD -->
+      <div class="card-container-quest input-task puzzle"
+          style="color: var(--accent-puzzle)">
+
+        <div class="badge-quest">
+          <span class="badge-icon-quest">
+          ${PLATFORM_ICONS["puzzle"]?.icon || "🧩"}
+          </span>
+          <span class="position-pp-zle">Puzzle</span>
+        </div>
+
+        <div class="card-wrapper-quest">
+          <div class="card-quest">
+            <div class="content-quest-none">
+
+              <div class="title-quest">${title}</div>
+
+              <div class="description-quest">
+                ${desc}
+              </div>
+
+              <div class="input-wrapper-quest puzzle-input">
+                <input
+                  type="text"
+                  class="puzzle-answer-input"
+                  placeholder="${placeholder}"
+                  autocomplete="off"
+                  spellcheck="false"
+                />
+              </div>
+
+              <p style="display:none" class="puzzle-error"></p>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 🧩 POPUP -->
+      <div class="popup-container input-popup puzzle-popup is-open" role="dialog" aria-label="Puzzle">
+
+        <div class="popup-header">
+          <div class="teliconpuzz" style="background-color: var(--accent-puzzle)">
+          ${PLATFORM_ICONS["puzzle"]?.icon || "🧩"}
+          </div>
+
+          <div class="title">Puzzle</div>
+          <div class="liner"></div>
+
+          <div class="popup-actions">
+            <button class="js-copy-link" title="close">${ChevronSVGQ}</button>
+            <button class="js-paste-link" title="paste">${PastSVGQ}</button>
+            <button class="js-delete-link" title="delete">${DeleteSVGQ}</button>
+          </div>
+        </div>
+
+        <div class="bottom-puzzle">
+          <div class="liners"></div>
+
+          <!-- Puzzle Title -->
+          <input 
+            class="js-title-input"
+            style="color: aliceblue;"
+            type="text"
+            placeholder="Puzzle title..."
+            value="${task.config?.title || ""}"
+          />
+
+          <!-- Puzzle Description -->
+          <textarea 
+            class="js-desc-input"
+            style="color: #787878;"
+            placeholder="Describe the puzzle / riddle / challenge...">${task.config?.description || ""}</textarea>
+
+            <div class="puzzle-config" style="margin-top: 15px">
+
+              <label class="labeltesting">Expected Answer / Secret Code</label>
+              <input
+                type="text"
+                class="js-puzzle-answer puzzule"
+                placeholder="e.g. 7H3-K3Y-42 / open_sesame / 0xA91F / secret123"
+                value="${task.config?.answer || ""}"
+              />
+
+              <label class="labeltesting"  style="margin-top: 20px">Input Placeholder</label>
+              <input 
+                type="text"
+                class="js-puzzle-placeholder js-puzzle-answer"
+                placeholder="Enter secret code..."
+                value="${task.config?.placeholder || ""}"
+              />
+
+            </div>
+
+          <div class="mutiplespacing">
+            <div class="text">
+              <div class="title">Automatic validation</div>
+              <div class="description">
+                Correct answer auto-validates claim.
+              </div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" class="js-auto-validate"
+                ${task.config?.auto_validate ? "checked" : "checked"}>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+    `;
+
+    return html;
+  }
+
+
+  else if (task.type === "github") {
+
+    const repoUrl   = task.config?.link || "";
+    const repoName  = task.config?.repo_name || "";
+    const repoOwner = task.config?.repo_owner || "";
+    const repoAvatar= task.config?.owner_avatar || "";
+    const doStar    = task.config?.star !== false;
+    const doFork    = !!task.config?.fork;
+
+    const ctaLabel = doStar && doFork
+      ? "Star & Fork this repo"
+      : doFork
+        ? "Fork this repo"
+        : "Star this repo";
+
+    return `
+  <div class="container-all-contain-yinit social-task github"
+      data-platform="github"
       data-task-id="${task.id}">
 
-    <!-- CARD -->
-    <div class="card-container-quest input-task puzzle"
-        style="color: var(--accent-puzzle)">
+    <div class="card-container-quest social-task github"
+        style="color: var(--accent-github)">
 
       <div class="badge-quest">
         <span class="badge-icon-quest">
-         ${PLATFORM_ICONS["puzzle"]?.icon || "🧩"}
+          ${PLATFORM_ICONS["github"]?.icon || `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>`}
         </span>
-        <span class="position-pp-zle">Puzzle</span>
+        <span>GitHub</span>
       </div>
 
       <div class="card-wrapper-quest">
         <div class="card-quest">
-          <div class="content-quest-none">
+          <div class="content-quest">
 
-            <div class="title-quest">${title}</div>
-
-            <div class="description-quest">
-              ${desc}
+            <div class="avatar-quest">
+              <img src="${repoAvatar}" style="${repoAvatar ? '' : 'display:none'}">
+              <span class="fallback-letter" style="${repoAvatar ? 'display:none' : ''}">
+                ${repoOwner ? repoOwner[0].toUpperCase() : ''}
+              </span>
             </div>
 
-            <div class="input-wrapper-quest puzzle-input">
-              <input
-                type="text"
-                class="puzzle-answer-input"
-                placeholder="${placeholder}"
-                autocomplete="off"
-                spellcheck="false"
-              />
+            <h2 class="community_name">${repoName || "Repository"}</h2>
+
+            <div class="description-parnership" style="font-size:12px;opacity:.6">
+              ${repoOwner ? `@${repoOwner}` : ""}
             </div>
 
-            <p style="display:none" class="puzzle-error"></p>
+            <a class="cta-quest js-github-cta"
+              href="${repoUrl}"
+              target="_blank"
+              style="background: var(--accent-github-text)">
+              ${ctaLabel}
+            </a>
 
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 🧩 POPUP -->
-    <div class="popup-container input-popup puzzle-popup is-open" role="dialog" aria-label="Puzzle">
-
+    <!-- POPUP -->
+    <div class="popup-container social-popup is-open" data-platform="github">
       <div class="popup-header">
-        <div class="teliconpuzz" style="background-color: var(--accent-puzzle)">
-         ${PLATFORM_ICONS["puzzle"]?.icon || "🧩"}
+        <div class="telicon" style="background-color:#24292e">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="#fff"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
         </div>
 
-        <div class="title">Puzzle</div>
+        <div class="title">GitHub</div>
         <div class="liner"></div>
 
         <div class="popup-actions">
@@ -7055,54 +6520,69 @@ else if(task.type === "puzzle"){
         </div>
       </div>
 
-      <div class="bottom-puzzle">
+      <div class="bottom-github">
         <div class="liners"></div>
 
-        <!-- Puzzle Title -->
-        <input 
-          class="js-title-input"
-          style="color: aliceblue;"
+        <label class="labeltesting">Repository URL</label>
+        <input
+          class="social-input github-input telinput"
+          data-platform="github"
           type="text"
-          placeholder="Puzzle title..."
-          value="${task.config?.title || ""}"
+          placeholder="https://github.com/owner/repo"
+          value="${repoUrl}"
         />
 
-        <!-- Puzzle Description -->
-        <textarea 
-          class="js-desc-input"
-          style="color: #787878;"
-          placeholder="Describe the puzzle / riddle / challenge...">${task.config?.description || ""}</textarea>
+        <div class="error-message social-error-msg" style="display:none">
+          Could not find a public repository at that URL
+        </div>
 
-          <div class="puzzle-config" style="margin-top: 15px">
-
-            <label class="labeltesting">Expected Answer / Secret Code</label>
-            <input
-              type="text"
-              class="js-puzzle-answer puzzule"
-              placeholder="e.g. 7H3-K3Y-42 / open_sesame / 0xA91F / secret123"
-              value="${task.config?.answer || ""}"
-            />
-
-            <label class="labeltesting"  style="margin-top: 20px">Input Placeholder</label>
-            <input 
-              type="text"
-              class="js-puzzle-placeholder js-puzzle-answer"
-              placeholder="Enter secret code..."
-              value="${task.config?.placeholder || ""}"
-            />
-
+        <!-- repo preview strip (hidden until fetched) -->
+        <div class="github-repo-preview" style="display:${repoName ? 'flex' : 'none'};align-items:center;gap:10px;margin-top:10px;padding:10px 12px;background:rgba(90, 90, 131, 0.21);border:0.9px solid var(--border);border-radius:14px">
+          <img class="github-preview-avatar" src="${repoAvatar}" style="width:28px;height:28px;border-radius:50%;object-fit:cover">
+          <div>
+            <div class="github-preview-name" style="font-size:13px;font-weight:600;color:#eeeef5">${repoName}</div>
+            <div class="github-preview-owner" style="font-size:11px;opacity:.5">@${repoOwner}</div>
           </div>
+        </div>
 
-        <div class="mutiplespacing">
+        <!-- Star toggle -->
+        <div class="mutiplespacing github-initer first" style="margin-top:16px">
           <div class="text">
-            <div class="title">Automatic validation</div>
-            <div class="description">
-              Correct answer auto-validates claim.
+            <div class="title" style="display:flex;align-items:center;gap:6px;font-size: 15px">
+              Star
+              <span class="gh-tooltip-wrap" data-tip="When enabled, members of your community will be asked to give this repository a star on GitHub.">
+                <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="cursor:pointer;opacity:.5">
+                  <circle cx="6.5" cy="6.5" r="6" stroke="currentColor" stroke-width="1"/>
+                  <text x="6.5" y="10" text-anchor="middle" font-size="8" fill="currentColor">?</text>
+                </svg>
+                <span class="gh-tooltip-box"></span>
+              </span>
             </div>
+            <div class="description">Ask members to star this repository</div>
           </div>
           <label class="switch">
-            <input type="checkbox" class="js-auto-validate"
-              ${task.config?.auto_validate ? "checked" : "checked"}>
+            <input type="checkbox" class="js-github-star" ${doStar ? "checked" : ""}>
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <!-- Fork toggle -->
+        <div class="mutiplespacing github-initer">
+          <div class="text">
+            <div class="title" style="display:flex;align-items:center;gap:6px; font-size: 15px">
+              Fork
+              <span class="gh-tooltip-wrap" data-tip="When enabled, members of your community will be asked to fork this repository to their own GitHub account.">
+                <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="cursor:pointer;opacity:.5">
+                  <circle cx="6.5" cy="6.5" r="6" stroke="currentColor" stroke-width="1"/>
+                  <text x="6.5" y="10" text-anchor="middle" font-size="8" fill="currentColor">?</text>
+                </svg>
+                <span class="gh-tooltip-box"></span>
+              </span>
+            </div>
+            <div class="description">Ask members to fork this repository</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" class="js-github-fork" ${doFork ? "checked" : ""}>
             <span class="slider"></span>
           </label>
         </div>
@@ -7110,153 +6590,147 @@ else if(task.type === "puzzle"){
       </div>
     </div>
 
-  </div>
-  `;
+  </div>`;
+  }
 
-  return html;
-}
+  else if(task.type === "Optionscale(numbers)") {
 
+    const start = parseInt(task.config?.scale?.from) || 1;
+    const end = parseInt(task.config?.scale?.to) || 10;
+    const leftLabel = task.config?.labels?.left || "Not Likely";
+    const rightLabel = task.config?.labels?.right || "Very Likely";
 
+    const numbers = Array.from(
+      { length: end - start + 1 },
+      (_, i) => start + i
+    );
 
+    return `
+  <div class="container-all-contain-yinit rating-task numberOpt"
+      data-type="Optionscale(numbers)"
+      data-task-id="${task.id}"
+      style="color: var(--accent-numbers)">
 
-else if(task.type === "Optionscale(numbers)") {
+    <!-- CARD -->
+    <div class="card-container-quest optionscale-numbers">
 
-  const start = parseInt(task.config?.scale?.from) || 1;
-  const end = parseInt(task.config?.scale?.to) || 10;
-  const leftLabel = task.config?.labels?.left || "Not Likely";
-  const rightLabel = task.config?.labels?.right || "Very Likely";
+      <!-- Badge -->
+      <div class="badge-quest">
+        <span class="badge-icon-quest">
+          ${PLATFORM_ICONS["optionscale(numbers)"]?.icon || "🔢"}
+        </span>
+        <span>Your Take</span>
+      </div>
 
-  const numbers = Array.from(
-    { length: end - start + 1 },
-    (_, i) => start + i
-  );
+      <!-- Wrapper -->
+      <div class="card-wrapper-quest">
+        <div class="card-quest">
+          <div class="content-quest numbers">
 
-  return `
-<div class="container-all-contain-yinit rating-task numberOpt"
-     data-type="Optionscale(numbers)"
-     data-task-id="${task.id}"
-     style="color: var(--accent-numbers)">
+            <!-- Title -->
+            <div class="polltitn">
+              ${task.config?.title || "Your Take"}
+            </div>
 
-  <!-- CARD -->
-  <div class="card-container-quest optionscale-numbers">
+            <!-- Description -->
+            <div class="polldescn">
+              ${task.config?.description || ""}
+            </div>
 
-    <!-- Badge -->
-    <div class="badge-quest">
-      <span class="badge-icon-quest">
-        ${PLATFORM_ICONS["optionscale(numbers)"]?.icon || "🔢"}
-      </span>
-      <span>Your Take</span>
+            <!-- Numbers -->
+            <div class="number-container js-number-container">
+              ${numbers.map(num => `
+                <div class="number-box">${num}</div>
+              `).join("")}
+            </div>
+
+            <!-- Labels -->
+            <div class="containersters">
+              <div class="left-div js-left-label">${leftLabel}</div>
+              <div class="right-div js-right-label">${rightLabel}</div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
     </div>
 
-    <!-- Wrapper -->
-    <div class="card-wrapper-quest">
-      <div class="card-quest">
-        <div class="content-quest numbers">
 
-          <!-- Title -->
-          <div class="polltitn">
-            ${task.config?.title || "Your Take"}
+    <!-- 🔢 POPUP OVERLAY -->
+    <div class="popup-container rating-popup is-open" role="dialog" aria-label="Number Scale">
+
+      <div class="popup-header">
+        <div class="telicon" style="background-color: var(--accent-numbers)">
+          ${PLATFORM_ICONS["optionscale(numbers)"]?.icon || "🔢"}
+        </div>
+
+        <div class="title">Your Take</div>
+
+          <div class="liner"></div>
+
+
+          <div class="popup-actions">
+            <button class="js-copy-link" title="close">${ChevronSVGQ}</button>
+            <button class="js-delete-link" title="delete">${DeleteSVGQ}</button>
+          </div>
+      </div>
+      <div class="bottom-numberopt">
+
+        <div class="liners"></div>
+
+        <!-- Title -->
+        <input 
+          class="js-title-input"
+          style="color: aliceblue;"
+          type="text"
+          placeholder="Enter title..."
+          value="${task.config?.title || ""}"
+        />
+
+        <!-- Description -->
+        <textarea 
+          class="js-desc-input"
+          style="color: #787878;"
+          placeholder="Enter description...">${task.config?.description || ""}</textarea>
+
+        <!-- Scale Config -->
+        <div class="rating-config">
+
+          <div class="yourtaketitle">Scale</div>
+          <div class="scale-row">
+            <input type="number" class="js-firstnum" value="${start}" min="-1000" max="1000">
+            <span class="scale-sep">to</span>
+            <input type="number" class="js-lastnum" value="${end}" min="-1000" max="1000">
           </div>
 
-          <!-- Description -->
-          <div class="polldescn">
-            ${task.config?.description || ""}
+          <div class="scale-errors">
+            <span class="js-first-error"></span>
+            <span class="js-last-error"></span>
           </div>
 
-          <!-- Numbers -->
-          <div class="number-container js-number-container">
-            ${numbers.map(num => `
-              <div class="number-box">${num}</div>
-            `).join("")}
-          </div>
-
-          <!-- Labels -->
-          <div class="containersters">
-            <div class="left-div js-left-label">${leftLabel}</div>
-            <div class="right-div js-right-label">${rightLabel}</div>
+          <div class="yourtaketitle">Label</div>
+          <div class="scale-row">
+            <input type="text" class="js-notlikely" value="${leftLabel}" placeholder="Not Likely">
+            <span class="scale-sep"></span>
+            <input type="text" class="js-verylikely" value="${rightLabel}" placeholder="Very Likely">
           </div>
 
         </div>
       </div>
-    </div>
 
-  </div>
-
-
-  <!-- 🔢 POPUP OVERLAY -->
-  <div class="popup-container rating-popup is-open" role="dialog" aria-label="Number Scale">
-
-    <div class="popup-header">
-      <div class="telicon" style="background-color: var(--accent-numbers)">
-        ${PLATFORM_ICONS["optionscale(numbers)"]?.icon || "🔢"}
-      </div>
-
-      <div class="title">Your Take</div>
-
-        <div class="liner"></div>
-
-
-        <div class="popup-actions">
-          <button class="js-copy-link" title="close">${ChevronSVGQ}</button>
-          <button class="js-delete-link" title="delete">${DeleteSVGQ}</button>
-        </div>
-    </div>
-    <div class="bottom-numberopt">
-
-      <div class="liners"></div>
-
-      <!-- Title -->
-      <input 
-        class="js-title-input"
-        style="color: aliceblue;"
-        type="text"
-        placeholder="Enter title..."
-        value="${task.config?.title || ""}"
-      />
-
-      <!-- Description -->
-      <textarea 
-        class="js-desc-input"
-        style="color: #787878;"
-        placeholder="Enter description...">${task.config?.description || ""}</textarea>
-
-      <!-- Scale Config -->
-      <div class="rating-config">
-
-        <div class="yourtaketitle">Scale</div>
-        <div class="scale-row">
-          <input type="number" class="js-firstnum" value="${start}" min="-1000" max="1000">
-          <span class="scale-sep">to</span>
-          <input type="number" class="js-lastnum" value="${end}" min="-1000" max="1000">
-        </div>
-
-        <div class="scale-errors">
-          <span class="js-first-error"></span>
-          <span class="js-last-error"></span>
-        </div>
-
-        <div class="yourtaketitle">Label</div>
-        <div class="scale-row">
-          <input type="text" class="js-notlikely" value="${leftLabel}" placeholder="Not Likely">
-          <span class="scale-sep"></span>
-          <input type="text" class="js-verylikely" value="${rightLabel}" placeholder="Very Likely">
-        </div>
-
-      </div>
     </div>
 
   </div>
-
-</div>
-`;
-}
+  `;
+  }
 
 
   else if(task.type === "visit-link"){
     return renderVisitLinkTask(task);
   }
 
-/* ============================
+  /* ============================
    QUIZ
    ============================ */
   else if (task.type === "quiz") {
@@ -7623,362 +7097,362 @@ else if(task.type === "Optionscale(numbers)") {
   }
 
     
-else if (task.type === "file-upload") {
+  else if (task.type === "file-upload") {
 
-  const fileCount = task.config?.fileCount || 1;
-  const fileTypes = (task.config?.fileTypes || []).map(t => t.toLowerCase());
-  const accept = buildAcceptString(fileTypes);
+    const fileCount = task.config?.fileCount || 1;
+    const fileTypes = (task.config?.fileTypes || []).map(t => t.toLowerCase());
+    const accept = buildAcceptString(fileTypes);
 
-  return `
-<div class="container-all-contain-yinit file-task"
-     data-type="file-upload"
-     data-task-id="${task.id}"
-     style="color: var(--accent-upload)">
+    return `
+  <div class="container-all-contain-yinit file-task"
+      data-type="file-upload"
+      data-task-id="${task.id}"
+      style="color: var(--accent-upload)">
 
-  <!-- CARD -->
-  <div class="card-container-quest file-upload">
-    <div class="badge-quest">
-      <span class="badge-icon-quest">
-        ${PLATFORM_ICONS["file-upload"]?.icon || "📁"}
-      </span>
-      <span>File Upload</span>
+    <!-- CARD -->
+    <div class="card-container-quest file-upload">
+      <div class="badge-quest">
+        <span class="badge-icon-quest">
+          ${PLATFORM_ICONS["file-upload"]?.icon || "📁"}
+        </span>
+        <span>File Upload</span>
+      </div>
+
+      <div class="card-wrapper-quest file-up">
+        <div class="card-quest">
+          <div class="content-quest uploader-root"
+              data-file-count="${fileCount}"
+              data-file-types="${fileTypes.join(",")}">
+
+            <div class="upload-box-init-q">
+              <div class="dragPrompt">
+                <span class="initialPrompt">
+                  <span class="choose-file">Choose file</span>
+                </span>
+                <span> or </span>
+                <strong>drag & drop</strong>
+              </div>
+
+              <div class="divers">
+                <div class="chosenFilesContainer"></div>
+                <div class="file-preview"></div>
+
+                <input 
+                  type="file"
+                  class="fileUpload-init-makein"
+                  name="files"
+                  ${fileCount > 1 ? "multiple" : ""}
+                  ${accept ? `accept="${accept}"` : ""}
+                  hidden
+                />
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
     </div>
 
-    <div class="card-wrapper-quest file-up">
-      <div class="card-quest">
-        <div class="content-quest uploader-root"
-             data-file-count="${fileCount}"
-             data-file-types="${fileTypes.join(",")}">
+    <!-- POPUP -->
+    <div class="popup-container file-popup is-open">
 
-          <div class="upload-box-init-q">
-            <div class="dragPrompt">
-              <span class="initialPrompt">
-                <span class="choose-file">Choose file</span>
-              </span>
-              <span> or </span>
-              <strong>drag & drop</strong>
-            </div>
+      <div class="popup-header">
+        <div class="telicon" style="background-color: var(--accent-upload)">
+          ${PLATFORM_ICONS["file-upload"]?.icon || "📁"}
+        </div>
+        <div class="title">File Upload</div>
+          <div class="liner"></div>
 
-            <div class="divers">
-              <div class="chosenFilesContainer"></div>
-              <div class="file-preview"></div>
 
-              <input 
-                type="file"
-                class="fileUpload-init-makein"
-                name="files"
-                ${fileCount > 1 ? "multiple" : ""}
-                ${accept ? `accept="${accept}"` : ""}
-                hidden
-              />
-            </div>
+          <div class="popup-actions">
+            <button class="js-copy-link" title="close">${ChevronSVGQ}</button>
+            <button class="js-delete-link" title="delete">${DeleteSVGQ}</button>
+          </div>
+      </div>
+
+      <div class="bottom-file-upload">
+
+        <div class="liners"></div>
+
+        <!-- FILE COUNT -->
+        <div class="mutiplespacing">
+          <div class="text">
+            <div class="title">Number of files</div>
           </div>
 
+          <div class="input-group">
+            <input 
+              type="number" 
+              class="js-file-count"
+              max="12" 
+              value="${fileCount}"
+            >
+          </div>
         </div>
+
+        <!-- CATEGORY BOX -->
+        <div class="categoryBox category file-category-box">
+
+          ${renderFileType("document", "Document", fileTypes)}
+          ${renderFileType("presentation", "Presentation", fileTypes)}
+          ${renderFileType("spreadsheet", "Spreadsheet", fileTypes)}
+          ${renderFileType("image", "Image", fileTypes)}
+          ${renderFileType("drawing", "Drawing", fileTypes)}
+          ${renderFileType("video", "Video", fileTypes)}
+          ${renderFileType("audio", "Audio", fileTypes)}
+          ${renderFileType("archive", "Archive", fileTypes)}
+
+        </div>
+
       </div>
+
     </div>
+
   </div>
+  `;
+  }
 
-  <!-- POPUP -->
-  <div class="popup-container file-popup is-open">
 
-    <div class="popup-header">
-      <div class="telicon" style="background-color: var(--accent-upload)">
-        ${PLATFORM_ICONS["file-upload"]?.icon || "📁"}
+
+
+  else if (task.type === "invite") {
+
+    const numInvites = task.config?.numInvites || "";
+    const subquestName = task.config?.subquest_name || "";
+    const subquestUUID = task.config?.subquest_uuid || "";
+
+    return `
+  <div class="container-all-contain-yinit invite-task-wrapper"
+      data-type="invite"
+      data-task-id="${task.id}"
+      style="color: var(--accent-invite)">
+
+    <!-- ================= CARD ================= -->
+    <div class="card-container-quest invite-task">
+
+      <div class="badge-quest">
+        <span class="badge-icon-quest">
+          ${PLATFORM_ICONS["invite"]?.icon || "✉️"}
+        </span>
+        <span>Invite</span>
       </div>
-      <div class="title">File Upload</div>
-        <div class="liner"></div>
 
+      <div class="card-wrapper-quest">
+        <div class="card-quest">
+          <div class="content-quest invite-root">
 
-        <div class="popup-actions">
-          <button class="js-copy-link" title="close">${ChevronSVGQ}</button>
-          <button class="js-delete-link" title="delete">${DeleteSVGQ}</button>
+            <div class="invite-preview-box">
+              <div class="invite-preview-desc">
+                Invite <span class="number-of-invites">${numInvites}</span> people to complete this task
+              </div>
+            </div>
+
+          </div>
         </div>
+      </div>
     </div>
 
-    <div class="bottom-file-upload">
+
+    <!-- ================= POPUP OVERLAY ================= -->
+    <div class="popup-container invite-popup" role="dialog" aria-label="Invite">
+
+      <div class="popup-header">
+        <div class="telicon" style="background: var(--accent-invite)">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="#fff">
+            <path fill="#ffffff" transform="scale(0.0375)" d="M112 128C85.5 128 64 149.5 64 176C64 191.1 71.1 205.3 83.2 214.4L291.2 370.4C308.3 383.2 331.7 383.2 348.8 370.4L556.8 214.4C568.9 205.3 576 191.1 576 176C576 149.5 554.5 128 528 128L112 128zM64 260L64 448C64 483.3 92.7 512 128 512L512 512C547.3 512 576 483.3 576 448L576 260L377.6 408.8C343.5 434.4 296.5 434.4 262.4 408.8L64 260z"/>
+          </svg>
+        </div>
+
+          <div class="liner"></div>
+
+
+          <div class="popup-actions">
+            <button class="js-copy-link" title="close">${ChevronSVGQ}</button>
+            <button class="js-delete-link" title="delete">${DeleteSVGQ}</button>
+          </div>
+      </div>
 
       <div class="liners"></div>
 
-      <!-- FILE COUNT -->
-      <div class="mutiplespacing">
-        <div class="text">
-          <div class="title">Number of files</div>
-        </div>
 
-        <div class="input-group">
+      <div class="invite-row">
+
+        <!-- Number of invites -->
+        <div class="invite-text">
+          <div class="invite-title">Number of invitations required</div>
+
           <input 
-            type="number" 
-            class="js-file-count"
-            max="12" 
-            value="${fileCount}"
+            type="text" 
+            class="invite-num js-invite-count" 
+            style="background-color: transparent; outline: none; font-size: 14px !important; cursor: text !important;" 
+            placeholder="1" 
+            value="${numInvites}"
           >
-        </div>
-      </div>
 
-      <!-- CATEGORY BOX -->
-      <div class="categoryBox category file-category-box">
-
-        ${renderFileType("document", "Document", fileTypes)}
-        ${renderFileType("presentation", "Presentation", fileTypes)}
-        ${renderFileType("spreadsheet", "Spreadsheet", fileTypes)}
-        ${renderFileType("image", "Image", fileTypes)}
-        ${renderFileType("drawing", "Drawing", fileTypes)}
-        ${renderFileType("video", "Video", fileTypes)}
-        ${renderFileType("audio", "Audio", fileTypes)}
-        ${renderFileType("archive", "Archive", fileTypes)}
-
-      </div>
-
-    </div>
-
-  </div>
-
-</div>
-`;
-}
+          <p class="error-init-max">30/30</p>
 
 
 
-
-else if (task.type === "invite") {
-
-  const numInvites = task.config?.numInvites || "";
-  const subquestName = task.config?.subquest_name || "";
-  const subquestUUID = task.config?.subquest_uuid || "";
-
-  return `
-<div class="container-all-contain-yinit invite-task-wrapper"
-     data-type="invite"
-     data-task-id="${task.id}"
-     style="color: var(--accent-invite)">
-
-  <!-- ================= CARD ================= -->
-  <div class="card-container-quest invite-task">
-
-    <div class="badge-quest">
-      <span class="badge-icon-quest">
-        ${PLATFORM_ICONS["invite"]?.icon || "✉️"}
-      </span>
-      <span>Invite</span>
-    </div>
-
-    <div class="card-wrapper-quest">
-      <div class="card-quest">
-        <div class="content-quest invite-root">
-
-          <div class="invite-preview-box">
-            <div class="invite-preview-desc">
-              Invite <span class="number-of-invites">${numInvites}</span> people to complete this task
-            </div>
-          </div>
-
-        </div>
-      </div>
-    </div>
-  </div>
+          <p class="invite-hint">
+            You can set any number of invites for this task, but your community has a 
+            monthly limit of <strong>30 total invites</strong>. Once the limit is reached, 
+            you won’t be able to create additional invite tasks until the next month.
+          </p>
 
 
-  <!-- ================= POPUP OVERLAY ================= -->
-  <div class="popup-container invite-popup" role="dialog" aria-label="Invite">
-
-    <div class="popup-header">
-      <div class="telicon" style="background: var(--accent-invite)">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="#fff">
-          <path fill="#ffffff" transform="scale(0.0375)" d="M112 128C85.5 128 64 149.5 64 176C64 191.1 71.1 205.3 83.2 214.4L291.2 370.4C308.3 383.2 331.7 383.2 348.8 370.4L556.8 214.4C568.9 205.3 576 191.1 576 176C576 149.5 554.5 128 528 128L112 128zM64 260L64 448C64 483.3 92.7 512 128 512L512 512C547.3 512 576 483.3 576 448L576 260L377.6 408.8C343.5 434.4 296.5 434.4 262.4 408.8L64 260z"/>
-        </svg>
-      </div>
-
-        <div class="liner"></div>
-
-
-        <div class="popup-actions">
-          <button class="js-copy-link" title="close">${ChevronSVGQ}</button>
-          <button class="js-delete-link" title="delete">${DeleteSVGQ}</button>
-        </div>
-    </div>
-
-    <div class="liners"></div>
-
-
-    <div class="invite-row">
-
-      <!-- Number of invites -->
-      <div class="invite-text">
-        <div class="invite-title">Number of invitations required</div>
-
-        <input 
-          type="text" 
-          class="invite-num js-invite-count" 
-          style="background-color: transparent; outline: none; font-size: 14px !important; cursor: text !important;" 
-          placeholder="1" 
-          value="${numInvites}"
-        >
-
-        <p class="error-init-max">30/30</p>
-
-
-
-        <p class="invite-hint">
-          You can set any number of invites for this task, but your community has a 
-          monthly limit of <strong>30 total invites</strong>. Once the limit is reached, 
-          you won’t be able to create additional invite tasks until the next month.
-        </p>
-
-
-        <p class="error-quest invite-error" style="color: red; display: none;">
-          Value must be greater than zero
-        </p>
-
-      </div>
-
-
-      <!-- Quest selector -->
-      <div class="invite-text">
-
-        <div class="invite-title-row">
-          <span class="invite-title">Quest needed to count</span>
-          <span class="smalltext optional-text">Optional</span>
-        </div>
-
-        <div class="invite-dropdown">
-
-          <div class="invite-dropdown-input js-invite-dropdown">
-            <span class="selected-quest-label" style="white-space: nowrap; text-overflow: ellipsis; max-width: 80%; overflow: hidden">
-              ${subquestName || "Select Quest"}
-            </span>
-            <span class="invite-arrow">${ChevronSVGQ}</span>
-          </div>
-
-          <div class="invite-quest-select">
-
-            <div class="invite-quest-panel">
-
-              <div class="invite-search-box">
-                <svg viewBox="0 0 24 24" fill="none">
-                  <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
-                  <path d="M20 20L16.65 16.65" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                </svg>
-                <input 
-                  type="search" 
-                  class="invite-searchQuest" 
-                  placeholder="Search quest..." 
-                />
-              </div>
-
-              <div class="invite-quest-divider"></div>
-
-              <!-- hidden storage -->
-              <input type="hidden" class="selected-subquest-uuid" value="${subquestUUID}">
-              <input type="hidden" class="selected-subquest-name" value="${subquestName}">
-              <input type="hidden" class="selected-num-invites" value="${numInvites}">
-
-              <ul class="invite-quest-list">
-                <!-- dynamically filled later -->
-                <li class="invite-quest-item disabled">No quests loaded</li>
-              </ul>
-
-            </div>
-          </div>
-
-        </div>
-
-        <div class="smalltext">
-          Only users who claimed this quest will be count.
-          <a href="#" style="text-decoration: underline; ">Learn More.</a>
-        </div>
-
-      </div>
-
-
-      <div class="invite-text-topper">
-        <div class="invite-title">XP required for invite to count</div>
-        <div class="smalltext">
-          Update your invite requirements for your community in 
-          <a href="/community/${communitySlug}/settings/security" style="text-decoration: underline; ; cursor: pointer">settings.</a>
-        </div>
-      </div>
-
-    </div>
-  </div>
-
-</div>
-`;
-}
-
-/* ============================
-   PROOF OF HUMANITY (P.O.H)
-   ============================ */
-else if (task.type === "p.o.h") {
-
-  return `
-<div class="container-all-contain-yinit poh-wrapper"
-     data-type="p.o.h"
-     data-task-id="${task.id}">
-
-  <!-- CARD -->
-  <div class="card-container-quest poh"
-       style="color: var(--accent-poh)">
-
-    <!-- Badge -->
-    <div class="badge-quest">
-      <span class="badge-icon-quest">
-        ${PLATFORM_ICONS["p.o.h"]?.icon || "🧍"}
-      </span>
-      <span>Proof of Humanity</span>
-    </div>
-
-    <!-- Wrapper -->
-    <div class="card-wrapper-quest">
-      <div class="card-quest">
-        <div class="content-quest poh-root">
-
-          <div class="poh-title">
-            Verify Your Humanity
-          </div>
-
-          <div class="poh-subtitle">
-            Click below to prove you’re real
-          </div>
-
-          <!-- CTA -->
-          <a href="${task.config?.link || "#"}"
-             target="_blank"
-             rel="noopener noreferrer"
-             class="cta-quest poh-btn">
-            Claim Verification
-          </a>
-
-          <!-- Error / status -->
-          <p class="prove-self" style="display:none;">
-            Verification required to continue
+          <p class="error-quest invite-error" style="color: red; display: none;">
+            Value must be greater than zero
           </p>
 
         </div>
+
+
+        <!-- Quest selector -->
+        <div class="invite-text">
+
+          <div class="invite-title-row">
+            <span class="invite-title">Quest needed to count</span>
+            <span class="smalltext optional-text">Optional</span>
+          </div>
+
+          <div class="invite-dropdown">
+
+            <div class="invite-dropdown-input js-invite-dropdown">
+              <span class="selected-quest-label" style="white-space: nowrap; text-overflow: ellipsis; max-width: 80%; overflow: hidden">
+                ${subquestName || "Select Quest"}
+              </span>
+              <span class="invite-arrow">${ChevronSVGQ}</span>
+            </div>
+
+            <div class="invite-quest-select">
+
+              <div class="invite-quest-panel">
+
+                <div class="invite-search-box">
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
+                    <path d="M20 20L16.65 16.65" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                  <input 
+                    type="search" 
+                    class="invite-searchQuest" 
+                    placeholder="Search quest..." 
+                  />
+                </div>
+
+                <div class="invite-quest-divider"></div>
+
+                <!-- hidden storage -->
+                <input type="hidden" class="selected-subquest-uuid" value="${subquestUUID}">
+                <input type="hidden" class="selected-subquest-name" value="${subquestName}">
+                <input type="hidden" class="selected-num-invites" value="${numInvites}">
+
+                <ul class="invite-quest-list">
+                  <!-- dynamically filled later -->
+                  <li class="invite-quest-item disabled">No quests loaded</li>
+                </ul>
+
+              </div>
+            </div>
+
+          </div>
+
+          <div class="smalltext">
+            Only users who claimed this quest will be count.
+            <a href="#" style="text-decoration: underline; ">Learn More.</a>
+          </div>
+
+        </div>
+
+
+        <div class="invite-text-topper">
+          <div class="invite-title">XP required for invite to count</div>
+          <div class="smalltext">
+            Update your invite requirements for your community in 
+            <a href="/community/${communitySlug}/settings/security" style="text-decoration: underline; ; cursor: pointer">settings.</a>
+          </div>
+        </div>
+
       </div>
     </div>
-  </div>
 
-  <!-- SIMPLE POPUP -->
-  <div class="popup-container" role="dialog" aria-label="Proof of Humanity details">
-    <div class="popup-header">
-      <div class="telicon" style="background-color: var(--accent-poh)">
-        ${PLATFORM_ICONS["p.o.h"]?.icon || "🧍"}
+  </div>
+  `;
+  }
+
+  /* ============================
+    PROOF OF HUMANITY (P.O.H)
+    ============================ */
+  else if (task.type === "p.o.h") {
+
+    return `
+  <div class="container-all-contain-yinit poh-wrapper"
+      data-type="p.o.h"
+      data-task-id="${task.id}">
+
+    <!-- CARD -->
+    <div class="card-container-quest poh"
+        style="color: var(--accent-poh)">
+
+      <!-- Badge -->
+      <div class="badge-quest">
+        <span class="badge-icon-quest">
+          ${PLATFORM_ICONS["p.o.h"]?.icon || "🧍"}
+        </span>
+        <span>Proof of Humanity</span>
       </div>
 
-      <div class="title">Proof of Humanity</div>
-        <div class="liner"></div>
+      <!-- Wrapper -->
+      <div class="card-wrapper-quest">
+        <div class="card-quest">
+          <div class="content-quest poh-root">
 
-      <div class="popup-actions">
-        <button title="Delete link">${DeleteSVGQ}</button>
+            <div class="poh-title">
+              Verify Your Humanity
+            </div>
+
+            <div class="poh-subtitle">
+              Click below to prove you’re real
+            </div>
+
+            <!-- CTA -->
+            <a href="${task.config?.link || "#"}"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="cta-quest poh-btn">
+              Claim Verification
+            </a>
+
+            <!-- Error / status -->
+            <p class="prove-self" style="display:none;">
+              Verification required to continue
+            </p>
+
+          </div>
+        </div>
       </div>
     </div>
 
-    <div class="liners"></div>
-  </div>
+    <!-- SIMPLE POPUP -->
+    <div class="popup-container" role="dialog" aria-label="Proof of Humanity details">
+      <div class="popup-header">
+        <div class="telicon" style="background-color: var(--accent-poh)">
+          ${PLATFORM_ICONS["p.o.h"]?.icon || "🧍"}
+        </div>
 
-</div>`;
-}
+        <div class="title">Proof of Humanity</div>
+          <div class="liner"></div>
+
+        <div class="popup-actions">
+          <button title="Delete link">${DeleteSVGQ}</button>
+        </div>
+      </div>
+
+      <div class="liners"></div>
+    </div>
+
+  </div>`;
+  }
 
 
   else if(task.type === "Optionscale(star)"){
@@ -8371,7 +7845,28 @@ function collectTasks() {
       config.placeholder = wrapper.querySelector('.js-puzzle-placeholder')?.value || "";
       config.auto_validate = wrapper.querySelector('.js-auto-validate')?.checked ?? true;
     }
+    else if (type === "github") {
 
+      config.link = wrapper.querySelector(".github-input")?.value || "";
+
+      config.repo_name =
+        wrapper.querySelector(".github-preview-name")?.textContent?.trim() || "";
+
+      config.repo_owner =
+        wrapper.querySelector(".github-preview-owner")
+          ?.textContent
+          ?.replace("@", "")
+          .trim() || "";
+
+      config.owner_avatar =
+        wrapper.querySelector(".github-preview-avatar")?.src || "";
+
+      config.star =
+        wrapper.querySelector(".js-github-star")?.checked || false;
+
+      config.fork =
+        wrapper.querySelector(".js-github-fork")?.checked || false;
+    }
     /* ============================
        QUIZ
        ============================ */
@@ -8680,6 +8175,7 @@ function mapActionToTaskType(type) {
     case "ratings": return "Optionscale(numbers)";
     case "rankingup": return "discord";
     case "puzzle": return "puzzle";
+    case "github": return "github";
     case "spotify": return "spotify";
     case "nums": return "numbers";
     case "test": return "telegram";
@@ -8689,7 +8185,7 @@ function mapActionToTaskType(type) {
     case "textform": return "text";
     case "partnership_quest": return "partnership_quest";
     case "url": return "url";
-    default: return type; // fallback
+    default: return type; 
   }
 }
  
@@ -8764,7 +8260,7 @@ function LetsInitQuestBuildup() {
 
   document.querySelectorAll('.subsettings').forEach(el => {
     el.addEventListener('click', (e) => {
-      e.stopPropagation(); // ✅ prevent parent task-item from hijacking
+      e.stopPropagation();  
       const url = el.getAttribute('data-href');
       if (url) {
         window.location.href = url;
@@ -8784,8 +8280,8 @@ function LetsInitQuestBuildup() {
     // create EMPTY task
 
     const task = {
-      type: mapActionToTaskType(type), // only maps name
-      config: {}                      // EMPTY CONFIG
+      type: mapActionToTaskType(type), 
+      config: {}                     
     };
 
 
@@ -8794,8 +8290,14 @@ function LetsInitQuestBuildup() {
 
     // inject at bottom
     container.insertAdjacentHTML("beforeend", html);
+    document.querySelectorAll(".gh-tooltip-wrap").forEach(el => {
+      const tooltipBox = el.querySelector(".gh-tooltip-box");
 
-    // optional
+      if (!tooltipBox) return;
+
+      tooltipBox.textContent = el.dataset.tip || "";
+    });
+    
     updateCounter?.();
     if (typeof popup !== "undefined") popup.style.display = "none";
   });
@@ -8937,7 +8439,7 @@ function validateForm() {
     /* =========================
        1. SOCIAL TASKS
     ========================= */
-    if(["discord","youtube","telegram","partnership","partnership_quest"].includes(type)){
+    if(["discord","youtube","telegram","partnership","partnership_quest", "github"].includes(type)){
       const input = task.querySelector(".social-input");
       const popup = task.querySelector(".popup-container");
       const err = popup?.querySelector(".social-error-msg");
@@ -9140,27 +8642,19 @@ function validateForm() {
       }
     }
 
-    if (type === "token") {
-      const amtText = wrapper.querySelector(".amount-text")?.textContent.trim();
-      const symText = wrapper.querySelector(".token-symbol")?.textContent.trim();
-      const iconVisible = wrapper.querySelector(".token-icon")?.style.display !== "none";
-
+    if (type === "token" || type === "Token") {
+      const amt = wrapper.querySelector(".hidden-amount")?.value.trim();
       const net = wrapper.querySelector(".hidden-network")?.value.trim();
       const tok = wrapper.querySelector(".hidden-token")?.value.trim();
-      const amt = wrapper.querySelector(".hidden-amount")?.value.trim();
-      const ico = wrapper.querySelector(".hidden-token-icon")?.value.trim();
 
-      // ✅ If it has a badge in DOM → validate badge
-      if (amtText !== undefined) {
-        if (!amtText || isNaN(amtText) || parseFloat(amtText) <= 0 || !symText || !iconVisible) {
-          valid = false;
-        }
+      if (!amt || isNaN(amt) || parseFloat(amt) <= 0 || !net || !tok) {
+        valid = false;
       }
-      // ✅ If it has hidden inputs (new reward) → validate those
-      else if (net !== undefined) {
-        if (!net || !tok || !amt || parseFloat(amt) <= 0 || !ico) {
-          valid = false;
-        }
+
+      const amountInput = wrapper.querySelector(".amount-input");
+      const balFeedback = wrapper.querySelector(".zec-bal-feedback");
+      if (amountInput && balFeedback && balFeedback.classList.contains("zec-bal-err")) {
+        valid = false;
       }
     }
 

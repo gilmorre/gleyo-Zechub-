@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 
-  <!-- Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 
   <title>404 — Lost in Gleyo</title>
@@ -102,7 +101,6 @@
       color: #fff;
     }
 
-    /* Helpful links */
     .quick-links {
       margin-top: 25px;
       font-size: 14px;
@@ -136,7 +134,6 @@
       }
     }
 
-    /* Mobile */
     @media (max-width: 500px) {
       .code {
         font-size: 60px;
@@ -153,25 +150,20 @@
 <body>
   <div class="container">
 
-    <!-- Mascot -->
     <img src="{{ url_for('static', filename='404_notfound.png') }}" class="mascot" alt="Lost Mascot" draggable="false">
 
-    <!-- Code -->
     <div class="code">404</div>
 
-    <!-- Message -->
     <h1>You’re off the map</h1>
     <p>
       This page doesn’t exist or the sprint/quest you’re trying to reach is no longer available.
     </p>
 
-    <!-- Actions -->
     <div class="actions">
       <a href="/" class="btn primary">Go to Dashboard</a>
       <a href="/quest/explore" class="btn secondary">Explore Quests</a>
     </div>
 
-    <!-- Helpful Links -->
     <div class="quick-links">
       Need help?
       <a href="/help">Help Center</a>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-    <link rel="shortcut icon" href="https://gleyo.app/static/my_logo.png">
+    <link rel="shortcut icon" href="https://zupdpwnloewdkjqsymdm.supabase.co/storage/v1/object/public/uploads/communities/7/logos/511f4996-5748-4f1f-b74c-5d5c33f7124c.png">
 
     <title>Gleyo login</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -69,18 +69,6 @@
 
                 <div id="social-view">
                     <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 26px;">
-
-                        <div onclick="event.preventDefault(); loadZecModal(this)" style="cursor: pointer; display: none;"
-                        class="discord-btn" id="zecLoginBtn" style="outline: none;">
-                            <span class="zec-btn-inner" style="display: flex; align-items: center; width: 100% !important; gap: 6px; justify-content: center;">
-                                <svg fill="#000000" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="25" height="25">
-                                <circle cx="12" cy="12" r="9" style="fill: #F3B724; stroke-width: 2;"></circle>
-                                <polyline points="9 9 15 9 9 15 15 15" style="fill: none; stroke: #fff; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2;"></polyline>
-                                <path d="M12,9V7m0,8v2M12,3a9,9,0,1,0,9,9A9,9,0,0,0,12,3Z" style="fill: none; stroke: #fff; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2;"></path>
-                                </svg>
-                                Log in with Z-Cash
-                            </span>
-                        </div>
 
                         <a href="{{ url_for('discord.discord_login', next=url_for('dashboard')) }}"
                         class="discord-btn" style="outline: none;">

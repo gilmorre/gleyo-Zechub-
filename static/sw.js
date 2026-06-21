@@ -11,10 +11,10 @@ self.addEventListener("push", event => {
         url: data.url,
         type: data.type
       },
-      icon: "https://gleyo.app/static/my_logo.png"
+      icon: "https://zupdpwnloewdkjqsymdm.supabase.co/storage/v1/object/public/uploads/communities/7/logos/511f4996-5748-4f1f-b74c-5d5c33f7124c.png"
     })
   );
-});
+});https://zupdpwnloewdkjqsymdm.supabase.co/storage/v1/object/public/uploads/communities/7/logos/511f4996-5748-4f1f-b74c-5d5c33f7124c.png
 
 
 

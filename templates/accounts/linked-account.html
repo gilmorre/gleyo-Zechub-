@@ -1,7 +1,165 @@
-<link rel="stylesheet" href="{{ url_for('static', filename='settings/linked-accounts.css') }}">
+<style>
+@media (min-width: 768px) {
+
+.connections {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding-top: 14px;
+    width: 100% !important;
+}
+
+  .connctico-card {
+    max-width: 520px;
+    min-width: 520px;
+    padding-top: 34px;
+    display: flex;
+    flex-direction: column;
+    padding: 24px;
+    align-items: center;
+    gap: 14px;
+  }
+}
+
+@media (max-width: 768px) {
+
+  .connctico-card {
+    display: flex;
+    flex-direction: column;
+    padding: 24px 15px;
+    align-items: center;
+    gap: 14px;
+  }
+  
+.connections {
+  display: flex;
+  flex-direction: column;
+  padding: 24px 13px;
+  padding-top: 34px;
+  gap: 24px;
+}
+}
 
 
+.connection-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-surface);
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 21px;
+  padding: 18px 16px;
+}
 
+.connection-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.connection-left svg {
+  width: 36px;
+  height: 36px;
+}
+
+.connection-left h4 {
+  margin: 0;
+  font-size: 15px;
+  color: var(--text-main);
+}
+
+.connected-as {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.not-connected {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--text-muted-bg);
+}
+
+.btn {
+  padding: 7px 14px;
+  border-radius: 11px;
+  border: 0.9px solid transparent;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.btn.connect {
+  background: var(--bg-active);
+  border-color: var(--bg-active-border);
+  color: var(--text-main);
+}
+
+.btn.disconnect {
+  background: transparent;
+  border-color: #ef4444af;
+  color: #ef4444;
+}
+
+.btn.disconnect:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+
+.connected-as {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  position: relative;
+  color: #16a34a; /* text green */
+  background: rgba(22, 163, 74, 0.1); /* soft green bg */
+  border: 1px solid rgba(22, 163, 74, 0.25);
+
+  border-radius: 999px; /* pill style */
+}
+.connected-as {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  background: #22c55e;
+  border-radius: 50%;
+  position: relative;
+}
+
+.status-dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: #22c55e;
+  opacity: 0.6;
+  animation: pulse-wave 1.8s ease-out infinite;
+}
+
+@keyframes pulse-wave {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  70% {
+    transform: scale(3);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(3);
+    opacity: 0;
+  }
+}
+</style>
 
 
 
@@ -11,6 +169,53 @@
 <div class="connections">
 
   <div class="connctico-card">
+    <!-- GITHUB -->
+    <div class="connection-card">
+      <div class="connection-left">
+        <svg xmlns="http://www.w3.org/2000/svg"
+            width="36"
+            height="36"
+            viewBox="0 0 24 24"
+            fill="var(--text-main)">
+          <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
+        </svg>
+
+        <div>
+          <h4>GitHub</h4>
+
+          {% if github and github.action == "connected" %}
+            <p class="connected-as init-connected">
+              <span class="status-dot"></span>
+              @{{ github.github_username }}
+            </p>
+          {% else %}
+            <p class="not-connected">
+              Not connected
+            </p>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="connection-right">
+        <a href="{% if github and github.action == 'connected' %}
+                    {{ url_for('github_bp.github_disconnect') }}
+                  {% else %}
+                    {{ url_for('github_bp.github_login', next=url_for('account_settings_linked_accounts')) }}
+                  {% endif %}"
+          data-connect-url="{{ url_for('github_bp.github_login', next=url_for('account_settings_linked_accounts')) }}">
+
+          <button class="btn {% if github and github.action == 'connected' %}disconnect{% else %}connect{% endif %}">
+            {% if github and github.action == 'connected' %}
+              Disconnect
+            {% else %}
+              Connect
+            {% endif %}
+          </button>
+
+        </a>
+      </div>
+    </div>
+
     <!-- DISCORD -->
     <div class="connection-card">
       <div class="connection-left">
@@ -138,60 +343,6 @@
 
 
     </div>
-
-
-<div class="connection-card">
-  <div class="connection-left">
-    
-    <!-- Telegram SVG -->
-    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36"
-      viewBox="0 0 512 512" fill="none">
-      <defs>
-        <linearGradient id="tg" x1="256" y1="0" x2="256" y2="512">
-          <stop offset="0" stop-color="#2AABEE"/>
-          <stop offset="1" stop-color="#229ED9"/>
-        </linearGradient>
-      </defs>
-      <circle cx="256" cy="256" r="256" fill="url(#tg)"/>
-      <path fill="#fff" d="M115.88 253.3c74.63-32.52 124.39-53.95 149.29-64.31
-      71.1-29.57 85.87-34.71 95.5-34.88 2.12-.03 6.85.49 9.92 2.98
-      2.59 2.1 3.3 4.94 3.64 6.93.34 2 .77 6.53.43 10.08
-      -3.85 40.48-20.52 138.71-29 184.05-3.59 19.19-10.66 25.62-17.5 26.25
-      -14.86 1.37-26.15-9.83-40.55-19.27-22.53-14.76-35.26-23.96-57.13-38.37
-      -25.28-16.66-8.89-25.81 5.51-40.77 3.77-3.92 69.27-63.5 70.54-68.9
-      .16-.68.31-3.2-1.19-4.53s-3.71-.87-5.3-.51
-      c-2.26.51-38.25 24.3-107.98 71.37-10.22 7.02-19.48 10.43-27.77 10.26
-      -9.14-.2-26.72-5.17-39.79-9.42-16.03-5.21-28.77-7.97-27.66-16.82
-      .57-4.61 6.92-9.32 19.04-14.14z"/>
-    </svg>
-
-    <div>
-      <h4>Telegram</h4>
-
-      {% if telegram and telegram.action == "connected" %}
-        <p class="connected-as init-connected">
-          <span class="status-dot"></span>
-          @{{ telegram.tusername }}
-        </p>
-      {% else %}
-        <p class="not-connected">Not connected</p>
-      {% endif %}
-    </div>
-
-  </div>
-
-  <div class="connection-right">
-    {% if telegram and telegram.action == "connected" %}
-      <a href="{{ url_for('telegram.telegram_disconnect', user_id=current_user.id) }}">
-        <button class="btn disconnect">Disconnect</button>
-      </a>
-    {% else %}
-      <a href="https://oauth.telegram.org/auth?bot_id=7686743241&origin=https://gleyo.app&return_to=https://gleyo.app/telegram/callback">
-        <button class="btn connect">Connect</button>
-      </a>
-    {% endif %}
-  </div>
-</div>
 
 </div>
 

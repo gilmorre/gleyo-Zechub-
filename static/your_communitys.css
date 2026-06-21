@@ -65,8 +65,7 @@ body {
   --bg-hover-q-p: #3c3c51c0;
   --bg-hover-back-q-p: #222236c3;
   --border-split: #e4e4e4da;
-  --bg-hover-hover: 
-  ;
+  --bg-hover-hover: #2a2a449c;
   --content-dropper: #151520;
   --bg-hover-hover-init-q: #2a2a4469;
   --bg-hover-hover-init-q-hover: #2a2a4449;
@@ -118,7 +117,8 @@ body {
 
 }
 
-* { box-sizing: border-box;  -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%;, font-family: 'Outfit', sans-serif !important;}
+* { box-sizing: border-box;  -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; font-family: 'Outfit', sans-serif !important;
+}
 
 html, body {
   -webkit-text-size-adjust: 100%;
@@ -4785,7 +4785,7 @@ border-top-color: var(--text-main) !important;
   color: var(--poh-error-text);
 }
 
-.prove-self, .wrong-anser, .partnership-error, .partnership-error, .discord-errir, .yotube-error, .telegram-error, .numbers-error, .text-error, .url-error, .puzzle-error, .invite-error  {
+.prove-self, .wrong-anser, .partnership-error, .partnership-error, .discord-errir, .yotube-error, .telegram-error, .numbers-error, .text-error, .url-error, .puzzle-error, .invite-error, .github-error  {
   font-size: 13px;
   width: 100%;
   text-align: flex-start;
@@ -6197,15 +6197,20 @@ border-top-color: var(--text-main) !important;
 .connect-btn.discord { 
   background: #5865f2;
  }    
-
+ .connect-btn.github {
+  background-color: #24292e
+ }
 .connect-btn.youtube {
    background: #ff0000;
    }   
    
 .connect-btn.telegram {
    background: #0088cc;
-   }   
+  }   
 
+ .connect-btn.github:hover {
+  background-color: #1b1f23
+ }
 
 .connect-btn.twitter:hover {
    background: #101010; 
@@ -10710,7 +10715,7 @@ background-color: var(--bg-app);
   box-shadow: 0 4px 12px rgba(0,0,0,0.5);
 }
 .badge-custom {
-  background-image: url("{{ url_for('static', filename='treasure_chest.png') }}");
+  background-image: url("https://xpcqiovfesvllsljxhac.supabase.co/storage/v1/object/public/uploads/treasure_chest.png");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -10721,7 +10726,7 @@ background-color: var(--bg-app);
   width: 8dvh;
   height: 8dvh;
   border-radius: 12px;
-  background-image: url("{{ url_for('static', filename='token.png') }}");
+  background-image: url("https://xpcqiovfesvllsljxhac.supabase.co/storage/v1/object/public/uploads/zcashreward.png");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -12312,7 +12317,7 @@ background-color: var(--bg-app);
 
 
 .card-custom {
-  background-image: url("{{ url_for('static', filename='treasure_chest.png') }}");
+  background-image: url("https://xpcqiovfesvllsljxhac.supabase.co/storage/v1/object/public/uploads/treasure_chest.png");
   background-size: cover;       
   background-position: center; 
   background-repeat: no-repeat;
@@ -12332,7 +12337,7 @@ background-color: var(--bg-app);
 
 
 .card-token {
-  background-image: url("{{ url_for('static', filename='token.png') }}");
+  background-image: url("https://xpcqiovfesvllsljxhac.supabase.co/storage/v1/object/public/uploads/zcashreward.png");
   background-size: cover;      
   background-position: center; 
   background-repeat: no-repeat;
@@ -14233,7 +14238,7 @@ background-color: var(--bg-app);
 .sk-w-meta{display:flex;flex-direction:column;gap:6px;}
 .sk-w-name{width:68px;height:12px;}
 .sk-w-id{width:120px;height:10px;}
-.sk-usdc{width:66px;height:26px;border-radius:20px;}
+.sk-zec{width:66px;height:26px;border-radius:20px;}
 .sk-bal-lbl{width:105px;height:10px;margin-bottom:8px;}
 .sk-bal{width:175px;height:32px;margin-bottom:7px;}
 @media(min-width:700px){.sk-bal{height:38px;}}

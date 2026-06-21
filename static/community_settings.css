@@ -1,16 +1,4 @@
 
-
-::selection {
-  background: #4effcd29; 
-  color: var(--text-main);        
-}
-
-::-moz-selection {
-  background: #4effcd29; 
-  color: var(--text-main);        
-}
-
-
 :root {
   --bg-app-set-up: #0b0b12;
   --bg-app: #1c1c2c;
@@ -96,12 +84,26 @@
 
 }
 
-* { box-sizing: border-box;  -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%;, font-family: 'Outfit', sans-serif !important;}
-
+* { box-sizing: border-box;  -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%;}
+* { 
+ font-family: 'Outfit', sans-serif !important;  
+}
 html, body {
   -webkit-text-size-adjust: 100%;
   font-family: 'Outfit', sans-serif;
 }
+
+
+::selection {
+  background: #4effcd29; 
+  color: var(--text-main);        
+}
+
+::-moz-selection {
+  background: #4effcd29; 
+  color: var(--text-main);        
+}
+
 
 /* =======================
    HEADER

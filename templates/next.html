@@ -25,8 +25,8 @@
     <div class="choice-box" data-option="bot">
       <h3>Top-Tier Security</h3>
       <p>
-        Require users to connect a Twitter account with a verified blue check.
-        Strong protection, but excludes users without Twitter Premium.
+        Require users to connect a verified shielded ZEC wallet.
+        Strong protection backed by Zcash's native privacy guarantees.
       </p>
     </div>
 
@@ -39,7 +39,7 @@
     </div>
 
   </div>
-
+  
   <div class="progress-lines">
     <div class="line"></div>
     <div class="line active"></div>
@@ -72,7 +72,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('nextForm');
   let selectedOption = "{{ selected_option or '' }}";
 
-  // Pre-select
   if (selectedOption) {
     const preCard = document.querySelector(`.choice-box[data-option="${selectedOption}"]`);
     if (preCard) {

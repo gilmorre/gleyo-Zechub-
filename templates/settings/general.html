@@ -1,81 +1,78 @@
 <style>
+  @media (min-width: 768px) {
 
+  .pp-conatiner {
+    background: var(--bg-sidebar);
+    border-radius: var(--radius);
+    padding: 20px;
+    padding-top: 40px;
+    max-width: 520px;
+    min-width: 520px;
+    color: var(--text-main);
+  }
 
+  }
 
-@media (min-width: 768px) {
+  @media (max-width: 768px) {
 
-.pp-conatiner {
-  background: var(--bg-sidebar);
-  border-radius: var(--radius);
-  padding: 20px;
-  padding-top: 40px;
-  max-width: 520px;
-  min-width: 520px;
-  color: var(--text-main);
-}
-
-}
-
-@media (max-width: 768px) {
-
-.pp-conatiner {
-  background: var(--bg-sidebar);
-  border-radius: var(--radius);
-  padding: 20px 15px;
-  padding-top: 40px;
-  width: 100%;
-
-  color: var(--text-main);
-}
-
-
-
-}
-
-.profile-card{
-  margin-top: 40px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 20px;
-}
-
-
-.profile-title {
-  margin: 0 0 16px;
-  font-size: 16px;
-  color: var(--text-main);
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.form-group:not(:last-child) {
-  margin-bottom: 25px;
-}
-
-.form-label {
-  font-size: 13px;
-  color: var(--text-muted);
-  font-weight: 550;
-}
-
-
-.field-input-comm{
+  .pp-conatiner {
+    background: var(--bg-sidebar);
+    border-radius: var(--radius);
+    padding: 20px 15px;
+    padding-top: 40px;
     width: 100%;
-    outline: none;
+
+    color: var(--text-main);
+  }
+
+
+
+  }
+
+  .profile-card{
+    margin-top: 40px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 20px;
+  }
+
+
+  .profile-title {
+    margin: 0 0 16px;
+    font-size: 16px;
+    color: var(--text-main);
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .form-group:not(:last-child) {
+    margin-bottom: 25px;
+  }
+
+  .form-label {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-weight: 550;
+  }
+
+
+  .field-input-comm{
+      width: 100%;
+      outline: none;
+      border-radius: 13px;
+      padding: 13px 16px;
+      font-size: 14px !important;
+  }
+
+
+  .field-area-comm{
     border-radius: 13px;
-    padding: 13px 16px;
-    font-size: 14px !important;
-}
-
-
-.field-area-comm{
-  border-radius: 13px;
-}
+  }
 
 
 
@@ -83,193 +80,162 @@
 
 
 
-.smart-select {
-  width: 100%;
-  max-width: 420px;
-}
+  .smart-select {
+    width: 100%;
+    max-width: 420px;
+  }
 
-.smart-select-trigger {
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 10px 12px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  cursor: pointer;
-}
+  .smart-select-trigger {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+  }
 
-.smart-select-trigger:hover {
-  border-color: #5865f2;
-}
+  .smart-select-trigger:hover {
+    border-color: #5865f2;
+  }
 
-.smart-dropdown {
-  position: fixed;
-  border: 0.9px solid var(--border);
-  overflow: hidden !important;
-  overflow-y: hidden !important;
-  border-radius: 17px;
-  display: flex;
-  flex-direction: column;
-  z-index: 9999;
-  background: rgba(34, 34, 54, 0.448);
-  backdrop-filter: blur(14px);
-  box-shadow: 0 12px 30px rgba(0,0,0,.35);
-}
+  .smart-dropdown {
+    position: fixed;
+    border: 0.9px solid var(--border);
+    overflow: hidden !important;
+    overflow-y: hidden !important;
+    border-radius: 17px;
+    display: flex;
+    flex-direction: column;
+    z-index: 9999;
+    background: rgba(34, 34, 54, 0.448);
+    backdrop-filter: blur(14px);
+    box-shadow: 0 12px 30px rgba(0,0,0,.35);
+  }
 
- 
-.smart-dropdown-list{
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-  width: 100%;
-  min-width: 100%;
-  height: calc(100vh - 60px);
-  padding-bottom: 10px;
-}
-
-
-
-.smart-dropdown .item {
-  padding: 10px 12px;
-
-  cursor: pointer;
-}
-
-.smart-dropdown .item:hover {
-  background: var(--bg-hover-hover);
-}
-
-.placeholder {
-  color: var(--text-muted);
-}
-
-
-.smart-dropdown-search {
-  height: 60px;
-  display: flex;
-  align-items: center;
-  background-color: var(--system-header) !important;
-  padding-top: 10px !important;
-  padding-bottom: 10px !important;
-  padding: 0;
-  font-weight: bold;
-  width: 100%;
-  font-size: 16px;
-  position: sticky;
-  top: 0;
-}
-
-.smart-dropdown-search .search-wrap {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  width: 100%;
-  padding: 8px;
-  border-radius: 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.smart-dropdown-search svg {
-  width: 16px;
-  height: 16px;
-  position: relative;
-  color: var(--text-muted);
-}
-
-.smart-dropdown-search input {
-  border: none;
-  outline: none;
-  background: transparent;
-  width: 100%;
-  font-size: 14px;
-  color: var(--text-main);
-}
-
-.smart-dropdown-search input::placeholder {
-  color: var(--text-muted);
-}
-
-
-.profile-card.delete-card {
-  padding: 14px 25px;
-  border-radius: 25px;
-  cursor: pointer;
-}
-
-
-.avatar-overlay {
-  position: absolute;
-  inset: 0; 
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.35);
-  color: #fff;
-  z-index: 2;
-  transition: opacity 0.25s ease;
-}
-
-.avatar-overlay svg {
-  width: 18px;
-  height: 18px;
-}
+  
+  .smart-dropdown-list{
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    width: 100%;
+    min-width: 100%;
+    height: calc(100vh - 60px);
+    padding-bottom: 10px;
+  }
 
 
 
-@media (min-width: 769px) {
+  .smart-dropdown .item {
+    padding: 10px 12px;
+
+    cursor: pointer;
+  }
+
+  .smart-dropdown .item:hover {
+    background: var(--bg-hover-hover);
+  }
+
+  .placeholder {
+    color: var(--text-muted);
+  }
+
+  .zcash-badge-settings {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 0.9px solid var(--border);
+    background: var(--bg-surface-lower);
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+
+  .zcash-badge-settings svg {
+    color: #f4b728;
+    flex-shrink: 0;
+  }
+
+  .profile-card.delete-card {
+    padding: 14px 25px;
+    border-radius: 25px;
+    cursor: pointer;
+  }
+
+
   .avatar-overlay {
+    position: absolute;
+    inset: 0; 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.35);
+    color: #fff;
+    z-index: 2;
+    transition: opacity 0.25s ease;
+  }
+
+  .avatar-overlay svg {
+    width: 18px;
+    height: 18px;
+  }
+
+
+
+  @media (min-width: 769px) {
+    .avatar-overlay {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .logo:hover .avatar-overlay {
+      opacity: 1 !important;
+      pointer-events: auto;
+    }
+  }
+
+  .modal-emailch{
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.505);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
     opacity: 0;
     pointer-events: none;
+    transition: opacity 0.2s ease;
   }
 
-  .logo:hover .avatar-overlay {
-    opacity: 1 !important;
-    pointer-events: auto;
+
+  .modal-backdrop-email {
+    width: 100%;
+    max-width: 420px;
+    background: rgba(34, 34, 54, 0.448);
+    backdrop-filter: blur(14px);
+    border: 0.9px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
   }
-}
-
-.modal-emailch{
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.505);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.2s ease;
-}
-
-
-.modal-backdrop-email {
-  width: 100%;
-  max-width: 420px;
-  background: rgba(34, 34, 54, 0.448);
-  backdrop-filter: blur(14px);
-  border: 0.9px solid var(--border);
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-}
 
 
 
-@media (max-width: 769px) {
-  
-  .avatar-overlay {
+  @media (max-width: 769px) {
+    
+    .avatar-overlay {
       opacity: 1;
-  }
+    }
 
-  .modal-emailch {
+    .modal-emailch {
       padding: 0 15px;
       transition: none;
-
-  }    
-}
+    }    
+  }
 </style>    
-    
+      
 <div class="pp-conatiner">
   <div class="profile-hero">
     <div class="banner">
@@ -278,7 +244,6 @@
 
       <div class="banner-action">Change banner</div>
 
-      <!-- LOGO -->
 
     </div>
     <div class="logo-wrap">
@@ -316,12 +281,12 @@
       </div>
     </div>
   </div>
-    <input
-      type="file"
-      id="avatarInput"
-      accept="image/*"
-      hidden
-    />
+  <input
+    type="file"
+    id="avatarInput"
+    accept="image/*"
+    hidden
+  />
   <div class="form-container">
 
     <div class="profile-card">
@@ -351,36 +316,15 @@
 
     <div class="profile-card">
 
-      <div class="form-group">
-        <label class="form-label">
-          Blockchain
-          <span class="optional">Optional</span>
-        </label>
-        <div class="smart-select" id="blockchainSelect">
-          <input type="hidden" name="blockchain" id="blockchainInput" required />
-
-          <div class="smart-select-trigger">
-            <span
-              class="placeholder"
-              id="blockchainLabel"
-              data-value="{{ community.blockchain or '' }}"
-            >
-              {% if community.blockchain %}
-                {{ community.blockchain|capitalize }}
-              {% else %}
-                Select a blockchain
-              {% endif %}
-            </span>
-
-            <svg width="16" height="16" viewBox="0 0 24 24">
-              <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2"/>
-            </svg>
-          </div>
-        </div>
-
-
-        <small>Used for on-chain features if enabled.</small>
+    <div class="form-group">
+      <label class="form-label">Network</label>
+      <div class="zcash-badge-settings">
+        <svg width="16" height="16" viewBox="-5 -10 110 135" fill="currentColor" stroke="currentColor" style="position: relative; top: 1px">
+          <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
+        </svg>
+        <span>Zcash (ZEC) · Shielded</span>
       </div>
+    </div>
     </div>
 
     {% if current_user.id == community.created_by_id %}

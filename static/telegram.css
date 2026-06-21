@@ -1,5 +1,4 @@
 
-/* Make both containers same width */
 .outer-box,
 .popup-container {
     width: 100% !important;
@@ -14,15 +13,15 @@
     box-sizing: border-box !important;
 }
  }
-/* Outer container */
-.outer-box {
+
+ .outer-box {
     position: relative;
     border: 1.5px solid rgba(255, 255, 255, 0.2);
     border-radius: 20px;
     padding: 50px 20px 20px;
 }
 
-/* Floating label above */
+ 
 .tellabel {
     position: absolute;
     top: -16px;

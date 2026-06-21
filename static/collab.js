@@ -491,7 +491,7 @@ function initVoicePlayers() {
     const voiceMsg = btn.closest(".voice-message");
     const audio = voiceMsg.querySelector("audio");
     const bars = voiceMsg.querySelectorAll(".waveform-bars-rendered .bar");
-    const timeSpan = voiceMsg.querySelector(".voice-time"); // ✅ select time span
+    const timeSpan = voiceMsg.querySelector(".voice-time"); 
 
     let rafId;
 
@@ -500,7 +500,6 @@ function initVoicePlayers() {
         const progress = audio.currentTime / audio.duration;
         const playedCount = Math.floor(progress * bars.length);
 
-        // update waveform bars
         bars.forEach((bar, i) => {
           bar.classList.toggle("played", i < playedCount);
         });

@@ -330,54 +330,6 @@ function hideFlash(flash) {
 }
 
 
-let __zecLoaded = false;
-
-async function loadZecModal(btn) {
-
-  if (!btn) return;
-
-  if (btn.dataset.loading === "1") return;
-
-  const inner = btn.querySelector(".zec-btn-inner");
-
-  if (!inner) return;
-
-  const original = inner.innerHTML;
-
-  if (!__zecLoaded) {
-
-    btn.dataset.loading = "1";
-    btn.style.pointerEvents = "none";
-
-    inner.innerHTML = IsloadingInit;
-
-    try {
-
-      await loadScript("/static/z-cash.js");
-
-      __zecLoaded = true;
-
-    } catch (err) {
-
-      console.error("Failed loading ZEC modal:", err);
-
-      inner.innerHTML = original;
-
-      btn.style.pointerEvents = "";
-      btn.dataset.loading = "0";
-
-      return;
-    }
-
-    inner.innerHTML = original;
-    btn.style.pointerEvents = "";
-    btn.dataset.loading = "0";
-  }
-
-  openZecModal();
-}
-
-window.loadZecModal = loadZecModal
 
 CalledIniter();
 initViewSwitcher();

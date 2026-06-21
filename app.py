@@ -1,124 +1,248 @@
-import os, random, smtplib, time, secrets
-from functools import wraps
-from email.message import EmailMessage   
-from threading import Thread
-from utils import has_role, check_banned, create_user_session, get_latest_valid_sprint, is_safe_url, get_subquest_attempt_stats
+# ─────────────────────────────────────────────────────────────
+# STDLIB
+# ─────────────────────────────────────────────────────────────
 import os
-import discord
-from discord.ext import commands
-import pytz
-import tzlocal
-from flask_login import logout_user
-from bs4 import BeautifulSoup
-from flask_login import login_required  
-import requests
-import warnings
-warnings.filterwarnings("ignore", category=UserWarning, module="flask_admin.contrib")
-import secrets, time, requests as req
-from flask_sqlalchemy import SQLAlchemy
-import base64, uuid, requests, json, time, sqlite3, os
-from utils import csrf
-from dotenv import load_dotenv 
-from notifications import increment_review_notification 
-from flask_login import current_user, login_required
-from flask_login import login_user
-from flask import Flask, request, render_template, redirect, jsonify, session, send_from_directory, make_response
-from flask_login import LoginManager
-from statistics import median
-from eth_account.messages import encode_defunct
-from eth_account import Account
-from solana.rpc.api import Client
-from flask import get_flashed_messages
-from supabase import create_client
-import resend
+import re
+import json
+import time
+import random
+import string
+import smtplib
+import secrets
+import sqlite3
+import base64
 import base58
-from flask_socketio import SocketIO, join_room, emit
-from flask import abort  
-from sqlalchemy.exc import IntegrityError
-from nacl.signing import VerifyKey
-from nacl.exceptions import BadSignatureError
-import stripe
+import uuid
+import hashlib
+import asyncio
+import subprocess
+import threading
+import traceback
+import warnings
+import logging
+import pyotp
+import qrcode
+import humanize
+from functools import wraps
+from threading import Thread
+from concurrent.futures import ThreadPoolExecutor
+from copy import deepcopy
+from decimal import Decimal
+from statistics import median
+from io import BytesIO
+from html import unescape
+from operator import gt, ge, lt, le, eq, ne
+from tempfile import NamedTemporaryFile
+from email.message import EmailMessage
+from email.mime.text import MIMEText
+from datetime import datetime, timedelta, timezone, UTC
+from collections import Counter, defaultdict
+from urllib.parse import urlparse, urljoin
+from threading import Lock
+warnings.filterwarnings("ignore", category=UserWarning, module="flask_admin.contrib")
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("recurrence")
+logger.setLevel(logging.INFO)
+
+# ─────────────────────────────────────────────────────────────
+# THIRD-PARTY — FLASK
+# ─────────────────────────────────────────────────────────────
+from flask import (
+    Flask, request, render_template, redirect, url_for,
+    jsonify, session, send_from_directory, send_file,
+    make_response, flash, abort, get_flashed_messages,
+    current_app, Response,
+)
+from flask_login import (
+    LoginManager, login_user, logout_user,
+    login_required, current_user,
+)
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
+from flask_session import Session
+from flask_socketio import SocketIO, join_room, leave_room, emit
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from flask_admin.contrib.sqla import ModelView
-from user_agents import parse
-from flask_admin.form import rules
-from flask_admin.contrib.sqla import ModelView
-from wtforms import TextAreaField, PasswordField
-from flask_migrate import Migrate
-from pywebpush import webpush, WebPushException
 from flask_cors import CORS
-from sqlalchemy import and_, or_, func, cast, Date, distinct, case
-import os
-from instance import db, mail
-from models import Users, UserTwoFactor, PasswordResetToken, UserTransaction
-from usertwitter import UserTwitter
-from usertelegram import UserTelegram
-from userdiscord import UserDiscord
-from useryoutube import UserYouTube
-from usertiktok import UserTikTok
-from task_histr import TaskAttemptHistory
-from session_models import UserSession
-from community_invite_log import CommunityInviteLog
-from twitter_models import CommunityTwitter
-from discord_models import DiscordGuild
-from Subquestcondition import SubquestCondition
-from SubquestCooldown import SubquestCooldown
-from xplevel import UserXP
-from BugReport import BugReport
-from wallet import Wallet, SolanaWallet, ZecAuthSession, ZecWallet
-from subquestreward import SubquestReward
-from community_models import Community, CommunityInteractionSettings, AIConversation, CommunityClaimUsage, CommunityWallet, CommunityWalletTransaction, EarlyAccessApplication, ProWaitlist, SprintUserXP, CommunityUserXP, CommunityInviteUsage, ReviewNotification, InboxNotification
-import redis
-from scheduler import check_and_update_invite_status
-from ticket_support import CommunityTicket, CommunityTicketSettings
-from invitation_code import InvitationCode
-from CommunityPayment import CommunityPayment
-from subquest_review import  TaskReview
-from CommunityInviteTask import  CommunityInviteTask 
-from community_tracking import CommunityOnlineStatus
-from community_request import CommunityRequest
-from CommunityRequestMessage import CommunityRequestMessage
-from subquest_completion import SubquestCompletion
-from limitedlink import LimitedCode
-from sprint_models import Sprint
-from DiscordNotification import DiscordNotificationSetting
-from state_models import UserCommunityFabState
-from task_models import Task, PreviewTaskState
-from task_complete import TaskCompletion
-from user_condition_status import  UserConditionStatus
-from subquest_review_hist import TaskReviewHistory
-from CommunitySecurity import CommunitySecurity
-from UserCommunitySettings import UserCommunitySettings
-from flask import request, flash
-from payment_models import Payment
-from reset_tracker import ResetTracker
-from enterprise_models import EnterpriseRequest
-from quest_models import Quest
-from integrations import CommunityWebhook
-from sub_quest_models import Subquest, SubquestRun
-import uuid
-import os, re
-from functools import wraps
-from flask import request, render_template, session, redirect, url_for, flash
+from flask_admin import Admin, AdminIndexView
+from flask_admin.contrib.sqla import ModelView
+from flask_admin.form import rules
+from flask_mail import Message, Mail
+
+# ─────────────────────────────────────────────────────────────
+# THIRD-PARTY — SQLALCHEMY
+# ─────────────────────────────────────────────────────────────
+from sqlalchemy import and_, or_, func, cast, Date, desc, distinct, case, event
+from sqlalchemy.orm import joinedload, aliased, scoped_session, sessionmaker
+from sqlalchemy.exc import IntegrityError
+
+# ─────────────────────────────────────────────────────────────
+# THIRD-PARTY — WERKZEUG / WTForms
+# ─────────────────────────────────────────────────────────────
+from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-from CommunityUserRole_models import CommunityUserRole, CommunityUserExtraRole, CommunityExtraRole, CommunityRoleStyle, CommunityMembershipEvent
-import random
-import community_checking
+from wtforms import fields, TextAreaField, PasswordField
+from wtforms.validators import Regexp
+from markupsafe import Markup, escape
 
-from flask_session import Session
-from Emoji_community import CommunityEmoji
-from comm_emoji import MessageReaction
-from communitynotification import CommunityNotificationSettings, PushSubscription, CategoryNotificationSettings, ChannelNotificationSettings
-from chat_channel import CommunityChannel, ChannelAllowedRole
-from chat_category import CommunityCategory, CategoryAllowedRole
-from comm_message import CommunityMessage, ChannelSlowmodeState, PinnedMessage, MessageAudio
-from comm_attachment import MessageAttachment
+# ─────────────────────────────────────────────────────────────
+# THIRD-PARTY — CRYPTO / WEB3
+# ─────────────────────────────────────────────────────────────
+from solana.rpc.api import Client
+from nacl.signing import VerifyKey
+from nacl.exceptions import BadSignatureError
+
+# ─────────────────────────────────────────────────────────────
+# THIRD-PARTY — GOOGLE
+# ─────────────────────────────────────────────────────────────
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+from googleapiclient.discovery import build
+
+# ─────────────────────────────────────────────────────────────
+# THIRD-PARTY — MISC
+# ─────────────────────────────────────────────────────────────
+import discord
+import resend
+import stripe
+import pytz
+import tzlocal
+import requests
+import requests as req
+from PIL import Image
+from pydub import AudioSegment
+from bs4 import BeautifulSoup
+from slugify import slugify
+from supabase import create_client
+from user_agents import parse
+from pywebpush import webpush, WebPushException
+from dotenv import load_dotenv
+from discord import Object
+from discord.ext import commands
+from dateutil.relativedelta import relativedelta
+from openpyxl import Workbook
+from openpyxl.utils import get_column_letter
+from tzlocal import get_localzone
+
+# ─────────────────────────────────────────────────────────────
+# INTERNAL — CORE
+# ─────────────────────────────────────────────────────────────
+from backend.utils.instance import db, mail
+from backend.utils.utils import (
+    has_role, check_banned, create_user_session,
+    get_latest_valid_sprint, is_safe_url,
+    get_subquest_attempt_stats, csrf,
+)
+from backend.notifications.notifications import increment_review_notification
+from backend.utils.scheduler import check_and_update_invite_status
+from backend.quests.check_analytics import generate_all_insights
+from backend.utils.upload_service import upload_async, send_push_notification_async, send_discord_message_async
+import backend.utils.ai_init as ai_init
+
+# ─────────────────────────────────────────────────────────────
+# INTERNAL — BLUEPRINTS / OAUTH
+# ─────────────────────────────────────────────────────────────
+from backend.auth.googleOauth import google_bp
+from backend.integrations.telegramAPI import telegram_bp
+from backend.integrations.twitterAPI import twitter_bp, get_live_followers_count
+from backend.integrations.discord_name import bp as discord_bp
+from backend.integrations.youtubeAPI import youtube_bp
+from backend.integrations.tiktok_bp import tiktok_bp
+from backend.auth.github import bp, check_if_starred, get_repo_forks
+from backend.communities.community_twitter_bp import community_twitter_bp
+
+# ─────────────────────────────────────────────────────────────
+# INTERNAL — DISCORD BOT
+# ─────────────────────────────────────────────────────────────
+from backend.integrations.discord_bot import (
+    bp_discord_bot, start_bot_in_background,
+    get_or_create_invite, get_discord_channels, get_discord_roles,
+    bot_members_cache, API_BASE, DISCORD_BOT_TOKEN,
+    role_assignment_queue, bot,
+    user_has_discord_role, fetch_discord_roles_and_member,
+)
+
+# ─────────────────────────────────────────────────────────────
+# INTERNAL — MODELS
+# ─────────────────────────────────────────────────────────────
+from backend.models.models import Users, UserTwoFactor, PasswordResetToken, UserTransaction, UserBalance
+from backend.communities.community_models import (
+    Community, CommunityInteractionSettings, AIConversation,
+    CommunityClaimUsage, CommunityWallet, CommunityWalletTransaction,
+    EarlyAccessApplication, ProWaitlist, SprintUserXP, CommunityUserXP,
+    CommunityInviteUsage, ReviewNotification, InboxNotification,
+)
+from backend.communities.CommunityUserRole_models import (
+    CommunityUserRole, CommunityUserExtraRole, CommunityExtraRole,
+    CommunityRoleStyle, CommunityMembershipEvent,
+)
+from backend.quests.quest_models import Quest
+from backend.quests.sub_quest_models import Subquest, SubquestRun
+from backend.quests.task_models import Task, PreviewTaskState
+from backend.quests.task_histr import TaskAttemptHistory
+from backend.quests.task_complete import TaskCompletion
+from backend.quests.subquest_completion import SubquestCompletion
+from backend.quests.subquest_review import TaskReview
+from backend.quests.subquest_review_hist import TaskReviewHistory
+from backend.quests.subquestreward import SubquestReward
+from backend.quests.Subquestcondition import SubquestCondition
+from backend.quests.SubquestCooldown import SubquestCooldown
+from backend.quests.sprint_models import Sprint
+from backend.quests.state_models import UserCommunityFabState
+from backend.communities.user_condition_status import UserConditionStatus
+from backend.communities.xplevel import UserXP
+from backend.payments.wallet import ZecAuthSession, ZecWallet
+from backend.payments.payment_models import Payment
+from backend.communities.CommunityPayment import CommunityPayment
+from backend.auth.invitation_code import InvitationCode
+from backend.quests.limitedlink import generate_invite_code, LimitedCode
+from backend.integrations.integrations import CommunityWebhook
+from backend.quests.reset_tracker import ResetTracker
+from backend.notifications.BugReport import BugReport
+from backend.payments.enterprise_models import EnterpriseRequest
+
+# ─────────────────────────────────────────────────────────────
+# INTERNAL — USER INTEGRATIONS
+# ─────────────────────────────────────────────────────────────
+from backend.auth.usertwitter import UserTwitter
+from backend.auth.usertelegram import UserTelegram
+from backend.auth.userdiscord import UserDiscord
+from backend.auth.useryoutube import UserYouTube
+from backend.auth.usertiktok import UserTikTok
+from backend.auth.usergithub import UserGithub
+
+# ─────────────────────────────────────────────────────────────
+# INTERNAL — COMMUNITY FEATURES
+# ─────────────────────────────────────────────────────────────
+from backend.integrations.twitter_models import CommunityTwitter
+from backend.integrations.discord_models import DiscordGuild
+from backend.notifications.DiscordNotification import DiscordNotificationSetting
+from backend.communities.CommunitySecurity import CommunitySecurity
+from backend.communities.UserCommunitySettings import UserCommunitySettings
+from backend.communities.CommunityInviteTask import CommunityInviteTask
+from backend.communities.community_invite_log import CommunityInviteLog
+from backend.communities.community_tracking import CommunityOnlineStatus
+from backend.communities.community_request import CommunityRequest
+from backend.communities.CommunityRequestMessage import CommunityRequestMessage
+from backend.models.session_models import UserSession
+from backend.notifications.ticket_support import CommunityTicket, CommunityTicketSettings
+from backend.chat.Emoji_community import CommunityEmoji
+from backend.chat.comm_emoji import MessageReaction
+from backend.communities.communitynotification import (
+    CommunityNotificationSettings, PushSubscription,
+    CategoryNotificationSettings, ChannelNotificationSettings,
+)
+from backend.chat.chat_channel import CommunityChannel, ChannelAllowedRole
+from backend.chat.chat_category import CommunityCategory, CategoryAllowedRole
+from backend.chat.comm_message import CommunityMessage, ChannelSlowmodeState, PinnedMessage, MessageAudio
+from backend.chat.comm_attachment import MessageAttachment
 
 
-import ai_init 
-load_dotenv()  # loads variables from .env into environment
 
+load_dotenv()   
+print("URL:", os.getenv("SUPABASE_URL", "").strip())
+print("KEY:", os.getenv("SUPABASE_KEY", "").strip())
 def human_readable_number(n):
     """Convert large number to human-readable string: 2_000_000 -> 2M"""
     if n >= 1_000_000_000:
@@ -131,11 +255,8 @@ def human_readable_number(n):
         return str(n)
 
 
-from datetime import timedelta
 
 app = Flask(__name__)
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
 
 limiter = Limiter(
     key_func=get_remote_address,
@@ -201,11 +322,20 @@ db.init_app(app)
 mail.init_app(app)
 migrate = Migrate(app, db)
 
-from flask import (
-    Flask, render_template, request, redirect,
-    url_for, session, flash
-)
 
+executor = ThreadPoolExecutor(max_workers=10)
+app.register_blueprint(bp_discord_bot)
+app.register_blueprint(twitter_bp)
+app.register_blueprint(telegram_bp)
+app.register_blueprint(youtube_bp)
+app.register_blueprint(discord_bp)
+app.register_blueprint(tiktok_bp)
+app.register_blueprint(bp)
+app.register_blueprint(community_twitter_bp)
+app.register_blueprint(google_bp)
+
+
+# start_bot_in_background(app) #---Start Discord Bot By Uncommenting (Option)----
 
 ALLOWED_ROUTES = {
     # public
@@ -217,6 +347,7 @@ ALLOWED_ROUTES = {
     "about_us",
     "gleyo_base",
     "create_account",
+    "validate_zec_address",
     "claim_subquest",
     "static",
     "landing_page",
@@ -324,6 +455,11 @@ def shutdown_session(exception=None):
 
 
 
+UTC = timezone.utc
+
+
+_nozy_lock = Lock()
+
 
 
 def check_is_iphone():
@@ -374,7 +510,6 @@ def check_is_safari():
 
 
 
-from flask import redirect, request, url_for
 
 
 
@@ -387,17 +522,27 @@ RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY")
 MAIL_USERNAME=os.getenv("MAIL_USER")
 MAIL_PASSWORD=os.getenv("MAIL_PASS")
 OPENSEA_API_KEY = os.getenv("OPENSEA_API_KEY")
-VAPID_PUBLIC_KEY = os.getenv("VAPID_PUBLIC_KEY")
+VAPID_PUBLIC_KEY = os.getenv("VAPID_PUBLIC_KEY")   
 VAPID_PRIVATE_KEY = os.getenv("VAPID_PRIVATE_KEY")
 YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "").strip()
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "").strip()
+SUPABASE_URL = os.getenv("SUPABASE_URL", "").strip()
+ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "").strip().lower()
+SUPABASE_KEY = os.getenv("SUPABASE_KEY", "").strip()
 smtp_user = os.getenv("MAIL_USER")
 smtp_pass = os.getenv("MAIL_PASS")
-RESEND_KEY = os.getenv("RESEND_API_KEY")
-resend.api_key = RESEND_KEY
+SMTP_HOST = "smtp.gmail.com"
+SMTP_PORT = 465
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USERNAME = os.getenv("SMTP_USERNAME")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
+EMAIL_FROM = os.getenv("EMAIL_FROM")
+WALLET = os.getenv("WALLET")
+NOZY_API_URL = os.getenv("NOZY_API_URL")
+NOZY_WALLET_PASSWORD = os.getenv("NOZY_WALLET_PASSWORD")
+ZCASHD_FROM_ADDRESS = os.getenv("ZCASHD_FROM_ADDRESS")
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+_nozy_lock = threading.Lock()
 
 @app.context_processor
 def inject_globals():
@@ -409,8 +554,6 @@ def inject_globals():
 
 
 app.config["DISCORD_BOT_TOKEN"] = DISCORD_BOT_TOKEN
-# Temporary nonce storage (replace with DB for production)
-nonces = {}
 
 
 UPLOAD_FOLDER = os.path.join('static', 'uploads')
@@ -454,18 +597,6 @@ def test_supabase():
 
 
 
-# ─────────── Third‑party auth helpers ───────────
-from discordOauth import (
-    build_auth_url           as dc_build_auth_url,
-    exchange_code            as dc_exchange_code,
-    fetch_current_user       as dc_fetch_me,
-)
-from twitterAPI import (
-    build_authorize_url      as tw_build_auth_url,
-    exchange_code_for_token  as tw_exchange_code,
-    fetch_current_user       as tw_fetch_me,
-)
-from googleOauth import google_bp  # Google blueprint exposing /google-login
 
 # ─────────── Simple “DB” & constants ───────────
 users_by_email   = {}
@@ -474,7 +605,6 @@ EXPIRY_SECONDS   = 120
 codes            = {}
 
 # ─────────── Flask setup ───────────
-app.register_blueprint(google_bp)
 
 # ─────────── Auth decorator ───────────
 
@@ -490,9 +620,6 @@ def ensure_profile_pic():
                 session["profile_pic"] = user.profile_pic
 
 # ─────────── Helpers ───────────
-from email.message import EmailMessage
-import smtplib
-import os
 
 
 
@@ -501,15 +628,13 @@ def normalize_uuid(value):
         return None
     return value
 
-import smtplib
-from email.mime.text import MIMEText
 
 
 
 
 def send_email(msg):
     try:
-        # Extract HTML or fallback text
+
         html_content = None
         text_content = None
 
@@ -519,19 +644,25 @@ def send_email(msg):
             elif part.get_content_type() == "text/plain":
                 text_content = part.get_content()
 
-        params = {
-            "from": "Gleyo <noreply@gleyo.app>",
-            "to": [msg["To"]],
-            "subject": msg["Subject"],
-        }
+        email = EmailMessage()
 
-        if html_content:
-            params["html"] = html_content
+        email["Subject"] = msg["Subject"]
+        email["From"] = EMAIL_FROM
+        email["To"] = msg["To"]
 
         if text_content:
-            params["text"] = text_content
+            email.set_content(text_content)
 
-        resend.Emails.send(params)
+        if html_content:
+            email.add_alternative(html_content, subtype="html")
+
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+            server.starttls()
+            server.login(
+                SMTP_USERNAME,
+                SMTP_PASSWORD
+            )
+            server.send_message(email)
 
         print("EMAIL SENT SUCCESSFULLY")
 
@@ -590,7 +721,6 @@ def send_email_code(email: str, code: str) -> None:
     formatted_code = f"{code[:3]}&nbsp;{code[3:]}"
     msg = EmailMessage()
     msg["Subject"] = "Your Gleyo verification code"
-    msg["From"] = "Gleyo <noreply@gleyo.app>"
     msg["To"] = email
 
 
@@ -924,7 +1054,6 @@ def send_email_verification_code(email: str, code: str) -> None:
 
     msg = EmailMessage()
     msg["Subject"] = "Confirm Your New Email Address"
-    msg["From"] = "Gleyo <noreply@gleyo.app>"
     msg["To"] = email
 
     msg.add_alternative(f"""
@@ -959,7 +1088,6 @@ def send_2fa_email_code(email: str, code: str) -> None:
     formatted_code = f"{code[:3]}&nbsp;{code[3:]}"
     msg = EmailMessage()
     msg["Subject"] = "Enable 2FA on your Gleyo account"
-    msg["From"] = "Gleyo <noreply@gleyo.app>"
     msg["To"] = email
 
 
@@ -1277,14 +1405,11 @@ def send_2fa_email_code(email: str, code: str) -> None:
 
     send_email(msg)
     
-def send_2fa_disabled_email(email: str) -> None:
-    from datetime import datetime
-    from email.message import EmailMessage
+def send_2fa_disabled_email(email: str) -> None: 
+
 
     msg = EmailMessage()
     msg["Subject"] = "Security update on your Gleyo account"
-    msg["From"] = "Gleyo Security <security@gleyo.app>"
-    msg["Reply-To"] = "support@gleyo.app"
     msg["To"] = email
 
     # ✅ PLAIN TEXT (VERY IMPORTANT FOR INBOX)
@@ -1296,7 +1421,7 @@ Two-factor authentication has been turned off for your account.
 If you made this change, no action is needed.
 
 If you didn’t make this change, please review your account security:
-https://gleyo.app/settings/security
+http://127.0.0.1:8000/settings/security
 
 © {datetime.now().year} Gleyo
 """)
@@ -1453,7 +1578,7 @@ p {{
 
         <!-- ✅ IMPORTANT FOR INBOX TRUST -->
         <div class="button-wrap">
-            <a href="https://gleyo.app/settings/security" class="button">
+            <a href="http://127.0.0.1:8000/settings/security" class="button">
                 Review security settings
             </a>
         </div>
@@ -1492,7 +1617,6 @@ def send_2fa_disabled_email(email: str) -> None:
     """Send OTP using HTML-styled EmailMessage."""
     msg = EmailMessage()
     msg["Subject"] = "Security update on your Gleyo account"
-    msg["From"] = "Gleyo <noreply@gleyo.app>"
     msg["To"] = email
 
 
@@ -1858,12 +1982,6 @@ def resend_2fa_email_code():
 
 
 
-import pyotp
-import qrcode
-from io import BytesIO
-import base64
-from PIL import Image
-import requests
 
 @app.route("/verify-email-code-2FA", methods=["POST"])
 @login_required
@@ -1996,7 +2114,7 @@ def disable_2fa():
 
     return jsonify({"status": "ok"})
 
-DEMO_EMAIL = "test@gleyo.app"
+DEMO_EMAIL = smtp_user
 DEMO_MODE = True  # turn off later
 DEMO_EXPIRY = 60 * 60 * 24 * 365 * 100  
 DEMO_COMMUNITY_SLUG = "gleyo"  
@@ -2020,7 +2138,7 @@ def new_code_for(email: str) -> None:
     print(f"📧 Sent OTP {code} to {email}")
     send_email_code(email, code)
 
-import uuid  # Add at top
+
 
 def log_user_in(user):
     login_user(user, remember=True)
@@ -2183,13 +2301,12 @@ def send_reset_link():
 
     token = create_reset_token(user)
 
-    reset_link = f"https://gleyo.app/change-password/{token}"
+    reset_link = f"http://127.0.0.1:8000/change-password/{token}"
     # for dev:
     # reset_link = f"http://127.0.0.1:8000/change-password/{token}"
 
     msg = EmailMessage()
     msg["Subject"] = "Reset your passcode"
-    msg["From"] = "Gleyo <noreply@gleyo.app>"
     msg["To"] = user.email
 
     msg.add_alternative(f"""
@@ -2292,13 +2409,10 @@ def resend_code():
 
     return jsonify({"status": "sent"})
 
-from email.message import EmailMessage
-from datetime import datetime
 
 def send_email_change_alert(old_email: str, new_email: str):
     msg = EmailMessage()
     msg["Subject"] = "Security Alert: Email Change Requested"
-    msg["From"] = "Gleyo <noreply@gleyo.app>"
     msg["To"] = old_email
 
     html_content = f"""
@@ -2499,7 +2613,7 @@ def send_email_change_alert(old_email: str, new_email: str):
                     <p class="alert-title">New email</p>
                     <p class="alert-email">{new_email}</p>
 
-                    <a href="https://gleyo.app/chat/gleyo" class="btn">
+                    <a href="http://127.0.0.1:8000/chat/gleyo" class="btn">
                         Open a support ticket
                     </a>
                 </div>
@@ -2804,8 +2918,6 @@ def about(page):
 
 
 
-from flask import abort
-import re
 
 USERNAME_REGEX = r"^[a-z0-9_]{3,20}$"
 
@@ -2904,10 +3016,6 @@ def pick_username_api():
     })
 
 
-
-from flask_login import current_user
-from flask import session, jsonify
-
 @app.route('/debug-session')
 def debug_session():
     # Data Flask-Login knows (from the DB)
@@ -2936,7 +3044,7 @@ def debug_session():
 
 
 
-from upload_service import upload_async, send_push_notification_async, send_discord_message_async
+
 
 def upload_to_supabase(file_bytes, storage_name, content_type):
     return upload_async(file_bytes, storage_name, content_type)
@@ -3138,7 +3246,6 @@ def send_delete_account_email(email: str, code: str):
 
     msg = EmailMessage()
     msg["Subject"] = "Confirm Account Deletion"
-    msg["From"] = "Gleyo <noreply@gleyo.app>"
     msg["To"] = email
 
     msg.add_alternative(f"""
@@ -3275,7 +3382,6 @@ def send_delete_community_email(email: str, code: str, community_name: str):
 
     msg = EmailMessage()
     msg["Subject"] = f"Confirm deletion of {community_name}"
-    msg["From"] = "Gleyo <noreply@gleyo.app>"
     msg["To"] = email
 
     msg.add_alternative(f"""
@@ -3437,7 +3543,7 @@ def send_community_deletion_scheduled_email(
 
     msg = EmailMessage()
     msg["Subject"] = "Community deletion scheduled"
-    msg["From"] = "Gleyo <noreply@gleyo.app>"
+    
     msg["To"] = email
 
     msg.add_alternative(f"""
@@ -3540,7 +3646,6 @@ def send_undo_delete_community_email(
 ):
     msg = EmailMessage()
     msg["Subject"] = f"Undo deletion of {community_name}"
-    msg["From"] = "Gleyo <noreply@gleyo.app>"
     msg["To"] = email
 
     msg.add_alternative(f"""
@@ -3683,7 +3788,6 @@ def send_community_deletion_undone_email(
 ):
     msg = EmailMessage()
     msg["Subject"] = "Community deletion cancelled"
-    msg["From"] = "Gleyo <noreply@gleyo.app>"
     msg["To"] = email
 
     msg.add_alternative(f"""
@@ -3768,51 +3872,12 @@ def resend_undo_delete_otp():
 
 
 
-from invite_blueprint import invite_bp
-app.register_blueprint(invite_bp)
-
-
-
-from discord_bot import bp_discord_bot, start_bot_in_background
-
-app.register_blueprint(bp_discord_bot)
-# start_bot_in_background(app)
 
 
 
 
-from twitterAPI import twitter_bp
-
-app.register_blueprint(twitter_bp)
 
 
-from telegramAPI import telegram_bp
-
-app.register_blueprint(telegram_bp)
-
-from discord_name import bp as discord_bp
-app.register_blueprint(discord_bp)
-
-
-from youtubeAPI import youtube_bp
-app.register_blueprint(youtube_bp)
-
-
-from tiktok_bp import tiktok_bp
-app.register_blueprint(tiktok_bp)
-
-
-from community_twitter_bp import community_twitter_bp
-app.register_blueprint(community_twitter_bp)
-
-
-
-from userwallet import wallet_bp
-app.register_blueprint(wallet_bp)
-
-
- 
-# ─────────── Twitter OAuth flow ───────────
 
 
 
@@ -3999,10 +4064,7 @@ def logout_other_devices():
 
 
 
-
-# ─────────── Community wizard (website + logo) ───────────
-from flask_login import current_user
-
+ 
 @app.route("/adminlink", methods=["GET", "POST"])
 @login_required
 def admin_panel():
@@ -4264,7 +4326,6 @@ def create_community_api():
     try:
         new_slug = slugify(name)
 
-        # 🔥 Prepare upload (READ ONCE)
         original_name = secure_filename(file.filename)
         ext = original_name.rsplit(".", 1)[-1].lower()
         logo_uuid = str(uuid.uuid4())
@@ -4272,23 +4333,22 @@ def create_community_api():
         storage_name = f"communities/{user.id}/logos/{logo_uuid}.{ext}"
         file_bytes = file.read()
 
-        # ✅ 1. Create community FIRST (no logo yet)
         new_community = Community(
             name=name,
             about=about,
             blockchain=blockchain,
             website=website,
-            logo_path=None,  # ✅ important
+            logo_path=None,   
             slug=new_slug,
-            created_by_id=user.id
+            created_by_id=user.id,
+            is_paid=True
         )
 
         db.session.add(new_community)
-        db.session.flush()  # ✅ get ID BEFORE async
+        db.session.flush()  
 
-        community_id = new_community.id  # ✅ store primitive (IMPORTANT)
+        community_id = new_community.id   
 
-        # ✅ 2. Start upload (NON-BLOCKING)
         future = upload_to_supabase(
             file_bytes,
             storage_name,
@@ -4307,7 +4367,7 @@ def create_community_api():
             community_id=community_id,
             available_balance=0,
             locked_balance=0,
-            currency="USD"
+            currency="ZEC"
         )
         db.session.add(wallet)
         db.session.flush()
@@ -4401,7 +4461,6 @@ def next(community_slug):
     if (
         sec.private_community and sec.consume_invites and sec.require_wallet
         and sec.require_discord and sec.require_twitter
-        and sec.require_twitter_premium and sec.require_aptos_address
     ):
         selected_option = "bot"
     elif sec.require_discord and sec.require_twitter and sec.require_youtube and sec.require_telegram:
@@ -4411,8 +4470,7 @@ def next(community_slug):
     return render_template("next.html", community_slug=community.slug, selected_option=selected_option)
 
 
-
-from flask import jsonify, request
+ 
 
 @app.route("/api/<community_slug>/next", methods=["POST"])
 @login_required
@@ -4425,7 +4483,6 @@ def next_api(community_slug):
     if not has_role(user_id, community.id, "admin"):
         return jsonify({"error": "not_admin"}), 403
 
-    # Ensure security settings exists
     if not community.security_settings:
         community.security_settings = CommunitySecurity(community_id=community.id)
 
@@ -4443,8 +4500,6 @@ def next_api(community_slug):
     sec.require_wallet = False
     sec.require_discord = False
     sec.require_twitter = False
-    sec.require_twitter_premium = False
-    sec.require_aptos_address = False
 
     # Apply option
     if selected_option == "bot":
@@ -4453,8 +4508,6 @@ def next_api(community_slug):
         sec.require_wallet = True
         sec.require_discord = True
         sec.require_twitter = True
-        sec.require_twitter_premium = True
-        sec.require_aptos_address = True
 
     elif selected_option == "social":
         sec.require_discord = True
@@ -4468,7 +4521,6 @@ def next_api(community_slug):
         "success": True,
         "redirect": f"/{community_slug}/after_next"
     })
-
 
 
 @app.route("/<community_slug>/after_next")
@@ -4489,13 +4541,6 @@ def after_next(community_slug):
         community_slug=community.slug
     )
 
-
-import os
-from werkzeug.utils import secure_filename
-from flask import (
-    render_template, request, session, redirect,
-    url_for, flash
-)
 
 
 
@@ -4765,13 +4810,9 @@ def api_create_passcode():
 
 
 
-
-
-
-from datetime import datetime, timedelta
-
+ 
 MAX_ATTEMPTS = 5
-LOCK_TIME = 300  # seconds
+LOCK_TIME = 300   
 
 @app.route("/api/verify-passcode", methods=["POST"])
 @login_required
@@ -4839,8 +4880,7 @@ def verify_passcode():
 
 
 
-
-from datetime import datetime, timedelta
+ 
 
 def passcode_required():
     if not current_user.password:
@@ -4910,7 +4950,6 @@ def account_settings_general():
     )
 
 
-
 @app.route("/settings/wallets", methods=["GET", "POST"])
 @login_required
 def account_settings_wallet():
@@ -4919,52 +4958,22 @@ def account_settings_wallet():
         return guard
     ctx = load_account_settings_context()
     user = ctx["user"]
-    wallet = SolanaWallet.query.filter_by(user_id=user.id, is_active=True).first()
-    # sol_wallet = SolanaWallet.query.filter_by(user_id=user.id, is_active=True).first()
+    zec_wallet = ZecWallet.query.filter_by(user_id=user.id, is_active=True).first()
 
     if request.headers.get("X-Partial"):
         return render_template(
-            "accounts/wallets.html",
+            "accounts/z-wallets.html",
             user=user,
-            wallet=wallet,
-            # sol_wallet=sol_wallet
+            zec_wallet=zec_wallet,
         )
     return render_template(
         "account_settings.html",
         user=user,
-        wallet=wallet,
-        # sol_wallet=sol_wallet
+        zec_wallet=zec_wallet,
     )
     
 
 
-
-@app.route("/api/save-wallet", methods=["POST"])
-@login_required
-def save_wallet():
-    data = request.get_json()
-
-    address = data.get("address")
-    chain = data.get("chain", "ethereum")
-
-    if not address:
-        return jsonify({"error": "No address"}), 400
-
-    # prevent duplicates
-    existing = Wallet.query.filter_by(address=address).first()
-    if existing:
-        return jsonify({"message": "Already saved"})
-
-    wallet = Wallet(
-        user_id=current_user.id,
-        address=address,
-        chain=chain
-    )
-
-    db.session.add(wallet)
-    db.session.commit()
-
-    return jsonify({"message": "Wallet saved"})
 
 
 @app.route("/settings/security", methods=["GET", "POST"])
@@ -5001,21 +5010,47 @@ def account_settings_security():
 def account_settings_linked_accounts():
     ctx = load_account_settings_context()
     user = ctx["user"]
+
     guard = passcode_required()
     if guard:
         return guard
-    discord_record = (UserDiscord.query.filter_by(user_id=user.id)
-                      .order_by(UserDiscord.timestamp.desc()).first())
-    twitter_record = (UserTwitter.query.filter_by(user_id=user.id)
-                      .order_by(UserTwitter.timestamp.desc()).first())
-    youtube_record = (UserYouTube.query.filter_by(user_id=user.id)
-                      .order_by(UserYouTube.timestamp.desc()).first())
-    tiktok_record = (UserTikTok.query.filter_by(user_id=user.id)
-                     .order_by(UserTikTok.timestamp.desc()).first())
-    telegram_record = (UserTelegram.query.filter_by(user_id=user.id)
-                     .order_by(UserTelegram.timestamp.desc()).first())
 
-    # 🔹 AJAX / SPA load
+    discord_record = (
+        UserDiscord.query.filter_by(user_id=user.id)
+        .order_by(UserDiscord.timestamp.desc())
+        .first()
+    )
+
+    twitter_record = (
+        UserTwitter.query.filter_by(user_id=user.id)
+        .order_by(UserTwitter.timestamp.desc())
+        .first()
+    )
+
+    youtube_record = (
+        UserYouTube.query.filter_by(user_id=user.id)
+        .order_by(UserYouTube.timestamp.desc())
+        .first()
+    )
+
+    tiktok_record = (
+        UserTikTok.query.filter_by(user_id=user.id)
+        .order_by(UserTikTok.timestamp.desc())
+        .first()
+    )
+
+    telegram_record = (
+        UserTelegram.query.filter_by(user_id=user.id)
+        .order_by(UserTelegram.timestamp.desc())
+        .first()
+    )
+
+    github_record = (
+        UserGithub.query.filter_by(user_id=user.id)
+        .order_by(UserGithub.timestamp.desc())
+        .first()
+    )
+
     if request.headers.get("X-Partial"):
         return render_template(
             "accounts/linked-account.html",
@@ -5024,11 +5059,10 @@ def account_settings_linked_accounts():
             twitter=twitter_record,
             youtube=youtube_record,
             tiktok=tiktok_record,
-            telegram=telegram_record
+            telegram=telegram_record,
+            github=github_record
         )
 
-
-    # 🔹 HARD REFRESH / DIRECT VISIT
     return render_template(
         "account_settings.html",
         user=user,
@@ -5036,7 +5070,8 @@ def account_settings_linked_accounts():
         twitter=twitter_record,
         youtube=youtube_record,
         tiktok=tiktok_record,
-        telegram=telegram_record
+        telegram=telegram_record,
+        github=github_record
     )
 
 
@@ -5091,13 +5126,7 @@ def get_user_sessions():
 
 
 
-
-from datetime import datetime, timedelta
-from flask import jsonify
-
-
-
-from flask import jsonify, request
+ 
 @app.route('/create_subquest/<quest_uuid>', methods=['POST'])
 @login_required
 def create_subquest(quest_uuid):
@@ -5392,12 +5421,6 @@ def update_role(community_id):
 
     
 
-from flask import request, jsonify
-from flask_mail import Message, Mail
-import random, string
-
-from flask import flash, redirect, url_for
-from flask_login import current_user
 
 
  
@@ -5764,28 +5787,29 @@ def partnerships(community_slug):
 def rewardmember(community_slug):
     user = current_user
     user_communities = get_user_communities(user.id)
-
     
     community = Community.query.filter_by(slug=community_slug).first()
     if not community:
         abort(404)
     
     user_id = current_user.id if current_user.is_authenticated else None
-
     if not has_role(user_id, community.id, "member"):
         flash("Only admins can access this page.", "error")
         return redirect(url_for("dashboard"))
     
-
-
     tfa_enabled = False
     if user.two_factor:
         tfa_enabled = user.two_factor.is_enabled
 
-    active_wallet = db.session.query(Wallet.address).filter_by(
+    active_wallet = db.session.query(ZecWallet.address).filter_by(
         user_id=user.id,
         is_active=True
-    ).order_by(Wallet.connected_at.desc()).scalar()
+    ).order_by(ZecWallet.connected_at.desc()).scalar()
+
+    user_balance      = UserBalance.query.filter_by(user_id=user.id).first()
+    zec_balance       = float(user_balance.balance)          if user_balance else 0.0
+    zec_total_earned  = float(user_balance.total_earned)     if user_balance else 0.0
+    zec_total_withdrawn = float(user_balance.total_withdrawn) if user_balance else 0.0
 
     if request.headers.get("X-Partial"):
         return render_template(
@@ -5793,7 +5817,10 @@ def rewardmember(community_slug):
             user=user,
             community=community,
             tfa_enabled=tfa_enabled,
-            wallet_address=active_wallet
+            wallet_address=active_wallet,
+            zec_balance=zec_balance,
+            zec_total_earned=zec_total_earned,
+            zec_total_withdrawn=zec_total_withdrawn,
         )
     
     total_xp = get_total_xp(user.id, community.id)
@@ -5805,8 +5832,12 @@ def rewardmember(community_slug):
         level_data=level_data,
         tfa_enabled=tfa_enabled,
         community_tuples=user_communities,
-        wallet_address=active_wallet
+        wallet_address=active_wallet,
+        zec_balance=zec_balance,
+        zec_total_earned=zec_total_earned,
+        zec_total_withdrawn=zec_total_withdrawn,
     )
+
 
 @app.route('/api/user/transactions')
 @login_required
@@ -5853,10 +5884,7 @@ def api_partnerships(community_slug):
 
 
 
-from flask import request, jsonify, current_app
-from werkzeug.utils import secure_filename
-from datetime import datetime, timezone
-import os, json
+
 
 # ✅ Allowed extensions (images + audio)
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp", "mp3", "wav", "webm", "m4a", 'mov'}
@@ -5864,17 +5892,6 @@ ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp", "mp3", "wav", "webm",
 def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
- 
-import os
-import json
-import os, json
-from pydub import AudioSegment
-
- 
-
-
-import json
-from datetime import datetime, timedelta, timezone, UTC
 
 
 typing_status = {}
@@ -5933,9 +5950,6 @@ def handle_stop_recording(data):
 
 
  
-
-from bs4 import BeautifulSoup
-import requests, time
 
 
 @app.route("/device")
@@ -6552,7 +6566,6 @@ def delete_message():
     }), 200
 
 
-from flask_socketio import SocketIO, emit, join_room, leave_room
 
 
 
@@ -6627,7 +6640,7 @@ def community_info(slug):
     # ✅ Discord invite
     discord_invite = None
     if community.discord_guild and community.discord_guild.bot_joined:
-        from discord_bot import get_or_create_invite
+
         discord_invite = get_or_create_invite(
             community.discord_guild.guild_id
         )
@@ -6790,7 +6803,7 @@ def fetch_messages_between_communities(community_id, recipient_id):
 def chat_partial(community_id, recipient_id):
     # ✅ Fetch the current community
     community = Community.query.get_or_404(community_id)
-    import pytz
+
 
     # ✅ Fetch timezone from session (fallback UTC)
     user_tz_name = session.get("user_tz", "UTC")
@@ -6830,10 +6843,7 @@ def chat_partial(community_id, recipient_id):
     })
 
 
-from flask_login import current_user
-
-
-
+ 
 
 
 
@@ -6932,11 +6942,6 @@ def messages(community_slug):
 
 
 
-from datetime import datetime
-
-
-
-from datetime import datetime
 
 @app.route("/<string:community_slug>/join_community", methods=["POST"])
 @community_not_deleted()
@@ -7102,7 +7107,6 @@ def live_view():
 def inject_helpers():
     return dict(has_role=has_role)
 
-from flask import request, jsonify
 
 
 
@@ -7604,10 +7608,6 @@ def get_incoming_requests(community_id):
     return result
 
 
-import json
-from markupsafe import Markup
-from datetime import datetime
-from datetime import datetime, timedelta
 
 def format_chat_time(created_at):
     now = datetime.utcnow()
@@ -7782,8 +7782,7 @@ def get_unread_chats_messages(current_community_id):
 
 
 # app.py
-import humanize
-from datetime import datetime
+
 
 @app.template_filter('naturaltime')
 def naturaltime_filter(value):
@@ -7841,12 +7840,7 @@ def set_timezone():
 
 
 
-from datetime import timezone
-from tzlocal import get_localzone
-import pytz
-from datetime import timezone
-from tzlocal import get_localzone
-import pytz
+
 
 def local_time_for_user(dt_utc, user_tz=None):
     if not dt_utc:
@@ -8086,10 +8080,6 @@ def get_unread_chats(current_community_id):
             })
     return unread_chats
 
-from flask import jsonify
-from flask_login import current_user
-
-from flask_socketio import SocketIO, join_room, leave_room, emit
 
 
 active_views = {}  
@@ -8124,7 +8114,6 @@ def emit_to_all_online(event, payload):
 
             socketio.emit(event, local_payload, to=sid)
 
-import pytz
 
 
 
@@ -8155,7 +8144,6 @@ import pytz
 
 #     return response
 
-from flask_login import current_user
 
 @app.after_request
 def inject_global_socket(response):
@@ -8173,9 +8161,7 @@ def inject_global_socket(response):
 
     return response
  
-from functools import wraps
-from flask import request
-from flask_login import current_user
+
 
 def socket_login_required(f):
     """
@@ -8757,8 +8743,6 @@ def get_user_communities(user_id):
 
 
 
-from werkzeug.utils import secure_filename
-from flask import current_app
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'tiff', 'mov'}
 
@@ -8794,12 +8778,6 @@ def submit_bug():
     db.session.commit()
 
     return "Bug report submitted successfully!"
-
-
-
-
-# loliop
-
 
 
 
@@ -8889,8 +8867,7 @@ def me_look(community_slug):
 
 @app.route("/debug/session")
 @login_required
-def all_debug_session():
-    from flask import jsonify
+def all_debug_session(): 
     return jsonify(dict(session))
 
 # Flask side
@@ -9001,14 +8978,7 @@ def update_fab_state(community_id):
     db.session.commit()
     return jsonify({"success": True})
 
-
-
-
-
-
-from datetime import datetime
-
-from datetime import datetime
+ 
 
 def format_time_ago(dt):
     if not dt:
@@ -9036,10 +9006,7 @@ def format_time_ago(dt):
 
 
 
-
-
-from datetime import datetime
-
+ 
 
 def format_utc_for_display(dt_str):
     """Convert UTC datetime string 'YYYY-MM-DD HH:MM:SS' -> 'Nov 8, 12:00 UTC'"""
@@ -9548,13 +9515,6 @@ def save_settingsinfo_state():
 
 
 
-from flask import jsonify, request
-from flask_login import login_required, current_user
-from openpyxl import Workbook
-from openpyxl.utils import get_column_letter
-from tempfile import NamedTemporaryFile
-import smtplib
-from email.message import EmailMessage
 
 
 
@@ -9643,9 +9603,6 @@ def export_reviews(community_slug):
         ws.column_dimensions[get_column_letter(col[0].column)].width = 25
 
     # Save and email (same as before)
-    from tempfile import NamedTemporaryFile
-    import smtplib
-    from email.message import EmailMessage
 
     with NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp:
         wb.save(tmp.name)
@@ -9655,7 +9612,6 @@ def export_reviews(community_slug):
     
     msg = EmailMessage()
     msg["Subject"] = f"Review Export for {community.name}"
-    msg["From"] = "Gleyo <noreply@gleyo.app>"
     msg["To"] = admin_email
     msg.set_content(
         f"Hello {current_user.username},\n\n"
@@ -9679,16 +9635,11 @@ def export_reviews(community_slug):
 
 
 
-from flask import Response
-from flask import Response
 
-
-from flask import Response
-from datetime import datetime
 
 @app.route("/sitemap.xml", methods=["GET"])
 def sitemap():
-    base_url = "https://gleyo.app"
+    base_url = "http://127.0.0.1:8000"
     lastmod = datetime.utcnow().date().isoformat()
 
     pages = ["what-is-gleyo", "documentation", "about-us"]
@@ -10080,7 +10031,6 @@ def api_reviews(community_slug):
     return jsonify(reviews_json)
 
 
-from datetime import datetime, timezone
 
 def is_valid_sprint(subquest):
     # ❌ No sprint attached
@@ -10275,7 +10225,7 @@ def process_single_review(completion, task_review, status, reviewer_id,
 
 
     instant_success_types = [
-        "discord", "youtube", "quiz", "partnership_quest", "partnership",
+        "discord", "youtube", "quiz", "partnership_quest", "partnership", "github",
         "Visit link", "p.o.h", "invite", "poll",
         "Optionscale(numbers)", "Optionscale(star)", "puzzle"
     ]
@@ -10327,32 +10277,23 @@ def process_single_review(completion, task_review, status, reviewer_id,
             community_id=community_id
         )
         task_review.review_status = "success"
-
         if pending_reward:
             completion.assigned_rewards = (completion.assigned_rewards or []) + pending_reward
-
         completion.status = "success"
         completion.success_count += 1
         completion.completed_at = completion.started_at
-
         if run:
             run.finished_at = datetime.now(timezone.utc)
-
         attempts = TaskAttemptHistory.query.filter_by(
             subquest_completion_id=completion.id,
             user_id=completion.user_id
         ).all()
-
         for attempt in attempts:
             if attempt.task and attempt.task.type not in instant_success_types:
                 attempt.status = "success"
-
         # XP
         if xp_amount > 0:
-
-            # cleanup old xp first
             remove_xp_everywhere(completion)
-
             commit_streak_bonus_xp(
                 user=completion.user,
                 subquest=completion.subquest,
@@ -10363,6 +10304,67 @@ def process_single_review(completion, task_review, status, reviewer_id,
                 )
             )
 
+        # ==============================
+        # 💰 COMMIT ZEC TO UserBalance
+        # ==============================
+        for reward in pending_reward:
+            if reward.get("reward_type") not in ("token", "Token"):
+                continue
+
+            reward_data = reward.get("reward_data") or {}
+            amount_str  = reward_data.get("amount") or reward_data.get("amount_per_winner")
+            token       = reward_data.get("token", "ZEC")
+
+            try:
+                amount = Decimal(str(amount_str))
+            except Exception:
+                print(f"⚠️ Invalid token reward amount: {amount_str}, skipping")
+                continue
+
+            if amount <= 0:
+                continue
+
+            # 🛡️ Anti-duplicate
+            existing_tx = UserTransaction.query.filter_by(
+                user_id=completion.user_id,
+                community_id=community_id,
+                remark=f"Reward · {completion.subquest.name} · completion:{completion.id}"
+            ).first()
+            if existing_tx:
+                print(f"⚠️ ZEC already credited for completion {completion.id}, skipping")
+                continue
+
+            # ── Credit UserBalance ────────────────────────────────────────────
+            user_bal = UserBalance.query.filter_by(
+                user_id=completion.user_id
+            ).with_for_update().first()
+
+            if not user_bal:
+                user_bal = UserBalance(
+                    user_id=completion.user_id,
+                    balance=Decimal("0"),
+                    total_earned=Decimal("0"),
+                    total_withdrawn=Decimal("0"),
+                )
+                db.session.add(user_bal)
+                db.session.flush()
+
+            user_bal.balance      = (user_bal.balance      or Decimal("0")) + amount
+            user_bal.total_earned = (user_bal.total_earned or Decimal("0")) + amount
+            user_bal.updated_at   = datetime.utcnow()
+
+            # ── Log transaction ───────────────────────────────────────────────
+            db.session.add(UserTransaction(
+                user_id      = completion.user_id,
+                type         = "in",
+                amount       = amount,
+                token        = token,
+                status       = "confirmed",
+                community_id = community_id,
+                remark       = f"Reward · {completion.subquest.name} · completion:{completion.id}",
+            ))
+
+            print(f"✅ Review approved — credited {amount} {token} to user {completion.user_id}")
 
 
     # =========================
@@ -10393,15 +10395,29 @@ def process_single_review(completion, task_review, status, reviewer_id,
             community_id=community_id
         )
         task_review.review_status = "failed"
-
         completion.status = "failed"
         completion.completed_at = None
         completion.assigned_rewards = []
-
         if run:
             run.finished_at = None
-
         remove_xp_everywhere(completion)
+
+        # 🛡️ Reverse any ZEC credited for this completion (if admin previously passed then failed)
+        existing_tx = UserTransaction.query.filter_by(
+            user_id=completion.user_id,
+            community_id=community_id,
+            remark=f"Reward · {completion.subquest.name} · completion:{completion.id}"
+        ).first()
+        if existing_tx:
+            user_bal = UserBalance.query.filter_by(
+                user_id=completion.user_id
+            ).with_for_update().first()
+            if user_bal:
+                user_bal.balance      = max(Decimal("0"), (user_bal.balance or Decimal("0")) - existing_tx.amount)
+                user_bal.total_earned = max(Decimal("0"), (user_bal.total_earned or Decimal("0")) - existing_tx.amount)
+                user_bal.updated_at   = datetime.utcnow()
+            db.session.delete(existing_tx)
+            print(f"↩️ Reversed ZEC credit for completion {completion.id} due to fail")
 
     # =========================
     completion.reviewed_at = datetime.now(timezone.utc)
@@ -10650,11 +10666,6 @@ def accept_invite(community_slug, limited_code):
 
 
 
-from flask import request, render_template
-from email.message import EmailMessage
-
-import random
-import string   
 
 def generate_reference():
     return "ENT-" + "".join(random.choices(string.ascii_uppercase + string.digits, k=8))
@@ -10716,7 +10727,6 @@ def enterprise(slug, interval):
 
         msg = EmailMessage()
         msg["Subject"] = f"New Enterprise Request from {company}"
-        msg["From"] = "Gleyo <noreply@gleyo.app>"
         msg["To"] = "florishisreal@gmail.com"
 
         html_content = f"""
@@ -10828,230 +10838,7 @@ def get_community_comments(slug):
 
 
 
-@app.route("/api/wallet/nonce", methods=["POST"])
-@login_required
-def get_wallet_nonce():
-    data = request.get_json()
-    address = data.get("address")
 
-    if not address:
-        return jsonify({"error": "Missing address"}), 400
-
-    address = address.lower()
-
-    wallet = Wallet.query.filter_by(
-        address=address,
-        user_id=current_user.id
-    ).first()
-
-    # 🔥 CREATE OR REACTIVATE
-    if not wallet:
-        wallet = Wallet(
-            user_id=current_user.id,
-            address=address,
-            is_active=True
-        )
-        db.session.add(wallet)
-    else:
-        wallet.is_active = True
-        wallet.disconnected_at = None
-
-    nonce = str(uuid.uuid4())
-    wallet.nonce = nonce
-    wallet.nonce_created_at = datetime.now(UTC)
-
-    db.session.commit()
-
-    return jsonify({"nonce": nonce})
-
-
-@app.route("/api/wallet/connect", methods=["POST"])
-@login_required
-def connect_wallet():
-    data = request.get_json()
-
-    address = data.get("address")
-    signature = data.get("signature")
-    message = data.get("message")
-
-    if not address or not signature or not message:
-        return jsonify({"error": "Missing data"}), 400
-
-    address = address.lower()
-
-    wallet = Wallet.query.filter_by(
-        address=address,
-        user_id=current_user.id
-    ).first()
-
-    if not wallet:
-        return jsonify({"error": "Nonce not found. Request a new one."}), 400
-
-    if not wallet.is_active:
-        return jsonify({"error": "Wallet is inactive"}), 400
-
-    if not wallet.nonce or wallet.nonce not in message:
-        return jsonify({"error": "Invalid nonce"}), 400
-
-    created_at = wallet.nonce_created_at
-
-    if created_at and created_at.tzinfo is None:
-        created_at = created_at.replace(tzinfo=UTC)
-
-    if not created_at or \
-    datetime.now(UTC) - created_at > timedelta(minutes=5):
-        return jsonify({"error": "Nonce expired"}), 400
-
-    try:
-        msg = encode_defunct(text=message.strip())
-        recovered = Account.recover_message(msg, signature=signature)
-
-        if recovered.lower() != address:
-            return jsonify({"error": "Invalid signature"}), 401
-
-    except Exception:
-        return jsonify({"error": "Verification failed"}), 400
-
-    wallet.is_active = True
-    wallet.disconnected_at = None
-
-    wallet.last_signature = signature
-    wallet.nonce = str(uuid.uuid4())
-    wallet.nonce_created_at = datetime.now(UTC)
-
-    db.session.commit()
-
-    return jsonify({"status": "connected"})
-
-
-
-@app.route("/api/wallet/disconnect", methods=["POST"])
-@login_required
-def disconnect_wallet():
-    wallet = Wallet.query.filter_by(user_id=current_user.id).first()
-
-    if not wallet:
-        return jsonify({"error": "No wallet found"}), 404
-
-    wallet.is_active = False
-    wallet.disconnected_at = datetime.utcnow()
-
-    wallet.nonce = None
-    wallet.last_signature = None
-
-    db.session.commit()
-
-    return jsonify({"status": "disconnected"})
-
-@app.route("/api/wallet/solana/nonce", methods=["POST"])
-@login_required
-def get_solana_nonce():
-    data = request.get_json()
-    address = data.get("address")
-    if not address:
-        return jsonify({"error": "Missing address"}), 400
-
-    wallet = SolanaWallet.query.filter_by(
-        address=address,
-        user_id=current_user.id
-    ).first()
-
-    if not wallet:
-        wallet = SolanaWallet(
-            user_id=current_user.id,
-            address=address,
-            is_active=True
-        )
-        db.session.add(wallet)
-    else:
-        wallet.is_active = True
-        wallet.disconnected_at = None
-
-    nonce = str(uuid.uuid4())
-    wallet.nonce = nonce
-    wallet.nonce_created_at = datetime.now(UTC)
-    db.session.commit()
-    return jsonify({"nonce": nonce})
-
-
-@app.route("/api/wallet/solana/connect", methods=["POST"])
-@login_required
-def connect_solana_wallet():
-    data = request.get_json()
-    address   = data.get("address")
-    signature = data.get("signature")    
-    message   = data.get("message")    
-
-    if not address or not signature or not message:
-        return jsonify({"error": "Missing data"}), 400
-
-    wallet = SolanaWallet.query.filter_by(
-        address=address,
-        user_id=current_user.id
-    ).first()
-
-    if not wallet:
-        return jsonify({"error": "Nonce not found. Request a new one."}), 400
-    if not wallet.is_active:
-        return jsonify({"error": "Wallet is inactive"}), 400
-    if not wallet.nonce or wallet.nonce not in message:
-        return jsonify({"error": "Invalid nonce"}), 400
-    created_at = wallet.nonce_created_at
-
-    if created_at and created_at.tzinfo is None:
-        created_at = created_at.replace(tzinfo=UTC)
-
-    if not created_at or \
-    datetime.now(UTC) - created_at > timedelta(minutes=5):
-        return jsonify({"error": "Nonce expired"}), 400
-
-    try:
-        import nacl.signing
-        import nacl.encoding
-        import base58
-
-        msg_bytes = message.encode("utf-8")
-
-        # signature can arrive as base58 string or list of ints
-        if isinstance(signature, list):
-            sig_bytes = bytes(signature)
-        else:
-            sig_bytes = base58.b58decode(signature)
-
-        pub_bytes = base58.b58decode(address)
-
-        verify_key = nacl.signing.VerifyKey(pub_bytes)
-        verify_key.verify(msg_bytes, sig_bytes)   # raises if invalid
-
-    except Exception as e:
-        return jsonify({"error": "Invalid signature"}), 401
-
-    wallet.is_active = True
-    wallet.disconnected_at = None
-    wallet.last_signature = signature if isinstance(signature, str) else str(signature)
-    wallet.nonce = str(uuid.uuid4())
-    wallet.nonce_created_at = datetime.now(UTC)
-    db.session.commit()
-    return jsonify({"status": "connected"})
-
-
-
-
-
-@app.route("/api/wallet/solana/disconnect", methods=["POST"])
-@login_required
-def disconnect_solana_wallet():
-    wallet = SolanaWallet.query.filter_by(user_id=current_user.id, is_active=True).first()
-    if not wallet:
-        return jsonify({"error": "No active Solana wallet found"}), 404
-
-    wallet.is_active = False
-    wallet.disconnected_at = datetime.now(UTC)
-    wallet.nonce = None
-    wallet.last_signature = None
-    db.session.commit()
-    return jsonify({"status": "disconnected"})
-    
 
 @app.route("/api/start-payment", methods=["POST"])
 def start_payment():
@@ -11112,22 +10899,226 @@ def check_payment(ref):
 
 
 
- 
+
+BECH32_CHARSET = 'qpzry9x8gf2tvdw0s3jn54khce6mua7l'
+BECH32_GEN = [0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3]
+
+BECH32_CONST = 1
+BECH32M_CONST = 0x2bc830a3
 
 
-YOUR_ZEC_TADDR = "u1cz5t5zs38spfgy5at3s7jvmtefz9qha4w4vttaugr09avpc0v8087zyvrnq9f6vddkrr2dnjjy6wejlurtq5fjuauc4rwa2h6zmvlwpujdvxnundn2png37rkj3y97jz09clhxzuqu72wmwy3e4qmhq2jr3h5lkyced448u38rtxsv9826wkcly2xnwkexln2jslyv3f3j3pvujpgyl"
+def bech32_polymod(values):
+    chk = 1
+    for v in values:
+        top = chk >> 25
+        chk = ((chk & 0x1ffffff) << 5) ^ v
+        for i in range(5):
+            if (top >> i) & 1:
+                chk ^= BECH32_GEN[i]
+    return chk
 
 
-def _create_zec_auth_session(wallet_name=None):
+def bech32_hrp_expand(hrp):
+    return [ord(x) >> 5 for x in hrp] + [0] + [ord(x) & 31 for x in hrp]
 
+
+def validate_bech32_variant(addr, expected_const):
+    addr = addr.lower()
+
+    if len(addr) < 8:
+        return False
+
+    sep = addr.rfind('1')
+
+    if sep < 1 or sep + 7 > len(addr):
+        return False
+
+    hrp = addr[:sep]
+    data = addr[sep + 1:]
+
+    words = []
+
+    for c in data:
+        idx = BECH32_CHARSET.find(c)
+
+        if idx < 0:
+            return False
+
+        words.append(idx)
+
+    return (
+        bech32_polymod(
+            bech32_hrp_expand(hrp) + words
+        ) == expected_const
+    )
+
+
+def is_valid_shielded_zec(addr):
+    if not addr:
+        return False
+
+    lower = addr.lower()
+
+    # Mainnet Sapling
+    if lower.startswith('zs1') and len(addr) == 78:
+        return validate_bech32_variant(
+            addr,
+            BECH32_CONST
+        )
+
+    # Mainnet Unified Address
+    if lower.startswith('u1') and len(addr) >= 100:
+        return validate_bech32_variant(
+            addr,
+            BECH32M_CONST
+        )
+
+    return False
+
+
+
+
+@app.route("/api/github_repo_info")
+@login_required
+def github_repo_info():
+    owner = request.args.get("owner", "").strip()
+    repo  = request.args.get("repo", "").strip()
+
+    if not owner or not repo:
+        return jsonify({"error": "Missing owner or repo"}), 400
+
+    r = requests.get(
+        f"https://api.github.com/repos/{owner}/{repo}",
+        headers={"Accept": "application/vnd.github+json"},
+        timeout=8
+    )
+
+    if r.status_code == 404:
+        return jsonify({"error": "Repo not found"}), 404
+
+    data = r.json()
+
+    return jsonify({
+        "full_name":    data["full_name"],
+        "repo_name":    data["name"],
+        "owner":        data["owner"]["login"],
+        "owner_avatar": data["owner"]["avatar_url"],
+        "public":       not data["private"],
+        "stars":        data["stargazers_count"],
+        "forks":        data["forks_count"],
+        "description":  data.get("description", "")
+    })
+
+@app.route('/api/wallet/zec/validate-address', methods=['POST'])
+@csrf.exempt
+def validate_zec_address():
+    data = request.get_json()
+
+    address = data.get('address', '').strip()
+
+    if not address:
+        return jsonify({
+            'valid': False,
+            'error': 'Address required'
+        })
+
+    if not is_valid_shielded_zec(address):
+        return jsonify({
+            'valid': False,
+            'error': 'Invalid shielded address'
+        })
+
+    return jsonify({
+        'valid': True
+    })
+
+
+def _nozy_send(address, amount_zec, memo=None):
+    """Send ZEC via Nozy API."""
+    if not _nozy_lock.acquire(blocking=False):
+        return None, "Another withdrawal is already in progress, please wait"
+
+    try:
+        payload = {
+            "recipient": address,
+            "amount": amount_zec,
+            "password": NOZY_WALLET_PASSWORD,
+        }
+        if memo:
+            payload["memo"] = memo
+
+        print("=== SENDING TO NOZY ===")
+        print(payload)
+
+        response = requests.post(
+            f"{NOZY_API_URL}/api/transaction/send",
+            json=payload,
+            timeout=180
+        )
+
+        print("STATUS:", response.status_code)
+        print("BODY:", response.text)
+
+        if response.status_code != 200:
+            return None, f"Nozy API error: {response.status_code}"
+
+        data = response.json()
+        print("PARSED:", data)
+
+        if not data.get("success"):
+            return None, data.get("message", "Unknown error")
+
+        txid = data.get("txid")
+        if not txid:
+            return None, "No txid returned"
+
+        return txid, None
+
+    except Exception as e:
+        print("NOZY ERROR:", str(e))
+        return None, str(e)
+
+    finally:
+        _nozy_lock.release()
+
+def _nozy_sync():
+    """Sync Nozy wallet to chain tip."""
+    try:
+        requests.post(
+            f"{NOZY_API_URL}/api/sync",
+            json={"password": NOZY_WALLET_PASSWORD},
+            timeout=120
+        )
+    except Exception as e:
+        print(f"NOZY SYNC ERROR: {e}")
+
+
+def _nozy_get_balance():
+    """Fetch current Nozy wallet balance."""
+    try:
+        resp = requests.get(f"{NOZY_API_URL}/api/balance", timeout=30)
+        if resp.status_code != 200:
+            print(f"Nozy balance error: {resp.status_code}")
+            return 0.0
+        return resp.json().get('balance_zec', 0.0)
+    except Exception as e:
+        print(f"NOZY BALANCE ERROR: {e}")
+        return 0.0
+
+
+def _create_zec_auth_session(wallet_name=None, user_provided_address=None):
     code = secrets.token_urlsafe(6).upper()[:8]
-
     expires_at = datetime.now(UTC) + timedelta(minutes=15)
+
+    # Snapshot current balance before — same proven pattern as save_payment
+    balance_before = _nozy_get_balance()
 
     auth_session = ZecAuthSession(
         verification_code=code,
-        deposit_address=YOUR_ZEC_TADDR,
+        deposit_address=WALLET,
         wallet_name=wallet_name,
+        user_provided_address=user_provided_address,
+        balance_before=balance_before,
         status="pending",
         expires_at=expires_at
     )
@@ -11138,233 +11129,285 @@ def _create_zec_auth_session(wallet_name=None):
     return auth_session
 
 
+def _check_zec_wallet_connect_nozy(auth_session):
+    """Sync then check balance delta — avoids broken /api/transaction/history."""
+    try:
+        sync_resp = requests.post(
+            f"{NOZY_API_URL}/api/sync",
+            json={"password": NOZY_WALLET_PASSWORD},
+            timeout=120
+        )
+        sync_data = sync_resp.json()
+    except Exception as e:
+        return None, f"Sync failed: {str(e)}"
+
+    current_balance = sync_data.get('balance_zec', 0.0)
+    balance_increase = round(current_balance - auth_session.balance_before, 8)
+
+    EXPECTED_VERIFY_AMOUNT = 0.00001
+    TOLERANCE = 0.000005
+
+    if balance_increase >= EXPECTED_VERIFY_AMOUNT - TOLERANCE:
+        return {"current_balance": current_balance}, None
+
+    return None, None
+
+
 @app.route("/api/zec/session", methods=["POST"])
 @login_required
 @csrf.exempt
 def zec_session():
-
     data = request.get_json() or {}
-
     wallet_name = data.get("wallet")
+    user_address = (data.get("address", "") or "").strip()
 
-    auth_session = _create_zec_auth_session(wallet_name)
+    if not user_address or not is_valid_shielded_zec(user_address):
+        return jsonify({"error": "Valid shielded address required"}), 400
+
+    auth_session = _create_zec_auth_session(
+        wallet_name=wallet_name,
+        user_provided_address=user_address
+    )
 
     return jsonify({
         "session_id": auth_session.session_id,
-        "address": YOUR_ZEC_TADDR,
+        "address": WALLET,
         "code": auth_session.verification_code,
         "expires_in": 900
     })
 
 
-@app.route("/api/zec/poll/<session_id>")
+def _ensure_aware(dt):
+    """Make a datetime timezone-aware if it isn't already."""
+    if dt is None:
+        return dt
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=UTC)
+    return dt
+
+
+@app.route("/api/zec/poll/<session_id>", methods=["GET", "POST"])
 @login_required
 @csrf.exempt
 def zec_poll(session_id):
+    try:
+        auth_session = ZecAuthSession.query.filter_by(
+            session_id=session_id
+        ).first()
 
-    auth_session = ZecAuthSession.query.filter_by(
-        session_id=session_id
-    ).first()
+        if not auth_session:
+            return jsonify({"status": "expired"}), 404
 
-    if not auth_session:
-        return jsonify({"status": "expired"}), 404
+        if datetime.now(UTC) > _ensure_aware(auth_session.expires_at):
+            auth_session.status = "expired"
+            db.session.commit()
+            return jsonify({"status": "expired"})
 
-    if datetime.now(UTC) > auth_session.expires_at:
+        if auth_session.status == "confirmed":
+            return jsonify({"status": "confirmed"})
 
-        auth_session.status = "expired"
+        hit, err = _check_zec_wallet_connect_nozy(auth_session)
+
+        if err:
+            return jsonify({"status": "pending", "error": err}), 200
+
+        if not hit:
+            return jsonify({"status": "pending"})
+
+        # Use the address the user provided — not from tx history
+        wallet_address = auth_session.user_provided_address
+
+        auth_session.status = "confirmed"
+        auth_session.verified_wallet_address = wallet_address
+
+        wallet = ZecWallet.query.filter_by(address=wallet_address).first()
+
+        if not wallet:
+            wallet = ZecWallet(
+                user_id=current_user.id,
+                address=wallet_address,
+                wallet_name=auth_session.wallet_name,
+                verified=True,
+                is_active=True
+            )
+            db.session.add(wallet)
+        else:
+            wallet.user_id = current_user.id
+            wallet.wallet_name = auth_session.wallet_name
+            wallet.verified = True
+            wallet.is_active = True
+            wallet.disconnected_at = None
+
         db.session.commit()
-
-        return jsonify({"status": "expired"})
-
-    if auth_session.status == "confirmed":
         return jsonify({"status": "confirmed"})
 
-    hit = _check_zec_payment(
-        auth_session.deposit_address,
-        auth_session.verification_code
-    )
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"status": "pending", "error": str(e)}), 200
 
-    if not hit:
-        return jsonify({"status": "pending"})
 
-    auth_session.status = "confirmed"
-    auth_session.txid = hit.get("txid")
-    auth_session.verified_wallet_address = hit.get("from_address")
-
-    wallet_address = hit.get("from_address")
-
+@app.route('/api/wallet/zec/disconnect', methods=['POST'])
+@login_required
+@csrf.exempt
+def disconnect_zec():
     wallet = ZecWallet.query.filter_by(
-        address=wallet_address
+        user_id=current_user.id,
+        is_active=True
     ).first()
 
     if not wallet:
-
-        wallet = ZecWallet(
-            user_id=current_user.id,
-            address=wallet_address,
-            wallet_name=auth_session.wallet_name,
-            verified=True,
-            last_txid=hit.get("txid"),
-            is_active=True
-        )
-
-        db.session.add(wallet)
-
-    else:
-
-        wallet.user_id = current_user.id
-        wallet.wallet_name = auth_session.wallet_name
-        wallet.verified = True
-        wallet.last_txid = hit.get("txid")
-        wallet.is_active = True
-        wallet.disconnected_at = None
-
-    db.session.commit()
-
-    return jsonify({
-        "status": "confirmed"
-    })
-
-
-@app.route("/api/zec/login/session", methods=["POST"])
-@csrf.exempt
-def zec_login_session():
-
-    data = request.get_json() or {}
-
-    wallet_name = data.get("wallet")
-
-    auth_session = _create_zec_auth_session(wallet_name)
-
-    return jsonify({
-        "session_id": auth_session.session_id,
-        "address": YOUR_ZEC_TADDR,
-        "code": auth_session.verification_code,
-        "expires_in": 900
-    })
-
-
-@app.route("/api/zec/login/poll/<session_id>")
-@csrf.exempt
-def zec_login_poll(session_id):
-
-    auth_session = ZecAuthSession.query.filter_by(
-        session_id=session_id
-    ).first()
-
-    if not auth_session:
-        return jsonify({"status": "expired"}), 404
-
-    if datetime.now(UTC) > auth_session.expires_at:
-
-        auth_session.status = "expired"
-        db.session.commit()
-
-        return jsonify({"status": "expired"})
-
-    hit = _check_zec_payment(
-        auth_session.deposit_address,
-        auth_session.verification_code
-    )
-
-    if not hit:
-        return jsonify({"status": "pending"})
-
-    auth_session.status = "confirmed"
-    auth_session.txid = hit.get("txid")
-    auth_session.verified_wallet_address = hit.get(
-        "from_address"
-    )
-
-    wallet_address = hit.get("from_address")
-
-
-    user = Users.query.filter_by(
-        zec_address=wallet_address
-    ).first()
-
-    if not user:
-
-        db.session.commit()
-
         return jsonify({
-            "status": "no_account",
-            "error": "No account found with this wallet"
-        }), 404
+            "success": False,
+            "error": "No active Zcash wallet"
+        }), 400
 
-    wallet = ZecWallet.query.filter_by(
-        address=wallet_address
-    ).first()
-
-    if wallet:
-
-        wallet.user_id = user.id
-        wallet.wallet_name = auth_session.wallet_name
-        wallet.verified = True
-        wallet.last_txid = hit.get("txid")
-        wallet.is_active = True
-        wallet.disconnected_at = None
+    wallet.is_active = False
+    wallet.disconnected_at = datetime.utcnow()
 
     db.session.commit()
 
-    log_user_in(user)
-    create_user_session(user)
-
-    next_url = session.pop("next", None)
-
     return jsonify({
-        "status": "confirmed",
-        "redirect": next_url or url_for("dashboard")
+        "success": True,
+        "message": "Zcash wallet disconnected"
     })
 
 
-def _check_zec_payment(address, code):
+def process_zec_withdrawal(tx_id, address, amount_to_send):
+    with app.app_context():
+        tx = UserTransaction.query.get(tx_id)
+        if not tx:
+            return
 
+        user_balance = UserBalance.query.filter_by(
+            user_id=tx.user_id
+        ).first()
+
+        tx_hash, err = _nozy_send(address, amount_to_send)
+
+        if err:
+            tx.status = "failed"
+            tx.remark = f"Withdrawal failed: {err}"
+            db.session.commit()
+            return
+
+        tx.status = "confirmed"
+        tx.tx_hash = tx_hash
+        user_balance.total_withdrawn += Decimal(str(tx.amount))
+        db.session.commit()
+
+
+        
+@app.route('/api/wallet/zec/withdraw', methods=['POST'])
+@login_required
+@csrf.exempt
+def zec_withdraw():
+    data = request.get_json()
+
+    address = data.get('address', '').strip()
+    amount = float(data.get('amount', 0))
+
+    ZEC_MIN = 0.00185
+    ZEC_PLATFORM = 0.03
+
+    if not is_valid_shielded_zec(address):
+        return jsonify({'error': 'Invalid shielded address'}), 400
+
+    if amount < ZEC_MIN:
+        return jsonify({'error': f'Minimum withdrawal is {ZEC_MIN} ZEC'}), 400
+
+    user_balance = UserBalance.query.filter_by(user_id=current_user.id).first()
+
+    if not user_balance:
+        return jsonify({'error': 'Balance record not found'}), 400
+
+    if float(user_balance.balance) < amount:
+        return jsonify({'error': 'Insufficient balance'}), 400
+
+    platform_fee = round(amount * ZEC_PLATFORM, 8)
+    you_send = round(amount - platform_fee, 8)
+
+    if you_send <= 0:
+        return jsonify({'error': 'Amount too small after platform fee'}), 400
+
+    existing_pending = UserTransaction.query.filter_by(
+        user_id=current_user.id,
+        type='out',
+        token='ZEC',
+        status='pending'
+    ).first()
+
+    if existing_pending:
+        return jsonify({
+            'error': 'You already have a pending withdrawal. Please wait for it to complete.'
+        }), 429
+
+    # Deduct full amount + platform fee from balance immediately
+    user_balance.balance       -= Decimal(str(amount))
+    user_balance.total_withdrawn += Decimal(str(platform_fee))  # platform fee is taken now, non-refundable
+
+    pending_tx = UserTransaction(
+        user_id=current_user.id,
+        type='out',
+        amount=amount,
+        token='ZEC',
+        status='pending',
+        from_address=ZCASHD_FROM_ADDRESS,
+        to_address=address,
+        remark=f'Gleyo ZEC Withdrawal · {address[:8]}…{address[-4:]}',
+        created_at=datetime.utcnow()
+    )
+
+    db.session.add(pending_tx)
+    db.session.commit()
+
+    tx_id = pending_tx.id
+    app_ctx = current_app._get_current_object()
+
+    def task():
+        with app_ctx.app_context():
+            process_zec_withdrawal(tx_id, address, you_send, amount, platform_fee)
+
+    executor.submit(task)
+
+    return jsonify({
+        'success': True,
+        'status': 'pending',
+        'platform_fee': platform_fee,
+        'actual_send': you_send,
+        'message': 'Withdrawal submitted. It will confirm shortly.'
+    })
+
+
+
+@app.route('/api/platform/zec-balance', methods=['GET'])
+@login_required
+def platform_zec_balance():
+    slug = request.args.get('community_slug')
+    if not slug:
+        return jsonify({'error': 'community_slug required'}), 400
+
+    community = Community.query.filter_by(slug=slug).first()
+    if not community or not community.wallet:
+        return jsonify({'balance': 0.0})
+
+    balance_zec = community.wallet.available_balance / 100_000_000
+    return jsonify({'balance': round(balance_zec, 8)})
+
+
+
+
+@app.route('/api/zec-price', methods=['GET'])
+def zec_price():
     try:
-
-        r = req.get(
-            f"https://api.zcha.in/v2/mainnet/accounts/{address}/recv",
-            params={
-                "limit": 20,
-                "offset": 0,
-                "sort": "timestamp",
-                "direction": "desc"
-            },
-            timeout=6
+        resp = requests.get(
+            'https://api.coingecko.com/api/v3/simple/price?ids=zcash&vs_currencies=usd',
+            timeout=10
         )
-
-        if not r.ok:
-            return None
-
-        txs = r.json()
-
-        for tx in txs:
-
-            memo = tx.get("memo") or ""
-
-            try:
-
-                decoded = bytes.fromhex(memo).decode(
-                    "utf-8",
-                    errors="ignore"
-                ).strip("\x00")
-
-            except Exception:
-
-                decoded = memo
-
-            if code.lower() in decoded.lower():
-
-                return {
-                    "from_address": tx.get("fromAddress"),
-                    "txid": tx.get("hash")
-                }
-
-    except Exception as e:
-
-        print("ZEC CHECK ERROR:", e)
-
-    return None 
+        data = resp.json()
+        price = data.get('zcash', {}).get('usd', 0)
+        return jsonify({'price': price})
+    except Exception:
+        return jsonify({'price': 0})
 
 
 
@@ -11382,31 +11425,6 @@ def _check_zec_payment(address, code):
 
 
 
-@app.route('/treasure_chest')
-def treasure_chest():
-    return render_template("treasure_chest.html")
-
-
-@app.route('/treasure')
-def treasure():
-    return render_template("treasure.html")
-
-@app.route('/token')
-def token():
-    return render_template("token.html")
-
-
-
-
-
-
-
-
-
-
-
-from werkzeug.utils import secure_filename
-import os
 
 @app.route('/stripe_payment')
 def stripe_payment():
@@ -11481,7 +11499,7 @@ def stripe_webhook():
             db.session.commit()
 
     return "", 200
-from discord_bot import get_discord_channels, get_discord_roles
+
 
 
 
@@ -11518,137 +11536,6 @@ def api_discord_channels(community_id):
     return jsonify({"channels": channels})
 
 
-# @app.route('/<community_slug>/community_settings', methods=['GET', 'POST'])
-# @login_required
-# def community_settings(community_slug):
-#     user=current_user
-
-#     community = Community.query.filter_by(slug=community_slug).first()
-#     if not community:
-#         abort(404)
-
-#     user_id = current_user.id if current_user.is_authenticated else None
-
-#     if not has_role(user_id, community.id, "admin"):
-#         flash("Only admins can access community settings.", "error")
-#         return redirect(url_for("p_quest", community_slug=community.slug))
-    
-#     if not community.security_settings:
-#         community.security_settings = CommunitySecurity(community_id=community.id)
-#         db.session.add(community.security_settings)
-#         db.session.commit()
-
-#     security_settings = community.security_settings
-#     # 🔹 Discord guild lookup
-#     discord_guild = DiscordGuild.query.filter_by(
-#         community_id=community.id, bot_joined=True
-#     ).first()
-#     discord_connected = bool(discord_guild)
-#     discord_guild_name = discord_guild.guild_name if discord_guild else None
-
- 
-
-#     if request.method == "POST":
-#         # ----------------------
-#         # Update community info
-#         # ----------------------
-#         name = request.form.get("name", "").strip()
-#         website = request.form.get("website", "").strip()
-#         about = request.form.get("about", "").strip()
-#         blockchain = request.form.get("blockchain", "").strip()
-
-#         if name: community.name = name
-#         if website: community.website = website
-#         if about: community.about = about
-#         if blockchain: community.blockchain = blockchain
-
-#         # Handle logo upload
-#         file = request.files.get("logo")
-#         if file and file.filename:
-#             uploads_dir = os.path.join(app.root_path, "static", "uploads")
-#             os.makedirs(uploads_dir, exist_ok=True)
-
-#             filename = f"{int(time.time())}_{secure_filename(file.filename)}"
-#             save_path = os.path.join(uploads_dir, filename)
-#             file.save(save_path)
-
-#             community.logo_path = f"uploads/{filename}"
-
-#         # ----------------------
-#         # Save Discord settings
-#         # ----------------------
-#         if discord_guild:
-#             notification_types = ["new_quest", "pending_review", "sprint_end", "daily_summary"]
-
-#             for notif_type in notification_types:
-#                 enabled = request.form.get(f"{notif_type}_enabled")
-#                 channel_id = request.form.get(f"{notif_type}_channel")
-#                 role_id = request.form.get(f"{notif_type}_role")
-
-#                 setting = DiscordNotificationSetting.query.filter_by(
-#                     guild_id=discord_guild.id, type=notif_type
-#                 ).first()
-
-#                 if enabled:
-#                     if not setting:
-#                         setting = DiscordNotificationSetting(
-#                             guild_id=discord_guild.id, type=notif_type
-#                         )
-#                         db.session.add(setting)
-
-#                     setting.channel_id = channel_id
-#                     setting.role_id = role_id
-#                 else:
-#                     if setting:
-#                         db.session.delete(setting)
-
-#         # ----------------------
-#         # Handle session switches
-#         # ----------------------
-#         selected_option = request.form.get("selected_option")
-#         if selected_option:
-#             session["selected_option"] = selected_option
-#             session["wallet_switch"] = (selected_option == "bot")
-#             session["discord_switch"] = True
-#             session["twitter_switch"] = True
-#             session["twitter_premium"] = (selected_option == "bot")
-
-#         # Commit all changes
-#         db.session.commit()
-
-#         flash("Community settings updated!", "success")
-#         return redirect(url_for("community_settings", community_slug=community_slug))
-
-#     # ----------------------
-#     # GET request
-#     # ----------------------
-#     notification_settings = {}
-#     if discord_guild:
-#         settings = DiscordNotificationSetting.query.filter_by(
-#             guild_id=discord_guild.id
-#         ).all()
-#         notification_settings = {s.type: s for s in settings}
-
-#     return render_template(
-#         "community_settings.html",
-#         username=user.username,
-#         name=community.name,
-#         website=community.website,
-#         about=community.about,
-#         blockchain=community.blockchain,
-#         discord_connected=discord_connected,
-#         discord_guild_name=discord_guild_name,
-#         security_settings=security_settings,
-#         notification_settings=notification_settings,
-#         logo=community.logo_path,
-#         community=community,
-#         selected_option=session.get("selected_option", ""),
-#         wallet_switch=session.get("wallet_switch", False),
-#         discord_switch=session.get("discord_switch", False),
-#         twitter_switch=session.get("twitter_switch", False),
-#         twitter_premium=session.get("twitter_premium", False),
-#         community_slug=community_slug,
-#     )
 
 
 
@@ -11852,8 +11739,6 @@ def update_emoji_name(community_slug, emoji_uuid):
 
     new_name = data["name"].strip()
 
-    # ✅ Validate: only letters, numbers, underscore
-    import re
     if not re.match(r"^[a-zA-Z0-9_]+$", new_name):
         return jsonify({"error": "Invalid emoji name"}), 400
 
@@ -12625,31 +12510,51 @@ def regenerate_webhook_secret(webhook_id):
 @login_required
 @community_not_deleted()
 def settings_subcription(community_slug):
-
     ctx = load_settings_context(community_slug)
     community = ctx["community"]
+    wallet = community.wallet
 
-    wallet = community.wallet  
+    now = datetime.utcnow()
+    claim_limit = 5000
+
+    usage = CommunityClaimUsage.query.filter_by(
+        community_id=community.id,
+        year=now.year,
+        month=now.month
+    ).first()
+
+    claim_count = usage.claim_count if usage else 0
+    claim_percent = min(round((claim_count / claim_limit) * 100, 1), 100)
+
+    from calendar import monthrange
+    last_day = monthrange(now.year, now.month)[1]
+    reset_date = datetime(now.year, now.month, last_day).strftime("%b %d, %Y")
 
     if request.headers.get("X-Partial"):
         return render_template(
             "/settings/subscription.html",
             community=community,
-            wallet=wallet
+            wallet=wallet,
+            claim_count=claim_count,
+            claim_limit=claim_limit,
+            claim_percent=claim_percent,
+            reset_date=reset_date
         )
-
     return render_template(
         "community_settings.html",
         community=community,
         community_slug=community_slug,
-        wallet=wallet
+        wallet=wallet,
+        claim_count=claim_count,
+        claim_limit=claim_limit,
+        claim_percent=claim_percent,
+        reset_date=reset_date
     )
 
 
 
 
 
-from sqlalchemy.orm import joinedload
 
 @app.route("/community/<community_slug>/settings/chat/moderation")
 @login_required
@@ -12782,28 +12687,6 @@ def settings_integrations(community_slug):
 
 
 
-@app.route("/community/<community_slug>/settings/billing")
-@login_required
-@community_not_deleted()
-def settings_billing(community_slug):
-    ctx = load_settings_context(community_slug)
-
-    community = ctx["community"]
-
-    wallet = community.wallet  
-
-    if request.headers.get("X-Partial"):
-        return render_template("settings/billing.html", wallet=wallet, community=ctx["community"])
-
-    return render_template(
-        "community_settings.html",
-        community=ctx["community"],
-        wallet=wallet,
-        community_slug=community_slug
-    )
-
-
-
 @app.route('/<community_slug>/toggle_setting', methods=['POST'])
 @login_required
 @community_not_deleted()
@@ -12901,21 +12784,6 @@ def toggle_discord_notification(community_slug):
 
 
 
-
-
-
-
-
-
-
-
-@app.route('/debug_nonces')
-def debug_nonces():
-    return jsonify(nonces)
-print(nonces)
-
-
-import re
 
 
 def get_or_create_conversation(community, user):
@@ -13175,8 +13043,6 @@ def build_latest_activity(community_id, limit=4):
 
     
 
-from collections import Counter
-
 def build_user_locations(community_id, limit=4):
 
     rows = (
@@ -13235,12 +13101,6 @@ def build_user_locations(community_id, limit=4):
 
 
 
-from collections import defaultdict
-
-
-
-
-from datetime import datetime, timedelta
 
 
 def start_of_day(dt: datetime) -> datetime:
@@ -13408,7 +13268,6 @@ def build_user_chart(community_id, start, now, range_key):
         "new": new
     }
 
-from datetime import datetime
 
 def build_quest_activity(community_id):
 
@@ -13910,7 +13769,6 @@ def build_top_performing_quests(community_id, start_date):
 
 
 
-from dateutil.relativedelta import relativedelta
 
 def build_quest_chart(community_id, start, now, range_key):
 
@@ -15183,7 +15041,8 @@ def edit_module_view(community_slug, quest_uuid):
         user=user,  
     )
 
-import hashlib
+
+
 
 def hex_to_rgba(hex_color, alpha=1):
     if not hex_color or not hex_color.startswith("#"):
@@ -15289,8 +15148,7 @@ def api_share_preview(module_uuid):
 
 
 
-from sqlalchemy.orm import joinedload
-import json
+
 @app.route("/api/community/<int:community_id>/roles-and-level", methods=["GET"])
 @login_required
 def get_roles_and_level(community_id):
@@ -15436,6 +15294,7 @@ def subquest_editor_data(community_slug, quest_uuid, subquest_uuid):
 
     # ---------- Tasks ----------
     tasks = Task.query.filter_by(subquest_id=subquest.id).all()
+    task_types = {t.type for t in tasks}
 
     task_dicts = []
     for t in tasks:
@@ -15472,8 +15331,6 @@ def subquest_editor_data(community_slug, quest_uuid, subquest_uuid):
         "tasks": task_dicts,
         "conditions": conditions
     })
-
-from datetime import datetime
 
 
 def humanize_from_10k(n):
@@ -15590,12 +15447,11 @@ def get_quests_and_subquests(community_slug, subquest_uuid):
     return jsonify(data)
 
 
-from flask import current_app
 
 
 
 def save_subquest_blocks_when_done(future, subquest_id, block_index):
-    import json
+    
 
     with app.app_context():
         try:
@@ -15681,12 +15537,12 @@ def upload_description_blocks(blocks, subquest_uuid):
 
 
 def get_bot_user():
-    bot = Users.query.filter_by(email="bot@gleyo.app").first()
+    bot = Users.query.filter_by(email="BOT@GLEYO").first()
 
     if not bot:
         bot = Users(
             username="Gleyo Bot",
-            email="bot@gleyo.app",
+            email="BOT@GLEYO",
             password="!",
             admin_display_name=Users.generate_unique_admin_display_name(db.session)
         )
@@ -16119,7 +15975,6 @@ def publish_subquest(community_slug):
         print("❌ Error saving subquest:", e)
         return jsonify({'success': False, 'error': str(e)}), 500
 
-from flask import abort
 
 @app.route('/<community_slug>')
 @login_required
@@ -16254,6 +16109,15 @@ PLATFORM_ICONS = {
   </svg>
 """,
         "color": "#FF0000"
+    },
+
+    "github": {
+        "icon": """
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
+    </svg>
+""",
+        "color": "#24292e"
     },
 
 "file-upload": {
@@ -16591,8 +16455,7 @@ REWARD_ICONS = {
     }
 }
 
-
-import os
+ 
 
 @app.route("/image_files/<path:filename>")
 def image_files(filename):
@@ -16623,7 +16486,6 @@ def reward_icon(reward):
 
 
 
-from collections import defaultdict
 
 def group_tasks(tasks):
     grouped = defaultdict(list)
@@ -16662,16 +16524,7 @@ app.jinja_env.filters['format_seconds'] = format_seconds
 
 
 
-import requests
-import re
-from discord_bot import bot_members_cache, API_BASE, DISCORD_BOT_TOKEN
 
-
-
-
-from googleapiclient.discovery import build
-from google.oauth2.credentials import Credentials
-from flask import jsonify, session
 
 @app.route("/api/community/<slug>")
 def get_community(slug):
@@ -16692,7 +16545,6 @@ def get_community(slug):
     })
 
 
-from flask import url_for
 
 
 @app.route("/api/quest/<community_slug>/<quest_uuid>/<subquest_uuid>")
@@ -16729,7 +16581,7 @@ def extract_channel_id(channel_url: str) -> str:
     Extracts the channelId from different YouTube URL formats.
     Supports /channel/UCxxxx and @handle (for handles you might need to resolve via YouTube API).
     """
-    import re
+    
     if "/channel/" in channel_url:
         return channel_url.split("/channel/")[-1].split("/")[0]
     if "@" in channel_url:
@@ -16738,10 +16590,7 @@ def extract_channel_id(channel_url: str) -> str:
     return None
 
 
-from googleapiclient.discovery import build
-from google.oauth2.credentials import Credentials
-from google.oauth2.credentials import Credentials
-from googleapiclient.discovery import build
+
 
 def check_discord_task_for_user(user, task):
     """
@@ -16826,13 +16675,6 @@ def check_discord_task_for_user(user, task):
     except Exception as e:
         return {"success": False, "error": f"Discord membership check failed: {e}"}
 
-
-
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from googleapiclient.discovery import build
-from flask import current_app
-import time
 
 
 def check_youtube_task_for_user(user, task):
@@ -17055,7 +16897,6 @@ def subquest_content(community_slug, quest_uuid, subquest_uuid):
     }
 
     # Tasks
-    from sqlalchemy.orm import joinedload
 
     tasks = (
         Task.query
@@ -17102,7 +16943,6 @@ def subquest_content(community_slug, quest_uuid, subquest_uuid):
     security = CommunitySecurity.query.filter_by(community_id=community.id).first()
 
     # Start by checking task_types OR community requirements
-    # Start by checking task_types OR community requirements
     socials_to_show = {
         "twitter": {
             "show": ("twitter" in task_types) or (security and security.require_twitter),
@@ -17119,6 +16959,10 @@ def subquest_content(community_slug, quest_uuid, subquest_uuid):
         "telegram": {
             "show": ("telegram" in task_types) or (security and security.require_telegram),
             "reason_security": bool(security and security.require_telegram),
+        },
+        "github": {
+            "show": ("github" in task_types),
+            "reason_security": False,
         },
     }
 
@@ -17141,7 +16985,14 @@ def subquest_content(community_slug, quest_uuid, subquest_uuid):
     latest_telegram = UserTelegram.query.filter_by(user_id=user.id).order_by(UserTelegram.timestamp.desc()).first()
     if latest_telegram and latest_telegram.action == "connected":
         socials_to_show["telegram"]["show"] = False
+    latest_github = UserGithub.query.filter_by(
+        user_id=user.id
+    ).order_by(
+        UserGithub.timestamp.desc()
+    ).first()
 
+    if latest_github and latest_github.action == "connected":
+        socials_to_show["github"]["show"] = False
 
     can_view_info = (
         has_role(user.id, community.id, "editor")
@@ -17250,25 +17101,10 @@ def quester_view(community_slug, quest_uuid, subquest_uuid):
     banned        = check_banned(user_id, community.id)       if user else False
 
     # ── security / socials ───────────────────────────────────────────────────
-    security = CommunitySecurity.query.filter_by(community_id=community.id).first()
+    security = CommunitySecurity.query.filter_by(
+        community_id=community.id
+    ).first()
 
-    if user:
-        socials_to_show = {
-            "twitter":  security.require_twitter  if security else False,
-            "discord":  security.require_discord  if security else False,
-            "youtube":  security.require_youtube  if security else False,
-            "telegram": security.require_telegram if security else False,
-        }
-        latest_twitter  = UserTwitter.query.filter_by(user_id=user_id).order_by(UserTwitter.timestamp.desc()).first()
-        if latest_twitter  and latest_twitter.action  == "connected": socials_to_show["twitter"]  = False
-        latest_discord  = UserDiscord.query.filter_by(user_id=user_id).order_by(UserDiscord.timestamp.desc()).first()
-        if latest_discord  and latest_discord.action  == "connected": socials_to_show["discord"]  = False
-        latest_youtube  = UserYouTube.query.filter_by(user_id=user_id).order_by(UserYouTube.timestamp.desc()).first()
-        if latest_youtube  and latest_youtube.action  == "connected": socials_to_show["youtube"]  = False
-        latest_telegram = UserTelegram.query.filter_by(user_id=user_id).order_by(UserTelegram.timestamp.desc()).first()
-        if latest_telegram and latest_telegram.action == "connected": socials_to_show["telegram"] = False
-    else:
-        socials_to_show = {"twitter": False, "discord": False, "youtube": False, "telegram": False}
 
     # ── completions / pending ────────────────────────────────────────────────
     if user:
@@ -17319,6 +17155,80 @@ def quester_view(community_slug, quest_uuid, subquest_uuid):
 
     # ── tasks ────────────────────────────────────────────────────────────────
     tasks      = Task.query.filter_by(subquest_id=subquest.id).all()
+    task_types = {t.type for t in tasks}
+
+    if user:
+        socials_to_show = {
+            "twitter": (
+                ("twitter" in task_types) or
+                (security and security.require_twitter)
+            ),
+
+            "discord": (
+                ("discord" in task_types) or
+                (security and security.require_discord)
+            ),
+
+            "youtube": (
+                ("youtube" in task_types) or
+                (security and security.require_youtube)
+            ),
+
+            "telegram": (
+                ("telegram" in task_types) or
+                (security and security.require_telegram)
+            ),
+
+            "github": (
+                ("github" in task_types) or
+                (security and security.require_github)
+            ),
+        }
+
+        latest_twitter = UserTwitter.query.filter_by(
+            user_id=user_id
+        ).order_by(UserTwitter.timestamp.desc()).first()
+
+        if latest_twitter and latest_twitter.action == "connected":
+            socials_to_show["twitter"] = False
+
+        latest_discord = UserDiscord.query.filter_by(
+            user_id=user_id
+        ).order_by(UserDiscord.timestamp.desc()).first()
+
+        if latest_discord and latest_discord.action == "connected":
+            socials_to_show["discord"] = False
+
+        latest_youtube = UserYouTube.query.filter_by(
+            user_id=user_id
+        ).order_by(UserYouTube.timestamp.desc()).first()
+
+        if latest_youtube and latest_youtube.action == "connected":
+            socials_to_show["youtube"] = False
+
+        latest_telegram = UserTelegram.query.filter_by(
+            user_id=user_id
+        ).order_by(UserTelegram.timestamp.desc()).first()
+
+        if latest_telegram and latest_telegram.action == "connected":
+            socials_to_show["telegram"] = False
+
+        latest_github = UserGithub.query.filter_by(
+            user_id=user_id
+        ).order_by(UserGithub.timestamp.desc()).first()
+
+        if latest_github and latest_github.action == "connected":
+            socials_to_show["github"] = False
+
+    else:
+        socials_to_show = {
+            "twitter": False,
+            "discord": False,
+            "youtube": False,
+            "telegram": False,
+            "github": False
+        }
+
     task_dicts = []
     for t in tasks:
         task_with_code = attach_invite_code(t, user_id, community.id)
@@ -17490,8 +17400,62 @@ def quester_view(community_slug, quest_uuid, subquest_uuid):
             "discord_roles":      []
         }
     })
-import re
-from markupsafe import Markup
+
+
+
+def user_has_starred_repo(user_id, repo_path):
+    record = UserGithub.query.filter_by(
+        user_id=user_id,
+        action="connected"
+    ).first()
+
+    if not record:
+        return False, "GitHub not connected"
+
+    if "/" not in repo_path:
+        return False, "Invalid repo"
+
+    owner, repo_name = repo_path.split("/", 1)
+
+    starred = check_if_starred(
+        record.access_token,
+        owner,
+        repo_name
+    )
+
+    return starred, None
+
+def user_has_forked_repo(user_id, repo_path):
+    """
+    repo_path = owner/repo
+    """
+
+    record = UserGithub.query.filter_by(
+        user_id=user_id,
+        action="connected"
+    ).first()
+
+    if not record:
+        return False, "GitHub not connected"
+
+    if "/" not in repo_path:
+        return False, "Invalid repo"
+
+    owner, repo_name = repo_path.split("/", 1)
+
+    forks = get_repo_forks(
+        record.access_token,
+        owner,
+        repo_name
+    )
+
+    forked = any(
+        f["owner"]["login"].lower()
+        == record.github_username.lower()
+        for f in forks
+    )
+
+    return forked, None
 
 
 
@@ -17566,6 +17530,45 @@ def validate_tasks_engine(
                     }
                 }
 
+        # ============================
+        # GITHUB
+        # ============================
+        elif task_type == "github":
+
+            repo_path = config.get("repo_name")
+
+            require_fork = config.get("fork", False)
+            require_star = config.get("star", False)
+
+            is_valid = True
+
+            if require_fork:
+
+                forked, error = user_has_forked_repo(
+                    user.id,
+                    repo_path
+                )
+
+                if not forked:
+                    is_valid = False
+                    errors[task_id] = error or f"Fork {repo_path} before claiming"
+                    failed_inputs[task_id] = {
+                        "github": "fork_required"
+                    }
+
+            if is_valid and require_star:
+
+                starred, error = user_has_starred_repo(
+                    user.id,
+                    repo_path
+                )
+
+                if not starred:
+                    is_valid = False
+                    errors[task_id] = error or f"Star {repo_path} before claiming"
+                    failed_inputs[task_id] = {
+                        "github": "star_required"
+                    }
 
         # ============================
         # DISCORD
@@ -17578,7 +17581,7 @@ def validate_tasks_engine(
 
         # ============================
         # YOUTUBE
-    # ============================claim
+        # ============================ 
         elif task_type == "youtube":
             res = check_youtube_task_for_user(user, task)
             is_valid = res["success"]
@@ -17613,7 +17616,8 @@ def validate_tasks_engine(
                     errors[task_id] = "Invalid number."
 
             elif task_type == "url":
-                from urllib.parse import urlparse
+
+
                 parsed = urlparse(task_answer)
                 is_valid = parsed.scheme in ("http", "https") and bool(parsed.netloc)
                 if not is_valid:
@@ -17724,8 +17728,6 @@ def validate_tasks_engine(
         "errors": errors,
         "failed_inputs": failed_inputs
     }
-import re
-from markupsafe import Markup
 
 
 def parse_inline_styles(text: str) -> str:
@@ -18233,7 +18235,7 @@ def get_max_claim_count(subquest_id):
 
 
 
-from operator import gt, ge, lt, le, eq, ne
+
 
 # Map operator string to Python operator
 OPERATOR_MAP = {
@@ -18244,9 +18246,6 @@ OPERATOR_MAP = {
     "==": eq,
     "!=": ne
 }
-
-from flask import jsonify
-from twitterAPI import get_live_followers_count
 
 
 @app.route("/api/twitter_followers/<int:user_id>")
@@ -18263,7 +18262,6 @@ def api_twitter_followers(user_id):
     followers_count = get_live_followers_count(user_tw)
     return jsonify({"followers": followers_count})
 
-from discord_bot import user_has_discord_role, fetch_discord_roles_and_member
 
 
 
@@ -18391,11 +18389,6 @@ def check_all_conditions(user_id):
 
 
 
-
-
-# app.py
-
-from flask import jsonify
 
 
 
@@ -18526,6 +18519,7 @@ def get_member_context(user_id, community_id):
     session.pop("inviter_username", None)
     session.pop("inviter_profile_pic", None)
 
+    print("all pass")
     return {
         "is_new_onto_this": is_new_onto_this,
         "user_was_invited": user_was_invited,
@@ -18664,8 +18658,6 @@ def join_community_mapper(community_slug):
 
 
 
-from flask import redirect, url_for
-from datetime import datetime
 
 @app.route('/<community_slug>/quest')
 def p_quest(community_slug):
@@ -19387,120 +19379,6 @@ def strip_payment():
 
 
 
-trust_wallet_map = {
-    "Ethereum": {
-        "ETH": "0x0000000000000000000000000000000000000000",
-        "USDT": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
-        "USDC": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-        "DAI": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
-        "LINK": "0x514910771AF9Ca656af840dff83E8264EcF986CA",
-    },
-    "Polygon": {
-        "MATIC": "0x0000000000000000000000000000000000001010",
-        "USDT": "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
-        "USDC": "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
-        "DAI": "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063",
-        "WBTC": "0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6",
-    },
-    "Optimism": {
-        "ETH": "0x0000000000000000000000000000000000000000",
-        "USDT": "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58",
-        "USDC": "0x7F5c764cBc14f9669B88837ca1490cCa17c31607",
-        "DAI": "0xda10009cbd5d07dd0cecc66161fc93d7c9000da1",
-        "OP": "0x4200000000000000000000000000000000000042",
-    },
-    "Arbitrum": {
-        "ETH": "0x0000000000000000000000000000000000000000",
-        "USDT": "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9",
-        "USDC": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
-    },
-    "Base": {
-        "ETH": "0x0000000000000000000000000000000000000000",
-        "USDC": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
-        "USDT": "0xfdde0e55c5791ab7f2d1f2a3ebd6bb3f61e4c7aa",
-        "DAI": "0x50c5725949a6f0c72e6c4a641f24049a917db0cb",
-        "WBTC": "0x2f2a2543b76a4166549f7aab2e75b52aef9c61a8",  # bridged
-    },
-    "Solana": {
-        "SOL": "solana/info",  # non-EVM
-        "USDC": "solana/assets/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-        "USDT": "solana/assets/Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
-        "SRM": "solana/assets/9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin",
-        "RAY": "solana/assets/4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R",
-    },
-    "Binance (BNB)": {
-        "BNB": "0x0000000000000000000000000000000000000000",
-        "USDT": "0x55d398326f99059ff775485246999027b3197955",
-        "BUSD": "0xe9e7cea3dedca5984780bafc599bd69add087d56",
-    },
-    "Linea": {
-        "ETH": "0x0000000000000000000000000000000000000000",
-        "USDC": "0x176211869ca2b568f2a7d4ee941e073a821ee1ff",
-    },
-    "Avalanche": {
-        "AVAX": "0x0000000000000000000000000000000000000000",
-        "USDT": "0xc7198437980c041c805a1edcba50c1ce5db95118",
-        "USDC": "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e",
-    },
-    "Fantom": {
-        "FTM": "0x0000000000000000000000000000000000000000",
-        "USDT": "0x049d68029688eabf473097a2fc38ef61633a3c7a",
-    },
-    "Cronos": {
-        "CRO": "0x0000000000000000000000000000000000000000",
-        "USDT": "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
-    },
-    "Palm": {
-        "PALM": None,  # not on TrustWallet
-        "USDC": None,
-    },
-    "Gnosis": {
-        "GNO": "0x6810e776880c02933d47db1b9fc05908e5386b96",
-        "USDC": "0xddafbb505ad214d7b80b1f830fccc89b60fb7a83",
-    },
-    "Chiliz": {
-        "CHZ": "0x3506424f91fd33084466f402d5d97f05f8e3b4af",
-    },
-    "Moonbeam": {
-        "GLMR": "0x0000000000000000000000000000000000000000",
-        "USDT": "0x8f552a71efe5eefc207bf75485b356a0b3f01ec9",
-    },
-    "Polygon zkEVM": {
-        "MATIC": "0x0000000000000000000000000000000000000000",
-        "USDC": "0xA8CE8aee21bC8559Ff46d4E3d4E4f478E8d2e2fA",
-    },
-    "ZKSync": {
-        "ETH": "0x0000000000000000000000000000000000000000",
-        "USDC": "0x3355df6D4c9C3035724Fd0e3914dE96A5a83aaf4",
-    },
-    "Ton": {
-        "TON": "ton/info",  # non-EVM
-    },
-    "Stacks": {
-        "STX": "stacks/info",
-    },
-    "Ronin": {
-        "RON": "ronin/info",
-    },
-    "Cardano": {
-        "ADA": "cardano/info",
-    },
-    # testnets / custom chains (no TrustWallet support)
-    "Gunz Testnet": {},
-    "Gunz": {},
-    "Monad Testnet": {},
-    "Soneium": {},
-    "Sonic": {},
-}
-
-@app.route("/get_contract/<network>/<symbol>")
-def get_contract(network, symbol):
-    network = network.strip()
-    symbol = symbol.strip()
-    contract = trust_wallet_map.get(network, {}).get(symbol, "N/A")
-    return {"contract": contract}
-
-
 
 
 UPLOAD_FOLDER = "image_files"
@@ -19509,10 +19387,8 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 
 
-import json
-import asyncio
-from discord import Object 
-from discord_bot import role_assignment_queue, bot
+
+
 
 def give_discord_role(user_id, reward, community_id=None):
     user_discord = UserDiscord.query.filter_by(user_id=user_id, action="connected").first()
@@ -19642,8 +19518,6 @@ def user_in_community(task):
 
 
 
-from urllib.parse import urlparse
-from flask import jsonify
 
 def check_partnership_quest_completion(user, task):
     """
@@ -19699,18 +19573,12 @@ def check_partnership_quest_completion(user, task):
 
 
  
-import logging
-logging.basicConfig(level=logging.INFO)
-import logging
-from datetime import datetime, timedelta
-
-logger = logging.getLogger("recurrence")
-logger.setLevel(logging.INFO)
 
 
 
 
-from copy import deepcopy
+
+
 def assign_fcfs_rewards_atomic(session, rewards):
     assigned = []
 
@@ -19960,8 +19828,6 @@ def can_claim_recurrence(user_id, subquest):
 
 
 
-from datetime import datetime
-
 def update_leaderboards(user_id, community_id, xp_amount, sprint_id=None):
 
     # -------------------------
@@ -20011,7 +19877,6 @@ def update_leaderboards(user_id, community_id, xp_amount, sprint_id=None):
 def save_file_upload_when_done(public_url, attempt_id=None, original_name=None, task_id=None, user_id=None, file_id=None):
     print("\n🧠 ENTER save_file_upload_when_done")
 
-    from sqlalchemy.orm import scoped_session, sessionmaker
 
     with app.app_context():
         Session = scoped_session(sessionmaker(bind=db.engine))
@@ -20036,8 +19901,6 @@ def save_file_upload_when_done(public_url, attempt_id=None, original_name=None, 
             if not attempt:
                 print("❌ Attempt not found")
                 return
-
-            from copy import deepcopy
 
             current_input = deepcopy(attempt.user_input) if attempt.user_input else {}
 
@@ -20184,9 +20047,6 @@ def handle_streak_bonus(
 
 
 
-
-
-from sqlalchemy import desc
 
 
 
@@ -20336,9 +20196,27 @@ def commit_streak_bonus_xp(
         f"total={total_xp}"
     )
 
+ 
+@app.route("/api/analytics/insights/<community_slug>")
+@login_required
+def analytics_insights(community_slug):
+    user= current_user
+
+    community = Community.query.filter_by(slug=community_slug).first_or_404()
+    
+    if not has_role(user.id, community.id, "admin"):
+        return jsonify({"error": "not_admin"}), 403
 
 
+    insights = generate_all_insights(community.id)
 
+    return jsonify({
+        "success": True,
+        "community": community.name,
+        "generated_at": datetime.utcnow().isoformat(),
+        "total": len(insights),
+        "insights": insights,
+    })
 
 
 @app.route("/claim/<int:subquest_id>", methods=["POST"])
@@ -20349,24 +20227,22 @@ def claim_subquest(subquest_id):
     session = db.session
     session = db.session
 
-    # 1) Load subquest FIRST
-    subquest = session.get(Subquest, subquest_id)
+    subquest = db.session.get(Subquest, subquest_id)
+
     if not subquest:
         return jsonify({
             "success": False,
-            "error_code": "REDIRECT",
-            "redirect": "/"
+            "message": "This quest no longer exists."
         }), 404
 
-    # 2) Then access quest/community safely
+    community = subquest.quest.community
     community_id = subquest.quest.community_id
-    community = Community.query.filter_by(id=community_id).first()
+
 
     if not community:
         return jsonify({
             "success": False,
-            "error_code": "REDIRECT",
-            "redirect": "/"
+            "message": "This community no longer exists."
         }), 404
 
  
@@ -20581,7 +20457,7 @@ def claim_subquest(subquest_id):
                 except Exception:
                     errors[task.id] = "Invalid number."
             elif task.type == "url":
-                from urllib.parse import urlparse
+                
                 parsed = urlparse(task_answer or "")
                 is_valid = parsed.scheme in ("http", "https") and parsed.netloc
                 if not is_valid:
@@ -20764,6 +20640,47 @@ def claim_subquest(subquest_id):
                     "answer": user_input
                 }
 
+        elif task.type == "github":
+
+            repo_path = task.config.get("repo_name")
+
+            require_fork = task.config.get("fork", False)
+            require_star = task.config.get("star", False)
+
+            is_valid = True
+
+            cleaned_input["github"] = {
+                "repo": repo_path
+            }
+
+            if require_fork:
+
+                forked, error = user_has_forked_repo(
+                    user.id,
+                    repo_path
+                )
+
+                if not forked:
+                    is_valid = False
+                    errors[task.id] = error or f"Fork {repo_path} before claiming"
+                    failed_inputs[task.id] = {
+                        "github": "fork_required"
+                    }
+
+            if is_valid and require_star:
+
+                starred, error = user_has_starred_repo(
+                    user.id,
+                    repo_path
+                )
+
+                if not starred:
+                    is_valid = False
+                    errors[task.id] = error or f"Star {repo_path} before claiming"
+                    failed_inputs[task.id] = {
+                        "github": "star_required"
+                    }
+
 
         elif task.type == "file-upload":
 
@@ -20806,7 +20723,6 @@ def claim_subquest(subquest_id):
                 future = upload_to_supabase(file_bytes, storage_name, f.mimetype)
 
                 def debug_callback(fut, task_id=task.id, name=original_name, user_id=user.id, file_id=file_uuid):
-                    from threading import Thread
 
                     def run():
                         try:
@@ -20852,7 +20768,7 @@ def claim_subquest(subquest_id):
 
         # --- Store attempt history ---
         instant_success_types = [
-            "discord", "youtube", "quiz", "partnership_quest", "partnership","Visit link","p.o.h",
+            "discord", "youtube", "quiz", "partnership_quest", "partnership","Visit link","p.o.h", "github",
             "invite", "poll", "Optionscale(numbers)", "Optionscale(star)", "puzzle"
         ]
 
@@ -20985,7 +20901,68 @@ def claim_subquest(subquest_id):
                     subquest_completion=subquest_completion,
                     base_xp_amount=int(xp_amount)
                 )
+      
+      
+        
+            # ==============================
+            # 💰 COMMIT ZEC TO UserBalance
+            # ==============================
+            for reward in assigned_rewards:
+                if reward.get("reward_type") not in ("token", "Token"):
+                    continue
 
+                reward_data = reward.get("reward_data") or {}
+                amount_str  = reward_data.get("amount") or reward_data.get("amount_per_winner")
+                network     = reward_data.get("network", "Zcash")
+                token       = reward_data.get("token", "ZEC")
+
+                try:
+                    amount = Decimal(str(amount_str))
+                except Exception:
+                    print(f"⚠️ Invalid token reward amount: {amount_str}, skipping")
+                    continue
+
+                if amount <= 0:
+                    continue
+
+                # 🛡️ Anti-duplicate protection
+                existing_tx = UserTransaction.query.filter_by(
+                    user_id=user.id,
+                    community_id=subquest.quest.community_id,
+                    remark=f"Reward · {subquest.name} · completion:{subquest_completion.id}"
+                ).first()
+                if existing_tx:
+                    print(f"⚠️ ZEC already credited for completion {subquest_completion.id}, skipping")
+                    continue
+
+                # ── Credit UserBalance ────────────────────────────────────────────────
+                user_bal = UserBalance.query.filter_by(user_id=user.id).with_for_update().first()
+                if not user_bal:
+                    user_bal = UserBalance(
+                        user_id=user.id,
+                        balance=Decimal("0"),
+                        total_earned=Decimal("0"),
+                        total_withdrawn=Decimal("0"),
+                    )
+                    db.session.add(user_bal)
+                    db.session.flush()
+
+                user_bal.balance       = (user_bal.balance       or Decimal("0")) + amount
+                user_bal.total_earned  = (user_bal.total_earned  or Decimal("0")) + amount
+                user_bal.updated_at    = datetime.utcnow()
+
+                # ── Log the transaction ───────────────────────────────────────────────
+                db.session.add(UserTransaction(
+                    user_id      = user.id,
+                    type         = "in",
+                    amount       = amount,
+                    token        = token,
+                    status       = "confirmed",
+                    community_id = subquest.quest.community_id,
+                    remark       = f"Reward · {subquest.name} · completion:{subquest_completion.id}",
+                ))
+
+                print(f"✅ Credited {amount} {token} to user {user.id} for completing {subquest.name}")
         else:
             subquest_completion.status = "pending"
             subquest_completion.assigned_rewards = []  
@@ -21245,74 +21222,11 @@ def p_leaderboard(community_slug):
         community_name=session.get('new_comm_name', '')
     )
 
-@app.route("/Nft")
-def Nft():
-    return render_template('Nft.html')
 
 
 
 
-@app.route("/nft_info", methods=["GET"])
-def nft_info():
-    contract = request.args.get("contract")
-    token_id = request.args.get("token_id")
-    chain = request.args.get("chain")
-
-    if not contract or not chain or not token_id:
-        return jsonify({"error": "Missing contract, chain, or token_id"}), 400
-
-    # Map your dropdown value to OpenSea-supported chains
-    chain_map = {
-        "eth": "ethereum",
-        "matic": "polygon",
-        "bsc": "bsc"  # if supported
-    }
-    opensea_chain = chain_map.get(chain, "ethereum")
-
-    url = f"https://api.opensea.io/api/v2/chain/{opensea_chain}/contract/{contract}/nfts/{token_id}"
-
-    headers = {"accept": "application/json"}
-    if OPENSEA_API_KEY:
-        headers["x-api-key"] = OPENSEA_API_KEY
-
-    try:
-        res = requests.get(url, headers=headers)
-        res.raise_for_status()
-        data = res.json()
-
-        nft = data.get("nft", {})
-
-        # Extract fields safely
-        name = nft.get("name") or f"Token #{token_id}"
-        desc = nft.get("description", "")
-        image = nft.get("image_url") or nft.get("metadata", {}).get("image")
-
-        return jsonify({
-            "name": name,
-            "description": desc,
-            "image": image,
-            "token_id": token_id,
-            "contract": contract,
-            "chain": opensea_chain
-        })
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-
-
-
-
-
-
-
-
-
-
-
-from datetime import datetime
-
+ 
 @app.route('/<community_slug>/leaderboard/<sprint_uuid>')
 def sprint_view(community_slug, sprint_uuid):
     user_id = current_user.id if current_user.is_authenticated else None
@@ -21413,17 +21327,12 @@ def pay_page(community_slug):
 
     user_id = current_user.id if current_user.is_authenticated else None
 
-    session['community_id'] = community.id  # ✅ Keep session updated
+    session['community_id'] = community.id   
 
-    # ✅ Only allow admins
     if not has_role(user_id, community.id, "admin"):
         flash("Only admins can access this page.", "error")
         return redirect(url_for("p_quest", community_slug=community.slug))
 
-    # ✅ Block access if already paid
-    if community.is_paid:
-        flash("This community has already paid. You cannot access the payment page.", "info")
-        return redirect(url_for("my_payments", community_slug=community.slug))
 
     # ✅ Otherwise show the pay.html
     payments = Payment.query.filter_by(
@@ -21492,30 +21401,24 @@ def smart_amount(value):
             # Whole number → no decimals
             return "{:,}".format(int(value))
         else:
-            # Show up to 2 decimals, but keep trailing zero if needed for fractional values
-            return "{:,.2f}".format(value).rstrip('0').rstrip('.')  # removes unnecessary .00 or .10 → .1
+            return "{:,.2f}".format(value).rstrip('0').rstrip('.')   
     except (ValueError, TypeError):
         return value
 
 
 
-from flask import request, jsonify, session
-from datetime import datetime, timedelta, timezone
 
 
 @app.route('/<community_slug>/save_payment', methods=['POST'])
 @login_required
 @community_not_deleted()
+@csrf.exempt
 def save_payment(community_slug):
-    print("UTC Now:", datetime.utcnow())
-
     try:
         amount_raw = request.form.get('amount', '').strip()
-        token = request.form.get('token', '').strip().upper()
-        network = request.form.get('network', '').strip()
         note = request.form.get('note', '').strip()
 
-        if not all([amount_raw, token, network]):
+        if not amount_raw:
             return jsonify({'error': 'Missing required fields'}), 400
 
         try:
@@ -21523,208 +21426,201 @@ def save_payment(community_slug):
         except ValueError:
             return jsonify({'error': 'Amount must be a number'}), 400
 
-        if token not in ['USDT', 'USDC'] or network not in ['BSC', 'Polygon', 'Base', 'Aptos']:
-            return jsonify({'error': 'Invalid token or network'}), 400
+        ZEC_MIN_PAYMENT = 0.000001
+        if amount < ZEC_MIN_PAYMENT:
+            return jsonify({'error': f'Minimum payment is {ZEC_MIN_PAYMENT} ZEC'}), 400
 
-        address_map = {
-            'USDT': {
-                'Polygon': '0xe1bd60600Ddf6342dcdB5012d1c4069E900dC233',
-                'BSC':     '0xe1bd60600Ddf6342dcdB5012d1c4069E900dC233',
-                'Base':    '0xe1bd60600Ddf6342dcdB5012d1c4069E900dC233',
-                'Aptos':   '0xAptosAddressHere'
-            },
-            'USDC': {
-                'Polygon': '0xe1bd60600Ddf6342dcdB5012d1c4069E900dC233',
-                'BSC':     '0xe1bd60600Ddf6342dcdB5012d1c4069E900dC233',
-                'Base':    '0xe1bd60600Ddf6342dcdB5012d1c4069E900dC233',
-                'Aptos':   '0xAptosAddressHere'
-            }
-        }
+        payment_address = os.getenv('WALLET')
+        if not payment_address:
+            return jsonify({'error': 'Wallet address not configured'}), 500
 
-        payment_address = address_map[token][network]
         now = datetime.utcnow()
-
         user_id = current_user.id if current_user.is_authenticated else None
-
         if not user_id:
             return jsonify({'error': 'User not logged in'}), 400
 
-        # ✅ Get the community using the slug
         community = Community.query.filter_by(slug=community_slug).first()
         if not community:
             return jsonify({'error': 'Community not found'}), 404
 
-        community_id = community.id
+        Payment.query.filter(
+            Payment.status == 'pending',
+            (Payment.user_id == user_id) | (Payment.community_id == community.id)
+        ).filter(
+            Payment.created_at <= now - timedelta(minutes=30)
+        ).update({'status': 'expired'}, synchronize_session=False)
+        db.session.flush()
 
-        # ✅ Check if the user already has a pending payment
-        existing_user_payment = Payment.query.filter_by(
-            user_id=user_id,
-            community_id=community_id,
-            status='pending'
+        existing = Payment.query.filter_by(
+            user_id=user_id, community_id=community.id, status='pending'
         ).order_by(Payment.created_at.desc()).first()
 
-        if existing_user_payment:
-            user_expires_at = existing_user_payment.created_at + timedelta(minutes=30)
-            if now < user_expires_at:
+        if existing:
+            expires_at = existing.created_at + timedelta(minutes=30)
+            if now < expires_at:
+                db.session.commit()
                 return jsonify({
-                    'error': 'You already have a pending payment. Please wait for it to expire.',
-                    'expires_at': int(user_expires_at.timestamp()),
-                    'payment_id': existing_user_payment.id
+                    'error': 'You already have a pending payment.',
+                    'payment_id': existing.id,
+                    'amount': existing.amount,
+                    'address': existing.address,
+                    'created_at': int(existing.created_at.timestamp()),
+                    'expires_at': int(expires_at.timestamp()),
+                    'server_time': int(now.timestamp())
                 }), 400
 
-        # ✅ Check if the community already has any pending payment
-        existing_community_payment = Payment.query.filter_by(
-            community_id=community_id,
-            status='pending'
+        community_pending = Payment.query.filter_by(
+            community_id=community.id, status='pending'
         ).order_by(Payment.created_at.desc()).first()
 
-        if existing_community_payment:
-            community_expires_at = existing_community_payment.created_at + timedelta(minutes=30)
-            if now < community_expires_at:
+        if community_pending:
+            expires_at = community_pending.created_at + timedelta(minutes=30)
+            if now < expires_at:
+                db.session.commit()
                 return jsonify({
-                    'error': 'This community already has a pending payment. Please wait for it to expire.',
-                    'expires_at': int(community_expires_at.timestamp()),
-                    'payment_id': existing_community_payment.id
-                }), 400
+                    'error': 'community_pending',
+                    'message': 'This community already has an active payment.',
+                    'payment_id': community_pending.id,
+                    'expires_at': int(expires_at.timestamp())
+                }), 409
 
-        # ✅ Create the new payment
+        try:
+            balance_resp = requests.get(f"{NOZY_API_URL}/api/balance", timeout=30)
+            balance_before = balance_resp.json().get('balance_zec', 0.0)
+        except Exception as e:
+            print(f"⚠️ Could not fetch Nozy balance: {e}")
+            balance_before = 0.0
+
         new_payment = Payment(
             amount=amount,
-            token=token,
-            network=network,
+            token='ZEC',
+            network='Zcash',
             address=payment_address,
             status='pending',
-            tx=None,
             timestamp=int(now.timestamp()),
             note=note,
             created_at=now,
+            balance_before=balance_before,
             user_id=user_id,
-            community_id=community_id
+            community_id=community.id
         )
-
         db.session.add(new_payment)
         db.session.commit()
 
-        expires_ts = int((now + timedelta(minutes=30)).timestamp())
-
-        print(f"🕒 WAITING for {amount:.6f} {token} on {network} | To: {payment_address} | Payment ID: {new_payment.id}")
+        print(f"🕒 WAITING for {amount:.8f} ZEC | Payment ID: {new_payment.id} | Balance before: {balance_before}")
 
         return jsonify({
             'id': new_payment.id,
             'address': payment_address,
             'created_at': int(now.timestamp()),
-            'expires_at': expires_ts,
+            'expires_at': int((now + timedelta(minutes=30)).timestamp()),
             'server_time': int(now.timestamp())
         })
 
     except Exception as e:
-        import traceback
         traceback.print_exc()
         return jsonify({'error': f'Server error: {str(e)}'}), 500
 
 
-
-@app.route('/<community_slug>/payment_status/<int:payment_id>', methods=['GET'])
-def payment_status(community_slug, payment_id):
+@app.route('/<community_slug>/verify_payment/<int:payment_id>', methods=['POST'])
+@login_required
+@csrf.exempt
+def verify_payment(community_slug, payment_id):
     try:
-        print(f"📥 Checking status for payment ID: {payment_id} in community '{community_slug}'")
+        payment = db.session.get(Payment, payment_id)
 
-        payment = Payment.query.get(payment_id)
-
-        if not payment:
+        if not payment or not payment.community or payment.community.slug != community_slug:
             return jsonify({'error': 'Payment not found'}), 404
 
-        if not payment.community or payment.community.slug != community_slug:
-            return jsonify({'error': 'Payment does not belong to this community'}), 403
-
-        if not payment.created_at:
-            return jsonify({'error': 'Payment missing creation time'}), 500
+        if payment.status == 'paid':
+            return jsonify({'status': 'paid'})
 
         now_utc = datetime.now(timezone.utc)
-        print("UTC Now:", now_utc)
+        expires_at = payment.created_at.replace(tzinfo=timezone.utc) + timedelta(minutes=30)
 
-        created_at_aware = payment.created_at.replace(tzinfo=timezone.utc)
-        expires_at = created_at_aware + timedelta(minutes=30)
+        if payment.status == 'expired' or now_utc >= expires_at:
+            if payment.status != 'expired':
+                payment.status = 'expired'
+                db.session.commit()
+            return jsonify({'status': 'expired'})
 
-        now_ts = int(now_utc.timestamp())
-        expires_ts = int(expires_at.timestamp())
+        try:
+            sync_resp = requests.post(
+                f"{NOZY_API_URL}/api/sync",
+                json={"password": NOZY_WALLET_PASSWORD},
+                timeout=120
+            )
+            current_balance = float(sync_resp.json().get('balance_zec', 0))
+        except Exception as e:
+            return jsonify({'error': f'Sync failed: {str(e)}', 'status': 'pending'}), 200
 
-        if payment.status == 'pending' and now_utc >= expires_at:
-            payment.status = 'expired'
-            db.session.commit()
-            print(f"❌ Payment expired — ID: {payment.id}")
-            return jsonify({'error': 'Session expired'}), 410
+        balance_increase = round(current_balance - float(payment.balance_before or 0), 8)
 
-        # ✅ Only mark as paid if payment belongs to this community and is confirmed
-        if (
-            payment.status == 'paid' and
-            payment.community and
-            payment.community.slug == community_slug and
-            not payment.community.is_paid
-        ):
-            print(f"✅ Marking community '{community_slug}' as paid (payment ID: {payment.id})...")
-            payment.community.is_paid = True
-            db.session.commit()
+        FEE_TOLERANCE = min(payment.amount * 0.05, 0.0001)
+        required_minimum = max(payment.amount - FEE_TOLERANCE, 0.00000001)
 
+        if balance_increase < required_minimum:
+            print(f"⏳ Payment {payment.id} pending — increase: {balance_increase:.8f}, "
+                  f"required: {required_minimum:.8f}, requested: {payment.amount:.8f}")
+            return jsonify({'status': 'pending'})
 
-        return jsonify({
-            'id': payment.id,
-            'amount': payment.amount,
-            'token': payment.token,
-            'network': payment.network,
-            'address': payment.address,
-            'status': payment.status,
-            'tx': payment.tx,
-            'note': payment.note,
-            'paid_at': int(payment.paid_at.timestamp()) if payment.paid_at else None,
-            'created_at': int(payment.created_at.timestamp()),
-            'expires_at': expires_ts,
-            'server_time': now_ts
-        })
+        payment.status = 'paid'
+        payment.paid_at = datetime.utcnow()
+        payment.tx = f"nozy-balance-delta-{current_balance}"
+
+        amount_zatoshi = int(round(balance_increase * 100_000_000))
+
+        wallet = CommunityWallet.query.filter_by(community_id=payment.community_id).first()
+        if wallet:
+            wallet.available_balance += amount_zatoshi
+            wallet.updated_at = datetime.utcnow()
+        else:
+            wallet = CommunityWallet(
+                community_id=payment.community_id,
+                available_balance=amount_zatoshi,
+                locked_balance=0,
+                currency='ZEC'
+            )
+            db.session.add(wallet)
+            db.session.flush()
+
+        db.session.add(CommunityWalletTransaction(
+            wallet_id=wallet.id,
+            amount=amount_zatoshi,
+            type='deposit',
+            reference=f"payment:{payment.id}"
+        ))
+
+        db.session.commit()
+        print(f"✅ Payment {payment.id} confirmed — received: {balance_increase:.8f} ZEC, credited: {amount_zatoshi} zatoshi")
+        return jsonify({'status': 'paid'})
 
     except Exception as e:
-        import traceback
         traceback.print_exc()
-        return jsonify({'error': f'Server error: {str(e)}'}), 500
-
-
-# ============================================================
-
-
-
-sprints = []
-
-
-
-
+        return jsonify({'error': f'Server error: {str(e)}', 'status': 'pending'}), 200
 
 
 @app.route('/<community_slug>/leaderboard')
 @community_not_deleted()
 def leaderboard(community_slug):
     user_id = current_user.id if current_user.is_authenticated else None
-    user = current_user if current_user.is_authenticated else None
     user_communities = get_user_communities(user_id) if user_id else []
 
     community = Community.query.filter_by(slug=community_slug).first()
     if not community:
         abort(404)
 
-    user_role_entry = CommunityUserRole.query.filter_by(
-        user_id=user_id, community_id=community.id
-    ).first() if user_id else None
-
     banned = check_banned(user_id, community.id) if user_id else False
 
-    sprints = (
+    sprint = (
         Sprint.query
         .filter_by(created_by_id=user_id, community_id=community.id)
         .order_by(Sprint.start_date.desc())
-        .all()
-    ) if user_id else []
+        .first()
+    ) if user_id else None
 
-    sprint = sprints[0] if sprints else None
     sprint_status = "none"
+    now = datetime.utcnow()
 
     if sprint and sprint.start_date and sprint.end_date:
         if isinstance(sprint.start_date, str):
@@ -21732,7 +21628,6 @@ def leaderboard(community_slug):
         if isinstance(sprint.end_date, str):
             sprint.end_date = datetime.fromisoformat(sprint.end_date)
 
-        now = datetime.utcnow()
         if now < sprint.start_date:
             sprint_status = "upcoming"
         elif sprint.start_date <= now <= sprint.end_date:
@@ -21748,26 +21643,23 @@ def leaderboard(community_slug):
     level_data = get_level(total_xp)
 
     community_twitter = CommunityTwitter.query.filter_by(
-        community_id=community.id,
-        action="connected"
+        community_id=community.id, action="connected"
     ).order_by(CommunityTwitter.timestamp.desc()).first()
 
     community_discord = DiscordGuild.query.filter_by(
-        community_id=community.id,
-        removed_at=None
+        community_id=community.id, removed_at=None
     ).first()
 
-    community_list_visible = session.get("community_list_visible", True)
     latest_sprint = get_latest_valid_sprint(community.id)
 
     if request.headers.get("X-Partial"):
         return render_template(
             "leaderboard.html",
-            user=user,
+            user=current_user if user_id else None,
             community=community,
             is_premium=community.is_paid,
-            current_time=datetime.utcnow(),
-            sprints=sprints,
+            current_time=now,
+            sprints=[sprint] if sprint else [],
             sprint=sprint,
             latest_sprint=latest_sprint,
             sprint_status=sprint_status,
@@ -21775,27 +21667,27 @@ def leaderboard(community_slug):
 
     return render_template(
         'your_community.html',
-        community_visible=community_list_visible,
+        community_visible=session.get("community_list_visible", True),
         level_data=level_data,
-        user=user,
+        user=current_user if user_id else None,
         logo=community.logo_path,
         is_banned=banned,
         community=community,
         sprint=sprint,
         community_tuples=user_communities,
         latest_sprint=latest_sprint,
-        sprints=sprints,
+        sprints=[sprint] if sprint else [],
         sprint_status=sprint_status,
         is_premium=community.is_paid,
         community_name=community.name,
-        current_time=datetime.utcnow(),
+        current_time=now,
         community_twitter=community_twitter,
         community_discord=community_discord,
-        created_by_id=user_id,       # ← was current_user.id, now None-safe
+        created_by_id=user_id,
         community_slug=community_slug,
     )
 
-
+    
 
 @app.route("/<community_slug>/sprints/create", methods=["POST"])
 @login_required
@@ -22038,11 +21930,6 @@ def telegram_info():
 #     return redirect(f"https://api.telegram.org/file/bot{TELEGRAM_BOT_TOKEN}/{file_path}")
 
 
-@app.route("/tiktok") 
-def tiktok_page(): 
-    return render_template("tiktok.html")
-
-
 
 @app.route("/api/tiktok_info", methods=["GET"])
 def get_tiktok_info():
@@ -22082,9 +21969,8 @@ def get_tiktok_info():
 @app.route("/result")  
 def result():  
     return render_template("result.html") 
-@app.route("/rankingup") 
-def rankingup(): 
-    return render_template("rankingup.html")
+
+
 @app.route("/api/discord_info")
 def discord_info():
     invite_code = request.args.get("invite", "").strip()
@@ -22116,33 +22002,9 @@ def discord_info():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route("/twitter")
-def twitter_page():
-    return render_template("twitter.html")
-
-
-@app.route("/youtube")
-def youtube():
-    return render_template("youtube.html")
 
 
 
-@app.route("/partnership_arial")
-def partnership_arial():
-    return render_template("partnership_arial.html")
-
-@app.route("/partnership_quest")
-def partnership_quest():
-    return render_template("partnership_quest.html")
-
-
-@app.route("/templae")
-def templae():
-    return render_template("templae.html")
-
-
-
-from sqlalchemy.orm import aliased
 
 def get_total_xp_for_invited(user_id, community_id):
     # Aliases
@@ -22436,60 +22298,8 @@ def visit_link():
 
  
 
-@app.route('/get_nonce', methods=['POST'])
-def get_nonce():
-    data = request.json
-    address = data.get('address')
-    if not address:
-        return jsonify({"error": "Address missing"}), 400
-    nonce = f"Sign this nonce to verify: {random.randint(100000, 999999)}"
-    nonces[address] = nonce
-    return jsonify({"nonce": nonce})
 
-@app.route('/verify_signature', methods=['POST'])
-def verify_signature():
-    data = request.json
-    address = data.get('address')
-    signature = data.get('signature')
-    network = data.get('network', 'eth')  # default eth network
 
-    if address not in nonces:
-        return jsonify({"success": False, "error": "Nonce missing"})
-
-    nonce = nonces[address]
-
-    try:
-        if network.lower() in ['eth', 'bsc', 'polygon', 'base']:
-            # ETH/BSC/Polygon/Base verification
-            message = encode_defunct(text=nonce)
-            recovered = Account.recover_message(message, signature=signature)
-            if recovered.lower() == address.lower():
-                return jsonify({"success": True})
-
-        elif network.lower() == 'solana':
-            # Solana verification
-            message_bytes = nonce.encode('utf-8')
-            signature_bytes = base58.b58decode(signature)
-            pubkey_bytes = base58.b58decode(address)
-
-            verify_key = VerifyKey(pubkey_bytes)
-            try:
-                verify_key.verify(message_bytes, signature_bytes)
-                return jsonify({"success": True})
-            except BadSignatureError:
-                return jsonify({"success": False})
-
-    except Exception as e:
-        print(e)
-
-    return jsonify({"success": False})
-
-import re
-import json
-import requests
-from bs4 import BeautifulSoup
-from urllib.parse import urlparse, urljoin
-from html import unescape
 
 @app.route("/preview", methods=["POST"])
 def preview():
@@ -22794,7 +22604,6 @@ def sprint_panel(community_slug, sprint_uuid):
         payment_note=latest_payment.note if latest_payment else None,
         payment_status=latest_payment.status if latest_payment else None
     )
-from flask import send_file
 
  
 @app.route("/<community_slug>/sprint_create_partial")
@@ -22803,7 +22612,6 @@ from flask import send_file
 def sprint_create_partial(community_slug):
     return render_template("sprint_create.html")
 
-from flask import abort
 
 @app.route("/chat")
 
@@ -23405,7 +23213,6 @@ def ensure_ticket_actions_allowed(ticket):
 
 
 
-import re
 
 LINK_REGEX = re.compile(
     r"(https?:\/\/[^\s]+|www\.[^\s]+|\b[a-zA-Z0-9-]+\.(com|io|gg|dev|net|org|xyz)\b)",
@@ -23713,7 +23520,7 @@ def notify_community_pin(
     for sub in subs:
         subs_map.setdefault(sub.user_id, []).append(sub)
 
-    base_url = "https://gleyo.app"
+    base_url = "http://127.0.0.1:8000"
 
     # 🔥 4. Loop users (NO DB QUERIES INSIDE)
     for member in members:
@@ -23804,7 +23611,6 @@ def push_subscribe():
     db.session.commit()
     return {"ok": True}
 
-import re
 
 def extract_mentions_from_text(text):
     # matches @username (letters, numbers, underscore, dot)
@@ -23852,8 +23658,7 @@ def resolve_notification_level(user_id, community_id, category_id, channel_id):
     return "mentions"
 
 
-import uuid
-from werkzeug.utils import secure_filename
+
 
 
 def resolve_attachment_type(mimetype: str) -> str:
@@ -24134,7 +23939,7 @@ def comm_message_audio():
             if send_reply_notification:
                 notified_user_ids.add(replied_user_id)
 
-                base_url = "https://gleyo.app"
+                base_url = "http://127.0.0.1:8000"
 
                 if channel.category:
                     target_url = (
@@ -24218,7 +24023,7 @@ def comm_message_audio():
             if not user_subs:
                 continue
 
-            base_url = "https://gleyo.app"
+            base_url = "http://127.0.0.1:8000"
 
             if channel.category:
                 target_url = (
@@ -24786,7 +24591,6 @@ def comm_message():
 
     print("🧪 DEBUG subs_map:", {k: len(v) for k, v in subs_map.items()})
 
-    from flask import current_app
 
 
 
@@ -24831,7 +24635,7 @@ def comm_message():
             if send_reply_notification:
                 notified_user_ids.add(replied_user_id)
 
-                base_url = "https://gleyo.app"
+                base_url = "http://127.0.0.1:8000"
 
                 if channel.category:
                     target_url = (
@@ -24913,7 +24717,7 @@ def comm_message():
                 if level not in ("mentions", "all"):
                     continue
 
-                base_url = "https://gleyo.app"
+                base_url = "http://127.0.0.1:8000"
 
                 if channel.category:
                     target_url = (
@@ -24978,7 +24782,7 @@ def comm_message():
             if not user_subs:
                 continue
 
-            base_url = "https://gleyo.app"
+            base_url = "http://127.0.0.1:8000"
 
             if channel.category:
                 target_url = (
@@ -25849,10 +25653,8 @@ def resolve_avatar(profile_pic):
     return f"/{profile_pic.lstrip('/')}"
 
 
-from flask import request, jsonify
-from flask_login import login_required, current_user
-import json
- 
+
+
 
 
 
@@ -26442,15 +26244,7 @@ def react_to_message():
 
 
  
-from flask import url_for
-from flask import url_for, jsonify
-from flask_login import login_required, current_user
-from flask import jsonify, url_for
-from flask_login import login_required, current_user
 
-
-from flask import jsonify, url_for
-from flask_login import login_required, current_user
 
 
 def get_channel_allowed_roles(channel_id):
@@ -26748,8 +26542,6 @@ def get_my_communities():
     })
 
 
-
-from datetime import datetime
 
 def update_community_notifications(user_id, data):
     community_id = data["community_id"]
@@ -27109,46 +26901,6 @@ def debug_keyboard_height():
 
 
 
-
-
-
-
-
-
-
-@app.route("/popup_content")
-@login_required
-def popup_content():
-    user_agent = request.headers.get("User-Agent", "")
-    
-    # Flags
-    is_mobile_flag = check_is_mobile()
-    is_iphone_flag = check_is_iphone()
-    is_safari_flag = check_is_safari()
-
-    # Debug print to see browser info in the console
-    print("===== Browser Debug =====")
-    print("User-Agent:", user_agent)
-    print("is_mobile:", is_mobile_flag)
-    print("is_iphone:", is_iphone_flag)
-    print("is_safari:", is_safari_flag)
-    print("=========================")
-
-    key = f"keyboard_height_{current_user.id}"
-    keyboard_height = session.get(key, 0)
-
-    return render_template(
-        "popup_content.html",
-        user_agent=user_agent,       # optional: pass to template for debugging
-        is_mobile=is_mobile_flag,
-        is_iphone=is_iphone_flag,
-       di=is_safari_flag,
-        keyboard_height=keyboard_height
-    )
-
- 
-
-
 @app.route('/delete_sprint/<int:sprint_id>', methods=['POST'])
 @login_required
 def delete_sprint(sprint_id):
@@ -27269,9 +27021,6 @@ def rename_module(uuid_value):
         return jsonify(success=True)
     return jsonify(success=False), 400
 
-from flask_login import login_required, current_user
-import uuid
-import re
 
 @app.route('/duplicate_module/<uuid_value>', methods=['POST'])
 @login_required
@@ -27407,62 +27156,14 @@ def check_uuid(uuid_value):
         return f"✅ Found quest: {quest.title}"
     return "❌ UUID not found", 404
 
-# from flask.cli import with_appcontext
-# import click
-# from alembic.migration import MigrationContext
 
 
 
-from flask_admin import Admin
-from flask_admin.contrib.sqla import ModelView
-from DiscordNotification import DiscordNotificationSetting
-from quest_models import Quest
-from usertwitter import UserTwitter
-from flask_admin.contrib.sqla import ModelView
-from flask import flash
-from reset_tracker import ResetTracker
-import os, smtplib
-from limitedlink import generate_invite_code
-from email.message import EmailMessage
-from UserCommunitySettings import UserCommunitySettings
-from CommunityInviteTask import  CommunityInviteTask 
-from markupsafe import Markup
-from community_invite_log import CommunityInviteLog
-from community_tracking import CommunityOnlineStatus
-from task_models import Task
-from invitation_code import InvitationCode
-from twitter_models import CommunityTwitter
-from usertelegram import UserTelegram
-from userdiscord import UserDiscord
-from subquest_completion import SubquestCompletion
-from CommunitySecurity import CommunitySecurity
-from useryoutube import UserYouTube
-from usertiktok import UserTikTok
-from discord_models import DiscordGuild
-from enterprise_models import EnterpriseRequest
-from user_condition_status import  UserConditionStatus
-from task_complete import TaskCompletion
-from subquest_review_hist import TaskReviewHistory
-from limitedlink import LimitedCode
-from community_request import CommunityRequest
-from CommunityRequestMessage import CommunityRequestMessage
-from SubquestCooldown import SubquestCooldown
-from CommunityPayment import CommunityPayment
-import threading, time
-from Subquestcondition import SubquestCondition
-from state_models import UserCommunityFabState
-from subquestreward import SubquestReward
-from xplevel import UserXP
-from task_histr import TaskAttemptHistory
-from subquest_review import  TaskReview
 
-from BugReport import BugReport
-from sprint_models import Sprint
-from payment_models import Payment
-from CommunityUserRole_models import CommunityUserRole
-from werkzeug.security import generate_password_hash, check_password_hash
-from flask_admin import Admin
-from flask_admin import Admin, AdminIndexView
+
+
+
+
 
 class MyAdminIndexView(AdminIndexView):
 
@@ -27488,25 +27189,23 @@ class MyAdminIndexView(AdminIndexView):
     def is_accessible(self):
         return (
             current_user.is_authenticated and
-            current_user.email.strip().lower() == "okiridonald321@gmail.com"
+            current_user.email.strip().lower() == ADMIN_EMAIL
         )
 
     def inaccessible_callback(self, name, **kwargs):
         return abort(403)
 
 
-from flask_admin.contrib.sqla import ModelView
-
 class BaseAdmin(ModelView):
 
     def is_accessible(self):
         return (
             current_user.is_authenticated and
-            current_user.email.strip().lower() == "okiridonald321@gmail.com"
+            current_user.email.strip().lower() == ADMIN_EMAIL
         )
 
     def inaccessible_callback(self, name, **kwargs):
-        return abort(403) 
+        return abort(403)
 
     can_view_details = True
     can_export = True
@@ -27693,8 +27392,6 @@ class CommunityAdmin(BaseAdmin):
     column_filters = ('is_paid',)  # ✅ Optional: filter by payment status
 
 
-from slugify import slugify
-from sqlalchemy import event
 
 @event.listens_for(Community, 'before_insert')
 def generate_slug(mapper, connection, target):
@@ -27860,21 +27557,6 @@ class UserTelegramAdmin(BaseAdmin):
     column_filters = ('action', 'is_member')
 
 
-
-class WalletAdmin(BaseAdmin):
-    column_list = ('id', 'user_id', 'address', 'chain', 'connected_at', 'nonce')
-    column_labels = {
-        'id': 'ID',
-        'user_id': 'User ID',
-        'address': 'Wallet Address',
-        'chain': 'Blockchain',
-        'connected_at': 'Connected At',
-        'nonce': 'Last Nonce'
-    }
-    form_columns = ('user_id', 'address', 'chain', 'nonce', 'last_signature', 'token_holdings')
-    column_searchable_list = ('address',)
-    can_view_details = True
-    column_filters = ('chain', 'connected_at')
 
     
 # ------------------------
@@ -28186,10 +27868,9 @@ class CommunitySecurityAdmin(BaseAdmin):
         'require_wallet',
         'require_discord',
         'require_twitter',
-        'require_youtube',       
-        'require_telegram',      
-        'require_twitter_premium',
-        'require_aptos_address'
+        'require_youtube',
+        'require_telegram',
+        'require_github'
     )
 
     column_labels = {
@@ -28202,10 +27883,9 @@ class CommunitySecurityAdmin(BaseAdmin):
         'require_wallet': 'Require Wallet',
         'require_discord': 'Require Discord',
         'require_twitter': 'Require Twitter',
-        'require_youtube': 'Require YouTube',   
-        'require_telegram': 'Require Telegram',   
-        'require_twitter_premium': 'Require Twitter Premium',
-        'require_aptos_address': 'Require Aptos Address'
+        'require_youtube': 'Require YouTube',
+        'require_telegram': 'Require Telegram',
+        'require_github': 'Require GitHub'
     }
 
     form_columns = (
@@ -28215,13 +27895,11 @@ class CommunitySecurityAdmin(BaseAdmin):
         'require_wallet',
         'require_discord',
         'require_twitter',
-        'require_youtube',        
-        'require_telegram',       
-        'require_twitter_premium',
-        'require_aptos_address'
+        'require_youtube',
+        'require_telegram',
+        'require_github'
     )
 
-    # ✅ Friendly display of Community name
     def _community_name(view, context, model, name):
         return model.community.name if model.community else '—'
 
@@ -28230,16 +27908,19 @@ class CommunitySecurityAdmin(BaseAdmin):
     }
 
     can_view_details = True
-    column_searchable_list = ('community_id',)
+
+    column_searchable_list = (
+        'community_id',
+    )
+
     column_filters = (
         'private_community',
         'require_wallet',
         'require_discord',
         'require_twitter',
-        'require_youtube',       
-        'require_telegram',       
-        'require_twitter_premium',
-        'require_aptos_address'
+        'require_youtube',
+        'require_telegram',
+        'require_github'
     )
 
 
@@ -28584,7 +28265,7 @@ class TaskCompletionAdmin(BaseAdmin):
     def _format_json(view, context, model, name):
         val = getattr(model, name)
         if val:
-            import json
+            
             return json.dumps(val, indent=2)
         return '—'
 
@@ -28611,9 +28292,6 @@ class TaskCompletionAdmin(BaseAdmin):
 # ------------------------
 # ✅ TaskAttemptHistory Admin View
 # ------------------------
-from flask_admin.contrib.sqla import ModelView
-from markupsafe import Markup
-from sqlalchemy.orm import joinedload
 
 
 class TaskAttemptHistoryAdmin(BaseAdmin):
@@ -28648,7 +28326,7 @@ class TaskAttemptHistoryAdmin(BaseAdmin):
     def _format_json(view, context, model, name):
         val = getattr(model, name)
         if val:
-            import json
+            
             return Markup(f"<pre>{json.dumps(val, indent=2)}</pre>")
         return '—'
 
@@ -28823,16 +28501,16 @@ class SubquestCompletionAdmin(BaseAdmin):
         }.get(m.status, m.status)
     }
 
-    # Optional: JSON formatting for failed_tasks & assigned_rewards
+    # JSON formatting for failed_tasks & assigned_rewards
     def _format_failed_tasks(view, context, model, name):
         if model.failed_tasks:
-            import json
+            
             return json.dumps(model.failed_tasks, indent=2)
         return '—'
 
     def _format_assigned_rewards(view, context, model, name):
         if model.assigned_rewards:
-            import json
+            
             return json.dumps(model.assigned_rewards, indent=2)
         return '—'
 
@@ -28903,7 +28581,7 @@ class SprintAdmin(BaseAdmin):
 # ------------------------
 class CommunityPaymentAdmin(BaseAdmin):
     column_list = (
-        'id', 'community_id', 'community_name',
+        'id', 'community_id', 'community_name', 
         'plan', 'interval', 'stripe_session_id',
         'status', 'amount', 'created_at', 'paid_at'
     )
@@ -28946,7 +28624,6 @@ def send_payment_confirmation_email(request_entry):
 
     msg = EmailMessage()
 
-    msg["From"] = "Gleyo <noreply@gleyo.app>"
     msg["To"] = request_entry.email
     msg["Subject"] = f"✅ Payment Successful – Ref: {request_entry.reference_code}"
 
@@ -28954,7 +28631,7 @@ def send_payment_confirmation_email(request_entry):
     msg.set_content(f"""
 Hi {request_entry.fullname},
 
-We’ve successfully received your payment of ${request_entry.budget}.
+We’ve successfully received your payment of {request_entry.budget}ZEC.
 Your payment reference {request_entry.reference_code} is now marked as Paid ✅.
 
 🚀 Your community {community_name} is now upgraded to Premium!
@@ -28973,7 +28650,7 @@ The [Your Company Name] Team
     <p>Hi <b>{request_entry.fullname}</b>,</p>
 
     <p>We’ve successfully received your payment of 
-    <strong style="color:green;">${request_entry.budget}</strong>.<br>
+    <strong style="color:green;">{request_entry.budget}ZEC</strong>.<br>
     Your payment reference <strong>{request_entry.reference_code}</strong> 
     is now marked as <span style="color:green;font-weight:bold;">Paid ✅</span>.</p>
 
@@ -29007,9 +28684,8 @@ def delayed_payment_email(request_entry, smtp_user, smtp_pass):
     time.sleep(120)  # wait 2 minutes
 
     msg = EmailMessage()
-    msg["From"] = "Gleyo <noreply@gleyo.app>"
     msg["To"] = request_entry.email
-    msg["Subject"] = f"Your Payment Request (Ref: {request_entry.reference_code})"
+    msg["Subject"] = f"ZEC Payment Instructions (Ref: {request_entry.reference_code})"
 
     # Plain-text fallback (in case the email client doesn’t support HTML)
     msg.set_content(f"""
@@ -29022,17 +28698,17 @@ To complete your payment, visit the secure page below:
 http://127.0.0.1:8000/checkout/{request_entry.reference_code}
 
 This page will show:
-• Amount: ${request_entry.budget}
-• Accepted tokens: USDT/USDC (BSC, Polygon, Base)
-• Your personal wallet address for payment
-• Payment status (pending, confirmed)
+• Reward Budget: {request_entry.budget} ZEC
+• Your unique Zcash payment address
+• Payment verification status
+• Request details and reference number
 
-Once we detect your payment, you'll receive another email with confirmation.
+Once your ZEC transaction is detected and verified, your request will be processed automatically.
 
 If you have any questions, reply to this email.
 
 Thanks,  
-[Your Team Name]
+Gilmore
 """)
 
     # HTML version (clickable dotted underline link)
@@ -29055,13 +28731,16 @@ Thanks,
 
     <p>This page will show:</p>
     <ul>
-      <li>Amount: ${request_entry.budget}</li>
-      <li>Accepted tokens: USDT/USDC (BSC, Polygon, Base)</li>
-      <li>Your personal wallet address for payment</li>
-      <li>Payment status (pending, confirmed)</li>
+    <li>Reward Budget: {request_entry.budget} ZEC</li>
+    <li>Your unique Zcash payment address</li>
+    <li>Payment verification status</li>
+    <li>Request details and reference number</li>
     </ul>
 
-    <p>Once we detect your payment, you'll receive another email with confirmation.</p>
+    <p>
+    Once your ZEC transaction is detected and verified,
+    your request will be processed automatically.
+    </p>
 
     <p>If you have any questions, reply to this email.</p>
 
@@ -29154,7 +28833,6 @@ class EnterpriseRequestAdmin(BaseAdmin):
     def send_status_email(self, request_entry):
 
         msg = EmailMessage()
-        msg["From"] = "Gleyo <noreply@gleyo.app>"
         msg["To"] = request_entry.email
 
         if request_entry.status.lower() == "approved":
@@ -29168,7 +28846,7 @@ We've received the following information:
 • Email: {request_entry.email}
 • Phone: {request_entry.phone}
 • Community: {request_entry.community.name}
-• Amount: ${request_entry.budget}
+• Amount: {request_entry.budget}ZEC
 
 We are currently processing your request.
 You'll receive an invoice or payment link shortly via email.
@@ -29214,10 +28892,6 @@ Thanks,
             flash(f"✉ Error sending email: {e}", "error")
 
 
-import json
-from flask_admin.contrib.sqla import ModelView
-from markupsafe import Markup, escape
-from wtforms import fields
 
 class CommunityInviteLogAdmin(BaseAdmin):
     column_list = (
@@ -29338,7 +29012,7 @@ class LimitedCodeAdmin(BaseAdmin):
 # ------------------------
 class PaymentAdmin(BaseAdmin):
     column_list = (
-        'id', 'user_id', 'username', 'community_id', 'community_name',
+        'id', 'user_id', 'username', 'community_id', 'community_name', 'balance_before',
         'amount', 'token', 'network', 'status', 'tx', 'paid_at', 'note','created_at'
     )
     column_labels = {
@@ -29348,6 +29022,7 @@ class PaymentAdmin(BaseAdmin):
         'community_name': 'Community Name',
         'amount': 'Amount',
         'token': 'Token',
+        'balance_before': 'Balance Before',
         'network': 'Network',
         'status': 'Status',
         'tx': 'Tx Hash',
@@ -29375,7 +29050,6 @@ class PaymentAdmin(BaseAdmin):
     }
 
 
-from flask_admin.contrib.sqla import ModelView
 
 # ------------------------
 # ✅ CommunityRequest Admin
@@ -29460,8 +29134,7 @@ class UserCommunitySettingsAdmin(BaseAdmin):
 
 
 
-import json
-from flask_admin.contrib.sqla import ModelView
+
 class CommunityRequestMessageAdmin(BaseAdmin):
     column_list = (
         "id",
@@ -29581,8 +29254,6 @@ class UserCommunityFabStateAdmin(BaseAdmin):
     can_view_details = True
     can_export = True
 
- 
-from flask_admin.contrib.sqla import ModelView
 
 
 class CommunityInviteTaskAdmin(BaseAdmin):
@@ -29636,7 +29307,6 @@ class ResetTrackerAdmin(BaseAdmin):
 # ------------------------------
 # ✅ CommunityOnlineStatus Admin
 # -------------------------------
-from markupsafe import Markup
 
 class CommunityOnlineStatusAdmin(BaseAdmin):
     # list view columns
@@ -29672,7 +29342,7 @@ class CommunityOnlineStatusAdmin(BaseAdmin):
     }
 
 
-from markupsafe import Markup
+
 
 class BugReportAdmin(BaseAdmin):
     # Columns to display in the list view
@@ -30136,11 +29806,6 @@ class PinnedMessageAdmin(BaseAdmin):
 
 
 
-
-from flask_admin.contrib.sqla import ModelView
-from flask_admin import Admin
-from wtforms.validators import Regexp
-
 class CommunityRoleStyleAdmin(BaseAdmin):
     column_list = (
         "id",
@@ -30500,9 +30165,7 @@ class CommunityInteractionSettingsAdmin(BaseAdmin):
 
 
 
-# admin/user_session.py (or same admin file)
 
-from datetime import datetime
 
 class UserSessionAdmin(BaseAdmin):
     can_create = False     # sessions usually created by auth system
@@ -31082,86 +30745,6 @@ class CommunityInviteUsageAdmin(BaseAdmin):
     }
     
 
-class SolanaWalletAdmin(BaseAdmin):
-
-    column_list = (
-        'id',
-        'user_id',
-        'address',
-        'wallet_name',
-        'is_active',
-        'connected_at',
-        'disconnected_at'
-    )
-
-    column_labels = {
-        'id': 'ID',
-        'user_id': 'User ID',
-        'address': 'Wallet Address',
-        'wallet_name': 'Wallet',
-        'is_active': 'Active',
-        'connected_at': 'Connected At',
-        'disconnected_at': 'Disconnected At'
-    }
-
-    column_searchable_list = (
-        'address',
-        'wallet_name'
-    )
-
-    column_filters = (
-        'wallet_name',
-        'is_active',
-        'connected_at'
-    )
-
-    form_columns = (
-        'user_id',
-        'address',
-        'wallet_name',
-        'nonce',
-        'last_signature',
-        'is_active',
-        'disconnected_at'
-    )
-
-    can_view_details = True
-
-    def _address_formatter(self, context, model, name):
-        if not model.address:
-            return '—'
-
-        address = model.address
-
-        short_address = f"{address[:6]}...{address[-6:]}"
-
-        return (
-            f'<div style="max-width:220px; '
-            f'white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" '
-            f'title="{address}">{short_address}</div>'
-        )
-
-    def _signature_formatter(self, context, model, name):
-        if not model.last_signature:
-            return '—'
-
-        sig = model.last_signature
-
-        short_sig = f"{sig[:12]}...{sig[-12:]}"
-
-        return (
-            f'<div style="max-width:240px; '
-            f'white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" '
-            f'title="{sig}">{short_sig}</div>'
-        )
-
-    column_formatters = {
-        'address': _address_formatter,
-        'last_signature': _signature_formatter
-    }
-
-
-
 
 class ZecWalletAdmin(BaseAdmin):
 
@@ -31172,7 +30755,6 @@ class ZecWalletAdmin(BaseAdmin):
         'wallet_name',
         'verified',
         'is_active',
-        'last_txid',
         'connected_at',
         'disconnected_at'
     )
@@ -31184,7 +30766,6 @@ class ZecWalletAdmin(BaseAdmin):
         'wallet_name': 'Wallet',
         'verified': 'Verified',
         'is_active': 'Active',
-        'last_txid': 'Last TXID',
         'connected_at': 'Connected At',
         'disconnected_at': 'Disconnected At'
     }
@@ -31192,7 +30773,6 @@ class ZecWalletAdmin(BaseAdmin):
     column_searchable_list = (
         'address',
         'wallet_name',
-        'last_txid'
     )
 
     column_filters = (
@@ -31207,7 +30787,6 @@ class ZecWalletAdmin(BaseAdmin):
         'address',
         'wallet_name',
         'verified',
-        'last_txid',
         'is_active',
         'disconnected_at'
     )
@@ -31228,23 +30807,9 @@ class ZecWalletAdmin(BaseAdmin):
             f'title="{address}">{short_address}</div>'
         )
 
-    def _txid_formatter(self, context, model, name):
-        if not model.last_txid:
-            return '—'
-
-        txid = model.last_txid
-
-        short_txid = f"{txid[:12]}...{txid[-12:]}"
-
-        return (
-            f'<div style="max-width:240px; '
-            f'white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" '
-            f'title="{txid}">{short_txid}</div>'
-        )
 
     column_formatters = {
         'address': _address_formatter,
-        'last_txid': _txid_formatter
     }
 
 
@@ -31257,7 +30822,6 @@ class ZecAuthSessionAdmin(BaseAdmin):
         'verification_code',
         'status',
         'verified_wallet_address',
-        'txid',
         'expires_at',
         'created_at'
     )
@@ -31269,7 +30833,6 @@ class ZecAuthSessionAdmin(BaseAdmin):
         'verification_code': 'Code',
         'status': 'Status',
         'verified_wallet_address': 'Verified Wallet',
-        'txid': 'TXID',
         'expires_at': 'Expires At',
         'created_at': 'Created At'
     }
@@ -31278,7 +30841,6 @@ class ZecAuthSessionAdmin(BaseAdmin):
         'session_id',
         'verification_code',
         'verified_wallet_address',
-        'txid'
     )
 
     column_filters = (
@@ -31295,7 +30857,6 @@ class ZecAuthSessionAdmin(BaseAdmin):
         'wallet_name',
         'status',
         'verified_wallet_address',
-        'txid',
         'expires_at'
     )
 
@@ -31329,27 +30890,190 @@ class ZecAuthSessionAdmin(BaseAdmin):
             f'title="{addr}">{short_addr}</div>'
         )
 
-    def _txid_formatter(self, context, model, name):
-        if not model.txid:
-            return '—'
-
-        txid = model.txid
-
-        short_txid = f"{txid[:12]}...{txid[-12:]}"
-
-        return (
-            f'<div style="max-width:240px; '
-            f'white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" '
-            f'title="{txid}">{short_txid}</div>'
-        )
 
     column_formatters = {
         'session_id': _session_formatter,
         'verified_wallet_address': _wallet_formatter,
-        'txid': _txid_formatter
     }
 
 
+
+
+
+class UserBalanceAdmin(BaseAdmin):
+
+    column_list = (
+        'id',
+        'user_id',
+        'balance',
+        'total_earned',
+        'total_withdrawn',
+        'updated_at'
+    )
+
+    column_labels = {
+        'id': 'ID',
+        'user_id': 'User ID',
+        'balance': 'Balance',
+        'total_earned': 'Total Earned',
+        'total_withdrawn': 'Total Withdrawn',
+        'updated_at': 'Updated At'
+    }
+
+    column_searchable_list = (
+        'user_id',
+    )
+
+    column_filters = (
+        'updated_at',
+    )
+
+    form_columns = (
+        'user_id',
+        'balance',
+        'total_earned',
+        'total_withdrawn'
+    )
+
+    can_view_details = True
+
+
+
+class UserGithubAdmin(BaseAdmin):
+
+    column_list = (
+        'id',
+        'user_id',
+        'github_user_id',
+        'github_username',
+        'github_email',
+        'action',
+        'timestamp'
+    )
+
+    column_searchable_list = (
+        'github_user_id',
+        'github_username',
+        'github_email'
+    )
+
+    column_filters = (
+        'action',
+        'timestamp'
+    )
+
+    form_columns = (
+        'user_id',
+        'github_user_id',
+        'github_username',
+        'github_email',
+        'github_avatar',
+        'github_profile',
+        'token_type',
+        'scope',
+        'action'
+    )
+
+    can_view_details = True
+
+
+class UserTransactionAdmin(BaseAdmin):
+
+    column_list = (
+        'id',
+        'user_id',
+        'type',
+        'amount',
+        'token',
+        'status',
+        'tx_hash',
+        'block_number',
+        'from_address',
+        'to_address',
+        'community_id',
+        'created_at'
+    )
+
+    column_labels = {
+        'id': 'ID',
+        'user_id': 'User ID',
+        'type': 'Type',
+        'amount': 'Amount',
+        'token': 'Token',
+        'status': 'Status',
+        'tx_hash': 'TX Hash',
+        'block_number': 'Block',
+        'from_address': 'From',
+        'to_address': 'To',
+        'community_id': 'Community',
+        'created_at': 'Created At'
+    }
+
+    column_searchable_list = (
+        'tx_hash',
+        'block_number',
+        'from_address',
+        'to_address',
+        'remark'
+    )
+
+    column_filters = (
+        'type',
+        'token',
+        'status',
+        'community_id',
+        'created_at'
+    )
+
+    form_columns = (
+        'user_id',
+        'type',
+        'amount',
+        'token',
+        'status',
+        'tx_hash',
+        'block_number',
+        'from_address',
+        'to_address',
+        'remark',
+        'community_id'
+    )
+
+    can_view_details = True
+
+    def _address_formatter(self, context, model, name):
+        value = getattr(model, name)
+
+        if not value:
+            return '—'
+
+        short = f"{value[:12]}...{value[-12:]}"
+
+        return (
+            f'<div style="max-width:240px; '
+            f'white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" '
+            f'title="{value}">{short}</div>'
+        )
+
+    def _txhash_formatter(self, context, model, name):
+        if not model.tx_hash:
+            return '—'
+
+        tx = model.tx_hash
+
+        short = f"{tx[:12]}...{tx[-12:]}"
+
+        return (
+            f'<div style="max-width:240px; '
+            f'white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" '
+            f'title="{tx}">{short}</div>'
+        )
+
+    column_formatters = {
+        'tx_hash': _txhash_formatter,
+        'from_address': _address_formatter,
+        'to_address': _address_formatter
+    }
 
 
 
@@ -31359,8 +31083,9 @@ admin.add_view(UserSessionAdmin(UserSession, db.session))
 admin.add_view(UserDiscordAdmin(UserDiscord, db.session))
 admin.add_view(UserTwitterAdmin(UserTwitter, db.session))
 admin.add_view(UserYouTubeAdmin(UserYouTube, db.session))
-admin.add_view(WalletAdmin(Wallet, db.session))
-admin.add_view(SolanaWalletAdmin(SolanaWallet, db.session))
+admin.add_view(UserGithubAdmin(UserGithub, db.session))
+admin.add_view(UserBalanceAdmin(UserBalance, db.session))
+admin.add_view(UserTransactionAdmin(UserTransaction, db.session))
 admin.add_view(UserTikTokAdmin(UserTikTok, db.session))
 admin.add_view(UserTelegramAdmin(UserTelegram, db.session))
 admin.add_view(EarlyAccessApplicationAdmin(EarlyAccessApplication, db.session))
@@ -31461,12 +31186,4 @@ def page_not_found(e):
 
 
 if __name__ == "__main__":
-    from monitor import start_all_monitors
-    from subscription_monitor import start_subscription_monitors
-
-    with app.app_context():
-        start_all_monitors()
-        start_subscription_monitors()
-
-
-    socketio.run(app, host="0.0.0.0", port=8000)
+    socketio.run(app, host="0.0.0.0", port=8000, debug=True)

@@ -9,7 +9,6 @@ import random
 import string
 import smtplib
 import secrets
-import sqlite3
 import base64
 import base58
 import uuid
@@ -334,6 +333,8 @@ app.register_blueprint(bp)
 app.register_blueprint(community_twitter_bp)
 app.register_blueprint(google_bp)
 
+with app.app_context():
+    db.create_all()
 
 # start_bot_in_background(app) #---Start Discord Bot By Uncommenting (Option)----
 
@@ -11081,18 +11082,6 @@ def _nozy_send(address, amount_zec, memo=None):
     finally:
         _nozy_lock.release()
 
-def _nozy_sync():
-    """Sync Nozy wallet to chain tip."""
-    try:
-        requests.post(
-            f"{NOZY_API_URL}/api/sync",
-            json={"password": NOZY_WALLET_PASSWORD},
-            timeout=120
-        )
-    except Exception as e:
-        print(f"NOZY SYNC ERROR: {e}")
-
-
 def _nozy_get_balance():
     """Fetch current Nozy wallet balance."""
     try:
@@ -11272,27 +11261,34 @@ def disconnect_zec():
     })
 
 
-def process_zec_withdrawal(tx_id, address, amount_to_send):
+def process_zec_withdrawal(tx_id, address, amount_to_send, full_amount, platform_fee):
+    print(f"DEBUG: process_zec_withdrawal STARTED tx_id={tx_id}")
     with app.app_context():
         tx = UserTransaction.query.get(tx_id)
         if not tx:
+            print("DEBUG: tx not found, exiting")
             return
 
         user_balance = UserBalance.query.filter_by(
             user_id=tx.user_id
         ).first()
 
-        tx_hash, err = _nozy_send(address, amount_to_send)
+        print(f"DEBUG: calling _nozy_send with address={address}, amount_to_send={amount_to_send}")
+        tx_hash, err = _nozy_send(address, amount_to_send, memo="Gleyo ZEC Withdrawal")
 
         if err:
+            print(f"DEBUG: _nozy_send FAILED: {err}")
+            user_balance.balance         += Decimal(str(full_amount))
+            user_balance.total_withdrawn -= Decimal(str(platform_fee))
             tx.status = "failed"
-            tx.remark = f"Withdrawal failed: {err}"
+            tx.remark = f"Refunded · send failed: {err}"
             db.session.commit()
             return
 
-        tx.status = "confirmed"
-        tx.tx_hash = tx_hash
-        user_balance.total_withdrawn += Decimal(str(tx.amount))
+        print(f"DEBUG: _nozy_send SUCCESS, txid={tx_hash}")
+        user_balance.total_withdrawn += Decimal(str(amount_to_send))
+        tx.status   = "confirmed"
+        tx.tx_hash  = tx_hash
         db.session.commit()
 
 
@@ -11301,32 +11297,40 @@ def process_zec_withdrawal(tx_id, address, amount_to_send):
 @login_required
 @csrf.exempt
 def zec_withdraw():
+    print("=== WITHDRAW ROUTE HIT ===")
     data = request.get_json()
-
     address = data.get('address', '').strip()
     amount = float(data.get('amount', 0))
+    print(f"DEBUG: address={address}, amount={amount}")
 
     ZEC_MIN = 0.00185
     ZEC_PLATFORM = 0.03
 
     if not is_valid_shielded_zec(address):
+        print("DEBUG: FAILED at address validation")
         return jsonify({'error': 'Invalid shielded address'}), 400
 
     if amount < ZEC_MIN:
+        print(f"DEBUG: FAILED at min check, amount={amount} < {ZEC_MIN}")
         return jsonify({'error': f'Minimum withdrawal is {ZEC_MIN} ZEC'}), 400
 
     user_balance = UserBalance.query.filter_by(user_id=current_user.id).first()
+    print(f"DEBUG: user_balance={user_balance}, balance={user_balance.balance if user_balance else 'N/A'}")
 
     if not user_balance:
+        print("DEBUG: FAILED - no balance record found")
         return jsonify({'error': 'Balance record not found'}), 400
 
     if float(user_balance.balance) < amount:
+        print(f"DEBUG: FAILED at insufficient balance check: {user_balance.balance} < {amount}")
         return jsonify({'error': 'Insufficient balance'}), 400
 
     platform_fee = round(amount * ZEC_PLATFORM, 8)
     you_send = round(amount - platform_fee, 8)
+    print(f"DEBUG: platform_fee={platform_fee}, you_send={you_send}")
 
     if you_send <= 0:
+        print("DEBUG: FAILED - amount too small after fee")
         return jsonify({'error': 'Amount too small after platform fee'}), 400
 
     existing_pending = UserTransaction.query.filter_by(
@@ -11335,15 +11339,18 @@ def zec_withdraw():
         token='ZEC',
         status='pending'
     ).first()
+    print(f"DEBUG: existing_pending={existing_pending}")
 
     if existing_pending:
+        print("DEBUG: FAILED - existing pending withdrawal blocking")
         return jsonify({
             'error': 'You already have a pending withdrawal. Please wait for it to complete.'
         }), 429
 
-    # Deduct full amount + platform fee from balance immediately
+    print("DEBUG: PASSED all checks, deducting balance and creating pending_tx")
+
     user_balance.balance       -= Decimal(str(amount))
-    user_balance.total_withdrawn += Decimal(str(platform_fee))  # platform fee is taken now, non-refundable
+    user_balance.total_withdrawn += Decimal(str(platform_fee))
 
     pending_tx = UserTransaction(
         user_id=current_user.id,
@@ -11356,18 +11363,20 @@ def zec_withdraw():
         remark=f'Gleyo ZEC Withdrawal · {address[:8]}…{address[-4:]}',
         created_at=datetime.utcnow()
     )
-
     db.session.add(pending_tx)
     db.session.commit()
+    print(f"DEBUG: pending_tx created with id={pending_tx.id}")
 
     tx_id = pending_tx.id
     app_ctx = current_app._get_current_object()
 
     def task():
+        print(f"DEBUG: BACKGROUND TASK STARTED for tx_id={tx_id}")
         with app_ctx.app_context():
             process_zec_withdrawal(tx_id, address, you_send, amount, platform_fee)
 
     executor.submit(task)
+    print("DEBUG: task submitted to executor")
 
     return jsonify({
         'success': True,
@@ -11376,8 +11385,6 @@ def zec_withdraw():
         'actual_send': you_send,
         'message': 'Withdrawal submitted. It will confirm shortly.'
     })
-
-
 
 @app.route('/api/platform/zec-balance', methods=['GET'])
 @login_required
@@ -17463,9 +17470,9 @@ def user_has_forked_repo(user_id, repo_path):
 def validate_tasks_engine(
     *,
     user,
-    tasks,                 # Task OR PreviewTaskState
-    mode,                  # "preview" | "claim"
-    payload,               # parsed frontend answers
+    tasks,                 
+    mode,               
+    payload,              
     community=None,
     subquest=None
 ):
@@ -20643,9 +20650,9 @@ def claim_subquest(subquest_id):
         elif task.type == "github":
 
             repo_path = task.config.get("repo_name")
-
             require_fork = task.config.get("fork", False)
             require_star = task.config.get("star", False)
+
 
             is_valid = True
 
@@ -20654,32 +20661,20 @@ def claim_subquest(subquest_id):
             }
 
             if require_fork:
-
-                forked, error = user_has_forked_repo(
-                    user.id,
-                    repo_path
-                )
+                forked, error = user_has_forked_repo(user.id, repo_path)
 
                 if not forked:
                     is_valid = False
                     errors[task.id] = error or f"Fork {repo_path} before claiming"
-                    failed_inputs[task.id] = {
-                        "github": "fork_required"
-                    }
+                    failed_inputs[task.id] = {"github": "fork_required"}
 
             if is_valid and require_star:
-
-                starred, error = user_has_starred_repo(
-                    user.id,
-                    repo_path
-                )
+                starred, error = user_has_starred_repo(user.id, repo_path)
 
                 if not starred:
                     is_valid = False
                     errors[task.id] = error or f"Star {repo_path} before claiming"
-                    failed_inputs[task.id] = {
-                        "github": "star_required"
-                    }
+                    failed_inputs[task.id] = {"github": "star_required"}
 
 
         elif task.type == "file-upload":
@@ -21081,7 +21076,6 @@ def claim_subquest(subquest_id):
 
     elif subquest_completion.status == "failed":
 
-        # get latest cooldown
         cd = (
             SubquestCooldown.query
             .filter_by(user_id=user.id, subquest_id=subquest.id)
@@ -21101,21 +21095,18 @@ def claim_subquest(subquest_id):
                     cooldown = cooldown.replace(tzinfo=timezone.utc)
                 cooldown_until = cooldown.isoformat()
 
-        return jsonify({
+        response_payload = {
             "success": False,
-
-            # normal failure info
             "message": "Some tasks are not yet complete. Keep trying!",
             "errors": errors,
-
-            # 🔥 state flags
-            "cooldown_until": cooldown_until,   # may be null
-            "no_retry": no_retry,               # true/false
-
+            "cooldown_until": cooldown_until,
+            "no_retry": no_retry,
             "max_claimed_count": updated_max_claimed_count,
             "max_claim": subquest.max_claim
-        })
+        }
 
+
+        return jsonify(response_payload)
 
 
 

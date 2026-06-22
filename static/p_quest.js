@@ -5301,145 +5301,143 @@ async function handleClaim(subquestId, claimBtn){
     },
     body: formData   // ❌ no headers, browser sets multipart automatically
   });
-  const data = await res.json();
-console.log("DATA:", data);
+    const data = await res.json();
+      console.log("DATA:", data);
 
-const hasNoRetry  = !data.success && data.no_retry;
-const hasCooldown = !data.success && data.cooldown_until;
-const hasErrors   = data.errors && Object.keys(data.errors).length > 0;
+      const hasNoRetry  = !data.success && data.no_retry;
+      const hasCooldown = !data.success && data.cooldown_until;
+      const hasErrors   = data.errors && Object.keys(data.errors).length > 0;
 
-/* ============================
-   1) RESTRICTIONS (UI only)
-============================ */
+      /* ============================
+        1) RESTRICTIONS (UI only)
+      ============================ */
 
-if (hasNoRetry) {
-  setQuestState("no_retry");
-  updateActivePreviewBoxState("no_retry");
-  disableClaimButton();
-}
+      if (hasNoRetry) {
+        setQuestState("no_retry");
+        updateActivePreviewBoxState("no_retry");
+        disableClaimButton();
+      }
 
-if (hasCooldown) {
-  updateActivePreviewBoxState("cooldown", {
-    cooldown_until: data.cooldown_until
-  });
+      if (hasCooldown) {
+        updateActivePreviewBoxState("cooldown", {
+          cooldown_until: data.cooldown_until
+        });
 
-  updateClaimButtonCooldown(data.cooldown_until);
-  initCooldownTimers();
-  disableClaimButton();
-}
+        updateClaimButtonCooldown(data.cooldown_until);
+        initCooldownTimers();
+        disableClaimButton();
+      }
 
+      if (hasErrors) {
 
-if (!data.success && data.message) {
-  showToast(data.message);
-  return;
-}
+        for (const [taskId, errorMsg] of Object.entries(data.errors)) {
 
-if (data?.error_code === "RECURRENCE_BLOCKED") {
-  
-  // preview box
-  updateActivePreviewBoxState("completed");
+          const card = document.querySelector(
+            `.card-container-quest[data-task-id="${taskId}"]`
+          );
+          if (!card) continue;
 
-  // claim button section
-  const claimBtn = document.querySelector("#claim-task");
-  if (claimBtn) {
-    claimBtn.style.display = "none";
-  }
-
-  const completedBox = document.querySelector(".forquest-main");
-  if (completedBox) {
-    completedBox.style.display = "flex";
-  }
-
-  return; 
-}
+          const errorEl =
+            card.querySelector(".prove-self") ||
+            card.querySelector(".wrong-anser") ||
+            card.querySelector(".partnership-error") ||
+            card.querySelector(".partnership-quest-error") ||
+            card.querySelector(".discord-errir") ||
+            card.querySelector(".puzzle-error") ||
+            card.querySelector(".github-error") ||
+            card.querySelector(".yotube-error") ||
+            card.querySelector(".telegram-error") ||
+            card.querySelector(".numbers-error") ||
+            card.querySelector(".text-error") ||
+            card.querySelector(".url-error");
 
 
-// 🚫 MAX CLAIM REACHED
-if (!data.success && data.error_code === "MAX_CLAIM_REACHED") {
-  showError(data.toast || "Max number of claims reached");
-  disableClaimButton();
-  return; 
-}
+            if (errorEl) {
 
+              if (errorMsg?.type === "HTML" && errorMsg.error_html) {
+                errorEl.innerHTML = errorMsg.error_html;  
+              } else {
+                errorEl.textContent = errorMsg.error || errorMsg;  
+              }
 
-// 📘 PENDING REVIEW
-if (data.success && data.pending_review) {
-  setQuestState("pending");
-  updateActivePreviewBoxState("pending");
-  updateReviewBadgeDelta(+1);
-  disableClaimButton();
-  return; 
-}
-
-
-// ✅ SUCCESS
-if (data.success) {
-    window.updateXpUI(communityId);
-
-  // right panel
-  setQuestState("completed");
-
-  // preview grid
-  updateActivePreviewBoxState("completed");
-
-  // header progress
-  updateQuestProgressAfterClaim();
-
-  disableClaimButton();
-  return; 
-}
-
-
-/* ===== FAILED (NO ERRORS OBJECT) ===== */
-if (!data.success && (!data.errors || Object.keys(data.errors).length === 0)) {
-  setQuestState("failed", { message: data.message });
-  disableClaimButton();
-  return; 
-}
-
-
-/* ===== VALIDATION ERRORS — LOWEST PRIORITY ===== */
-
-if (hasErrors) {
-
-  for (const [taskId, errorMsg] of Object.entries(data.errors)) {
-
-    const card = document.querySelector(
-      `.card-container-quest[data-task-id="${taskId}"]`
-    );
-    if (!card) continue;
-
-    const errorEl =
-      card.querySelector(".prove-self") ||
-      card.querySelector(".wrong-anser") ||
-      card.querySelector(".partnership-error") ||
-      card.querySelector(".partnership-quest-error") ||
-      card.querySelector(".discord-errir") ||
-      card.querySelector(".puzzle-error") ||
-      card.querySelector(".github-error") ||
-      card.querySelector(".yotube-error") ||
-      card.querySelector(".telegram-error") ||
-      card.querySelector(".numbers-error") ||
-      card.querySelector(".text-error") ||
-      card.querySelector(".url-error");
-
-
-      if (errorEl) {
-
-        if (errorMsg?.type === "HTML" && errorMsg.error_html) {
-          errorEl.innerHTML = errorMsg.error_html;  
-        } else {
-          errorEl.textContent = errorMsg.error || errorMsg;  
+              errorEl.style.display = "block";
+            }
         }
 
-        errorEl.style.display = "block";
+        scrollToFirstTaskError();
+        disableClaimButton();
+        return; 
       }
-  }
+      
+      if (!data.success && data.message) {
+        showToast(data.message);
+        return;
+      }
 
-  scrollToFirstTaskError();
-  disableClaimButton();
-  return; 
-}
+      if (data?.error_code === "RECURRENCE_BLOCKED") {
+        
+        // preview box
+        updateActivePreviewBoxState("completed");
+
+        // claim button section
+        const claimBtn = document.querySelector("#claim-task");
+        if (claimBtn) {
+          claimBtn.style.display = "none";
+        }
+
+        const completedBox = document.querySelector(".forquest-main");
+        if (completedBox) {
+          completedBox.style.display = "flex";
+        }
+
+        return; 
+      }
+
+
+      // 🚫 MAX CLAIM REACHED
+      if (!data.success && data.error_code === "MAX_CLAIM_REACHED") {
+        showError(data.toast || "Max number of claims reached");
+        disableClaimButton();
+        return; 
+      }
+
+
+      // 📘 PENDING REVIEW
+      if (data.success && data.pending_review) {
+        setQuestState("pending");
+        updateActivePreviewBoxState("pending");
+        updateReviewBadgeDelta(+1);
+        disableClaimButton();
+        return; 
+      }
+
+
+      // ✅ SUCCESS
+      if (data.success) {
+          window.updateXpUI(communityId);
+
+        // right panel
+        setQuestState("completed");
+
+        // preview grid
+        updateActivePreviewBoxState("completed");
+
+        // header progress
+        updateQuestProgressAfterClaim();
+
+        disableClaimButton();
+        return; 
+      }
+
+
+      /* ===== FAILED (NO ERRORS OBJECT) ===== */
+      if (!data.success && (!data.errors || Object.keys(data.errors).length === 0)) {
+        setQuestState("failed", { message: data.message });
+        disableClaimButton();
+        return; 
+      }
+
+
 
 
   } catch (err) {

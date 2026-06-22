@@ -13,7 +13,6 @@ message_upload/
 
 *.exe
 
-
 .DS_Store
 Thumbs.db
 

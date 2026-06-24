@@ -22,7 +22,7 @@ VAPID_PRIVATE_KEY = os.getenv("VAPID_PRIVATE_KEY")
 executor = ThreadPoolExecutor(max_workers=10)
 
 
-def _upload_single(file_bytes, storage_name, content_type):
+def _upload_single(file_bytes, storage_name, content_type, max_retries=2):
     print("🚀 Upload started:", storage_name)
 
     url = f"{SUPABASE_URL}/storage/v1/object/uploads/{storage_name}"
@@ -33,20 +33,36 @@ def _upload_single(file_bytes, storage_name, content_type):
         "Content-Type": content_type
     }
 
-    res = requests.post(
-        url,
-        headers=headers,
-        data=file_bytes,
-        timeout=10   
-    )
+    last_error = None
 
-    if res.status_code >= 300:
-        print("❌ Upload failed:", res.text)
-        raise Exception(res.text)
+    for attempt in range(1, max_retries + 2):  # initial attempt + retries
+        try:
+            res = requests.post(
+                url,
+                headers=headers,
+                data=file_bytes,
+                timeout=30   # bumped from 10 to 30
+            )
 
-    print("✅ Upload finished:", storage_name)
+            if res.status_code >= 300:
+                print(f"❌ Upload failed (attempt {attempt}):", res.text)
+                last_error = Exception(res.text)
+                continue  # retry
 
-    return f"{SUPABASE_URL}/storage/v1/object/public/uploads/{storage_name}"
+            print("✅ Upload finished:", storage_name)
+            return f"{SUPABASE_URL}/storage/v1/object/public/uploads/{storage_name}"
+
+        except requests.exceptions.Timeout as e:
+            print(f"⏱️ Upload timed out (attempt {attempt}):", e)
+            last_error = e
+            continue
+
+        except Exception as e:
+            print(f"💥 Upload error (attempt {attempt}):", e)
+            last_error = e
+            continue
+
+    raise last_error
 
 
 def upload_async(file_bytes, storage_name, content_type):

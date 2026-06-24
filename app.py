@@ -2896,11 +2896,6 @@ def gleyo_base():
     return redirect("/gleyo/quest")
 
 
-@app.route("/castle-bordair")
-@login_required
-def castle_bordair_base():
-    return redirect("/castle-bordair/quest")
-
 
 @app.route("/<page>")
 def about(page):
@@ -4306,6 +4301,8 @@ def create_default_roles_and_styles(community_id, creator_id):
         )
         db.session.add(style)
 
+DEFAULT_LOGO_URL = "https://xpcqiovfesvllsljxhac.supabase.co/storage/v1/object/public/uploads/gleyo_image.png"
+
 @app.route("/api/create-community", methods=["POST"])
 @login_required
 def create_community_api():
@@ -4404,7 +4401,6 @@ def create_community_api():
 
         db.session.commit()
 
-        # ✅ 5. RETURN IMMEDIATELY (upload still running)
         return {
             "success": True,
             "redirect_url": url_for("setup1", community_slug=new_slug)
@@ -4414,8 +4410,7 @@ def create_community_api():
         db.session.rollback()
         print("ERROR:", e)
         return {"error": "Server error"}, 500
-
-
+    
 
 
 # ─────────── Misc pages ───────────
@@ -4495,7 +4490,6 @@ def next_api(community_slug):
     if not selected_option:
         return jsonify({"error": "no_option"}), 400
 
-    # Reset all
     sec.private_community = False
     sec.consume_invites = False
     sec.require_wallet = False
@@ -4507,8 +4501,6 @@ def next_api(community_slug):
         sec.private_community = True
         sec.consume_invites = True
         sec.require_wallet = True
-        sec.require_discord = True
-        sec.require_twitter = True
 
     elif selected_option == "social":
         sec.require_discord = True

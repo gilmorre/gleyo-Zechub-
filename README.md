@@ -159,7 +159,7 @@ NOZY_WALLET_PASSWORD=your_password
 MAIL_USER=your_email@gmail.com
 MAIL_PASS=your_app_password
 RESEND_API_KEY=your_resend_key
-EMAIL_FROM=Gleyo <noreply@your_domain>
+EMAIL_FROM=Gleyo <noreply@gleyo.app>
 SMTP_PORT=587
 SMTP_USERNAME=your_email@gmail.com
 SMTP_PASSWORD=your_app_password
@@ -281,6 +281,22 @@ See the [Nozy API docs](https://github.com/LEONINE-DAO/Nozy-wallet/blob/main/api
 
 ---
 
+## Live on Zcash Mainnet
+
+A confirmed shielded withdrawal, processed end-to-end through Gleyo's Nozy + Zebra integration:
+
+![Successful ZEC withdrawal](./static/withdrawal-success.png)
+
+---
+
+## Credits & Thanks
+
+- **[LOWO](https://github.com/lowo88)** — creator of [Nozy Wallet](https://github.com/LEONINE-DAO/Nozy-wallet), for the relentless bug fixes and quick turnarounds that made shielded payment verification and withdrawals possible
+- **[Zcash Foundation](https://www.zfnd.org/)** — for building and maintaining [Zebra](https://github.com/ZcashFoundation/zebra), the full node powering all of Gleyo's mainnet activity
+- **[Dismad](https://github.com/dismad)** — for pointing me toward the [ZecHub Developer docs](https://zechub.wiki/developers/quick-start) and guiding me on setting up Zebra
+- **[Tron](https://github.com/onajifortune)** — whose tutorial video was a huge help in getting Zebra running
+---
+
 ## Demo
 
 [Watch the demo](#) — coming soon
@@ -290,4 +306,3 @@ See the [Nozy API docs](https://github.com/LEONINE-DAO/Nozy-wallet/blob/main/api
 ## License
 
 MIT License — see [LICENSE](./LICENSE)
-=======

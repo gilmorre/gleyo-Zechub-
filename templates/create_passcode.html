@@ -1,6 +1,9 @@
 
 <title>Set Passcode</title>
+<meta name="csrf-token" content="{{ csrf_token() }}">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;800&display=swap" rel="stylesheet"/>
+<script src="/static/createpasscode.js" defer></script>
+
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -356,5 +359,3 @@
 
   <input id="hidden-input" type="tel" maxlength="1" autocomplete="off"/>
 </div>
-
-<script src="/static/createpasscode.js" defer></script>

@@ -285,7 +285,7 @@ See the [Nozy API docs](https://github.com/LEONINE-DAO/Nozy-wallet/blob/main/api
 
 A confirmed shielded withdrawal, processed end-to-end through Gleyo's Nozy + Zebra integration:
 
-![Successful ZEC withdrawal](./static/withdrawal-success.png)
+<img src="./static/withdrawal-success.png" width="500" alt="Successful ZEC withdrawal">
 
 ---
 

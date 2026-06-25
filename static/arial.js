@@ -8176,7 +8176,6 @@ function mapActionToTaskType(type) {
     case "rankingup": return "discord";
     case "puzzle": return "puzzle";
     case "github": return "github";
-    case "spotify": return "spotify";
     case "nums": return "numbers";
     case "test": return "telegram";
     case "partnership_quest": return "partnership_quest";

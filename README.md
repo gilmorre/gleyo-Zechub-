@@ -33,7 +33,6 @@ Any project building on Zcash — or any project outside the ecosystem that want
 - View retention analytics: active members over 7d/30d/90d, quest completion rates, average completion time, dropoff percentage, and growth opportunity signals
 
 **For community members:**
-- Connect with a shielded Zcash wallet (u1... or zs1...) — no email or password
 - Authentication is done via a micro-transaction memo code (0.00001 ZEC to Gleyo's address with a session code in the memo field)
 - Browse and complete quests, claim XP and ZEC rewards
 - Withdraw ZEC directly to any shielded Zcash address — Gleyo processes the send via Nozy API + Zebra, transaction confirms on-chain within minutes
@@ -43,20 +42,21 @@ Any project building on Zcash — or any project outside the ecosystem that want
 
 ## Features
 
-- **ZEC-only rewards** — admins fund tasks in ZEC, users withdraw in ZEC, no other token supported
-- **Zcash wallet authentication** — users connect with their Zcash shielded wallet via micro-transaction memo verification, no email or password required
-- **Quest system** — admins create tasks with XP and/or ZEC reward pools, users complete and claim
-- **Instant reward crediting** — approved submissions credit ZEC to the user's in-app reward hub immediately
-- **Shielded withdrawals** — users withdraw to any shielded address (Sapling zs1... or Unified u1...), Gleyo sends via Nozy API with memo `Gleyo ZEC Withdrawal`
-- **GitHub task integration** — quest tasks can require GitHub stars or forks, validated on-chain via GitHub API
-- **Community chat** — built-in community space, no Discord required
-- **Member rewards** — project owners can tip active community members directly in ZEC from the chat
-- **Retention analytics:**
+* **ZEC-only rewards** — admins fund tasks in ZEC, users withdraw in ZEC, no other token supported
+* **Zcash wallet verification** — users can create an account with email, then connect and verify ownership of a shielded Zcash wallet (u1... or zs1...) using micro-transaction memo verification to access ZEC-powered functionality.
+* **Quest system** — admins create tasks with XP and/or ZEC reward pools, users complete and claim
+* **Instant reward crediting** — approved submissions credit ZEC to the user's in-app reward hub immediately
+* **Shielded withdrawals** — users withdraw to any shielded address (Sapling zs1... or Unified u1...), Gleyo sends via Nozy API with memo `Gleyo ZEC Withdrawal`
+* **GitHub task integration** — quest tasks can require GitHub stars or forks, validated via GitHub API
+* **Community chat** — built-in community space, no Discord required
+* **Web Push notifications** — members receive real-time notifications inside and outside the app for events like new quest publications, community mentions, and chat activity, even when Gleyo is closed (with browser permission)
+* **Retention analytics:**
   - Active members over 7d / 30d / 90d
   - Quest completion rate and average completion time
   - Dropoff percentage with friction point detection
   - Growth opportunity signals: e.g. `2x users are more likely to stay if you run weekly quests`
   - Risk alerts: e.g. `You experienced 2% dropoff — possible onboarding friction on mobile`
+
 
 ---
 
@@ -286,6 +286,18 @@ See the [Nozy API docs](https://github.com/LEONINE-DAO/Nozy-wallet/blob/main/api
 A confirmed shielded withdrawal, processed end-to-end through Gleyo's Nozy + Zebra integration:
 
 <img src="./static/withdrawal-success.png" style="width: 250px; border-radius: 8px; object-fit: contain; display: block;" alt="Successful ZEC withdrawal">
+
+---
+
+## Future work
+
+* **Member rewards** — enable project owners to send direct ZEC tips to active community members from within the community chat to encourage participation and recognize contributions.
+
+* **Quest recommendations & AI insights** — introduce personalized quest suggestions and optional AI-assisted review tools to help surface relevant quests, summarize submissions, and assist moderators with reviewing community activity.
+
+* **Expanded wallet onboarding & verification** — simplify the process of connecting and verifying shielded Zcash wallets while keeping access to ZEC-powered functionality secure.
+
+* **Additional notification channels & automation** — expand notifications beyond browser push to include smarter delivery preferences, community activity alerts, and automated engagement workflows.
 
 
 ---

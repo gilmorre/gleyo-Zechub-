@@ -539,7 +539,8 @@ SMTP_USERNAME = os.getenv("SMTP_USERNAME")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
 EMAIL_FROM = os.getenv("EMAIL_FROM")
 WALLET = os.getenv("WALLET")
-NOZY_API_URL = os.getenv("NOZY_API_URL")
+NOZY_API_URL = os.environ.get("NOZY_API_URL", "http://127.0.0.1:3000")
+NOZY_API_KEY = os.environ.get("NOZY_API_KEY")
 NOZY_WALLET_PASSWORD = os.getenv("NOZY_WALLET_PASSWORD")
 ZCASHD_FROM_ADDRESS = os.getenv("ZCASHD_FROM_ADDRESS")
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -635,7 +636,7 @@ def normalize_uuid(value):
 
 def send_email(msg):
     try:
-
+        # Extract HTML or fallback text
         html_content = None
         text_content = None
 
@@ -645,25 +646,19 @@ def send_email(msg):
             elif part.get_content_type() == "text/plain":
                 text_content = part.get_content()
 
-        email = EmailMessage()
-
-        email["Subject"] = msg["Subject"]
-        email["From"] = EMAIL_FROM
-        email["To"] = msg["To"]
-
-        if text_content:
-            email.set_content(text_content)
+        params = {
+            "from": "Gleyo <noreply@gleyo.app>",
+            "to": [msg["To"]],
+            "subject": msg["Subject"],
+        }
 
         if html_content:
-            email.add_alternative(html_content, subtype="html")
+            params["html"] = html_content
 
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-            server.starttls()
-            server.login(
-                SMTP_USERNAME,
-                SMTP_PASSWORD
-            )
-            server.send_message(email)
+        if text_content:
+            params["text"] = text_content
+
+        resend.Emails.send(params)
 
         print("EMAIL SENT SUCCESSFULLY")
 
@@ -11030,7 +11025,6 @@ def _nozy_send(address, amount_zec, memo=None):
     """Send ZEC via Nozy API."""
     if not _nozy_lock.acquire(blocking=False):
         return None, "Another withdrawal is already in progress, please wait"
-
     try:
         payload = {
             "recipient": address,
@@ -11039,45 +11033,41 @@ def _nozy_send(address, amount_zec, memo=None):
         }
         if memo:
             payload["memo"] = memo
-
         print("=== SENDING TO NOZY ===")
         print(payload)
-
         response = requests.post(
             f"{NOZY_API_URL}/api/transaction/send",
             json=payload,
+            headers={"X-API-Key": NOZY_API_KEY},
             timeout=180
         )
-
         print("STATUS:", response.status_code)
         print("BODY:", response.text)
-
         if response.status_code != 200:
             return None, f"Nozy API error: {response.status_code}"
-
         data = response.json()
         print("PARSED:", data)
-
         if not data.get("success"):
             return None, data.get("message", "Unknown error")
-
         txid = data.get("txid")
         if not txid:
             return None, "No txid returned"
-
         return txid, None
-
     except Exception as e:
         print("NOZY ERROR:", str(e))
         return None, str(e)
-
     finally:
         _nozy_lock.release()
+
 
 def _nozy_get_balance():
     """Fetch current Nozy wallet balance."""
     try:
-        resp = requests.get(f"{NOZY_API_URL}/api/balance", timeout=30)
+        resp = requests.get(
+            f"{NOZY_API_URL}/api/balance",
+            headers={"X-API-Key": NOZY_API_KEY},
+            timeout=30
+        )
         if resp.status_code != 200:
             print(f"Nozy balance error: {resp.status_code}")
             return 0.0
@@ -11086,6 +11076,26 @@ def _nozy_get_balance():
         print(f"NOZY BALANCE ERROR: {e}")
         return 0.0
 
+
+def _check_zec_wallet_connect_nozy(auth_session):
+    """Sync then check balance delta — avoids broken /api/transaction/history."""
+    try:
+        sync_resp = requests.post(
+            f"{NOZY_API_URL}/api/sync",
+            json={"password": NOZY_WALLET_PASSWORD},
+            headers={"X-API-Key": NOZY_API_KEY},
+            timeout=120
+        )
+        sync_data = sync_resp.json()
+    except Exception as e:
+        return None, f"Sync failed: {str(e)}"
+    current_balance = sync_data.get('balance_zec', 0.0)
+    balance_increase = round(current_balance - auth_session.balance_before, 8)
+    EXPECTED_VERIFY_AMOUNT = 0.00001
+    TOLERANCE = 0.000005
+    if balance_increase >= EXPECTED_VERIFY_AMOUNT - TOLERANCE:
+        return {"current_balance": current_balance}, None
+    return None, None
 
 def _create_zec_auth_session(wallet_name=None, user_provided_address=None):
     code = secrets.token_urlsafe(6).upper()[:8]
@@ -11109,29 +11119,6 @@ def _create_zec_auth_session(wallet_name=None, user_provided_address=None):
 
     return auth_session
 
-
-def _check_zec_wallet_connect_nozy(auth_session):
-    """Sync then check balance delta — avoids broken /api/transaction/history."""
-    try:
-        sync_resp = requests.post(
-            f"{NOZY_API_URL}/api/sync",
-            json={"password": NOZY_WALLET_PASSWORD},
-            timeout=120
-        )
-        sync_data = sync_resp.json()
-    except Exception as e:
-        return None, f"Sync failed: {str(e)}"
-
-    current_balance = sync_data.get('balance_zec', 0.0)
-    balance_increase = round(current_balance - auth_session.balance_before, 8)
-
-    EXPECTED_VERIFY_AMOUNT = 0.00001
-    TOLERANCE = 0.000005
-
-    if balance_increase >= EXPECTED_VERIFY_AMOUNT - TOLERANCE:
-        return {"current_balance": current_balance}, None
-
-    return None, None
 
 
 @app.route("/api/zec/session", methods=["POST"])
@@ -21391,7 +21378,6 @@ def smart_amount(value):
 
 
 
-
 @app.route('/<community_slug>/save_payment', methods=['POST'])
 @login_required
 @community_not_deleted()
@@ -21468,7 +21454,11 @@ def save_payment(community_slug):
                 }), 409
 
         try:
-            balance_resp = requests.get(f"{NOZY_API_URL}/api/balance", timeout=30)
+            balance_resp = requests.get(
+                f"{NOZY_API_URL}/api/balance",
+                headers={"X-API-Key": NOZY_API_KEY},
+                timeout=30
+            )
             balance_before = balance_resp.json().get('balance_zec', 0.0)
         except Exception as e:
             print(f"⚠️ Could not fetch Nozy balance: {e}")
@@ -21531,6 +21521,7 @@ def verify_payment(community_slug, payment_id):
             sync_resp = requests.post(
                 f"{NOZY_API_URL}/api/sync",
                 json={"password": NOZY_WALLET_PASSWORD},
+                headers={"X-API-Key": NOZY_API_KEY},
                 timeout=120
             )
             current_balance = float(sync_resp.json().get('balance_zec', 0))
@@ -21582,7 +21573,7 @@ def verify_payment(community_slug, payment_id):
         traceback.print_exc()
         return jsonify({'error': f'Server error: {str(e)}', 'status': 'pending'}), 200
 
-
+        
 @app.route('/<community_slug>/leaderboard')
 @community_not_deleted()
 def leaderboard(community_slug):

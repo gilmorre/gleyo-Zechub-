@@ -150,6 +150,7 @@ WALLET=u1...                          # Gleyo's platform shielded address (recei
 ZEC_WALLET=u1...                      # Secondary wallet if needed
 ZCASHD_FROM_ADDRESS=u1...             # Address Nozy sends withdrawals from
 NOZY_API_URL=http://127.0.0.1:3000    # Nozy API server URL
+NOZY_API_KEY=                        # Optional — only needed if Nozy server enforces API key auth (set NOZY_API_KEY on the Nozy server to require this)
 NOZY_WALLET_PASSWORD=your_password
 
 # ── Database ─────────────────────────────────────────

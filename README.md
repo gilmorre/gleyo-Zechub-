@@ -4,6 +4,8 @@ Gleyo is a Zcash-native quest and community growth platform where any project �
 
 Built for the [ZecHub Hackathon 2026](https://zechub.wiki/hackathon) — Infrastructure Track.
 
+Gleyo's feature set naturally spans the contributor lifecycle — education, onboarding, activation, skill development, alignment, and retention — concepts discussed at ZecHub's Contributor Workshop (June 8, 2026).
+
 ---
 
 ## How it compares
@@ -147,7 +149,6 @@ SECRET_KEY=your_secret_key
 
 # ── ZEC Wallet ───────────────────────────────────────
 WALLET=u1...                          # Gleyo's platform shielded address (receives deposits)
-ZEC_WALLET=u1...                      # Secondary wallet if needed
 ZCASHD_FROM_ADDRESS=u1...             # Address Nozy sends withdrawals from
 NOZY_API_URL=http://127.0.0.1:3000    # Nozy API server URL
 NOZY_API_KEY=                        # Optional — only needed if Nozy server enforces API key auth (set NOZY_API_KEY on the Nozy server to require this)

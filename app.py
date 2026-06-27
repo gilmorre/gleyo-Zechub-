@@ -7070,13 +7070,21 @@ def join_community(community_slug):
 
 
     return jsonify({
-        "success": True,
-        "message": f"Joined {community.name}",
-        "status": status,
-        "invite_used": invite_used,
-        "inviter_user_id": inviter_user_id,
-        "invite_code": new_invite.code
-    }), 200
+            "success": True,
+            "message": f"Joined {community.name}",
+            "status": status,
+            "invite_used": invite_used,
+            "inviter_user_id": inviter_user_id,
+            "invite_code": new_invite.code,
+            "community": {
+                "slug": community.slug,
+                "name": community.name,
+                "logo": community.logo_path,
+                "redirect": url_for("p_quest", community_slug=community.slug)
+            }
+        }), 200
+
+
 @app.route('/live_view')
 @login_required
 def live_view():
@@ -15731,6 +15739,22 @@ def publish_subquest(community_slug):
     # 🔒 TOKEN REWARD FUND LOCKING
     # Calculate total ZEC needed across ALL token-type rewards
     # (a subquest can have multiple token rewards stacked)
+    #
+    # Distribution types:
+    #   - FCFS   → first N claimers get it, N = max_claim (if set)
+    #              lock amount_per_winner * max_claim
+    #              if max_claim isn't set, lock just amount_per_winner
+    #              (single claim worth) — doesn't block publish
+    #   - RAFFLE → num_rewards winners selected from entries
+    #              lock amount_per_winner * num_rewards
+    #              defaults to 1 winner if not specified
+    #   - VOTE   → num_rewards winners selected by vote
+    #              lock amount_per_winner * num_rewards
+    #              defaults to 1 winner if not specified
+    #   - ALL    → every completer gets amount_per_winner
+    #              if max_claim is set, lock amount_per_winner * max_claim
+    #              if not set, lock just amount_per_winner (single claim
+    #              worth) — doesn't block publish
     # ──────────────────────────────────────────────────────────────
     total_zec_needed_zatoshi = 0
 
@@ -15742,7 +15766,7 @@ def publish_subquest(community_slug):
         distribution_type = reward.get("distribution_type")
 
         try:
-            amount_zec = float(reward_data.get("amount", 0))
+            amount_zec = float(reward_data.get("amount_per_winner", 0))
         except (ValueError, TypeError):
             amount_zec = 0
 
@@ -15750,21 +15774,24 @@ def publish_subquest(community_slug):
             continue
 
         amount_zatoshi = int(round(amount_zec * 100_000_000))
+        subcontent = reward_data.get("subcontent") or {}
 
-        # FCFS (first-come-first-served) rewards are claimed by multiple
-        # people up to max_claim — lock amount_per_claim * max_claim.
-        # Unlimited max_claim with a token reward isn't safe to lock for —
-        # treat as an error rather than silently under-locking funds.
         if distribution_type == "FCFS":
-            if max_claim is None:
-                return jsonify({
-                    'success': False,
-                    'error': 'Token rewards with FCFS distribution require a max claim limit'
-                }), 400
-            total_zec_needed_zatoshi += amount_zatoshi * max_claim
-        else:
-            # Single/fixed distribution — lock the flat amount once
-            total_zec_needed_zatoshi += amount_zatoshi
+            claims_to_lock = max_claim if max_claim else 1
+            total_zec_needed_zatoshi += amount_zatoshi * claims_to_lock
+
+        elif distribution_type in ("RAFFLE", "VOTE"):
+            try:
+                num_rewards = int(subcontent.get("num_rewards", 0))
+            except (ValueError, TypeError):
+                num_rewards = 0
+
+            num_rewards = num_rewards if num_rewards > 0 else 1
+            total_zec_needed_zatoshi += amount_zatoshi * num_rewards
+
+        else:  # "ALL" or anything unrecognized
+            claims_to_lock = max_claim if max_claim else 1
+            total_zec_needed_zatoshi += amount_zatoshi * claims_to_lock
 
     # Only re-check/re-lock funds if this subquest has token rewards
     # and is transitioning into a published state (was_draft) OR
@@ -16001,9 +16028,6 @@ def publish_subquest(community_slug):
         db.session.rollback()
         print("❌ Error saving subquest:", e)
         return jsonify({'success': False, 'error': str(e)}), 500
-
-
-
 
 @app.route('/<community_slug>')
 @login_required

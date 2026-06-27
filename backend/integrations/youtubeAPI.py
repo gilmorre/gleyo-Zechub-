@@ -31,7 +31,7 @@ def is_ajax():
 # ----------------------------
 CLIENT_ID = os.getenv("YOUTUBE_CLIENT_ID", "YOUTUBE_CLIENT_ID")
 CLIENT_SECRET = os.getenv("YOUTUBE_CLIENT_SECRET")
-REDIRECT_URI = os.getenv("YOUTUBE_REDIRECT_URI", "http://127.0.0.1:8000/youtube/callback")
+REDIRECT_URI = os.getenv("YOUTUBE_REDIRECT_URI", "https://gleyo.app/youtube/callback")
 SCOPE = "https://www.googleapis.com/auth/youtube.readonly"
 
 # ----------------------------

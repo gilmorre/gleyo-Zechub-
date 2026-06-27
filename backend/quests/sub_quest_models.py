@@ -25,7 +25,7 @@ class Subquest(db.Model):
     is_archive = db.Column(db.Boolean, nullable=False, default=False)
 
     streak_enabled = db.Column(db.Boolean, nullable=False, default=False)
-    # ✅ A Subquest has many Tasks
+    locked_zec_zatoshi = db.Column(db.BigInteger, default=0)
     tasks = db.relationship("Task", back_populates="subquest", cascade="all, delete")
 
     recurrence = db.Column(db.String(50), nullable=False, default="None")  

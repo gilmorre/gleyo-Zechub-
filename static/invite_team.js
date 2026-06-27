@@ -300,8 +300,8 @@ copyLinkBtn.addEventListener("click", async () => {
   const role = roleToggle.getAttribute("data-selected-role") || "editor";
 
   const url = role === "member"
-    ? `http://127.0.0.1:8000/${slug}/invite/${currentCode}`
-    : `http://127.0.0.1:8000/${slug}/team_invite/${currentCode}`;
+    ? `https://gleyo.app/${slug}/invite/${currentCode}`
+    : `https://gleyo.app/${slug}/team_invite/${currentCode}`;
 
   try {
     await navigator.clipboard.writeText(url);

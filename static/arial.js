@@ -4744,7 +4744,7 @@ async function handleSocialUpdate(input, value){
 
 
 
-const PARTNERSHIP_PREFIX = "http://127.0.0.1:8000/";
+const PARTNERSHIP_PREFIX = "https://gleyo.app/";
 
 function lockPartnershipPrefix(input){
   if(!input.value.startsWith(PARTNERSHIP_PREFIX)){
@@ -8215,9 +8215,7 @@ async function previewSubquest() {
 }
 
 async function publishSubquest() {
-
   const payload = await buildSubquestPayload();
-
   try {
     const res = await fetch(`/${payload.communitySlug}/publish_subquest`, {
       method: 'POST',
@@ -8227,21 +8225,16 @@ async function publishSubquest() {
       },
       body: JSON.stringify(payload)
     });
-
     const data = await res.json();
-
     if (res.ok && data.success) {
-
       const path = `/${payload.communitySlug}/quest/admin`;
       loadMainSettingsSection(path);
-
     } else {
-      alert(data.message || "Publish failed");
+      showToast(data.error || "Publish failed");
     }
-
   } catch (err) {
     console.error(err);
-    alert("Publish failed");
+    showToast("Publish failed");
   }
 }
 

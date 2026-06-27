@@ -1417,7 +1417,7 @@ Two-factor authentication has been turned off for your account.
 If you made this change, no action is needed.
 
 If you didn’t make this change, please review your account security:
-http://127.0.0.1:8000/settings/security
+https://gleyo.app/settings/security
 
 © {datetime.now().year} Gleyo
 """)
@@ -1574,7 +1574,7 @@ p {{
 
         <!-- ✅ IMPORTANT FOR INBOX TRUST -->
         <div class="button-wrap">
-            <a href="http://127.0.0.1:8000/settings/security" class="button">
+            <a href="https://gleyo.app/settings/security" class="button">
                 Review security settings
             </a>
         </div>
@@ -2297,9 +2297,7 @@ def send_reset_link():
 
     token = create_reset_token(user)
 
-    reset_link = f"http://127.0.0.1:8000/change-password/{token}"
-    # for dev:
-    # reset_link = f"http://127.0.0.1:8000/change-password/{token}"
+    reset_link = f"https://gleyo.app/change-password/{token}" 
 
     msg = EmailMessage()
     msg["Subject"] = "Reset your passcode"
@@ -2609,7 +2607,7 @@ def send_email_change_alert(old_email: str, new_email: str):
                     <p class="alert-title">New email</p>
                     <p class="alert-email">{new_email}</p>
 
-                    <a href="http://127.0.0.1:8000/chat/gleyo" class="btn">
+                    <a href="https://gleyo.app/chat/gleyo" class="btn">
                         Open a support ticket
                     </a>
                 </div>
@@ -3530,7 +3528,7 @@ def send_community_deletion_scheduled_email(
 ):
 
 
-    deletion_link = f"http://127.0.0.1:8000/community/deletion/{community_uuid}"
+    deletion_link = f"https://gleyo.app/community/deletion/{community_uuid}"
 
     msg = EmailMessage()
     msg["Subject"] = "Community deletion scheduled"
@@ -5556,7 +5554,7 @@ def send_invite(community_slug):
                     <p style="color:#e0e0e0;">
                         {current_user.username} has invited you to become an {role} of {community.name}.
                     </p>
-                    <a href="http://127.0.0.1:8000/{community.slug}/invite/{code_to_use}"
+                    <a href="https://gleyo.app/{community.slug}/invite/{code_to_use}"
                         style="color:#1a73e8; font-weight:bold; text-decoration:none; border-bottom:1px dotted #1a73e8;">
                         • Click here to get started
                     </a>
@@ -9627,7 +9625,7 @@ def export_reviews(community_slug):
 
 @app.route("/sitemap.xml", methods=["GET"])
 def sitemap():
-    base_url = "http://127.0.0.1:8000"
+    base_url = "https://gleyo.app"
     lastmod = datetime.utcnow().date().isoformat()
 
     pages = ["what-is-gleyo", "documentation", "about-us"]
@@ -10012,7 +10010,7 @@ def api_reviews(community_slug):
             "telegram_username": getattr(r.user, 'latest_telegram_username', None),
             "admin_display_name": r.user.admin_display_name,
             "joined_at": user_role.joined_at.strftime("%Y-%m-%d") if user_role else None,
-            "subquest_url": f"http://127.0.0.1:8000/{community_slug}/quest/admin/{r.subquest.quest.uuid}/{r.subquest.uuid}",
+            "subquest_url": f"https://gleyo.app/{community_slug}/quest/admin/{r.subquest.quest.uuid}/{r.subquest.uuid}",
             "task_attempts": attempt_map.get(r.id, []),
         })
 
@@ -11438,7 +11436,7 @@ def create_checkout_session(plan, interval, community_id):
             line_items=[{"price": price_id, "quantity": 1}],
             mode="subscription",
             success_url=f"http://yourdomain.com/success?session_id={{CHECKOUT_SESSION_ID}}",
-            cancel_url="http://127.0.0.1:8000/github/community_settings?tab=billing",
+            cancel_url="https://gleyo.app/github/community_settings?tab=billing",
         )
 
         # Save pending payment
@@ -15605,13 +15603,11 @@ def publish_subquest(community_slug):
     if not data:
         return jsonify({'success': False, 'error': 'Invalid JSON'}), 400
 
-
     if not has_role(current_user.id, community.id, "editor"):
         flash("You are not an operator of this community.", "error")
         return redirect(url_for("dashboard"))
 
-
-    community_id= community.id
+    community_id = community.id
     quest_uuid = data.get('quest_uuid')
     subquest_uuid = data.get('subquest_uuid')
     tasks_data = data.get('tasks', [])
@@ -15619,29 +15615,22 @@ def publish_subquest(community_slug):
         data.get("streak_enabled", False)
     ).lower() in ["1", "true", "yes", "on"]
 
-
     invite_total = 0
     has_invite_task = False
 
     for task in tasks_data:
         if task.get("type") == "invite":
             has_invite_task = True
-
             config = task.get("config") or {}
-
             try:
                 num = int(config.get("numInvites", 0))
             except:
                 num = 0
-
-            # normalize
             num = max(0, num)
-
             invite_total += num
-
-            # 🔒 Force backend control
             task["config"]["numInvites"] = num
-    rewards_data = data.get('rewards', [])   
+
+    rewards_data = data.get('rewards', [])
     conditions_data = data.get('conditions', [])
 
     subquest_name = data.get('subquest_name', '').strip()
@@ -15649,14 +15638,12 @@ def publish_subquest(community_slug):
     recurrence = data.get('recurrence', 'None')
     cooldown = data.get('cooldown', 'None')
 
-    # 🔒 Invite tasks cannot recur
     if has_invite_task:
         recurrence = "None"
         cooldown = "None"
     raw_max_claim = data.get('max_claim')
 
     required_invites = 0
-
     for task in tasks_data:
         if task.get("type") == "invite":
             config = task.get("config", {}) or {}
@@ -15669,24 +15656,16 @@ def publish_subquest(community_slug):
     else:
         try:
             max_claim = int(raw_max_claim)
-
-            # 🔥 normalize 0 → NULL (unlimited)
             if max_claim == 0:
                 max_claim = None
                 subquest_claim_count = None
             else:
                 subquest_claim_count = 0
-
         except (ValueError, TypeError):
             max_claim = None
             subquest_claim_count = None
 
-
-
     autovalidation = str(data.get("autovalidation", "0")) in ["1", "true", "True"]
-
-
-
 
     quest = Quest.query.filter_by(uuid=quest_uuid, community_id=community.id).first()
     if not quest:
@@ -15695,13 +15674,12 @@ def publish_subquest(community_slug):
     subquest = Subquest.query.filter_by(uuid=subquest_uuid, quest_id=quest.id).first()
     if not subquest:
         return jsonify({'success': False, 'error': 'Subquest not found'}), 404
+
     was_draft = subquest.is_draft
     if recurrence.lower() != "daily":
         streak_enabled = False
 
-
     if invite_total > 0:
-
         now = datetime.utcnow()
         year = now.year
         month = now.month
@@ -15722,16 +15700,13 @@ def publish_subquest(community_slug):
             db.session.add(usage)
             db.session.flush()
 
-        # ❌ NEVER allow decreasing
         if invite_total < usage.invite_count:
             return jsonify({
                 "success": False,
                 "error": f"Invite tasks cannot decrease. Current: {usage.invite_count}"
             }), 400
 
-        # ❌ enforce monthly cap
         limit = community.invite_limit_per_month or 30
-
         if invite_total > limit:
             return jsonify({
                 "success": False,
@@ -15739,7 +15714,6 @@ def publish_subquest(community_slug):
             }), 400
 
         usage.invite_count = invite_total
-
 
     sprint_id = data.get('sprint_id')
     sprint_name = data.get('sprint_name')
@@ -15753,12 +15727,100 @@ def publish_subquest(community_slug):
         subquest.sprint_name = None
         subquest.add_to_sprint = False
 
+    # ──────────────────────────────────────────────────────────────
+    # 🔒 TOKEN REWARD FUND LOCKING
+    # Calculate total ZEC needed across ALL token-type rewards
+    # (a subquest can have multiple token rewards stacked)
+    # ──────────────────────────────────────────────────────────────
+    total_zec_needed_zatoshi = 0
+
+    for reward in rewards_data:
+        if reward.get("reward_type") != "token":
+            continue
+
+        reward_data = reward.get("reward_data") or {}
+        distribution_type = reward.get("distribution_type")
+
+        try:
+            amount_zec = float(reward_data.get("amount", 0))
+        except (ValueError, TypeError):
+            amount_zec = 0
+
+        if amount_zec <= 0:
+            continue
+
+        amount_zatoshi = int(round(amount_zec * 100_000_000))
+
+        # FCFS (first-come-first-served) rewards are claimed by multiple
+        # people up to max_claim — lock amount_per_claim * max_claim.
+        # Unlimited max_claim with a token reward isn't safe to lock for —
+        # treat as an error rather than silently under-locking funds.
+        if distribution_type == "FCFS":
+            if max_claim is None:
+                return jsonify({
+                    'success': False,
+                    'error': 'Token rewards with FCFS distribution require a max claim limit'
+                }), 400
+            total_zec_needed_zatoshi += amount_zatoshi * max_claim
+        else:
+            # Single/fixed distribution — lock the flat amount once
+            total_zec_needed_zatoshi += amount_zatoshi
+
+    # Only re-check/re-lock funds if this subquest has token rewards
+    # and is transitioning into a published state (was_draft) OR
+    # the locked amount has changed since last publish.
+    previous_locked = subquest.locked_zec_zatoshi or 0
+
+    if total_zec_needed_zatoshi > 0:
+        wallet = CommunityWallet.query.filter_by(community_id=community.id).first()
+
+        if not wallet:
+            return jsonify({
+                'success': False,
+                'error': 'Community wallet not found — fund your community wallet before publishing token-reward quests'
+            }), 400
+
+        # Release the previously locked amount for this subquest first
+        # (handles re-publishing/editing an already-published subquest
+        # with a different reward amount)
+        wallet.available_balance += previous_locked
+        wallet.locked_balance -= previous_locked
+
+        if wallet.available_balance < total_zec_needed_zatoshi:
+            # Roll back the release we just did before returning an error
+            wallet.available_balance -= previous_locked
+            wallet.locked_balance += previous_locked
+
+            available_zec = wallet.available_balance / 100_000_000
+            needed_zec = total_zec_needed_zatoshi / 100_000_000
+
+            return jsonify({
+                'success': False,
+                'error': f'Insufficient community wallet balance. Available: {available_zec:.8f} ZEC, required: {needed_zec:.8f} ZEC'
+            }), 400
+
+        # Lock the new amount
+        wallet.available_balance -= total_zec_needed_zatoshi
+        wallet.locked_balance += total_zec_needed_zatoshi
+        wallet.updated_at = datetime.utcnow()
+
+        subquest.locked_zec_zatoshi = total_zec_needed_zatoshi
+    else:
+        # No token rewards (or zero amount) — release any previously
+        # locked funds since this subquest no longer needs them
+        if previous_locked > 0:
+            wallet = CommunityWallet.query.filter_by(community_id=community.id).first()
+            if wallet:
+                wallet.available_balance += previous_locked
+                wallet.locked_balance -= previous_locked
+                wallet.updated_at = datetime.utcnow()
+        subquest.locked_zec_zatoshi = 0
+    # ──────────────────────────────────────────────────────────────
+
     try:
-        # ✅ Clear old conditions & rewards
         db.session.query(SubquestCondition).filter_by(subquest_id=subquest.id).delete()
         db.session.query(SubquestReward).filter_by(subquest_id=subquest.id).delete()
 
-        # ✅ Save conditions
         for cond in conditions_data:
             new_condition = SubquestCondition(
                 subquest_id=subquest.id,
@@ -15769,7 +15831,6 @@ def publish_subquest(community_slug):
             )
             db.session.add(new_condition)
 
-        # ✅ Save rewards
         for reward in rewards_data:
             reward_type = reward.get("reward_type")
             distribution_type = reward.get("distribution_type")
@@ -15787,40 +15848,33 @@ def publish_subquest(community_slug):
                 reward_data=json.dumps(reward_data or {}),
                 claim_count=initial_claim_count
             )
-
             db.session.add(new_reward)
         subquest.has_rewards_before = True
 
-        # ✅ Update subquest fields
         subquest.name = subquest_name or subquest.name
         if isinstance(subquest_desc, list):
             processed_desc, upload_jobs = upload_description_blocks(subquest_desc, subquest.uuid)
-
             subquest.description = json.dumps(processed_desc)
-            db.session.commit()  # ✅ SAVE FIRST
+            db.session.commit()
 
-            # 🚀 attach async callbacks
             for future, index in upload_jobs:
                 def callback(f, idx=index, sq_id=subquest.id):
                     save_subquest_blocks_when_done(f, sq_id, idx)
-
                 future.add_done_callback(callback)
         else:
             subquest.description = subquest.description
+
         subquest.recurrence = recurrence
         subquest.cooldown = cooldown
         subquest.max_claim = max_claim
         subquest.claim_count = subquest_claim_count
         subquest.streak_enabled = streak_enabled
-
-
         subquest.autovalidation = autovalidation
 
         existing_tasks = {t.id: t for t in subquest.tasks}
 
         for i, task_data in enumerate(tasks_data):
             if i < len(existing_tasks):
-                # update existing task
                 t = list(existing_tasks.values())[i]
                 t.type = task_data.get('type', t.type)
                 config = task_data.get('config', t.config)
@@ -15830,12 +15884,10 @@ def publish_subquest(community_slug):
                         num = int(config.get("numInvites", 0))
                     except:
                         num = 0
-
                     config["numInvites"] = max(0, num)
 
                 t.config = config
             else:
-                # add new task
                 t = Task(
                     type=task_data.get('type', 'unknown'),
                     config=task_data.get('config', {}),
@@ -15843,39 +15895,29 @@ def publish_subquest(community_slug):
                 )
                 db.session.add(t)
 
-        # delete any extra tasks not in the new list
         for t in list(existing_tasks.values())[len(tasks_data):]:
             db.session.delete(t)
 
         max_invite_required = 0
-
         for task_data in tasks_data:
             if task_data.get("type") == "invite":
                 config = task_data.get("config", {}) or {}
-
                 try:
                     num_invites = int(config.get("numInvites", 0))
                 except (ValueError, TypeError):
                     num_invites = 0
-
                 if num_invites > max_invite_required:
                     max_invite_required = num_invites
 
-
-        # current community monthly limit
         current_limit = community.invite_limit_per_month or 30
-
-        # 🔒 Only increase — never decrease
         if max_invite_required > current_limit:
             community.invite_limit_per_month = max_invite_required
         subquest.is_draft = False
 
-
         db.session.commit()
+
         if was_draft:
-
             bot_user = get_bot_user()
-
             quest_channel = CommunityChannel.query.filter_by(
                 community_id=community.id,
                 is_quest_alert=True
@@ -15887,22 +15929,21 @@ def publish_subquest(community_slug):
                     user_id=bot_user.id,
                     content=f"🎉 New quest: {subquest.name} | /{community.slug}/quest/{quest.uuid}/{subquest.uuid}"
                 )
-
                 db.session.add(message)
                 db.session.commit()
 
             socketio.emit(
                 "community_publish_notification",
                 {
-                    "community_id": community.id, 
-                    "channel_uuid": quest_channel.uuid if quest_channel else None, 
+                    "community_id": community.id,
+                    "channel_uuid": quest_channel.uuid if quest_channel else None,
                     "community_name": community.name,
                     "community_logo": community.logo_path,
                     "content": "🎉 A new quest has been published",
                     "created_at": datetime.utcnow().isoformat(),
                     "link": f"/{community.slug}/quest/{quest.uuid}/{subquest.uuid}"
                 },
-                room = f"community_{community_id}"
+                room=f"community_{community_id}"
             )
             socketio.emit(
                 "community_notification",
@@ -15926,7 +15967,7 @@ def publish_subquest(community_slug):
                 },
                 room=f"community_{community.id}"
             )
-            # inside publish_subquest route, just before sending Discord message
+
             if community.discord_guild:
                 setting = DiscordNotificationSetting.query.filter_by(
                     guild_id=community.discord_guild.id,
@@ -15960,6 +16001,8 @@ def publish_subquest(community_slug):
         db.session.rollback()
         print("❌ Error saving subquest:", e)
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
 
 
 @app.route('/<community_slug>')
@@ -23494,7 +23537,7 @@ def notify_community_pin(
     for sub in subs:
         subs_map.setdefault(sub.user_id, []).append(sub)
 
-    base_url = "http://127.0.0.1:8000"
+    base_url = "https://gleyo.app"
 
     # 🔥 4. Loop users (NO DB QUERIES INSIDE)
     for member in members:
@@ -23913,7 +23956,7 @@ def comm_message_audio():
             if send_reply_notification:
                 notified_user_ids.add(replied_user_id)
 
-                base_url = "http://127.0.0.1:8000"
+                base_url = "https://gleyo.app"
 
                 if channel.category:
                     target_url = (
@@ -23997,7 +24040,7 @@ def comm_message_audio():
             if not user_subs:
                 continue
 
-            base_url = "http://127.0.0.1:8000"
+            base_url = "https://gleyo.app"
 
             if channel.category:
                 target_url = (
@@ -24609,7 +24652,7 @@ def comm_message():
             if send_reply_notification:
                 notified_user_ids.add(replied_user_id)
 
-                base_url = "http://127.0.0.1:8000"
+                base_url = "https://gleyo.app"
 
                 if channel.category:
                     target_url = (
@@ -24691,7 +24734,7 @@ def comm_message():
                 if level not in ("mentions", "all"):
                     continue
 
-                base_url = "http://127.0.0.1:8000"
+                base_url = "https://gleyo.app"
 
                 if channel.category:
                     target_url = (
@@ -24756,7 +24799,7 @@ def comm_message():
             if not user_subs:
                 continue
 
-            base_url = "http://127.0.0.1:8000"
+            base_url = "https://gleyo.app"
 
             if channel.category:
                 target_url = (
@@ -27971,10 +28014,11 @@ class AIConversationAdmin(BaseAdmin):
 class SubquestAdmin(BaseAdmin):
     column_list = (
         'id', 
-        'public_id',       # <-- show public_id in list
+        'public_id',      
         'uuid', 
         'name', 
         'description',
+        'locked_zec_zatoshi',
         'quest_id', 
         'quest_title', 
         'recurrence',
@@ -27995,7 +28039,7 @@ class SubquestAdmin(BaseAdmin):
 
     column_labels = {
         'id': 'Subquest ID',
-        'public_id': 'Public ID',   # <-- nice label
+        'public_id': 'Public ID',   
         'uuid': 'UUID',
         'name': 'Subquest Name',
         'description': 'Description',
@@ -28013,18 +28057,16 @@ class SubquestAdmin(BaseAdmin):
         'sprint_id': 'Sprint ID',
         'sprint_name': 'Sprint Name',
         'has_rewards_before': 'Reward Before',
+        'locked_zec_zatoshi': 'Locked Zatoshi',
         'created_at': 'Created At',
         'updated_at': 'Updated At'
     }
 
-    # ✅ Editable fields in the form
     form_columns = (
         'name', 'description', 'quest_id', 'sprint_id', 'sprint_name',  
         'recurrence', 'cooldown', 'max_claim', 'autovalidation', 'claim_count',
         'has_rewards_before', 'add_to_sprint', 'is_draft', 'is_archive', 'image_url'
     )
-    # Notice: I didn’t add `public_id` here because it’s auto-generated.
-    # You usually don’t want admins to edit it manually.
 
     def _quest_title(view, context, model, name):
         return model.quest.title if model.quest else '—'
@@ -28056,7 +28098,7 @@ class SubquestConditionAdmin(BaseAdmin):
     column_list = (
         'id',
         'subquest_id',
-        'subquest_uuid',      # <-- new column
+        'subquest_uuid',      
         'subquest_name',
         'condition_type',
         'condition_value',
@@ -28068,7 +28110,7 @@ class SubquestConditionAdmin(BaseAdmin):
     column_labels = {
         'id': 'Condition ID',
         'subquest_id': 'Subquest ID',
-        'subquest_uuid': 'Subquest UUID',   # <-- label
+        'subquest_uuid': 'Subquest UUID',   
         'subquest_name': 'Subquest Name',
         'condition_type': 'Condition Type',
         'condition_value': 'Condition Value',
@@ -28669,7 +28711,7 @@ Thank you for your request.
 Your reference number is {request_entry.reference_code}.
 
 To complete your payment, visit the secure page below:
-http://127.0.0.1:8000/checkout/{request_entry.reference_code}
+https://gleyo.app/checkout/{request_entry.reference_code}
 
 This page will show:
 • Reward Budget: {request_entry.budget} ZEC
@@ -28697,7 +28739,7 @@ Gilmore
     <p>To complete your payment, visit the secure page below:</p>
 
     <p>
-      <a href="http://127.0.0.1:8000/checkout/{request_entry.reference_code}"
+      <a href="https://gleyo.app/checkout/{request_entry.reference_code}"
          style="color: #1a73e8; font-weight: bold; text-decoration: none; border-bottom: 1px dotted #1a73e8;">
          • Click here to view your payment details
       </a>

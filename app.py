@@ -11290,7 +11290,7 @@ def zec_withdraw():
 
     ZEC_MIN = 0.00185
     ZEC_PLATFORM = 0.03
-    ZEC_NET_FEE = 0.0001  # network fee — must match Nozy's actual fee
+    ZEC_NET_FEE = 0.001  # network fee — must match Nozy's actual fee
 
     if not is_valid_shielded_zec(address):
         print("DEBUG: FAILED at address validation")
@@ -11373,7 +11373,7 @@ def zec_withdraw():
     })
 
 
-    
+
 @app.route('/api/platform/zec-balance', methods=['GET'])
 @login_required
 def platform_zec_balance():

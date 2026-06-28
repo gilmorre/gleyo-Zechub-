@@ -1,7 +1,7 @@
 (function () {
 
 let ZEC_PRICE_USD = 540;
-const ZEC_NET_FEE  = 0.00001;
+const ZEC_NET_FEE  = 0.001;   // FIXED: was 0.00001
 const ZEC_PLATFORM = 0.03;
 const ZEC_MIN      = 0.00185;
 
@@ -183,12 +183,12 @@ function bgClose(e, id) {
   if (e.target === document.getElementById(id)) document.getElementById(id).classList.remove('open');
 }
 
+// FIXED: MAX just sets the exact balance — no division, no reduction
 function setMax() {
   if (zecBalance <= 0) return;
-  const maxAmt = parseFloat(((zecBalance - ZEC_NET_FEE) / (1 + ZEC_PLATFORM)).toFixed(8));
   const el = document.getElementById('amtIn');
   if (el) {
-    el.value = maxAmt > 0 ? maxAmt : 0;
+    el.value = parseFloat(zecBalance.toFixed(8));
     calcFee(true);
   }
 }
@@ -262,6 +262,8 @@ function calcFee(amountOnly) {
     } else if (amt > zecBalance) {
       if (r('amtErr')) r('amtErr').textContent = 'Amount exceeds available balance';
     } else {
+      // FIXED: fees come OUT of the amount the user typed, not added on top
+      // User types X → platform takes 3% of X, network takes 0.001, receiver gets the rest
       const platformFee = parseFloat((amt * ZEC_PLATFORM).toFixed(8));
       const receive     = parseFloat((amt - platformFee - ZEC_NET_FEE).toFixed(8));
       const remaining   = parseFloat((zecBalance - amt).toFixed(8));
@@ -378,13 +380,9 @@ function prependPendingTx(amt, dest) {
     date:   dateStr
   };
 
-  // Prepend to ALL_TX
   ALL_TX.unshift(newTx);
-
-  // Re-render the 4 most recent in the main container
   renderRecentTx();
 
-  // Update tx count
   const txCountEl = document.getElementById('txCount');
   if (txCountEl) txCountEl.textContent = ALL_TX.length;
 }
@@ -455,11 +453,8 @@ async function executeWithdraw() {
       return;
     }
 
-    // ── Deduct balance optimistically ─────────────────────────────────────
     zecBalance = parseFloat((zecBalance - amt).toFixed(8));
     setBalanceDisplay(zecBalance);
-
-    // ── Prepend pending tx immediately ────────────────────────────────────
     prependPendingTx(amt, dest);
 
     document.getElementById('w2').style.display = 'none';
@@ -634,7 +629,6 @@ async function loadTransactions() {
       return;
     }
 
-    // ── Only render 4 most recent ─────────────────────────────────────────
     renderRecentTx();
     updateStats(txs);
 

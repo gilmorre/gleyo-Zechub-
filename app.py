@@ -11262,11 +11262,11 @@ def process_zec_withdrawal(tx_id, address, amount_to_send, full_amount, platform
         tx_hash, err = _nozy_send(address, amount_to_send, memo="Gleyo ZEC Withdrawal")
 
         if err:
-            print(f"DEBUG: _nozy_send FAILED: {err}")
+            print(f"DEBUG: _nozy_send FAILED: {err}")  
             user_balance.balance         += Decimal(str(full_amount))
             user_balance.total_withdrawn -= Decimal(str(platform_fee))
             tx.status = "failed"
-            tx.remark = f"Refunded · send failed: {err}"
+            tx.remark = "Refunded · withdrawal failed. Please try again."
             db.session.commit()
             return
 

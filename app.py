@@ -11290,6 +11290,7 @@ def zec_withdraw():
 
     ZEC_MIN = 0.00185
     ZEC_PLATFORM = 0.03
+    ZEC_NET_FEE = 0.0001  # network fee — must match Nozy's actual fee
 
     if not is_valid_shielded_zec(address):
         print("DEBUG: FAILED at address validation")
@@ -11311,8 +11312,8 @@ def zec_withdraw():
         return jsonify({'error': 'Insufficient balance'}), 400
 
     platform_fee = round(amount * ZEC_PLATFORM, 8)
-    you_send = round(amount - platform_fee, 8)
-    print(f"DEBUG: platform_fee={platform_fee}, you_send={you_send}")
+    you_send = round(amount - platform_fee - ZEC_NET_FEE, 8)
+    print(f"DEBUG: platform_fee={platform_fee}, network_fee={ZEC_NET_FEE}, you_send={you_send}")
 
     if you_send <= 0:
         print("DEBUG: FAILED - amount too small after fee")
@@ -11371,6 +11372,8 @@ def zec_withdraw():
         'message': 'Withdrawal submitted. It will confirm shortly.'
     })
 
+
+    
 @app.route('/api/platform/zec-balance', methods=['GET'])
 @login_required
 def platform_zec_balance():

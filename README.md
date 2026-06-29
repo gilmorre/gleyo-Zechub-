@@ -301,6 +301,8 @@ A confirmed shielded withdrawal, processed end-to-end through Gleyo's Nozy + Zeb
 
 * **Additional notification channels & automation** — expand notifications beyond browser push to include smarter delivery preferences, community activity alerts, and automated engagement workflows.
 
+* **Billing & invoicing tab** — exploring integration with a Zcash-native payment processor (e.g. CipherPay) to let project owners handle recurring billing and invoicing directly in ZEC, rather than relying on traditional fiat rails.
+
 
 ---
 

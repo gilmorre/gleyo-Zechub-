@@ -155,7 +155,7 @@ NOZY_API_KEY=                        # Optional — only needed if Nozy server e
 NOZY_WALLET_PASSWORD=your_password
 
 # ── Database ─────────────────────────────────────────
-# DATABASE_URL=postgresql://...       # Optional — defaults to SQLite
+# DATABASE_URL=postgresql://...       # Production uses Postgres (AWS RDS). Defaults to SQLite if unset, for local dev.
 
 # ── Email ────────────────────────────────────────────
 MAIL_USER=your_email@gmail.com
@@ -291,6 +291,16 @@ A confirmed shielded withdrawal, processed end-to-end through Gleyo's Nozy + Zeb
 
 ---
 
+## Current limitations
+
+Gleyo is live and processing real ZEC on mainnet, but it's currently in closed beta while these are addressed before public launch:
+
+- **Withdrawal concurrency** — withdrawals are currently processed one at a time platform-wide; per-user concurrent handling is planned next.
+- **Security audit** — the codebase has been tested extensively in production with real funds, but hasn't yet had an independent third-party review.
+- **Infrastructure redundancy** — Zebra and Nozy currently run on a single VPS without failover.
+
+---
+
 ## Future work
 
 * **Member rewards** — enable project owners to send direct ZEC tips to active community members from within the community chat to encourage participation and recognize contributions.
@@ -301,7 +311,7 @@ A confirmed shielded withdrawal, processed end-to-end through Gleyo's Nozy + Zeb
 
 * **Additional notification channels & automation** — expand notifications beyond browser push to include smarter delivery preferences, community activity alerts, and automated engagement workflows.
 
-* **Billing & invoicing tab** — exploring integration with a Zcash-native payment processor (e.g. CipherPay) to let project owners handle recurring billing and invoicing directly in ZEC, rather than relying on traditional fiat rails.
+* **Billing & invoicing tab** — explore optional integration with Zcash-native payment infrastructure (e.g. CipherPay) to support recurring community funding, billing, and invoicing workflows directly in ZEC while preserving Gleyo’s native funding model.
 
 
 ---

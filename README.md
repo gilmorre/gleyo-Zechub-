@@ -90,7 +90,7 @@ All transactions are shielded Orchard spends. The memo field on every withdrawal
 
 ## Tech Stack
 
-- **Backend** — Python (Flask), SQLAlchemy, SQLite
+- **Backend** — Python (Flask), SQLAlchemy, PostgreSQL (production) / SQLite (local dev)
 - **Frontend** — HTML, CSS, JavaScript (no framework)
 - **Zcash node** — [Zebra](https://github.com/ZcashFoundation/zebra) (Zcash Foundation full node)
 - **Wallet backend** — [Nozy Wallet](https://github.com/LEONINE-DAO/Nozy-wallet) by LEONINE DAO (Rust, runs on port 3000)

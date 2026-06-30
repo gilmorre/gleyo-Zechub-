@@ -61,12 +61,6 @@ class Community(db.Model):
         cascade='all, delete'
     )
 
-    community_payments = db.relationship(
-        'CommunityPayment',
-        back_populates='community',
-        cascade='all, delete'
-    )
-
     quests = db.relationship(
         'Quest',
         back_populates='community',

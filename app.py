@@ -104,7 +104,6 @@ from googleapiclient.discovery import build
 # ─────────────────────────────────────────────────────────────
 import discord
 import resend
-import stripe
 import pytz
 import tzlocal
 import requests
@@ -193,13 +192,11 @@ from backend.communities.user_condition_status import UserConditionStatus
 from backend.communities.xplevel import UserXP
 from backend.payments.wallet import ZecAuthSession, ZecWallet
 from backend.payments.payment_models import Payment
-from backend.communities.CommunityPayment import CommunityPayment
 from backend.auth.invitation_code import InvitationCode
 from backend.quests.limitedlink import generate_invite_code, LimitedCode
 from backend.integrations.integrations import CommunityWebhook
 from backend.quests.reset_tracker import ResetTracker
 from backend.notifications.BugReport import BugReport
-from backend.payments.enterprise_models import EnterpriseRequest
 
 # ─────────────────────────────────────────────────────────────
 # INTERNAL — USER INTEGRATIONS
@@ -518,6 +515,7 @@ limiter = Limiter(get_remote_address, app=app)
 
 DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 BEARER_TOKEN = os.getenv("TWITTER_BEARER_TOKEN")
+RESEND_API_KEY = os.getenv("RESEND_API_KEY")
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY") 
 MAIL_USERNAME=os.getenv("MAIL_USER")
@@ -526,14 +524,12 @@ OPENSEA_API_KEY = os.getenv("OPENSEA_API_KEY")
 VAPID_PUBLIC_KEY = os.getenv("VAPID_PUBLIC_KEY")   
 VAPID_PRIVATE_KEY = os.getenv("VAPID_PRIVATE_KEY")
 YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
-stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 SUPABASE_URL = os.getenv("SUPABASE_URL", "").strip()
 ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "").strip().lower()
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "").strip()
 smtp_user = os.getenv("MAIL_USER")
 smtp_pass = os.getenv("MAIL_PASS")
 SMTP_HOST = "smtp.gmail.com"
-SMTP_PORT = 465
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USERNAME = os.getenv("SMTP_USERNAME")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
@@ -635,35 +631,43 @@ def normalize_uuid(value):
 
 
 def send_email(msg):
+    html_content = None
+    text_content = None
+
+    for part in msg.iter_parts():
+        if part.get_content_type() == "text/html":
+            html_content = part.get_content()
+        elif part.get_content_type() == "text/plain":
+            text_content = part.get_content()
+
+    params = {
+        "from": "Gleyo <noreply@gleyo.app>",
+        "to": [msg["To"]],
+        "subject": msg["Subject"],
+    }
+    if html_content:
+        params["html"] = html_content
+    if text_content:
+        params["text"] = text_content
+
+    if RESEND_API_KEY:
+        try:
+            resend.Emails.send(params)
+            print("EMAIL SENT SUCCESSFULLY (Resend)")
+            return
+        except Exception as e:
+            print("RESEND FAILED:", e, "— falling back to SMTP")
+    else:
+        print("No RESEND_API_KEY set — using SMTP")
+
     try:
-        # Extract HTML or fallback text
-        html_content = None
-        text_content = None
-
-        for part in msg.iter_parts():
-            if part.get_content_type() == "text/html":
-                html_content = part.get_content()
-            elif part.get_content_type() == "text/plain":
-                text_content = part.get_content()
-
-        params = {
-            "from": "Gleyo <noreply@gleyo.app>",
-            "to": [msg["To"]],
-            "subject": msg["Subject"],
-        }
-
-        if html_content:
-            params["html"] = html_content
-
-        if text_content:
-            params["text"] = text_content
-
-        resend.Emails.send(params)
-
-        print("EMAIL SENT SUCCESSFULLY")
-
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+            server.starttls()
+            server.login(SMTP_USERNAME, SMTP_PASSWORD)
+            server.send_message(msg)
+        print("EMAIL SENT SUCCESSFULLY (SMTP fallback)")
     except Exception as e:
-        print("EMAIL FAILED:", e)
+        print("SMTP FALLBACK FAILED:", e)
 
 
 
@@ -4332,7 +4336,7 @@ def create_community_api():
             logo_path=None,   
             slug=new_slug,
             created_by_id=user.id,
-            is_paid=True
+            is_paid=False
         )
 
         db.session.add(new_community)
@@ -10658,132 +10662,6 @@ def accept_invite(community_slug, limited_code):
 
 
 
-
-
-
-def generate_reference():
-    return "ENT-" + "".join(random.choices(string.ascii_uppercase + string.digits, k=8))
-
-
-# ✅ change route signature to include slug + interval in the URL
-@app.route("/enterprise/<slug>/<interval>", methods=["GET", "POST"])
-def enterprise(slug, interval):
-    # find community by slug
-    community = Community.query.filter_by(slug=slug).first_or_404()
-    community_id = community.id  # ✅ use this internally
-
-    if request.method == "POST":
-        company = request.form.get("company")
-        website = request.form.get("website")
-        fullname = request.form.get("fullname")
-        email = request.form.get("email")
-        phone = request.form.get("phone")
-        requirements = request.form.get("requirements")
-        budget = request.form.get("budget")
-
-        # 1️⃣ Generate reference code
-        ref_code = generate_reference()
-
-        # 2️⃣ Save form submission
-        request_entry = EnterpriseRequest(
-            community_id=community_id,   # ✅ save ID
-            company=company,
-            website=website,
-            fullname=fullname,
-            email=email,
-            phone=phone,
-            requirements=requirements,
-            budget=budget,
-            reference_code=ref_code
-        )
-        db.session.add(request_entry)
-
-        # 3️⃣ Create a pending Enterprise payment if none exists
-        existing_payment = CommunityPayment.query.filter_by(
-            community_id=community_id,
-            plan="enterprise",
-            interval=interval
-        ).first()
-
-        if not existing_payment:
-            enterprise_payment = CommunityPayment(
-                community_id=community_id,   # ✅ still saving ID
-                plan="enterprise",
-                interval=interval,
-                stripe_session_id=None,
-                status="pending"
-            )
-            db.session.add(enterprise_payment)
-            request_entry.payment = enterprise_payment
-
-        db.session.commit()
-
-
-        msg = EmailMessage()
-        msg["Subject"] = f"New Enterprise Request from {company}"
-        msg["To"] = "florishisreal@gmail.com"
-
-        html_content = f"""
-        <html>
-        <body style="font-family:Arial, sans-serif; line-height:1.5;">
-            <h2>Enterprise Plan Request</h2>
-            <ul>
-                <li><strong>Reference Code:</strong> {ref_code}</li>
-                <li><strong>Community ID:</strong> {community_id}</li>
-                <li><strong>Interval:</strong> {interval}</li>
-                <li><strong>Company:</strong> {company}</li>
-                <li><strong>Website:</strong> {website}</li>
-                <li><strong>Full Name:</strong> {fullname}</li>
-                <li><strong>Email:</strong> {email}</li>
-                <li><strong>Phone:</strong> {phone}</li>
-                <li><strong>Requirements:</strong> {requirements}</li>
-                <li><strong>Budget:</strong> {budget}</li>
-            </ul>
-        </body>
-        </html>
-        """
-        msg.add_alternative(html_content, subtype="html")
-
-        send_email(msg)
-
-        # After sending email
-        return render_template(
-            "enterprise.html",
-            success=True,
-            reference_code=ref_code,
-            community=community,
-            interval=interval
-        )
-
-
-    # GET request
-    return render_template("enterprise.html", community=community, interval=interval)
-
-
-
-@app.route("/checkout/<reference_code>", methods=["GET", "POST"])
-def checkout(reference_code):
-    request_entry = EnterpriseRequest.query.filter_by(reference_code=reference_code).first()
-    if not request_entry:
-        abort(404, "Invalid reference code")
-
-    # 👇 Prevent reuse
-    if request_entry.payment_state in ["paid", "expired"]:
-        abort(404, "Reference no longer valid")
-
-    if request.method == "POST":
-        token = request.form.get("token")
-        network = request.form.get("network")
-        request_entry.token = token
-        request_entry.network = network
-        db.session.commit()
-
-    return render_template("checkout.html", entry=request_entry)
-
-
-
-
-
 @app.route('/api/community/<slug>/comments', methods=['GET'])
 def get_community_comments(slug):
     # 1️⃣ Get the community
@@ -10829,66 +10707,6 @@ def get_community_comments(slug):
             })
 
     return jsonify(result)
-
-
-
-
-
-@app.route("/api/start-payment", methods=["POST"])
-def start_payment():
-    data = request.json
-    ref = data.get("reference_code")
-    token = data.get("token")
-    network = data.get("network")
-
-    entry = EnterpriseRequest.query.filter_by(reference_code=ref).first()
-    if not entry:
-        return jsonify({"error": "Invalid reference code"}), 404
-
-    # update db
-    entry.token = token
-    entry.network = network
-    entry.payment_state = "waiting"
-    entry.generated_at = datetime.utcnow()   # ⏳ store session start
-    db.session.commit()
-
-    return jsonify({
-        "message": "Payment session started",
-        "address": "0xe1bd60600Ddf6342dcdB5012d1c4069E900dC233"
-    })
-
-@app.route("/api/check-payment/<ref>")
-def check_payment(ref):
-    entry = EnterpriseRequest.query.filter_by(reference_code=ref).first()
-    if not entry:
-        return jsonify({"error": "Invalid reference"}), 404
-
-    # Expiry logic
-    if entry.payment_state == "waiting" and entry.is_expired():
-        entry.payment_state = "expired"
-        db.session.commit()
-        return jsonify({"payment_state": "expired"}), 200
-
-    # ✅ If already paid, still tell frontend once
-    if entry.payment_state == "paid":
-        return jsonify({
-            "payment_state": "paid",
-            "community_slug": entry.community.slug if entry.community else None
-        }), 200
-
-    # Still waiting → return time left
-    time_left = None
-    if entry.payment_state == "waiting" and entry.generated_at:
-        expiry_time = entry.generated_at + timedelta(minutes=30)
-        delta = (expiry_time - datetime.utcnow()).total_seconds()
-        time_left = max(0, int(delta))
-
-    return jsonify({
-        "payment_state": entry.payment_state,
-        "tx": entry.tx,
-        "time_left": time_left
-    }), 200
-
 
 
 
@@ -11403,105 +11221,6 @@ def zec_price():
         return jsonify({'price': price})
     except Exception:
         return jsonify({'price': 0})
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-@app.route('/stripe_payment')
-def stripe_payment():
-    return render_template ('stripe_payment.html')
-
-@app.route("/checkout/stripe/<plan>/<interval>/<community_id>")
-def create_checkout_session(plan, interval, community_id):
-    
-    community = Community.query.filter_by(id=community_id).first_or_404()
-
-    prices = {
-        "standard": {"monthly": "price_1RzGQ4B2PmOaCbw1w45Jo0tw",
-                     "yearly": "price_1RzGWdB2PmOaCbw1kmJqfAkW"},
-        "plus": {"monthly": "price_1RzGTyB2PmOaCbw1HJyl4909",
-                 "yearly": "price_1RzGXtB2PmOaCbw16BJm8sY1"}
-    }
-    if not has_role(current_user.id, community_id, "admin"):
-        return redirect(url_for("dashboard"))
-
-    try:
-        price_id = prices[plan][interval]
-
-        session_stripe = stripe.checkout.Session.create(
-            payment_method_types=["card"],
-            line_items=[{"price": price_id, "quantity": 1}],
-            mode="subscription",
-            success_url=f"http://yourdomain.com/success?session_id={{CHECKOUT_SESSION_ID}}",
-            cancel_url="https://gleyo.app/github/community_settings?tab=billing",
-        )
-
-        # Save pending payment
-        payment = CommunityPayment(
-            community_id=community_id,
-            plan=plan,
-            interval=interval,
-            stripe_session_id=session_stripe.id,
-            status="pending"
-        )
-        db.session.add(payment)
-        db.session.commit()
-
-        return redirect(session_stripe.url, code=303)
-    except Exception as e:
-        return jsonify(error=str(e)), 400
-
-
-
-
-@app.route("/webhook/stripe", methods=["POST"])
-def stripe_webhook():
-    payload = request.data
-    sig_header = request.headers.get("Stripe-Signature")
-    endpoint_secret = "your_webhook_secret"
-
-    try:
-        event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
-    except ValueError:
-        return "Invalid payload", 400
-    except stripe.error.SignatureVerificationError:
-        return "Invalid signature", 400
-
-    if event["type"] == "checkout.session.completed":
-        session_obj = event["data"]["object"]
-        stripe_session_id = session_obj["id"]
-
-        payment = CommunityPayment.query.filter_by(stripe_session_id=stripe_session_id).first()
-        if payment:
-            payment.status = "paid"
-            payment.paid_at = datetime.utcnow()
-            # Optionally update community is_paid flag
-            payment.community.is_paid = True
-            db.session.commit()
-
-    return "", 200
-
-
-
-
-
-
-
-
 
 
 
@@ -19422,23 +19141,6 @@ def api_quests(community_slug):
         payload.append(quest_data)
 
     return jsonify({"status": "success", "data": payload})
-
-
-
-
-@app.route('/strip_payment')
-def strip_payment():
-    return render_template(
-        "stripe_payment.html"
-    )
-
-
-
-
-
-
-UPLOAD_FOLDER = "image_files"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 
 
@@ -28619,101 +28321,6 @@ class SprintAdmin(BaseAdmin):
     column_searchable_list = ('title', 'description', 'uuid')  # ✅ Make searchable
     column_filters = ('community_id', 'created_by_id')
 
-# ------------------------
-# ✅ CommunityPayment Admin View
-# ------------------------
-class CommunityPaymentAdmin(BaseAdmin):
-    column_list = (
-        'id', 'community_id', 'community_name', 
-        'plan', 'interval', 'stripe_session_id',
-        'status', 'amount', 'created_at', 'paid_at'
-    )
-
-    column_labels = {
-        'id': 'Payment ID',
-        'community_id': 'Community ID',
-        'community_name': 'Community',
-        'plan': 'Plan',
-        'interval': 'Billing Interval',
-        'stripe_session_id': 'Stripe Session ID',
-        'status': 'Payment Status',
-        'amount': 'Amount',
-        'created_at': 'Created At',
-        'paid_at': 'Paid At',
-    }
-
-    # Display related community name
-    def _community_name(view, context, model, name):
-        return model.community.name if model.community else '—'
-
-    column_formatters = {
-        'community_name': _community_name
-    }
-
-    column_filters = ('plan', 'interval', 'status', 'created_at', 'paid_at')
-    column_searchable_list = ('stripe_session_id',)
-    can_view_details = True
-    form_columns = (
-        'community_id', 'plan', 'interval', 'status', 'amount', 'created_at', 'paid_at'
-    )
-
-
-# ------------------------
-# ✅ EnterpriseRequest Admin View
-# ------------------------
-def send_payment_confirmation_email(request_entry):
-    """Send email immediately after payment is marked as paid"""
-    community_name = request_entry.community.name if request_entry.community else "Your Community"
-
-    msg = EmailMessage()
-
-    msg["To"] = request_entry.email
-    msg["Subject"] = f"✅ Payment Successful – Ref: {request_entry.reference_code}"
-
-    # Plain text fallback
-    msg.set_content(f"""
-Hi {request_entry.fullname},
-
-We’ve successfully received your payment of {request_entry.budget}ZEC.
-Your payment reference {request_entry.reference_code} is now marked as Paid ✅.
-
-🚀 Your community {community_name} is now upgraded to Premium!
-
-If you need a receipt or have any questions, just hit reply — our team is here for you.
-
-Cheers,
-The [Your Company Name] Team
-""")
-
-    # HTML version
-    msg.add_alternative(f"""
-<!DOCTYPE html>
-<html>
-  <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-    <p>Hi <b>{request_entry.fullname}</b>,</p>
-
-    <p>We’ve successfully received your payment of 
-    <strong style="color:green;">{request_entry.budget}ZEC</strong>.<br>
-    Your payment reference <strong>{request_entry.reference_code}</strong> 
-    is now marked as <span style="color:green;font-weight:bold;">Paid ✅</span>.</p>
-
-    <p>🚀 Your community <b>{community_name}</b> is now upgraded to 
-    <span style="color:#007bff;font-weight:bold;">Premium</span>!</p>
-
-    <p>That means you now have access to all the tools, features, and perks 
-    to grow faster and unlock more opportunities.</p>
-
-    <p>If you need a receipt or have any questions, just hit reply — 
-    our team is here for you.</p>
-
-    <p>Cheers,<br>
-    <b>The [Your Company Name] Team</b></p>
-  </body>
-</html>
-""", subtype="html")
-
-    send_email(msg)
-
 
 
 
@@ -28793,146 +28400,6 @@ Gilmore
 """, subtype="html")
 
     send_email(msg)
-
-
-
-class EnterpriseRequestAdmin(BaseAdmin):
-    column_list = (
-        'id', 'community_id', 'community', 'payment',
-        'company', 'website', 'fullname', 'email', 'phone',
-        'requirements', 'budget', 'status', 'created_at',
-        'generated_at', 'paid_at','token', 'network', 'tx', 'payment_state'
-    )
-
-    column_labels = {
-        'id': 'ID',
-        'community_id': 'Community ID',
-        'community': 'Community',
-        'payment': 'Payment',
-        'company': 'Company',
-        'website': 'Website',
-        'fullname': 'Full Name',
-        'email': 'Email',
-        'phone': 'Phone',
-        'reference_code' : 'Reference Code',
-        'requirements': 'Requirements / Notes',
-        'budget': 'Budget',
-        'status': 'Status',
-        'created_at': 'Submitted At',
-        'token': 'Token',
-        'network': 'Network',
-        'tx': 'Transaction Hash',
-        'payment_state': 'Payment State',
-        'generated_at': 'Session Started At',
-        'paid_at': 'Paid At',
-        'status': 'Status',
-    }
-
-    form_columns = (
-        'community_id', 'payment_id',
-        'company', 'website', 'fullname',
-        'email', 'phone', 'requirements',
-        'budget', 'status', 'payment_state', 'token','network','paid_at','generated_at','tx'
-    )
-
-    column_choices = {
-        'status': [
-            ('pending', 'Pending'),
-            ('approved', 'Approved'),
-            ('declined', 'Declined')
-        ],
-        'payment_state': [
-            ('not_started', 'Not Started'),
-            ('waiting', 'Waiting'),
-            ('paid', 'Paid'),
-            ('expired', 'Expired')
-        ],
-    }
-    
-    # formatters for related objects
-    def _community(view, context, model, name):
-        return model.community.name if model.community else '—'
-
-    def _payment(view, context, model, name):
-        if model.payment:
-            return f"{model.payment.plan} ({model.payment.status})"
-        return '—'
-
-    column_formatters = {
-        'community': _community,
-        'payment': _payment
-    }
-
-    can_view_details = True
-    column_searchable_list = ('company', 'fullname', 'email')
-    column_filters = ('community_id', 'payment_id', 'status', 'created_at')
-    column_default_sort = ('created_at', True)
-
-    # 🚀 send email after saving
-    def after_model_change(self, form, model, is_created):
-        if not is_created:  # only on update
-            self.send_status_email(model)
-
-    def send_status_email(self, request_entry):
-
-        msg = EmailMessage()
-        msg["To"] = request_entry.email
-
-        if request_entry.status.lower() == "approved":
-            msg["Subject"] = f"Payment request received - Ref: {request_entry.reference_code}"
-            msg.set_content(f"""
-Hi {request_entry.fullname},
-
-Thanks for submitting your request for {request_entry.community.name}.
-We've received the following information:
-
-• Email: {request_entry.email}
-• Phone: {request_entry.phone}
-• Community: {request_entry.community.name}
-• Amount: {request_entry.budget}ZEC
-
-We are currently processing your request.
-You'll receive an invoice or payment link shortly via email.
-
-Your reference number is {request_entry.reference_code}.
-
-If you have any questions, feel free to reply directly to this email.
-
-Thanks,  
-[Your Company/Team Name]
-""")
-
-        elif request_entry.status.lower() == "declined":
-            msg["Subject"] = f"Request Declined - Ref: {request_entry.reference_code}"
-            msg.set_content(f"""
-Hi {request_entry.fullname},
-
-Unfortunately, your request for {request_entry.community.name} has been declined.
-
-Reference Number: {request_entry.reference_code}
-
-If you believe this is an error, please contact support.
-
-Thanks,  
-[Your Company/Team Name]
-""")
-
-        else:
-            return  # don’t send email for pending
-
-        try:
-            send_email(msg)
-            flash("✅ Status email sent!", "success")
-
-            if request_entry.status.lower() == "approved":
-                threading.Thread(
-                    target=delayed_payment_email,
-                    args=(request_entry, smtp_user, smtp_pass),
-                    daemon=True
-                ).start()
-
-        except Exception as e:
-            flash(f"✉ Error sending email: {e}", "error")
 
 
 
@@ -31171,8 +30638,6 @@ admin.add_view(SubquestCompletionAdmin(SubquestCompletion, db.session))
 admin.add_view(SprintAdmin(Sprint, db.session)) 
 admin.add_view(CommunityUserXPAdmin(CommunityUserXP, db.session))
 admin.add_view(SprintUserXPAdmin(SprintUserXP, db.session))
-admin.add_view(EnterpriseRequestAdmin(EnterpriseRequest, db.session))
-admin.add_view(CommunityPaymentAdmin(CommunityPayment, db.session))
 admin.add_view(PaymentAdmin(Payment, db.session))
 admin.add_view(BugReportAdmin(BugReport, db.session))
 admin.add_view(UserCommunityFabStateAdmin(UserCommunityFabState, db.session))

@@ -210,9 +210,6 @@ REDIS_URL=redis://your_redis_url
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_KEY=your_supabase_anon_key
 
-# ── Stripe (optional billing) ────────────────────────
-STRIPE_SECRET_KEY=sk_test_your_key
-
 # ── APIs ─────────────────────────────────────────────
 RAPIDAPI_KEY=your_rapidapi_key
 ```

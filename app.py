@@ -10,7 +10,6 @@ import string
 import smtplib
 import secrets
 import base64
-import base58
 import uuid
 import hashlib
 import asyncio
@@ -84,13 +83,6 @@ from werkzeug.utils import secure_filename
 from wtforms import fields, TextAreaField, PasswordField
 from wtforms.validators import Regexp
 from markupsafe import Markup, escape
-
-# ─────────────────────────────────────────────────────────────
-# THIRD-PARTY — CRYPTO / WEB3
-# ─────────────────────────────────────────────────────────────
-from solana.rpc.api import Client
-from nacl.signing import VerifyKey
-from nacl.exceptions import BadSignatureError
 
 # ─────────────────────────────────────────────────────────────
 # THIRD-PARTY — GOOGLE

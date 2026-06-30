@@ -319,6 +319,7 @@ Gleyo is live and processing real ZEC on mainnet, but it's currently in closed b
 - **[Zcash Foundation](https://www.zfnd.org/)** — for building and maintaining [Zebra](https://github.com/ZcashFoundation/zebra), the full node powering all of Gleyo's mainnet activity
 - **[Dismad](https://github.com/dismad)** — for pointing me toward the [ZecHub Developer docs](https://zechub.wiki/developers/quick-start) and guiding me on setting up Zebra
 - **[Tron](https://github.com/onajifortune)** — whose tutorial video was a huge help in getting Zebra running
+- **Dre & the ZecHub Developer Workshop series** — for creating the space that connected builders with the knowledge, discussions, and technical sessions that helped shape parts of Gleyo’s journey.
 ---
 
 ## Demo

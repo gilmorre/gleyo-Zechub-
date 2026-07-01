@@ -19,7 +19,7 @@ async function loadAuth(path, push = true) {
   })
 
   if (!res.ok) {
-    container.innerHTML = "Something went wrong. Please refresh.";
+    document.getElementById("auth-content").innerHTML = "Something went wrong. Please refresh.";
     return;
   }
 
@@ -121,10 +121,18 @@ function initViewSwitcher() {
 
 
 function CloseBackfromemail() {
+  const socialView = document.getElementById("social-view");
+  const emailView = document.getElementById("email-view");
+  const backFromEmail = document.getElementById("backFromEmail");
+  const logoLink = document.getElementById("logo-link");
+
+  if (backFromEmail) backFromEmail.classList.remove("showing");
+  if (logoLink) logoLink.classList.remove("hiding");
+
+  if (!socialView || !emailView) return;
+
   emailView.style.display = "none";
   socialView.style.display = "block";
-  backFromEmail.classList.remove("showing");
-  if (logoLink) logoLink.classList.remove("hiding");
 }
 
 

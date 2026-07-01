@@ -541,7 +541,7 @@ function inject() {
       <div class="zec-ring"></div>
       <div class="zec-logo-bg" id="zec-logo-bg"></div>
     </div>
-    <div class="zec-conn-name" id="zec-conn-name">YWallet</div>
+    <div class="zec-conn-name" id="zec-conn-name">Zkool</div>
     <div class="zec-conn-status" id="zec-conn-status">Validating address…</div>
     <button class="zec-cancel" id="zec-cancel-btn">Cancel</button>
   </div>
@@ -549,7 +549,7 @@ function inject() {
   <!-- PAYMENT VIEW -->
   <div id="zec-view-pay" class="zec-view" style="padding-top:20px;padding-bottom:8px">
     <div class="zec-head" style="margin-bottom:14px">
-      <h2 id="zec-pay-title">Send with YWallet</h2>
+      <h2 id="zec-pay-title">Send with Zkool</h2>
       <button class="zec-close" id="zec-pay-close-btn">&#215;</button>
     </div>
 

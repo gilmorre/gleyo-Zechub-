@@ -50,6 +50,7 @@ Any project building on Zcash — or any project outside the ecosystem that want
 * **Instant reward crediting** — approved submissions credit ZEC to the user's in-app reward hub immediately
 * **Shielded withdrawals** — users withdraw to any shielded address (Sapling zs1... or Unified u1...), Gleyo sends via Nozy API with memo `Gleyo ZEC Withdrawal`
 * **Multi-platform task system** — quest tasks can require actions across GitHub (star/fork), Discord, Twitter, Telegram, YouTube, and TikTok, plus link-visit and webhook-based tasks, all validated automatically before a reward can be claimed
+* **XP & community standings** — quest completions earn XP that builds a member's reputation score within each community. Members can see their standing and track progress over time, driving ongoing engagement beyond one-time ZEC reward hunting.
 * **Community chat** — built-in community space, no Discord required
 * **Web Push notifications** — members receive real-time notifications inside and outside the app for events like new quest publications, community mentions, and chat activity, even when Gleyo is closed (with browser permission)
 * **Retention analytics:**

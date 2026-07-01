@@ -107,7 +107,6 @@ checkPaidBtn.addEventListener('click', () => {
         localStorage.removeItem('last_payment_id');
 
         sessionStorage.setItem("paid_payment_id", currentPaymentId);
-        sessionStorage.setItem("communityBackRoute", `/${communitySlug}/quest/admin`);
         audio.currentTime = 0;
         audio.play().catch(() => {});
         statusDiv.innerHTML = `

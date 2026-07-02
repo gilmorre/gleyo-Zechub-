@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <link rel="stylesheet" href="/static/pay.css" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 
   <title>ZEC Payment</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -164,14 +164,23 @@
     }
 
     .left-panel-form h1 {
-      font-size: 28px;
+      font-size: clamp(19px, 6.4vw, 28px);
       font-weight: 800;
       margin: 0 0 4px;
       color: #fff;
       letter-spacing: -0.02em;
       font-family: 'Syne', sans-serif;
+      white-space: nowrap;
+      overflow: hidden;
+      max-width: 100%;
     }
 
+    @media (max-width: 445px) {
+      .left-panel-form h1 {
+        font-size: clamp(10px, 5.5vw, 22px);
+      }
+    }
+    
     .form-subtitle {
       font-size: 13px;
       color: rgba(255,255,255,0.35);
@@ -367,7 +376,7 @@
       max-width: 100%;
       box-sizing: border-box;
     }
-    /* pay.js now sizes the QR to fit the container itself, but this is a
+    /* pay.js sizes the QR to fit the container itself, but this is a
        backstop in case the library ever returns a fixed-size SVG. */
     #qrcode svg, #qrcode canvas, #qrcode img {
       display: block;
@@ -511,12 +520,10 @@
 
     /* ============================================================
        MODAL
-       - Overlay is a flex-centered fixed layer (not margin:% auto).
-       - .modal-content itself caps at 80dvh and scrolls internally
-         (overflow-y: auto) so long content never pushes the page.
-       - Body scroll is locked with position:fixed (the technique
-         that actually works on iOS Safari — plain overflow:hidden
-         on body does not stop background scroll on iOS).
+       .modal-content scrolls internally (overflow-y: auto) so long
+       content never pushes the page/body. Body scroll is locked
+       with position:fixed below (the technique that actually works
+       on iOS Safari).
        ============================================================ */
     .modal {
       display: none;
@@ -541,13 +548,17 @@
     .modal-content {
       width: 100%;
       max-width: 420px;
+      max-height: 80dvh;
       background: rgba(34, 34, 54, 0.448);
       backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
       border: 0.9px solid #2f2f4a;
-      -webkit-mask-image: -webkit-radial-gradient(white, black); 
+      -webkit-mask-image: -webkit-radial-gradient(white, black);
       mask-image: radial-gradient(white, black);
-      scrollbar-gutter: stable both-edges; 
+      scrollbar-gutter: stable both-edges;
       overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
       border-radius: 16px;
       padding: 20px;
       box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
@@ -654,10 +665,9 @@
       .left-panel-form {
         flex: 1;
         width: 100%;
-        padding: 2rem 1.2rem;
+        padding: calc(5.75rem + env(safe-area-inset-top)) 1.2rem 2rem;
         justify-content: flex-start;
       }
-      .left-panel-form h1 { font-size: 24px; }
       .brand { margin-bottom: 1.8rem; }
       .form-subtitle { margin-bottom: 1.6rem; }
       .field-group { margin-bottom: 1rem; }
@@ -849,7 +859,7 @@
     window.addEventListener("load", adjustHeight);
   </script>
 
-  <script> 
+  <script>
     let __savedScrollY = 0;
 
     function lockBodyScroll() {

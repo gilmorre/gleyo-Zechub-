@@ -277,8 +277,8 @@ function renderQR(address, amount) {
   const zecUri = `zcash:${address}?amount=${amount}`;
 
   const qr = new QRCodeStyling({
-    width: 285,
-    height: 285,
+    width: 305,
+    height: 305,
     type: "svg",
     data: zecUri,
     qrOptions: {

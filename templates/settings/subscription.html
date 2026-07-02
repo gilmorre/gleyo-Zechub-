@@ -12,6 +12,13 @@
 }
 
 
+  @media (max-width: 768px) {
+    .plan-card-container{
+      width: 100% !important;
+      min-width: 100% !important;
+    }
+  }
+
 
 .plan-card-container,
 .plan-card-container * {
@@ -195,14 +202,47 @@
 }
 
 
-.wallet-stats{
-  display:flex;
-  gap:18px;
-  justify-content: space-between;
-  align-items:center;
+.wallet-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
   font-family: 'Syne' !important;
 }
 
+.wallet-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  flex: 1 1 calc(33.333% - 12px); /* 3 across by default */
+  min-width: 0;
+}
+
+/* Below ~340px container width, 3-across gets too tight — drop to 2+1 */
+@media (max-width: 424px) {
+  .wallet-item {
+    flex: 1 1 calc(50% - 6px);
+  }
+}
+
+/* Below ~280px, even 2 up is tight — stack fully */
+@media (max-width: 280px) {
+  .wallet-item {
+    flex: 1 1 100%;
+  }
+}
+
+.wallet-amount {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-main);
+  letter-spacing: 0.4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .wallet-stats .amount{
   font-family:'DM Mono', monospace;

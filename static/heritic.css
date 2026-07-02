@@ -107,7 +107,6 @@ html, body {
   margin: 0;
   padding: 0;
   height: 100%;
-  
   background: radial-gradient(circle at 30% 20%, #151528 0%, #0b0b12 60%);
   color: var(--text-main);
   display: flex;

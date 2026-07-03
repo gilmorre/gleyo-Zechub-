@@ -5827,9 +5827,7 @@ def get_user_transactions():
     txs = UserTransaction.query.filter_by(user_id=current_user.id)\
         .order_by(UserTransaction.created_at.desc())\
         .limit(10).all()
-
     data = []
-
     for tx in txs:
         data.append({
             "id": tx.id,
@@ -5837,10 +5835,11 @@ def get_user_transactions():
             "amount": float(tx.amount),
             "token": tx.token,
             "status": tx.status,
+            "tx_hash": tx.tx_hash,
+            "block_number": tx.block_number,
             "remark": tx.remark,
-            "date": tx.created_at.strftime("%b %d, %Y · %I:%M %p")
+            "date": tx.created_at.replace(tzinfo=timezone.utc).isoformat()
         })
-
     return jsonify(data)
 
 
@@ -10752,7 +10751,7 @@ def is_valid_shielded_zec(addr):
             BECH32M_CONST
         )
     return False
-    
+
 
 
 @app.route("/api/github_repo_info")

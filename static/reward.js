@@ -1,7 +1,7 @@
 (function () {
 
 let ZEC_PRICE_USD = 540;
-const ZEC_NET_FEE  = 0.001;   // FIXED: was 0.00001
+const ZEC_NET_FEE  = 0.001;   
 const ZEC_PLATFORM = 0.03;
 const ZEC_MIN      = 0.00185;
 
@@ -33,6 +33,13 @@ function updateWithdrawButton() {
   btn.style.opacity = zecBalance <= 0 ? '0.5' : '1';
   btn.style.cursor  = zecBalance <= 0 ? 'not-allowed' : 'pointer';
 }
+
+function fmtLocalDate(isoStr) {
+  const d = new Date(isoStr);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) +
+    ' · ' + d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+}
+
 updateWithdrawButton();
 
 async function fetchZecPrice() {
@@ -411,7 +418,7 @@ function renderRecentTx() {
         ${txDot(tx.type, isPending)}
         <div class="tx-info">
           <div class="tx-desc">${tx.remark || 'Transaction'}</div>
-          <div class="tx-time">${tx.date}</div>
+          <div class="tx-time">${fmtLocalDate(tx.date)}</div>
         </div>
         <div class="tx-right">
           <div class="tx-amt ${isIn ? 'in' : 'pend'}">
@@ -662,7 +669,7 @@ function openAll() {
           ${txDot(tx.type, isPending)}
           <div class="tx-info">
             <div class="tx-desc">${tx.remark || 'Transaction'}</div>
-            <div class="tx-time">${tx.date}</div>
+            <div class="tx-time">${fmtLocalDate(tx.date)}</div>
           </div>
           <div class="tx-right">
             <div class="tx-amt ${isIn ? 'in' : 'pend'}">
@@ -684,18 +691,32 @@ function openTxFromAPI(i) {
   const isIn   = tx.type === 'in';
   const isZec  = (tx.token || '').toUpperCase() === 'ZEC';
   const amtStr = isZec ? fmtRewardZec(tx.amount) : tx.amount.toFixed(2);
-  const color  = isIn ? 'var(--green)' : 'var(--amber)';
+
+  let color;
+  if (tx.status === 'confirmed' || tx.status === 'paid') {
+    color = isIn ? 'var(--green)' : 'var(--green)';
+  } else if (tx.status === 'failed') {
+    color = 'var(--red)';
+  } else {
+    color = 'var(--amber)'; // pending
+  }
+
   const sign   = isIn ? '+' : '−';
   const usdVal = (tx.amount * ZEC_PRICE_USD).toFixed(2);
 
+  const hashRow = tx.tx_hash
+    ? `<div class="dr"><span class="dk">Tx Hash</span><span class="dv" style="font-family:var(--mono);font-size:.7rem">${tx.tx_hash.slice(0, 14)}…${tx.tx_hash.slice(-8)}</span></div>`
+    : '';
+
   document.getElementById('txContent').innerHTML = `
-    <div class="sbadge ${tx.type}">${tx.status}</div>
+    <div class="sbadge ${tx.status === 'failed' ? 'out' : (tx.status === 'confirmed' || tx.status === 'paid') ? 'in' : 'pend'}">${tx.status}</div>
     <div class="d-amt" style="color:${color}">${sign}${amtStr} ${tx.token}</div>
     <div class="d-usd">≈ $${usdVal} USD</div>
     <div class="dg">
       <div class="dr"><span class="dk">Description</span><span class="dv">${tx.remark || 'Transaction'}</span></div>
-      <div class="dr"><span class="dk">Date</span><span class="dv">${tx.date}</span></div>
+      <div class="dr"><span class="dk">Date</span><span class="dv">${fmtLocalDate(tx.date)}</span></div>
       <div class="dr"><span class="dk">Status</span><span class="dv">${tx.status}</span></div>
+      ${hashRow}
       <div class="dr"><span class="dk">Network</span><span class="dv">Zcash Mainnet</span></div>
     </div>`;
   document.getElementById('txOv').classList.add('open');

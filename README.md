@@ -295,6 +295,7 @@ Gleyo is live and processing real ZEC on mainnet, but it's currently in closed b
 - **Withdrawal concurrency** — withdrawals are currently processed one at a time platform-wide; per-user concurrent handling is planned next.
 - **Security audit** — the codebase has been tested extensively in production with real funds, but hasn't yet had an independent third-party review.
 - **Infrastructure redundancy** — Zebra and Nozy currently run on a single VPS without failover.
+- **Unified addresses only** — withdrawals currently require a Unified (u1...) shielded address, routed through Orchard. Legacy Sapling-only wallets (zs1...) aren't yet supported for receiving withdrawals; users on older wallets will need to upgrade to a Unified-address wallet.
 
 ---
 

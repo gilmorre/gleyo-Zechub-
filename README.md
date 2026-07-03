@@ -94,7 +94,7 @@ All transactions are shielded Orchard spends. The memo field on every withdrawal
 - **Frontend** — HTML, CSS, JavaScript (no framework)
 - **Zcash node** — [Zebra](https://github.com/ZcashFoundation/zebra) (Zcash Foundation full node)
 - **Wallet backend** — [Nozy Wallet](https://github.com/LEONINE-DAO/Nozy-wallet) by LEONINE DAO (Rust, runs on port 3000)
-- **Task integrations** — GitHub OAuth, Twitter OAuth, Discord bot, Telegram bot, TikTok
+- **Task integrations** — GitHub OAuth, Discord bot, Telegram bot, YouTube API, link-visit tasks (Twitter/X, TikTok, and webhook-based verification in progress — see limitations)
 - **Email** — Resend + SMTP fallback
 - **Push notifications** — Web Push (VAPID)
 - **Cache** — Redis

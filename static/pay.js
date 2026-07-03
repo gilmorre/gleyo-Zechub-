@@ -350,8 +350,15 @@ generateBtn.addEventListener('click', () => {
   const note = document.getElementById('note').value.trim();
   const save_paymentUrl = `/${communitySlug}/save_payment`;
 
+  const MIN_ZEC_AMOUNT = 0.001;
+
   if (!amount || amount <= 0) {
-    alert('Please enter a valid ZEC amount.');
+    showError('Please enter a valid ZEC amount.');
+    return;
+  }
+
+  if (amount < MIN_ZEC_AMOUNT) {
+    showError(`Minimum payment is ${MIN_ZEC_AMOUNT} ZEC — smaller amounts can get stuck due to network fees.`);
     return;
   }
 

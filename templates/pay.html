@@ -9,6 +9,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/qr-code-styling/lib/qr-code-styling.js" defer></script>
+  <script src="{{ url_for('static', filename='pay.js') }}" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js" defer></script>
   <style>
 
     *, *::before, *::after {
@@ -30,11 +33,15 @@
     .left-panel-form,
     .right-panel,
     #preview-panel,
-    .payment-info-box,
     #status {
       max-width: 100% !important;
       overflow-x: hidden !important;
       box-sizing: border-box !important;
+    }
+
+    .payment-info-box {
+      max-width: 340px; 
+      width: 100%;
     }
 
     body.right-panel-active {
@@ -376,8 +383,7 @@
       max-width: 100%;
       box-sizing: border-box;
     }
-    /* pay.js sizes the QR to fit the container itself, but this is a
-       backstop in case the library ever returns a fixed-size SVG. */
+
     #qrcode svg, #qrcode canvas, #qrcode img {
       display: block;
       width: 100% !important;
@@ -718,7 +724,42 @@
       transform: translate(-50%, 0);
     }
 
+    .share-row {
+      display: flex;
+      justify-content: space-around;
+      gap: 12px;
+    }
+    .share-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .share-circle {
+      width: 46px; height: 46px;
+      border-radius: 50%;
+      background: #40406047;
+      border: 1px solid #2f2f4ad5;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.18s, transform 0.15s;
+    }
+    .share-item:hover .share-circle {
+      background: #4040604b;
+      transform: translateY(-2px);
+    }
+    .share-label {
+      font-size: 12px;
+      color: rgba(255,255,255,0.55);
+    }
 
+    #share-qrcode svg, #share-qrcode canvas, #share-qrcode img {
+      display: block;
+      width: 100% !important;
+      height: 100% !important;
+      max-width: 100%;
+    }
   </style>
 </head>
 <body>
@@ -843,10 +884,57 @@
     </div>
   </div>
 
-  <audio id="payment-sound" src="/static/success.mp3" preload="auto"></audio>
-  <script src="https://unpkg.com/qr-code-styling/lib/qr-code-styling.js" defer></script>
-  <script src="{{ url_for('static', filename='pay.js') }}" defer></script>
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js" defer></script>
+
+
+
+  <div id="share-modal" class="modal">
+    <div class="modal-content" id="share-modal-content">
+      <span class="close" onclick="closeShareModal()" aria-label="Close">&#x2715;</span>
+      <h2>
+        <span class="modal-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#f4b728;width:14px;height:14px;">
+            <path d="M9 8L12 4.5L15 8"/><path d="M12 4.5L12 15"/>
+            <path d="M4 16v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1"/>
+          </svg>
+        </span>
+        Share Payment
+      </h2>
+
+      <div id="share-qr-preview" style="display:flex;align-items:center;justify-content:center;margin-bottom:18px;">
+        <div id="share-qrcode" style="border-radius:16px;overflow:hidden;background:#d9d8d8;padding:16px;width:200px;height:200px;box-sizing:border-box;"></div>
+      </div>
+
+      <div id="share-address-preview" style="font-family:'DM Mono',monospace;font-size:11px;word-break:break-all;color:#babbbe;background:#4040604b;border:1px solid #2f2f4ad5;border-radius:10px;padding:10px 12px;margin-bottom:20px;text-align:left;"></div>
+
+      <div class="share-row">
+        <div class="share-item" data-type="whatsapp">
+          <div class="share-circle">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 510 512.459" fill="#25D366" style="width:18px;height:18px;">
+              <path d="M435.689 74.468C387.754 26.471 324 .025 256.071 0 116.098 0 2.18 113.906 2.131 253.916c-.024 44.758 11.677 88.445 33.898 126.946L0 512.459l134.617-35.311c37.087 20.238 78.85 30.891 121.345 30.903h.109c139.949 0 253.88-113.917 253.928-253.928.024-67.855-26.361-131.645-74.31-179.643v-.012zm-179.618 390.7h-.085c-37.868-.011-75.016-10.192-107.428-29.417l-7.707-4.577-79.886 20.953 21.32-77.889-5.017-7.987c-21.125-33.605-32.29-72.447-32.266-112.322.049-116.366 94.729-211.046 211.155-211.046 56.373.025 109.364 22.003 149.214 61.903 39.853 39.888 61.781 92.927 61.757 149.313-.05 116.377-94.728 211.058-211.057 211.058v.011zm115.768-158.067c-6.344-3.178-37.537-18.52-43.358-20.639-5.82-2.119-10.044-3.177-14.27 3.178-4.225 6.357-16.388 20.651-20.09 24.875-3.702 4.238-7.403 4.762-13.747 1.583-6.343-3.178-26.787-9.874-51.029-31.487-18.86-16.827-31.597-37.598-35.297-43.955-3.702-6.355-.39-9.789 2.775-12.943 2.849-2.848 6.344-7.414 9.522-11.116s4.225-6.355 6.343-10.581c2.12-4.238 1.06-7.937-.522-11.117-1.584-3.177-14.271-34.409-19.568-47.108-5.151-12.37-10.385-10.69-14.269-10.897-3.703-.183-7.927-.219-12.164-.219s-11.105 1.582-16.925 7.939c-5.82 6.354-22.209 21.709-22.209 52.927 0 31.22 22.733 61.405 25.911 65.642 3.177 4.237 44.745 68.318 108.389 95.812 15.135 6.538 26.957 10.446 36.175 13.368 15.196 4.834 29.027 4.153 39.96 2.52 12.19-1.825 37.54-15.353 42.824-30.172 5.283-14.818 5.283-27.529 3.701-30.172-1.582-2.641-5.819-4.237-12.163-7.414l.011-.024z"/>
+            </svg>
+          </div>
+          <div class="share-label">WhatsApp</div>
+        </div>
+        <div class="share-item" data-type="telegram">
+          <div class="share-circle">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#29a9eb" style="width:18px;height:18px;">
+              <path d="M21.94 4.11c.29-1.23-.94-2.2-2.05-1.71L2.4 9.9c-1.13.48-1.15 2.09-.03 2.6l4.36 1.99 1.62 5.24c.19.62.98.78 1.4.28l2.44-2.93 4.4 3.35c.86.65 2.1.2 2.36-.85L21.94 4.11zM8.6 13.05l9.63-6.5c.22-.15.44.14.25.32l-8.1 7.5c-.32.3-.53.7-.6 1.14l-.28 1.83-.9-4.29z"/>
+            </svg>
+          </div>
+          <div class="share-label">Telegram</div>
+        </div>
+        <div class="share-item" data-type="sms">
+          <div class="share-circle">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+          </div>
+          <div class="share-label">SMS</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 
   <script>
     const note = document.getElementById("note");
@@ -896,6 +984,79 @@
         closeRefundPolicy();
       }
     });
+
+    function openShareModal() {
+      const walletAddr = document.getElementById('wallet-address').textContent.trim();
+      const outputText = document.getElementById('output').textContent.trim();
+      const amountInput = document.getElementById('amount');
+
+      if (!walletAddr) {
+        showToast("Generate a payment first", "error");
+        return;
+      }
+
+      document.getElementById('share-address-preview').textContent = walletAddr;
+
+      const zecUri = `zcash:${walletAddr}?amount=${amountInput.value}`;
+
+      const shareText =
+        `${outputText} — Gleyo shielded ZEC payment.\n\n` +
+        `Send to this address:\n${walletAddr}`;
+
+      document.getElementById('share-modal').dataset.shareText = shareText;
+
+      const qrContainer = document.getElementById('share-qrcode');
+      qrContainer.innerHTML = '';
+      const qr = new QRCodeStyling({
+        width: 188,
+        height: 188,
+        type: "svg",
+        data: zecUri,
+        qrOptions: { errorCorrectionLevel: "H" },
+        dotsOptions: { color: "#000000", type: "rounded" },
+        backgroundOptions: { color: "#d9d8d8" },
+        cornersSquareOptions: { type: "extra-rounded" },
+        cornersDotOptions: { type: "square" }
+      });
+      qr.append(qrContainer);
+
+      document.getElementById('share-modal').classList.add('open');
+      lockBodyScroll();
+    }
+
+    function closeShareModal() {
+      document.getElementById('share-modal').classList.remove('open');
+      unlockBodyScroll();
+    }
+
+    document.getElementById('share-btn').addEventListener('click', openShareModal);
+
+    document.getElementById('share-modal').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('share-modal')) closeShareModal();
+    });
+
+    document.querySelectorAll('#share-modal .share-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const type = item.dataset.type;
+        const shareText = document.getElementById('share-modal').dataset.shareText || '';
+        const encoded = encodeURIComponent(shareText);
+        let shareLink = '';
+
+        if (type === 'whatsapp') {
+          shareLink = `https://wa.me/?text=${encoded}`;
+        } else if (type === 'telegram') {
+          shareLink = `https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${encoded}`;
+        } else if (type === 'sms') {
+          shareLink = `sms:?body=${encoded}`;
+        }
+
+        if (shareLink) window.open(shareLink, '_blank');
+        closeShareModal();
+      });
+    });
   </script>
+
+  <audio id="payment-sound" src="/static/success.mp3" preload="auto"></audio>
+
 </body>
 </html>

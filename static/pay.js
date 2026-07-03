@@ -21,6 +21,7 @@ const checkPaidCooldown = document.getElementById('check-paid-cooldown');
 const TOKEN = 'ZEC';
 const NETWORK = 'Zcash';
 
+
 function setGenerateLoading(isLoading) {
   generateBtn.disabled = isLoading;
   if (isLoading) {

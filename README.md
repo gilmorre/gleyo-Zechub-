@@ -117,7 +117,7 @@ All transactions are shielded Orchard spends. The memo field on every withdrawal
 ### 1. Clone the repo
 
 ```bash
-git clone https://github.com/gilmorre/zechub
+git clone https://github.com/gilmorre/gleyo-Zechub-
 cd gleyo-Zechub-
 ```
 

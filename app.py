@@ -11048,7 +11048,7 @@ def process_zec_withdrawal(tx_id, address, amount_to_send, full_amount, platform
             user_balance.balance         += Decimal(str(full_amount))
             user_balance.total_withdrawn -= Decimal(str(platform_fee))
             tx.status = "failed"
-            tx.remark = "Refunded · withdrawal failed. Please try again."
+            tx.remark = "Refunded · withdrawal failed."
             db.session.commit()
             return
 
@@ -30658,4 +30658,4 @@ def page_not_found(e):
 
 
 if __name__ == "__main__":
-    socketio.run(app, host="0.0.0.0", port=8000)
+    socketio.run(app, host="0.0.0.0", port=8000, debug=True)

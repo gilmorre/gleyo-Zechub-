@@ -7,6 +7,7 @@ import string
 from sqlalchemy import Numeric
 from datetime import datetime, timedelta
 
+
 class Users(db.Model, UserMixin):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)

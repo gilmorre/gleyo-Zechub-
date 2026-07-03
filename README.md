@@ -37,7 +37,7 @@ Any project building on Zcash — or any project outside the ecosystem that want
 **For community members:**
 - Authentication is done via a micro-transaction memo code (0.00001 ZEC to Gleyo's address with a session code in the memo field)
 - Browse and complete quests, claim XP and ZEC rewards
-- Withdraw ZEC directly to any shielded Zcash address — Gleyo processes the send via Nozy API + Zebra, transaction confirms on-chain within minutes
+- Withdraw ZEC directly to a Unified shielded Zcash address (u1...) — Gleyo processes the send via Nozy API + Zebra, transaction confirms on-chain within minutes
 - Participate in the community chat
 
 ---
@@ -45,10 +45,10 @@ Any project building on Zcash — or any project outside the ecosystem that want
 ## Features
 
 * **ZEC-only rewards** — admins fund tasks in ZEC, users withdraw in ZEC, no other token supported
-* **Zcash wallet verification** — users can create an account with email, then connect and verify ownership of a shielded Zcash wallet (u1... or zs1...) using micro-transaction memo verification to access ZEC-powered functionality.
+* **Zcash wallet verification** — users can create an account with email, then connect and verify ownership of a Unified shielded Zcash wallet (u1...) using micro-transaction memo verification to access ZEC-powered functionality.
 * **Quest system** — admins create tasks with XP and/or ZEC reward pools, users complete and claim
 * **Instant reward crediting** — approved submissions credit ZEC to the user's in-app reward hub immediately
-* **Shielded withdrawals** — users withdraw to any shielded address (Sapling zs1... or Unified u1...), Gleyo sends via Nozy API with memo `Gleyo ZEC Withdrawal`
+* **Shielded withdrawals** — users withdraw to a Unified shielded address (u1...), routed through Orchard, Gleyo sends via Nozy API with memo `Gleyo ZEC Withdrawal`
 * **Multi-platform task system** — quest tasks can require actions across GitHub (star/fork), Discord, Twitter, Telegram, YouTube, and TikTok, plus link-visit and webhook-based tasks, all validated automatically before a reward can be claimed
 * **XP & community standings** — quest completions earn XP that builds a member's reputation score within each community. Members can see their standing and track progress over time, driving ongoing engagement beyond one-time ZEC reward hunting.
 * **Community chat** — built-in community space, no Discord required
@@ -59,7 +59,6 @@ Any project building on Zcash — or any project outside the ecosystem that want
   - Dropoff percentage with friction point detection
   - Growth opportunity signals: e.g. `2x users are more likely to stay if you run weekly quests`
   - Risk alerts: e.g. `You experienced 2% dropoff — possible onboarding friction on mobile`
-
 
 ---
 

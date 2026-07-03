@@ -292,12 +292,12 @@ function calcFee(amountOnly) {
       lower.startsWith('zc') || lower.startsWith('0x')) {
     addrVerified     = false;
     lastVerifiedAddr = '';
-    showAddrErr(r, '🚫 Transparent addresses not accepted — use a shielded address (zs1… or u1…)');
+    showAddrErr(r, '🚫 Only shielded Unified addresses accepted — use a u1… address');
     checkProcBtn();
     return;
   }
 
-  if (lower.startsWith('zs1') || lower.startsWith('u1')) {
+  if (lower.startsWith('u1')) {
     if (dest === lastVerifiedAddr && addrVerified) {
       checkProcBtn();
       return;
@@ -312,7 +312,7 @@ function calcFee(amountOnly) {
 
   addrVerified     = false;
   lastVerifiedAddr = '';
-  showAddrErr(r, 'Address must start with zs1 (Sapling) or u1 (Unified)');
+  showAddrErr(r, 'Address must start with u1 (Unified)');
   checkProcBtn();
 }
 
@@ -355,7 +355,7 @@ function toW1() {
 function doSend() {
   const dest  = document.getElementById('destIn')?.value?.trim() || '';
   const lower = dest.toLowerCase();
-  if (lower.startsWith('zs1') || lower.startsWith('u1')) { executeWithdraw(); return; }
+  if (lower.startsWith('u1')) { executeWithdraw(); return; }
   if (!tfaEnabled) { goToSettings(); return; }
   open2FA();
 }

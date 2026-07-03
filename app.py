@@ -10703,13 +10703,9 @@ def get_community_comments(slug):
 
 
 
-
 BECH32_CHARSET = 'qpzry9x8gf2tvdw0s3jn54khce6mua7l'
 BECH32_GEN = [0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3]
-
-BECH32_CONST = 1
 BECH32M_CONST = 0x2bc830a3
-
 
 def bech32_polymod(values):
     chk = 1
@@ -10721,65 +10717,42 @@ def bech32_polymod(values):
                 chk ^= BECH32_GEN[i]
     return chk
 
-
 def bech32_hrp_expand(hrp):
     return [ord(x) >> 5 for x in hrp] + [0] + [ord(x) & 31 for x in hrp]
 
-
 def validate_bech32_variant(addr, expected_const):
     addr = addr.lower()
-
     if len(addr) < 8:
         return False
-
     sep = addr.rfind('1')
-
     if sep < 1 or sep + 7 > len(addr):
         return False
-
     hrp = addr[:sep]
     data = addr[sep + 1:]
-
     words = []
-
     for c in data:
         idx = BECH32_CHARSET.find(c)
-
         if idx < 0:
             return False
-
         words.append(idx)
-
     return (
         bech32_polymod(
             bech32_hrp_expand(hrp) + words
         ) == expected_const
     )
 
-
 def is_valid_shielded_zec(addr):
     if not addr:
         return False
-
     lower = addr.lower()
-
-    # Mainnet Sapling
-    if lower.startswith('zs1') and len(addr) == 78:
-        return validate_bech32_variant(
-            addr,
-            BECH32_CONST
-        )
-
-    # Mainnet Unified Address
+    # Mainnet Unified Address only (Orchard)
     if lower.startswith('u1') and len(addr) >= 100:
         return validate_bech32_variant(
             addr,
             BECH32M_CONST
         )
-
     return False
-
-
+    
 
 
 @app.route("/api/github_repo_info")

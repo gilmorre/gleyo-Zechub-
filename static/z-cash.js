@@ -519,7 +519,7 @@ function inject() {
         class="zec-addr-input"
         id="zec-user-address"
         type="text"
-        placeholder="u1... or zs1..."
+        placeholder="u1..."
         autocomplete="off"
         spellcheck="false"
       />
@@ -651,8 +651,8 @@ function bindEvents() {
 
     if (!val) { errEl.textContent = ''; okEl.textContent = ''; return; }
 
-    if (!val.startsWith('u1') && !val.startsWith('zs1')) {
-      errEl.textContent = 'Must start with u1 (Unified) or zs1 (Sapling)';
+    if (!val.startsWith('u1')) {
+      errEl.textContent = 'Must start with u1 (Unified)';
       okEl.textContent = '';
       return;
     }
@@ -778,8 +778,8 @@ async function startAuth(w) {
     return;
   }
 
-  if (!userAddress.startsWith('u1') && !userAddress.startsWith('zs1')) {
-    if (addrErr) addrErr.textContent = 'Must start with u1 (Unified) or zs1 (Sapling)';
+  if (!userAddress.startsWith('u1')) {
+    if (addrErr) addrErr.textContent = 'Must start with u1 (Unified)';
     addrInput && addrInput.focus();
     return;
   }

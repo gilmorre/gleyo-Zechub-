@@ -322,6 +322,7 @@ Gleyo is live and processing real ZEC on mainnet, but it's currently in closed b
 
 * **Billing & invoicing tab** — explore optional integration with Zcash-native payment infrastructure (e.g. CipherPay) to support recurring community funding, billing, and invoicing workflows directly in ZEC while preserving Gleyo’s native funding model.
 
+* **Multi-token on-ramp for funding** — the #1 barrier to onboarding new communities isn't ZEC's utility, it's that most project owners don't hold ZEC yet. Gleyo will let owners fund their community wallet with USDC, ETH, SOL, or fiat, auto-converted to ZEC on deposit. Every dollar in still becomes ZEC — rewards, withdrawals, and on-chain activity stay 100% ZEC end-to-end. This isn't a compromise on Gleyo's ZEC-native identity — it's removing the one friction point standing between "interested in Zcash" and "actually funding a community with it."
 
 ---
 

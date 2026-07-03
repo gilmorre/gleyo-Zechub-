@@ -219,8 +219,8 @@ class UserTransaction(db.Model):
     tx_hash = db.Column(db.String(128))
     block_number = db.Column(db.String(50))
 
-    from_address = db.Column(db.String(128))
-    to_address = db.Column(db.String(128))
+    from_address = db.Column(db.String(512))
+    to_address = db.Column(db.String(512))
 
     remark = db.Column(db.String(255))  
 

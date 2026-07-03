@@ -54,6 +54,13 @@ async function fetchZecPrice() {
   } catch (_) {}
 }
 
+
+function txStatusClass(tx) {
+  if (tx.status === 'confirmed' || tx.status === 'paid') return 'in';   
+  if (tx.status === 'failed') return 'out';                            
+  return 'pend';                                                       
+}
+
 function refreshUsdDisplays() {
   const usdEl = document.getElementById('zecUsdDisplay');
   if (!usdEl) return;
@@ -415,13 +422,13 @@ function renderRecentTx() {
     const amtStr    = isZec ? fmtRewardZec(tx.amount) : tx.amount.toFixed(2);
     return `
       <div class="tx-row">
-        ${txDot(tx.type, isPending)}
+        ${txDot(tx)}
         <div class="tx-info">
           <div class="tx-desc">${tx.remark || 'Transaction'}</div>
           <div class="tx-time">${fmtLocalDate(tx.date)}</div>
         </div>
         <div class="tx-right">
-          <div class="tx-amt ${isIn ? 'in' : 'pend'}">
+          <div class="tx-amt ${txStatusClass(tx)}">
             ${isIn ? '+' : '−'}${amtStr} ${tx.token}
           </div>
         </div>
@@ -599,26 +606,37 @@ function handleOTPError(type) {
 
 let ALL_TX = [];
 
-function txDot(type, isPending) {
-  if (isPending) return `
-    <div class="tx-dot pend">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-        <circle cx="12" cy="12" r="9" stroke="#f5a623" stroke-width="1.8"/>
-        <path d="M12 7v5l3 3" stroke="#f5a623" stroke-width="1.8" stroke-linecap="round"/>
-      </svg>
-    </div>`;
+function txDot(tx) {
+  const cls = txStatusClass(tx);  
 
-  if (type === 'in') return `
-    <div class="tx-dot in">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-        <path d="M12 19V5M5 12l7 7 7-7" stroke="#12d87a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    </div>`;
+  if (cls === 'pend') {
+    return `
+      <div class="tx-dot pend">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="9" stroke="#f5a623" stroke-width="1.8"/>
+          <path d="M12 7v5l3 3" stroke="#f5a623" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      </div>`;
+  }
+
+  if (cls === 'out') {
+    return `
+      <div class="tx-dot out">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+          <path d="M7 7l10 10M17 7L7 17" stroke="#f05070" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      </div>`;
+  }
+
+  const isIncoming = tx.type === 'in';
+  const arrowPath = isIncoming
+    ? 'M12 19V5M5 12l7 7 7-7'    
+    : 'M12 5v14M19 12l-7-7-7 7'; 
 
   return `
-    <div class="tx-dot out">
+    <div class="tx-dot in">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-        <path d="M12 5v14M19 12l-7-7-7 7" stroke="#f05070" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="${arrowPath}" stroke="#12d87a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     </div>`;
 }
@@ -666,13 +684,13 @@ function openAll() {
       const amtStr    = isZec ? fmtRewardZec(tx.amount) : tx.amount.toFixed(2);
       return `
         <div class="stx" onclick="openTxFromAPI(${i})">
-          ${txDot(tx.type, isPending)}
+          ${txDot(tx)}
           <div class="tx-info">
             <div class="tx-desc">${tx.remark || 'Transaction'}</div>
             <div class="tx-time">${fmtLocalDate(tx.date)}</div>
           </div>
           <div class="tx-right">
-            <div class="tx-amt ${isIn ? 'in' : 'pend'}">
+            <div class="tx-amt ${txStatusClass(tx)}">
               ${isIn ? '+' : '−'}${amtStr} ${tx.token}
             </div>
             <div class="tx-usd">≈ $${(tx.amount * ZEC_PRICE_USD).toFixed(2)} USD</div>

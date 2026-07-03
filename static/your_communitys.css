@@ -2366,14 +2366,14 @@ body.sidebar-open .bar-quest-container svg {
  
 
 .brand-name { 
-  margin-left: 0 !important; /* space between logo and text */
+  margin-left: 0 !important;  
   font-weight: bold;
   font-family: 'Outfit', sans-serif !important;
   color: #fff;
   width: 80%;
-  white-space: nowrap;        /* keep text in one line */
-  overflow: hidden;           /* hide overflowing text */
-  text-overflow: ellipsis;    /* show "..." for overflow */
+  white-space: nowrap;         
+  overflow: hidden;           
+  text-overflow: ellipsis;  
 }
 
 

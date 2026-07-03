@@ -10752,7 +10752,7 @@ def is_valid_shielded_zec(addr):
             BECH32M_CONST
         )
     return False
-    
+
 
 
 @app.route("/api/github_repo_info")
@@ -30659,4 +30659,4 @@ def page_not_found(e):
 
 
 if __name__ == "__main__":
-    socketio.run(app, host="0.0.0.0", port=8000)
+    socketio.run(app, host="0.0.0.0", port=8000, debug=True)

@@ -49,7 +49,7 @@ Any project building on Zcash — or any project outside the ecosystem that want
 * **Quest system** — admins create tasks with XP and/or ZEC reward pools, users complete and claim
 * **Instant reward crediting** — approved submissions credit ZEC to the user's in-app reward hub immediately
 * **Shielded withdrawals** — users withdraw to a Unified shielded address (u1...), routed through Orchard, Gleyo sends via Nozy API with memo `Gleyo ZEC Withdrawal`
-* **Multi-platform task system** — quest tasks can require actions across GitHub (star/fork), Discord, Twitter, Telegram, YouTube, and TikTok, plus link-visit and webhook-based tasks, all validated automatically before a reward can be claimed
+* **Multi-platform task system** — quest tasks can require actions across GitHub (star/fork), Discord, Telegram, and YouTube, plus link-visit tasks, with Twitter/X, TikTok, and webhook-based task verification in progress (see limitations)
 * **XP & community standings** — quest completions earn XP that builds a member's reputation score within each community. Members can see their standing and track progress over time, driving ongoing engagement beyond one-time ZEC reward hunting.
 * **Community chat** — built-in community space, no Discord required
 * **Web Push notifications** — members receive real-time notifications inside and outside the app for events like new quest publications, community mentions, and chat activity, even when Gleyo is closed (with browser permission)
@@ -296,6 +296,7 @@ Gleyo is live and processing real ZEC on mainnet, but it's currently in closed b
 - **Security audit** — the codebase has been tested extensively in production with real funds, but hasn't yet had an independent third-party review.
 - **Infrastructure redundancy** — Zebra and Nozy currently run on a single VPS without failover.
 - **Unified addresses only** — withdrawals currently require a Unified (u1...) shielded address, routed through Orchard. Legacy Sapling-only wallets (zs1...) aren't yet supported for receiving withdrawals; users on older wallets will need to upgrade to a Unified-address wallet.
+- **Twitter/X, TikTok, and webhook task verification** — GitHub, Discord, Telegram, YouTube, and link-visit task verification are fully live. Twitter/X verification is currently blocked by API access costs; TikTok requires video-based verification that's still in development; webhook-based task verification is also still under development. All three are being worked on post-hackathon.
 
 ---
 

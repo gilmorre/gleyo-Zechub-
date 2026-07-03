@@ -11128,7 +11128,7 @@ def zec_withdraw():
         status='pending',
         from_address=ZCASHD_FROM_ADDRESS,
         to_address=address,
-        remark=f'Gleyo ZEC Withdrawal · {address[:8]}…{address[-4:]}',
+        remark=f'Gleyo ZEC Withdrawal',
         created_at=datetime.utcnow()
     )
     db.session.add(pending_tx)

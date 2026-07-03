@@ -270,3 +270,6 @@ class UserTwoFactor(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     user = db.relationship("Users", backref=db.backref("two_factor", uselist=False))
+
+
+    

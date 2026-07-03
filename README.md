@@ -284,7 +284,17 @@ See the [Nozy API docs](https://github.com/LEONINE-DAO/Nozy-wallet/blob/main/api
 
 A confirmed shielded withdrawal, processed end-to-end through Gleyo's Nozy + Zebra integration:
 
-<img src="./static/withdrawal-success.png" style="width: 250px; border-radius: 8px; object-fit: contain; display: block;" alt="Successful ZEC withdrawal">
+**1. Fee calculated at withdrawal request** — Gleyo shows the exact amount the user will receive after network fees:
+
+<img src="./static/fee-calculated.jpg" style="width: 250px; border-radius: 8px; object-fit: contain; display: block;" alt="Gleyo calculating withdrawal fee before sending">
+
+**2. Withdrawal submitted** — the transaction is sent via Nozy API to the Zebra node:
+
+<img src="./static/withdrawal-success.jpg" style="width: 250px; border-radius: 8px; object-fit: contain; display: block;" alt="Successful ZEC withdrawal submitted">
+
+**3. Confirmed in recipient wallet** — the exact predicted amount lands in Zodl within seconds, matching Gleyo's fee calculation precisely:
+
+<img src="./static/fee-accuracy.jpg" style="width: 250px; border-radius: 8px; object-fit: contain; display: block;" alt="Zodl wallet confirming exact predicted amount received">
 
 ---
 

@@ -358,7 +358,7 @@ generateBtn.addEventListener('click', () => {
   }
 
   if (amount < MIN_ZEC_AMOUNT) {
-    showError(`Minimum payment is ${MIN_ZEC_AMOUNT} ZEC — smaller amounts can get stuck due to network fees.`);
+    showError(`Minimum payment is ${MIN_ZEC_AMOUNT} ZEC`);
     return;
   }
 

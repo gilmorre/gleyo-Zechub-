@@ -333,6 +333,7 @@ Gleyo is live and processing real ZEC on mainnet, but it's currently in closed b
 - **[Dismad](https://github.com/dismad)** — for pointing me toward the [ZecHub Developer docs](https://zechub.wiki/developers/quick-start) and guiding me on setting up Zebra
 - **[Tron](https://github.com/onajifortune)** — whose tutorial video was a huge help in getting Zebra running
 - **Dre & the ZecHub Developer Workshop series** — for creating the space that connected builders with the knowledge, discussions, and technical sessions that helped shape parts of Gleyo's journey.
+- **Elzz** — whose Contributor Workshop session on the contributor lifecycle (education → onboarding → activation → retention) directly shaped how Gleyo's quest and retention features were structured.
 ---
 
 ## Demo

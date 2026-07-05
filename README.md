@@ -273,9 +273,9 @@ See the [Nozy API docs](https://github.com/LEONINE-DAO/Nozy-wallet/blob/main/api
 
 - All deposits are received at Gleyo's shielded Orchard address
 - Deposit verification uses Nozy `/api/sync` balance delta — no memo scanning required for deposits
-- Wallet authentication uses a 0.00001 ZEC micro-transaction with a session code in the shielded memo field
+- Wallet verification (optional) uses a 0.00001 ZEC micro-transaction with a session code in the shielded memo field
 - Quest rewards are credited to users' in-app balances on approval
-- Withdrawals are sent as shielded Orchard transactions via Nozy API with memo `Gleyo ZEC Withdrawal`
+- Withdrawals are sent as shielded Orchard transactions via Nozy API with memo `Gleyo ZEC Withdrawal`, to any Unified shielded address the user provides
 - All on-chain activity goes through Zcash mainnet via the self-hosted Zebra node
 
 ---
@@ -320,7 +320,7 @@ Gleyo is live and processing real ZEC on mainnet, but it's currently in closed b
 
 * **Additional notification channels & automation** — expand notifications beyond browser push to include smarter delivery preferences, community activity alerts, and automated engagement workflows.
 
-* **Billing & invoicing tab** — explore optional integration with Zcash-native payment infrastructure (e.g. CipherPay) to support recurring community funding, billing, and invoicing workflows directly in ZEC while preserving Gleyo’s native funding model.
+* **Billing & invoicing tab** — explore optional integration with Zcash-native payment infrastructure (e.g. CipherPay) to support recurring community funding, billing, and invoicing workflows directly in ZEC while preserving Gleyo's native funding model.
 
 * **Multi-token on-ramp for funding** — the #1 barrier to onboarding new communities isn't ZEC's utility, it's that most project owners don't hold ZEC yet. Gleyo will let owners fund their community wallet with USDC, ETH, SOL, or fiat, auto-converted to ZEC on deposit. Every dollar in still becomes ZEC — rewards, withdrawals, and on-chain activity stay 100% ZEC end-to-end. This isn't a compromise on Gleyo's ZEC-native identity — it's removing the one friction point standing between "interested in Zcash" and "actually funding a community with it."
 
@@ -332,7 +332,7 @@ Gleyo is live and processing real ZEC on mainnet, but it's currently in closed b
 - **[Zcash Foundation](https://www.zfnd.org/)** — for building and maintaining [Zebra](https://github.com/ZcashFoundation/zebra), the full node powering all of Gleyo's mainnet activity
 - **[Dismad](https://github.com/dismad)** — for pointing me toward the [ZecHub Developer docs](https://zechub.wiki/developers/quick-start) and guiding me on setting up Zebra
 - **[Tron](https://github.com/onajifortune)** — whose tutorial video was a huge help in getting Zebra running
-- **Dre & the ZecHub Developer Workshop series** — for creating the space that connected builders with the knowledge, discussions, and technical sessions that helped shape parts of Gleyo’s journey.
+- **Dre & the ZecHub Developer Workshop series** — for creating the space that connected builders with the knowledge, discussions, and technical sessions that helped shape parts of Gleyo's journey.
 ---
 
 ## Demo

@@ -533,7 +533,7 @@ NOZY_WALLET_PASSWORD = os.getenv("NOZY_WALLET_PASSWORD")
 ZCASHD_FROM_ADDRESS = os.getenv("ZCASHD_FROM_ADDRESS")
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 _nozy_lock = threading.Lock()
-
+resend.api_key = RESEND_API_KEY
 @app.context_processor
 def inject_globals():
     return {

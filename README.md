@@ -14,7 +14,6 @@ Gleyo's feature set naturally spans the contributor lifecycle — education, onb
 |---|---|---|
 | Token rewards | Multi-token (points, ERC-20) | **Native ZEC rewards** |
 | Wallet login | Web2 + Web3 | **Zcash shielded wallet** |
-| Platform Cost | Costly monthly subscriptions ($350+) for large sprints | **100% Free; funds go entirely to community rewards** |
 | Analytics | Discord/Twitter vanity metrics | **Retention rate, dropoff %, growth insights** |
 | Community | Detached Discord/Twitter | **Built-in ZEC-native community chat** |
 | Privacy | None | **Shielded by default via Orchard** |
@@ -88,7 +87,7 @@ flowchart LR
     Flask -.-> Email[Resend + SMTP]
 ```
 
-Cloudflare fronts the Flask app and handles DNS/TLS termination. The Flask app and Redis run on AWS EC2, with PostgreSQL on AWS RDS. Everything ZEC-related goes through the Nozy Wallet API, which runs on a separate Contabo VPS alongside the self-hosted Zebra full node — decoupled from the app tier by design. Nozy talks to Zebra over RPC for balance checks, deposit verification, and shielded sends, and Zebra maintains its own P2P connection to Zcash mainnet. Task verification integrations (GitHub, Discord, Telegram, YouTube) and email delivery (Resend/SMTP) are dotted lines above since they're independent, non-blocking outbound calls from the Flask app.
+Cloudflare fronts the Flask app and handles DNS/TLS termination. The Flask app and Redis run on AWS EC2, with PostgreSQL on AWS RDS. Everything ZEC-related goes through the Nozy Wallet API, which runs on a separate Contabo VPS alongside the self-hosted Zebra full node — decoupled from the app tier by design. Nozy's port is not publicly exposed: it's firewalled (UFW) to accept connections only from the Flask app's EC2 IP, with an optional API key as a second layer of auth. Nozy talks to Zebra over RPC for balance checks, deposit verification, and shielded sends, and Zebra maintains its own P2P connection to Zcash mainnet. Task verification integrations (GitHub, Discord, Telegram, YouTube) and email delivery (Resend/SMTP) are dotted lines above since they're independent, non-blocking outbound calls from the Flask app.
 
 ---
 

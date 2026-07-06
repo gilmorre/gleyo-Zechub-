@@ -38,9 +38,10 @@ Any project building on Zcash — or any project outside the ecosystem that want
 - View retention analytics: active members over 7d/30d/90d, quest completion rates, average completion time, dropoff percentage, and growth opportunity signals
 
 **For community members:**
-- Authentication is done via a micro-transaction memo code (0.00001 ZEC to Gleyo's address with a session code in the memo field)
-- Browse and complete quests, claim XP and ZEC rewards
-- Withdraw ZEC directly to a Unified shielded Zcash address (u1...) — Gleyo processes the send via Nozy API + Zebra, transaction confirms on-chain within minutes
+- Create an account with email and join a community
+- Complete quests and claim XP and/or ZEC rewards straight to your in-app reward hub — no wallet connection required to earn
+- When withdrawing, paste the Zcash shielded address (u1...) you want to withdraw to
+- Optionally, connect and verify a real Zcash shielded wallet from account settings, via a 0.00001 ZEC micro-transaction with a session code in the memo field — this is purely a convenience so Gleyo remembers your address and you don't have to copy-paste it from your wallet app every time you withdraw. It is **not** required to earn or withdraw ZEC.
 - Participate in the community chat
 
 ---
@@ -48,7 +49,7 @@ Any project building on Zcash — or any project outside the ecosystem that want
 ## Features
 
 * **ZEC-only rewards** — admins fund tasks in ZEC, users withdraw in ZEC, no other token supported
-* **Zcash wallet verification** — users can create an account with email, then connect and verify ownership of a Unified shielded Zcash wallet (u1...) using micro-transaction memo verification to access ZEC-powered functionality.
+* **Optional Zcash wallet linking** — users earn and withdraw ZEC with no wallet connection required at all; they can simply paste a shielded address at withdrawal time. Optionally, from account settings, a user can connect and verify a real Unified shielded Zcash wallet (u1...) via micro-transaction memo verification, so Gleyo remembers the address and it doesn't need to be re-pasted on future withdrawals.
 * **Quest system** — admins create tasks with XP and/or ZEC reward pools, users complete and claim
 * **Instant reward crediting** — approved submissions credit ZEC to the user's in-app reward hub immediately
 * **Shielded withdrawals** — users withdraw to a Unified shielded address (u1...), routed through Orchard, Gleyo sends via Nozy API with memo `Gleyo ZEC Withdrawal`
@@ -80,7 +81,7 @@ User completes quest → admin approves
         ↓
 ZEC credited to user's Gleyo reward hub (UserBalance)
         ↓
-User withdraws to their shielded address
+User withdraws to their shielded address (typed/pasted, or auto-filled if a wallet was optionally linked)
         ↓
 Gleyo sends via Nozy API → Zebra node → Zcash mainnet
         ↓
@@ -273,7 +274,8 @@ See the [Nozy API docs](https://github.com/LEONINE-DAO/Nozy-wallet/blob/main/api
 
 - All deposits are received at Gleyo's shielded Orchard address
 - Deposit verification uses Nozy `/api/sync` balance delta — no memo scanning required for deposits
-- Wallet verification (optional) uses a 0.00001 ZEC micro-transaction with a session code in the shielded memo field
+- Earning and withdrawing ZEC does not require connecting a wallet — a user can simply paste any Zcash shielded address (u1...) at withdrawal time
+- Optional wallet verification uses a 0.00001 ZEC micro-transaction with a session code in the shielded memo field, purely so Gleyo can remember the address and save the user from re-pasting it on future withdrawals
 - Quest rewards are credited to users' in-app balances on approval
 - Withdrawals are sent as shielded Orchard transactions via Nozy API with memo `Gleyo ZEC Withdrawal`, to any Unified shielded address the user provides
 - All on-chain activity goes through Zcash mainnet via the self-hosted Zebra node

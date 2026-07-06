@@ -10,15 +10,15 @@ Gleyo's feature set naturally spans the contributor lifecycle — education, onb
 
 ## How it compares
 
-| Feature | Dework | Zealy | Gleyo |
-|---|---|---|---|
-| Token rewards | Multi-token (DAO native, ERC-20) | Multi-token (points, ERC-20) | **ZEC only** |
-| Wallet login | MetaMask, web3 wallets | Web2 + Web3 | **Zcash shielded wallet only** |
-| Analytics | Basic task completion | Discord/Twitter vanity metrics | **Retention rate, dropoff %, growth signals** |
-| Community | Discord-synced | Detached Discord/Twitter | **Built-in ZEC-native community chat** |
-| Privacy | None — on-chain traceable | None | **Shielded by default via Orchard** |
-| Reward payout | Custodial, multi-chain | Custodial | **Non-custodial, straight to user shielded wallet** |
-| Zcash support | None | None | **Native — built on Zcash** |
+| Feature | Zealy | Gleyo |
+|---|---|---|
+| Token rewards | Multi-token (points, ERC-20) | **Native ZEC rewards** |
+| Wallet login | Web2 + Web3 | **Zcash shielded wallet** |
+| Analytics | Discord/Twitter vanity metrics | **Retention rate, dropoff %, growth insights** |
+| Community | Detached Discord/Twitter | **Built-in ZEC-native community chat** |
+| Privacy | None | **Shielded by default via Orchard** |
+| Reward payout | Custodial | **Non-custodial, straight to user shielded wallet** |
+| Zcash support | None | **Native — built on Zcash** |
 
 ---
 
@@ -209,9 +209,6 @@ REDIS_URL=redis://your_redis_url
 # ── Supabase (optional storage) ──────────────────────
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_KEY=your_supabase_anon_key
-
-# ── APIs ─────────────────────────────────────────────
-RAPIDAPI_KEY=your_rapidapi_key
 ```
 
 ### 5. Run the app

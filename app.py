@@ -509,7 +509,6 @@ DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 BEARER_TOKEN = os.getenv("TWITTER_BEARER_TOKEN")
 RESEND_API_KEY = os.getenv("RESEND_API_KEY")
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY") 
 MAIL_USERNAME=os.getenv("MAIL_USER")
 MAIL_PASSWORD=os.getenv("MAIL_PASS")
 OPENSEA_API_KEY = os.getenv("OPENSEA_API_KEY")
@@ -21640,41 +21639,6 @@ def telegram_info():
 #     return redirect(f"https://api.telegram.org/file/bot{TELEGRAM_BOT_TOKEN}/{file_path}")
 
 
-
-@app.route("/api/tiktok_info", methods=["GET"])
-def get_tiktok_info():
-    username = request.args.get("username")
-    if not username:
-        return jsonify({"error": "Username required"}), 400
-
-    url = f"https://tiktok-scraper2.p.rapidapi.com/user/info?username={username}"
-    headers = {
-        "X-RapidAPI-Key": RAPIDAPI_KEY,
-        "X-RapidAPI-Host": "tiktok-scraper2.p.rapidapi.com",
-        "User-Agent": "Mozilla/5.0"
-    }
-
-    try:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        data = response.json()
-
-        user_data = data.get("data", {}).get("user", {})
-        stats = data.get("data", {}).get("stats", {})
-
-        # Try nickname first, then uniqueId (username), fallback to username parameter
-        name = user_data.get("nickname") or user_data.get("uniqueId") or username
-
-        return jsonify({
-            "name": name,
-            "avatar": user_data.get("avatarLarger"),
-            "followers": stats.get("followerCount", 0)
-        })
-    except requests.RequestException as e:
-        print("Error fetching TikTok info:", e)
-        if 'response' in locals():
-            print("Response content:", response.text)
-        return jsonify({"error": "Failed to fetch TikTok data"}), 500
 
 @app.route("/result")  
 def result():  

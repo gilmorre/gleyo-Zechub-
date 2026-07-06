@@ -71,22 +71,24 @@ Any project building on Zcash — or any project outside the ecosystem that want
 How Gleyo's components talk to each other in production:
 
 ```mermaid
-flowchart TD
-    User[User Browser] -->|HTTPS| CF[Cloudflare]
-    CF -->|proxied| Flask[Flask App - gleyo.app]
-    Flask -->|SQLAlchemy| PG[(PostgreSQL - AWS RDS)]
-    Flask -->|cache/session| Redis[(Redis)]
-    Flask -->|REST calls| Nozy[Nozy Wallet API :3000]
-    Nozy -->|RPC| Zebra[Zebra Full Node]
-    Zebra -->|P2P| Mainnet((Zcash Mainnet))
-    Flask -->|OAuth| GitHub[GitHub OAuth]
-    Flask -->|bot/webhook| Discord[Discord Bot]
-    Flask -->|bot| Telegram[Telegram Bot]
-    Flask -->|API| YouTube[YouTube API]
-    Flask -->|SMTP/API| Email[Resend + SMTP]
+flowchart LR
+    User([User Browser]) -->|HTTPS| CF[Cloudflare]
+    CF --> Flask[Flask App<br/>AWS EC2]
+
+    Flask --> PG[(PostgreSQL<br/>AWS RDS)]
+    Flask --> Redis[(Redis<br/>AWS EC2)]
+    Flask --> Nozy[Nozy Wallet API<br/>Contabo VPS]
+    Nozy --> Zebra[Zebra Full Node<br/>Contabo VPS]
+    Zebra --> Mainnet((Zcash Mainnet))
+
+    Flask -.-> GitHub[GitHub OAuth]
+    Flask -.-> Discord[Discord Bot]
+    Flask -.-> Telegram[Telegram Bot]
+    Flask -.-> YouTube[YouTube API]
+    Flask -.-> Email[Resend + SMTP]
 ```
 
-Cloudflare fronts the Flask app and handles DNS/TLS termination. The Flask app is the central orchestrator: it persists state in PostgreSQL, uses Redis for caching/session data, and talks to the Nozy Wallet API over REST for anything ZEC-related. Nozy in turn talks to the self-hosted Zebra full node over RPC for balance checks, deposit verification, and shielded sends, with Zebra maintaining its own P2P connection to Zcash mainnet. Task verification integrations (GitHub, Discord, Telegram, YouTube) and email delivery (Resend/SMTP) run alongside as independent outbound integrations from the Flask app.
+Cloudflare fronts the Flask app and handles DNS/TLS termination. The Flask app and Redis run on AWS EC2, with PostgreSQL on AWS RDS. Everything ZEC-related goes through the Nozy Wallet API, which runs on a separate Contabo VPS alongside the self-hosted Zebra full node — decoupled from the app tier by design. Nozy talks to Zebra over RPC for balance checks, deposit verification, and shielded sends, and Zebra maintains its own P2P connection to Zcash mainnet. Task verification integrations (GitHub, Discord, Telegram, YouTube) and email delivery (Resend/SMTP) are dotted lines above since they're independent, non-blocking outbound calls from the Flask app.
 
 ---
 

@@ -492,7 +492,6 @@ async function initReviewinit() {
               ReviewitemOnlick();
               Callspadeinitreview();
               CalledOutsideooo();
-              loadeselectorreviews();
               enableReviewSelection();
 
           })
@@ -2085,15 +2084,6 @@ function buildRewardsHTML(rewards) {
 
 
 
-  function RESET_WALLET_SVGS() {
-    const copyIcon = document.querySelector(".show-svg-wall:not(.checked)");
-    const checkIcon = document.querySelector(".show-svg-wall.checked");
-
-
-    checkIcon.classList.add("hide");
-
-    copyIcon.classList.add("show");
-  }
 
 
   async function getReviewData(completionId) {
@@ -2218,7 +2208,6 @@ function openReviewPanels() {
             console.error("Failed to load review", err);
             return;
         }
-        RESET_WALLET_SVGS();
         deactivateXpMode(starBtn, freeXpBox, successBtn);
         deactivateFlagMode(flagBtn, failMainBtn);
         document.querySelectorAll(".review-textarea").forEach(textarea => {
@@ -2230,13 +2219,6 @@ function openReviewPanels() {
         item.classList.add("active-review-item");
         
         document.querySelectorAll(".showconatiner-wallet").forEach(container => {
-        const copyIcon = container.querySelector(".show-svg-wall.show, .show-svg-wall");
-        const checkIcon = container.querySelector(".show-svg-wall.hide");
-
-        if (!copyIcon || !checkIcon) return;
-
-        checkIcon.classList.remove("show");
-        checkIcon.classList.add("hide");
 
         copyIcon.classList.remove("hide");
         copyIcon.classList.add("show");
@@ -2495,90 +2477,6 @@ function openReviewPanels() {
 
 
 
-  function loadeselectorreviews() {
-    document.querySelectorAll(".showconatiner-wallet").forEach(container => {
-      const addressEl = container.querySelector(".inited-wallet-addy");
-      const copyIcon = container.querySelector(".show-svg-wall.show");
-      const checkIcon = container.querySelector(".show-svg-wall.hide");
-
-      if (!addressEl || !copyIcon || !checkIcon) return;
-
-      container.addEventListener("click", async () => {
-        const textToCopy =
-          addressEl.dataset.wallAdd || addressEl.textContent.trim();
-
-        const copied = await copyToClipboard(textToCopy);
-        if (!copied) return;
-
-        // swap icons
-        copyIcon.classList.remove("show");
-        copyIcon.classList.add("hide");
-
-        checkIcon.classList.remove("hide");
-        checkIcon.classList.add("show");
-
-        // revert after 3s
-        setTimeout(() => {
-          checkIcon.classList.remove("show");
-          checkIcon.classList.add("hide");
-
-          copyIcon.classList.remove("hide");
-          copyIcon.classList.add("show");
-        }, 3000);
-      });
-
-    });
-
-
-    async function copyToClipboard(text) {
-      // Modern browsers
-      if (navigator.clipboard && window.isSecureContext) {
-        try {
-          await navigator.clipboard.writeText(text);
-          return true;
-        } catch {
-          return fallbackCopy(text);
-        }
-      }
-      // Safari / older browsers
-      return fallbackCopy(text);
-    }
-
-    function fallbackCopy(text) {
-      try {
-        const textarea = document.createElement("textarea");
-        textarea.value = text;
-
-        textarea.setAttribute("readonly", "");
-        textarea.style.position = "absolute";
-        textarea.style.left = "-9999px";
-        textarea.style.top = "0";
-
-        document.body.appendChild(textarea);
-
-        const selection = document.getSelection();
-        const selectedRange = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
-
-        textarea.select();
-        textarea.setSelectionRange(0, textarea.value.length);
-
-        document.execCommand("copy");
-
-        document.body.removeChild(textarea);
-
-        // Restore selection (prevents flicker)
-        if (selectedRange) {
-          selection.removeAllRanges();
-          selection.addRange(selectedRange);
-        }
-
-        return true;
-      } catch {
-        return false;
-      }
-    }
-
-  }
 
 
   function MobileOnlicker() {

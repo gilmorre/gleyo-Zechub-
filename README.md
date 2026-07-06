@@ -14,9 +14,12 @@ Gleyo's feature set naturally spans the contributor lifecycle — education, onb
 |---|---|---|
 | Token rewards | Multi-token (points, ERC-20) | **Native ZEC rewards** |
 | Wallet login | Web2 + Web3 | **Zcash shielded wallet** |
+| Platform Cost | Costly monthly subscriptions ($350+) for large sprints | **100% Free; funds go entirely to community rewards** |
 | Analytics | Discord/Twitter vanity metrics | **Retention rate, dropoff %, growth insights** |
 | Community | Detached Discord/Twitter | **Built-in ZEC-native community chat** |
 | Privacy | None | **Shielded by default via Orchard** |
+| Admin Data Exposure | Exposes user emails, Twitter handles, and Discord IDs to admins | **Strictly hides emails and social IDs; admins only see app usernames** |
+| User Identity Leak | High risk of doxxing real-world identity to platform owners and admins | **Pseudonymous by design; actions do not tie back to a public identity footprint** |
 | Reward payout | Custodial | **Non-custodial, straight to user shielded wallet** |
 | Zcash support | None | **Native — built on Zcash** |
 

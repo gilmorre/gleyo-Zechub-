@@ -30551,6 +30551,105 @@ class UserTransactionAdmin(BaseAdmin):
 
 
 
+class InboxNotificationAdmin(BaseAdmin):
+
+    can_create = True
+    can_edit = True
+    can_delete = True
+
+    column_list = (
+        "id",
+        "user",
+        "community",
+        "unread_count",
+        "last_updated",
+    )
+
+    column_filters = (
+        "community",
+        "last_updated",
+    )
+
+    column_searchable_list = (
+        "user.username",
+        "user.email",
+        "community.name",
+    )
+
+    column_default_sort = ("last_updated", True)
+
+    form_columns = (
+        "user",
+        "community",
+        "unread_count",
+    )
+
+    form_ajax_refs = {
+        "user": {
+            "fields": ("username", "email"),
+        },
+        "community": {
+            "fields": ("name",),
+        },
+    }
+
+    column_labels = {
+        "user": "User",
+        "community": "Community",
+        "unread_count": "Unread Messages",
+        "last_updated": "Last Updated",
+    }
+
+    can_view_details = True
+
+
+
+
+
+class ReviewNotificationAdmin(BaseAdmin):
+
+    can_create = True
+    can_edit = True
+    can_delete = True
+
+    column_list = (
+        "id",
+        "community",
+        "pending_count",
+        "last_updated",
+    )
+
+    column_filters = (
+        "community",
+        "last_updated",
+    )
+
+    column_searchable_list = (
+        "community.name",
+    )
+
+    column_default_sort = ("last_updated", True)
+
+    form_columns = (
+        "community",
+        "pending_count",
+    )
+
+    form_ajax_refs = {
+        "community": {
+            "fields": ("name",),
+        },
+    }
+
+    column_labels = {
+        "community": "Community",
+        "pending_count": "Pending Reviews",
+        "last_updated": "Last Updated",
+    }
+
+    can_view_details = True
+
+
 admin.add_view(UserAdmin(Users, db.session))
 admin.add_view(UserTwoFactorAdmin(UserTwoFactor, db.session))
 admin.add_view(UserSessionAdmin(UserSession, db.session))
@@ -30631,6 +30730,20 @@ admin.add_view(
         CommunityRoleStyle,
         db.session,
         category="Communities"
+    )
+)
+
+admin.add_view(
+    InboxNotificationAdmin(
+        InboxNotification,
+        db.session
+    )
+)
+
+admin.add_view(
+    ReviewNotificationAdmin(
+        ReviewNotification,
+        db.session
     )
 )
 admin.add_view(PinnedMessageAdmin(PinnedMessage, db.session))

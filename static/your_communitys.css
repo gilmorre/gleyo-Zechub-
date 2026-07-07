@@ -796,86 +796,6 @@ textarea {
 
 
 
-
-/* =======================
-   FORM STYLING (FIX)
-======================= */
-.form-group {
-  margin-bottom: 22px;
-}
-
-.form-label {
-  display: block;
-  font-size: 13px;
-  font-weight: 500;
-  margin-bottom: 6px;
-  color: var(--text-main);
-}
-
-.form-label .optional {
-  font-size: 11px;
-  color: var(--text-muted);
-  margin-left: 6px;
-}
-
-/* INPUTS */
-input,
-textarea {
-  width: 100%;
-  background: var(--bg-app);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 10px 12px;
-  font-size: 14px;
-  color: var(--text-main);
-  outline: none;
-  transition: border 0.15s ease, background 0.15s ease;
-}
-
-input::placeholder,
-textarea::placeholder {
-  color: var(--text-muted);
-}
-
-/* TEXTAREA */
-textarea {
-  min-height: 96px;
-  resize: vertical;
-}
-
-/* FOCUS STATE */
-input:focus,
-textarea:focus {
-  border-color: #6366f1; /* indigo accent */
-}
-
-/* HELP TEXT */
-.form-group small {
-  display: block;
-  margin-top: 6px;
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-/* =======================
-   SAVE BUTTON
-======================= */
-.save-btn {
-  background: #6366f1;
-  border: none;
-  color: #fff;
-  font-size: 14px;
-  font-weight: 500;
-  padding: 10px 16px;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: background 0.15s ease, transform 0.05s ease;
-}
-
-.save-btn:hover {
-  background: #5558e8;
-}
-
 .save-btn:active {
   transform: translateY(1px);
 }
@@ -5082,7 +5002,7 @@ border-top-color: var(--text-main) !important;
 .custom-radio:hover{
   background:var(--bg-surface-active-hover);
 }
-/* hide only radios / checkboxes */
+
 .custom-radio input[type="radio"],
 .custom-radio input[type="checkbox"]{
   display:none;

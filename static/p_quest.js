@@ -1350,6 +1350,8 @@ function initQuestFilters() {
   });
 
   document.addEventListener("change", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     const input = e.target;
     if (!input.closest(".quest-filter-dropdown")) return;
 

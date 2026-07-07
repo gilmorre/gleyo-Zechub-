@@ -18,7 +18,7 @@ Gleyo's feature set naturally spans the contributor lifecycle — education, onb
 | Community | Detached Discord/Twitter | **Built-in ZEC-native community chat** |
 | Privacy | None | **Shielded by default via Orchard** |
 | Admin Data Exposure | Exposes user emails, Twitter handles, and Discord IDs to admins | **Strictly hides emails and social IDs; admins only see app usernames** |
-| User Identity Leak | High risk of doxxing real-world identity to platform owners and admins | **Pseudonymous by design; actions do not tie back to a public identity footprint** |
+| User Identity Leak | Linked emails and social accounts create phishing targeting risk | **No email or social identity exposed to community admins** |
 | Reward payout | Custodial | **Non-custodial, straight to user shielded wallet** |
 | Zcash support | None | **Native — built on Zcash** |
 

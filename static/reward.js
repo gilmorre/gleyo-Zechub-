@@ -1,6 +1,6 @@
 (function () {
 
-let ZEC_PRICE_USD = 540;
+let ZEC_PRICE_USD = 460;
 const ZEC_NET_FEE  = 0.001;   
 const ZEC_PLATFORM = 0.03;
 const ZEC_MIN      = 0.00185;

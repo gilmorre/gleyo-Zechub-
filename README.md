@@ -87,7 +87,9 @@ flowchart LR
     Flask -.-> Email[Resend + SMTP]
 ```
 
-Cloudflare fronts the Flask app and handles DNS/TLS termination. The Flask app and Redis run on AWS EC2, with PostgreSQL on AWS RDS. Everything ZEC-related goes through the Nozy Wallet API, which runs on a separate Contabo VPS alongside the self-hosted Zebra full node — decoupled from the app tier by design. Nozy's port is not publicly exposed: it's firewalled (UFW) to accept connections only from the Flask app's EC2 IP, with an optional API key as a second layer of auth. Nozy talks to Zebra over RPC for balance checks, deposit verification, and shielded sends, and Zebra maintains its own P2P connection to Zcash mainnet. Task verification integrations (GitHub, Discord, Telegram, YouTube) and email delivery (Resend/SMTP) are dotted lines above since they're independent, non-blocking outbound calls from the Flask app.
+Cloudflare fronts the Flask app and handles DNS/TLS termination. The Flask app and Redis run on AWS EC2, with PostgreSQL on AWS RDS. Everything ZEC-related goes through the Nozy Wallet API, which runs on a separate Contabo VPS alongside the self-hosted Zebra full node, decoupled from the app tier by design.
+
+Nozy's port is not publicly exposed. UFW restricts access to the Flask app's EC2 IP, and every request is authenticated using an API key as a second layer of security. Nozy communicates with Zebra over RPC for balance checks, deposit verification, and shielded transactions, while Zebra maintains its own P2P connection to the Zcash mainnet. Task verification integrations (GitHub, Discord, Telegram, and YouTube), together with email delivery (Resend/SMTP), are shown as dotted lines because they are independent, non-blocking outbound calls from the Flask app.
 
 ---
 

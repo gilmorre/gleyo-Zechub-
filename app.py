@@ -11,6 +11,7 @@ import smtplib
 import secrets
 import base64
 import uuid
+import redis
 import hashlib
 import asyncio
 import subprocess
@@ -255,15 +256,47 @@ limiter.init_app(app)
  
 
  
+
+
 app.secret_key = os.getenv("SECRET_KEY")
+
+REDIS_URL = os.getenv("REDIS_URL") 
+
+redis_client = None
+if REDIS_URL:
+    try:
+        redis_client = redis.from_url(
+            REDIS_URL,
+            socket_connect_timeout=2,
+            socket_timeout=2,
+            decode_responses=False,  # Flask-Session needs raw bytes
+        )
+        redis_client.ping()
+        print("✅ Redis session backend connected")
+    except Exception as e:
+        print(f"⚠️ Redis unavailable, falling back to filesystem sessions: {e}")
+        redis_client = None
+
+if redis_client:
+    app.config.update(
+        SESSION_TYPE="redis",
+        SESSION_REDIS=redis_client,
+        SESSION_PERMANENT=True,
+        PERMANENT_SESSION_LIFETIME=timedelta(days=30),
+        SESSION_KEY_PREFIX="gleyo_sess:",
+    )
+else:
+    app.config.update(
+        SESSION_TYPE="filesystem",
+        SESSION_PERMANENT=True,
+        PERMANENT_SESSION_LIFETIME=timedelta(days=30),
+    )
+
 app.config.update(
-    SESSION_TYPE="filesystem",
     SESSION_COOKIE_NAME="gleyo_session",
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SECURE=True,
     SESSION_COOKIE_SAMESITE="Lax",
-    SESSION_PERMANENT=True,
-    PERMANENT_SESSION_LIFETIME=timedelta(days=30),
     MAX_CONTENT_LENGTH=5 * 1024 * 1024,
     MAIL_SERVER="smtp.gmail.com",
     MAIL_PORT=587,

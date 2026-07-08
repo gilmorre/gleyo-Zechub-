@@ -126,7 +126,7 @@ All transactions are shielded Orchard spends. The memo field on every withdrawal
 - **Task integrations** — GitHub OAuth, Discord bot, Telegram bot, YouTube API, link-visit tasks (Twitter/X, TikTok, and webhook-based verification in progress — see limitations)
 - **Email** — Resend + SMTP fallback
 - **Push notifications** — Web Push (VAPID)
-- **Cache** — Redis
+- **Cache** — Redis (also used for session storage, with automatic fallback to filesystem sessions if unavailable)
 
 > Gleyo does not require lightwalletd. Nozy Wallet connects to Zebra directly for compact block sync and shielded transaction broadcasting.
 
@@ -233,6 +233,12 @@ VAPID_PUBLIC_KEY=your_vapid_public_key
 VAPID_PRIVATE_KEY=your_vapid_private_key
 
 # ── Redis ────────────────────────────────────────────
+# Used for session storage (and recommended for rate limiting).
+# If unset or unreachable, Gleyo automatically falls back to
+# filesystem-based sessions — the app will still run, but sessions
+# won't persist across multiple app instances/workers, and are more
+# prone to file-locking issues under concurrent load. Redis is strongly
+# recommended for anything beyond local single-process dev.
 REDIS_URL=redis://your_redis_url
 
 # ── Supabase (optional storage) ──────────────────────

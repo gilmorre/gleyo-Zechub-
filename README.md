@@ -270,7 +270,7 @@ cargo install --locked --bin zebrad zebrad
 zebrad start
 ```
 
-> Zebra must sync to Orchard activation height (~1.8M blocks) before Nozy can operate. Full sync to mainnet tip (~3.38M+ blocks) is required for live withdrawals and deposit verification.
+> Zebra must sync to Orchard activation height (~1.8M blocks) before Nozy can operate. Full sync to mainnet tip (~3.4M+ blocks) is required for live withdrawals and deposit verification.
 
 ---
 

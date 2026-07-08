@@ -513,45 +513,43 @@ async function loadAllQuests() {
     window.__INIT_SUBQUEST_UUID__
   ) {
 
+   
+    const initQuestUUID = window.__INIT_QUEST_UUID__;
+    const initSubUUID   = window.__INIT_SUBQUEST_UUID__;
+    window.__FROM_SLUG_ROUTE__   = false;
+    window.__INIT_QUEST_UUID__   = null;
+    window.__INIT_SUBQUEST_UUID__ = null;
+
     requestAnimationFrame(() => {
 
       const boxInit = document.querySelector(
-        `.preview-box[data-quest="${window.__INIT_QUEST_UUID__}"][data-subquest="${window.__INIT_SUBQUEST_UUID__}"]`
+        `.preview-box[data-quest="${initQuestUUID}"][data-subquest="${initSubUUID}"]`
       );
-
-
 
       if (!boxInit) {
         console.warn("❌ Auto-route preview-box not found");
         return;
       }
 
-      // set active UI
       document.querySelectorAll(".preview-box.active")
         .forEach(b => b.classList.remove("active"));
 
       boxInit.classList.add("active");
 
-      // open panel
       const container = document.querySelector(".quest-complete");
       const layout    = document.querySelector(".layout-root");
 
       if (container) container.classList.remove("quest-hidden");
       if (layout) layout.classList.add("quest-open");
 
-      // 🔥 direct load
       routeToSubquest(boxInit);
 
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          scrollToSubquestByUUID(window.__INIT_SUBQUEST_UUID__);
+          scrollToSubquestByUUID(initSubUUID);
         });
-      })
-
+      });
     });
-
-
-    
   }
   
   document.addEventListener("click", (e) => {
@@ -4225,6 +4223,11 @@ function initPreviewBoxRouting(){
     e.preventDefault();
     e.stopPropagation();
 
+    if (box.classList.contains("pending")) {
+      console.log("⛔ [click] Blocked — quest is pending");
+      return;
+    }
+
     routeToSubquest(box);  
   });
 
@@ -4526,6 +4529,7 @@ async function routeToSubquest(box){
   const showNext = hasNextPlayableQuest(box);
   const subUUID   = box.dataset.subquest;
   if(!questUUID || !subUUID) return;
+
   pushSubquestURL(questUUID, subUUID);
   initResponsivePreviewGrid();
   createQuestCompleteSkeleton(container);
@@ -5490,7 +5494,6 @@ function createRewardModal(reward, index) {
               <div class="xp-reward-col">
                 <div class="xp-reward-method-label">Reward method</div>
                 <div class="xp-reward-method">
-                  <span class="dist-icon">${distInfo.icon}</span>
                   <span class="dist-text">${distInfo.text}</span>
                 </div>
               </div>
@@ -5526,7 +5529,6 @@ function createRewardModal(reward, index) {
               <div class="xp-reward-col">
                 <div class="xp-reward-method-label">Reward method</div>
                 <div class="xp-reward-method">
-                  <span class="dist-icon">${distInfo.icon}</span>
                   <span class="dist-text">${distInfo.text}</span>
                 </div>
               </div>
@@ -5576,7 +5578,6 @@ function createRewardModal(reward, index) {
                 <div class="xp-reward-col">
                   <div class="xp-reward-method-label">Reward method</div>
                   <div class="xp-reward-method">
-                    <span class="dist-icon">${distInfo.icon}</span>
                     <span class="dist-text">${distInfo.text}</span>
                   </div>
                 </div>
@@ -5614,7 +5615,6 @@ function createRewardModal(reward, index) {
               <div class="xp-reward-col">
                 <div class="xp-reward-method-label">Reward method</div>
                 <div class="xp-reward-method">
-                  <span class="dist-icon">${distInfo.icon}</span>
                   <span class="dist-text">${distInfo.text}</span>
                 </div>
               </div>
@@ -5719,7 +5719,6 @@ function getDistributionInfo(distType) {
     : distType.charAt(0) + distType.slice(1).toLowerCase();
 
   return {
-    icon: iconSvg,   
     text
   };
 }

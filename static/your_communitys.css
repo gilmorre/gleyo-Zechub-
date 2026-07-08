@@ -3333,7 +3333,6 @@ select:-webkit-autofill {
   }
   .profile-info {
     padding: 6px 16px;
-    background-color: pink;    /* your pill background */
 
 
     margin-bottom: 20px;  /* tighter pill */
@@ -4570,21 +4569,9 @@ border-top-color: var(--text-main) !important;
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+.js-link-preview {
+  width: 100%;
+}
 
 
 .tasks-list {

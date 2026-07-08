@@ -10341,6 +10341,26 @@ def process_single_review(completion, task_review, status, reviewer_id,
             user_bal.total_earned = (user_bal.total_earned or Decimal("0")) + amount
             user_bal.updated_at   = datetime.utcnow()
 
+            # ── 🔓 RELEASE FROM COMMUNITY WALLET LOCKED BALANCE ──────────────────
+            # Mirrors claim_subquest: this ZEC was pre-locked at publish time.
+            # Now it's actually paid out, so it permanently leaves locked_balance
+            # (not available_balance — it's spent, not freed for re-locking).
+            amount_zatoshi = int(round(amount * Decimal("100000000")))
+
+            wallet = CommunityWallet.query.filter_by(
+                community_id=community_id
+            ).with_for_update().first()
+
+            if wallet:
+                wallet.locked_balance = max(0, (wallet.locked_balance or 0) - amount_zatoshi)
+                wallet.updated_at = datetime.utcnow()
+            else:
+                print(f"⚠️ No CommunityWallet found for community {community_id} — cannot release locked funds")
+
+            completion.subquest.locked_zec_zatoshi = max(
+                0, (completion.subquest.locked_zec_zatoshi or 0) - amount_zatoshi
+            )
+
             # ── Log transaction ───────────────────────────────────────────────
             db.session.add(UserTransaction(
                 user_id      = completion.user_id,
@@ -10352,7 +10372,7 @@ def process_single_review(completion, task_review, status, reviewer_id,
                 remark       = f"Reward · {completion.subquest.name} · completion:{completion.id}",
             ))
 
-            print(f"✅ Review approved — credited {amount} {token} to user {completion.user_id}")
+            print(f"✅ Review approved — credited {amount} {token} to user {completion.user_id}, released {amount_zatoshi} zatoshi from locked balance")
 
 
     # =========================
@@ -15458,6 +15478,15 @@ def publish_subquest(community_slug):
         if amount_zec <= 0:
             continue
 
+        # 🔒 ALL-type token rewards must have a max_claim cap — otherwise
+        # the fund lock can never cover every eventual claimer.
+        if distribution_type == "ALL" and not max_claim:
+            db.session.rollback()
+            return jsonify({
+                'success': False,
+                'error': 'Token rewards using "All" distribution require a max claim limit to be set before publishing.'
+            }), 400
+
         amount_zatoshi = int(round(amount_zec * 100_000_000))
         subcontent = reward_data.get("subcontent") or {}
 
@@ -15470,13 +15499,11 @@ def publish_subquest(community_slug):
                 num_rewards = int(subcontent.get("num_rewards", 0))
             except (ValueError, TypeError):
                 num_rewards = 0
-
             num_rewards = num_rewards if num_rewards > 0 else 1
             total_zec_needed_zatoshi += amount_zatoshi * num_rewards
 
-        else:  # "ALL" or anything unrecognized
-            claims_to_lock = max_claim if max_claim else 1
-            total_zec_needed_zatoshi += amount_zatoshi * claims_to_lock
+        else:  # "ALL" — max_claim is guaranteed set at this point
+            total_zec_needed_zatoshi += amount_zatoshi * max_claim
 
     # Only re-check/re-lock funds if this subquest has token rewards
     # and is transitioning into a published state (was_draft) OR
@@ -17765,7 +17792,8 @@ def preview_subquest(community_slug):
     # =========================
     return render_template(
         "subquest_content.html",
-        preview_mode=True,   # 🔥 critical flag
+        preview_mode=True,  
+        fcfs_claimed_count={},
         subquest=subquest,
         tasks=tasks,
         remaining_seconds=0,
@@ -17785,24 +17813,30 @@ def preview_subquest(community_slug):
 def test_claim_subquest(subquest_uuid):
     user = current_user
 
+    # ⚠️ GUARD: this is a PREVIEW-ONLY endpoint. It must NEVER touch
+    # UserBalance, CommunityWallet, UserTransaction, or any real reward
+    # crediting logic. It only validates against PreviewTaskState.
+    # If you're editing this route and reaching for wallet/balance code,
+    # STOP — that belongs in claim_subquest, not here.
+
     # ==============================
     # 1) Load real subquest (META ONLY)
     # ==============================
     subquest = Subquest.query.filter_by(uuid=subquest_uuid).first()
     if not subquest:
+        print(f"🚫 [test_claim] Subquest not found for uuid={subquest_uuid}, user={user.id}")
         return jsonify({
             "success": False,
-            "error_code": "REDIRECT",
-            "redirect": "/"
-        }), 404
+            "error": "Subquest not found"
+        }), 403
 
     community = Community.query.filter_by(id=subquest.quest.community_id).first()
     if not community:
+        print(f"🚫 [test_claim] Community not found for subquest_id={subquest.id}, user={user.id}")
         return jsonify({
             "success": False,
-            "error_code": "REDIRECT",
-            "redirect": "/"
-        }), 404
+            "error": "Community not found"
+        }), 403
 
     user_id = user.id
 
@@ -17810,17 +17844,17 @@ def test_claim_subquest(subquest_uuid):
     # 2) Membership + ban checks
     # ==============================
     if not has_role(user_id, community.id, "member"):
+        print(f"🚫 [test_claim] User {user_id} not a member of community {community.id}")
         return jsonify({
             "success": False,
-            "error_code": "MAX_CLAIM_REACHED",
-            "toast": f"You are not yet a member of {community.name}"
+            "error": f"You are not yet a member of {community.name}"
         }), 403
 
     if check_banned(user_id, community.id):
+        print(f"🚫 [test_claim] User {user_id} is banned from community {community.id}")
         return jsonify({
             "success": False,
-            "error_code": "MAX_CLAIM_REACHED",
-            "toast": "You are banned from this community."
+            "error": "You are banned from this community."
         }), 403
 
     # ==========================================================
@@ -17831,6 +17865,12 @@ def test_claim_subquest(subquest_uuid):
         subquest_uuid=subquest_uuid
     ).all()
 
+    if not preview_tasks:
+        print(f"🚫 [test_claim] No PreviewTaskState found for user={user.id}, subquest_uuid={subquest_uuid}")
+        return jsonify({
+            "success": False,
+            "error": "No preview session found for this subquest"
+        }), 403
 
     # ==============================
     # 4) Parse frontend payload
@@ -17852,6 +17892,8 @@ def test_claim_subquest(subquest_uuid):
         "files":               request.files.getlist("files")
     }
 
+    print(f"🧪 [test_claim] user={user.id} subquest_uuid={subquest_uuid} preview_tasks={len(preview_tasks)}")
+
     # ==============================
     # 5) VALIDATE (PREVIEW ENGINE)
     # ==============================
@@ -17870,13 +17912,12 @@ def test_claim_subquest(subquest_uuid):
     if av_data:
         auto_validate = bool(av_data.get("value", False))
 
+    print(f"🧪 [test_claim] result.success={result['success']} auto_validate={auto_validate}")
 
     # ---------- ALL SUCCESS ----------
     if result["success"]:
 
-        # 🔥 AUTO-VALIDATION LOGIC (same as real claim)
         if auto_validate:
-            # instant success
             return jsonify({
                 "success": True,
                 "pending_review": False,
@@ -17886,7 +17927,6 @@ def test_claim_subquest(subquest_uuid):
             })
 
         else:
-            # requires manual review
             return jsonify({
                 "success": True,
                 "pending_review": True,
@@ -17894,7 +17934,6 @@ def test_claim_subquest(subquest_uuid):
                 "max_claimed_count": subquest.claim_count,
                 "max_claim": subquest.max_claim
             })
-
 
     # ---------- FAILURE ----------
     else:
@@ -17907,7 +17946,6 @@ def test_claim_subquest(subquest_uuid):
         if cd_data:
             cd_type = cd_data.get("type")
 
-            # normalize
             if isinstance(cd_type, str):
                 cd_type = cd_type.strip().lower()
 
@@ -17937,20 +17975,17 @@ def test_claim_subquest(subquest_uuid):
                     unit, value = rule
                     cooldown_until = (now + timedelta(**{unit: value})).isoformat()
 
+        print(f"🧪 [test_claim] validation failed for user={user.id} errors={result['errors']}")
+
         return jsonify({
             "success": False,
             "message": "Some tasks are not yet complete.",
             "errors": result["errors"],
-
-            # 🔥 PREVIEW STATE FLAGS
             "cooldown_until": cooldown_until,
             "no_retry": no_retry,
-
             "max_claimed_count": subquest.claim_count,
             "max_claim": subquest.max_claim
         })
-
-
 
 
 
@@ -19944,9 +19979,12 @@ def analytics_insights(community_slug):
 @login_required
 @csrf.exempt
 def claim_subquest(subquest_id):
+    print("started")
     user = current_user
     session = db.session
-    session = db.session
+    print("passed session")
+
+
 
     subquest = db.session.get(Subquest, subquest_id)
 
@@ -19955,6 +19993,9 @@ def claim_subquest(subquest_id):
             "success": False,
             "message": "This quest no longer exists."
         }), 404
+
+    print("pass subquest filter")
+    
 
     community = subquest.quest.community
     community_id = subquest.quest.community_id
@@ -19967,13 +20008,12 @@ def claim_subquest(subquest_id):
         }), 404
 
  
-    user_id = user.id
 
 
     # ==============================
     # 3) Membership check
     # ==============================
-    if not has_role(user_id, community.id, "member"):
+    if not has_role(user.id, community.id, "member"):
         return jsonify({
             "success": False,
             "error_code": "MAX_CLAIM_REACHED",
@@ -19984,7 +20024,7 @@ def claim_subquest(subquest_id):
     # ==============================
     # 4) Ban check
     # ==============================
-    if check_banned(user_id, community_id):
+    if check_banned(user.id, community_id):
         return jsonify({
             "success": False,
             "error_code": "MAX_CLAIM_REACHED",
@@ -19995,7 +20035,7 @@ def claim_subquest(subquest_id):
     # ==============================
     # 5) Recurrence check
     # ==============================
-    can_claim = can_claim_recurrence(user_id, subquest)
+    can_claim = can_claim_recurrence(user.id, subquest)
 
     if not can_claim:
         return jsonify({
@@ -20660,6 +20700,30 @@ def claim_subquest(subquest_id):
                 user_bal.total_earned  = (user_bal.total_earned  or Decimal("0")) + amount
                 user_bal.updated_at    = datetime.utcnow()
 
+                # ── 🔓 RELEASE FROM COMMUNITY WALLET LOCKED BALANCE ──────────────────
+                # This ZEC was pre-locked at publish time. Now that it's actually
+                # paid out to a winner, it must leave locked_balance permanently —
+                # it does NOT go back to available_balance, it's spent.
+                amount_zatoshi = int(round(amount * Decimal("100000000")))
+
+                wallet = CommunityWallet.query.filter_by(
+                    community_id=subquest.quest.community_id
+                ).with_for_update().first()
+
+                if wallet:
+                    wallet.locked_balance = max(0, (wallet.locked_balance or 0) - amount_zatoshi)
+                    wallet.updated_at = datetime.utcnow()
+                else:
+                    print(f"⚠️ No CommunityWallet found for community {subquest.quest.community_id} — cannot release locked funds")
+
+                # Keep the subquest's own locked tracker in sync too, so that if this
+                # subquest gets edited/republished later, publish_subquest's
+                # "release previous_locked" step doesn't over-release funds that
+                # were already paid out via claims.
+                subquest.locked_zec_zatoshi = max(
+                    0, (subquest.locked_zec_zatoshi or 0) - amount_zatoshi
+                )
+
                 # ── Log the transaction ───────────────────────────────────────────────
                 db.session.add(UserTransaction(
                     user_id      = user.id,
@@ -20671,7 +20735,7 @@ def claim_subquest(subquest_id):
                     remark       = f"Reward · {subquest.name} · completion:{subquest_completion.id}",
                 ))
 
-                print(f"✅ Credited {amount} {token} to user {user.id} for completing {subquest.name}")
+                print(f"✅ Credited {amount} {token} to user {user.id} for completing {subquest.name} — released {amount_zatoshi} zatoshi from locked balance")
         else:
             subquest_completion.status = "pending"
             subquest_completion.assigned_rewards = []  

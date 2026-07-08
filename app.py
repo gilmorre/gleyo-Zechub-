@@ -269,12 +269,12 @@ if REDIS_URL:
             REDIS_URL,
             socket_connect_timeout=2,
             socket_timeout=2,
-            decode_responses=False,  # Flask-Session needs raw bytes
+            decode_responses=False,  
         )
         redis_client.ping()
-        print("✅ Redis session backend connected")
+        logger.info("✅ Redis session backend connected: %s", REDIS_URL.split("@")[-1])
     except Exception as e:
-        print(f"⚠️ Redis unavailable, falling back to filesystem sessions: {e}")
+        logger.warning("⚠️ Redis unavailable, falling back to filesystem sessions: %s", e)
         redis_client = None
 
 if redis_client:
@@ -309,7 +309,6 @@ app.config.update(
     REMEMBER_COOKIE_SAMESITE="Lax",
     REMEMBER_COOKIE_SECURE=True
 )
-
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 

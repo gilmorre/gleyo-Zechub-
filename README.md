@@ -4,6 +4,8 @@ Gleyo is a Zcash-native quest and community growth platform where any project �
 
 Built for the [ZecHub Hackathon 2026](https://zechub.wiki/hackathon) — Infrastructure Track.
 
+🔗 **Live:** [gleyo.app](https://gleyo.app)
+
 Gleyo's feature set naturally spans the contributor lifecycle — education, onboarding, activation, skill development, alignment, and retention — concepts discussed at ZecHub's Contributor Workshop (June 8, 2026).
 
 ---

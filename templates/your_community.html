@@ -5301,27 +5301,30 @@ window.addEventListener("popstate", async () => {
 let __CURRENT_SCRIPT__ = null;
 
 function unloadCurrentScript() {
+  window.AialModule?.destroy?.();
+  window.PQUESTModule?.destroy?.();
+  window.QuestModule?.destroy?.();
+  window.ReviewsModule?.destroy?.();
+  window.MainModule?.destroy?.();
+  window.inBoxModule?.destroy?.();
+  window.PartnershipsModule?.destroy?.();
+  window.TeamInviteModule?.destroy?.();
+  window.ReviewModule?.destroy?.();
+  window.MyPAYMENTModule?.destroy?.();
+  window.AnalyticsModule?.destroy?.();
+  window.LeaderboardModule?.destroy?.();
+  window.SprintViewinit?.destroy?.();
+  window.SprintPanelsEdit?.destroy?.();
 
   if (__CURRENT_SCRIPT__) {
-    document
-      .querySelector(
-        `script[src="${__CURRENT_SCRIPT__}"]`
-      )
-      ?.remove();
-
+    document.querySelector(`script[src="${__CURRENT_SCRIPT__}"]`)?.remove();
     __CURRENT_SCRIPT__ = null;
   }
 
-  window.__zecPriceInterval &&
-    clearInterval(window.__zecPriceInterval);
-
-  window.__zecWidgetPriceInterval &&
-    clearInterval(window.__zecWidgetPriceInterval);
-
+  window.__zecPriceInterval && clearInterval(window.__zecPriceInterval);
+  window.__zecWidgetPriceInterval && clearInterval(window.__zecWidgetPriceInterval);
   window.__rewardPriceCleanup?.();
-
   window.__rewardPriceCleanup = null;
-
 }
 
 

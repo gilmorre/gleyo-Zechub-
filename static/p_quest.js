@@ -1,6 +1,22 @@
 (function () {
+let controller = null;
 
 async function LetsitQuestUp() {
+  controller?.abort();
+  controller = new AbortController();
+  document.addEventListener("click", async (e) => {
+    const claimBtn = e.target.closest("#claim-task");
+    if (!claimBtn) return;
+
+    if (claimBtn.hasAttribute("disabled")) return;
+
+    claimBtn.setAttribute("disabled", "true");
+    claimBtn.style.cursor = "wait";
+
+    const subquestId = claimBtn.dataset.subquestId;
+
+    handleClaim(subquestId, claimBtn);
+  }, { signal: controller.signal });
   renderQuestSkeleton(4);
 
   const mode = detectSprintMode();
@@ -4973,22 +4989,6 @@ window.launchConfetti = function () {
 
 
 
-
-document.addEventListener("click", async (e) => {
-  const claimBtn = e.target.closest("#claim-task");
-  if (!claimBtn) return;
-
-  if (claimBtn.hasAttribute("disabled")) return;
-
-  claimBtn.setAttribute("disabled", "true");
-  claimBtn.style.cursor = "wait";
-
-  const subquestId = claimBtn.dataset.subquestId;
-
-  handleClaim(subquestId, claimBtn);
-});
-
-
 const reviewBadgeEl = () => document.querySelector(".reviews-init");
 
 function updateReviewBadgeDelta(delta) {
@@ -5071,7 +5071,7 @@ function scrollToFirstTaskError() {
 
 async function handleClaim(subquestId, claimBtn){
   if (!claimBtn.classList.contains("enabled")) return;
-  const originalHTML = claimBtn.innerHTML;   // save original ("Claim")
+  const originalHTML = claimBtn.innerHTML;    
 
   claimBtn.innerHTML = IsloadingInit;      
   claimBtn.setAttribute("disabled", "true");
@@ -5730,7 +5730,8 @@ function getDistributionInfo(distType) {
 
 
   window.PQUESTModule = {
-    init: LetsitQuestUp
+    init: LetsitQuestUp,
+    destroy() { controller?.abort(); controller = null; }
   };
 
 })();

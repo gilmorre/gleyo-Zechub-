@@ -1565,7 +1565,7 @@ async function initReviewinit() {
 
       const answer = task.user_input?.quiz_answer || task.user_input?.quiz || {};
       const indexes = answer.selected_indexes || [];
-      const texts = answer.selected_text || [];
+      const texts = answer.selected_texts || [];
 
       const ABC = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
@@ -1590,7 +1590,7 @@ async function initReviewinit() {
 
       const answer = task.user_input?.poll_answer || {};
       const indexes = answer.selected_indexes || [];
-      const texts = answer.selected_text || [];
+      const texts = answer.selected_texts || [];
 
       const ABC = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 

@@ -2000,7 +2000,8 @@
 
   loadInsights();
   window.AnalyticsModule = {
-    init: AnalyticisInit
+    init: AnalyticisInit,
+    destroy() { controller?.abort(); controller = null; }
   };
 
 

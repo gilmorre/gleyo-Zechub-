@@ -1,4 +1,5 @@
 (function () {
+let controller = null;
 
 let selectedSprint = null;
 function getUuidsFromUrl() {
@@ -3377,50 +3378,6 @@ document.querySelectorAll(".condition .option").forEach(option => {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  
-
-
-
-
-
-
-  
-
-document.addEventListener("click", async (e) => {
-  const claimBtn = e.target.closest("#claim-task");
-  if (!claimBtn) return;
-
-  if (claimBtn.hasAttribute("disabled")) return;
-
-  claimBtn.setAttribute("disabled", "true");
-  claimBtn.style.cursor = "wait";
-
-  const subquestId = claimBtn.dataset.subquestId;
-
-  handlePreviewClaim(subquestId, claimBtn);
-});
-
-
 function initCooldownTimers() {
   const timers = document.querySelectorAll(".cooldown-retry");
   if (!timers.length) return;
@@ -3574,11 +3531,11 @@ window.launchConfetti = function () {
 
   const floatDefaults = {
     spread: 140,
-    ticks: 1200,          // 🔥 very long life
-    gravity: 0.02,        // 🔥 near zero gravity
-    decay: 0.995,         // 🔥 almost no decay
-    startVelocity: 0.6,   // 🔥 ultra slow start
-    scalar: 0.3,          // fine particles
+    ticks: 1200,           
+    gravity: 0.02,         
+    decay: 0.995,        
+    startVelocity: 0.6,    
+    scalar: 0.3,          
     shapes: ["circle"],
     colors
   };
@@ -4378,6 +4335,22 @@ function renderFileType(typeKey, label, activeTypes) {
 
 
 async function markBackendValidatedSocialTasks(root = document) {
+  controller?.abort();        
+  controller = new AbortController();
+
+  document.addEventListener("click", async (e) => {
+    const claimBtn = e.target.closest("#claim-task");
+    if (!claimBtn) return;
+
+    if (claimBtn.hasAttribute("disabled")) return;
+
+    claimBtn.setAttribute("disabled", "true");
+    claimBtn.style.cursor = "wait";
+
+    const subquestId = claimBtn.dataset.subquestId;
+
+    handlePreviewClaim(subquestId, claimBtn);
+  }, { signal: controller.signal });
 
   const data = await loadEditorData();
   const tasks = data.tasks || [];
@@ -6834,26 +6807,32 @@ function renderTask(task){
 
           <div class="transoptions js-options">
 
-            ${(options.length ? options : ["",""]).map((opt, i) => `
+            ${(options.length ? options : ["",""]).map((opt, i) => {
+              const isCorrect = task.config?.correct?.includes(i);
+              return `
               <div class="radiotext">
                 <input 
                   type="${allowMulti ? "checkbox" : "radio"}"
                   name="correct-${task.id}"
                   class="correct-answer"
-                  ${task.config?.correctAnswers?.includes(i) ? "checked" : ""}
+                  ${isCorrect ? "checked" : ""}
                 >
-                <div class="optiony">
+                <div class="optiony"
+                  style="${isCorrect 
+                    ? 'border:1px solid #00ff7b; box-shadow:0 0 0 1px rgba(0,255,123,.4);' 
+                    : 'border:0.1px solid #cccccc57; box-shadow:none;'}">
                   <input 
                     type="text"
                     class="optns"
                     value="${opt}"
                     placeholder="Option ${i+1}"
-                    style="background-color: transparent; border: 0.1px solid #cccccc57;"
+                    style="background-color: transparent;"
                   >
                   <button class="remove-option">&times;</button>
                 </div>
               </div>
-            `).join("")}
+              `;
+            }).join("")}
           </div>
 
           <button class="add-option js-add-option">+ Add option</button>
@@ -11142,7 +11121,8 @@ async function Initgrounderarial() {
 
 restoreSelectedSprint();
   window.AialModule = {
-    init: markBackendValidatedSocialTasks
+    init: markBackendValidatedSocialTasks,
+    destroy() { controller?.abort(); controller = null; }
   };
 
 })();

@@ -57,6 +57,7 @@ Any project building on Zcash — or any project outside the ecosystem that want
 * **Multi-platform task system** — quest tasks can require actions across GitHub (star/fork), Discord, Telegram, and YouTube, plus link-visit tasks, with Twitter/X, TikTok, and webhook-based task verification in progress (see limitations)
 * **XP & leaderboard standings** — quests can earn XP that builds a member's leaderboard position within each community (some quests are ZEC-only and don't award XP). Members can see their rank and track progress over time, driving ongoing engagement beyond one-time ZEC reward hunting.
 * **Community chat** — built-in community space, no Discord required
+* **Fully responsive** — works seamlessly across desktop, laptop, tablet, and mobile, giving both contributors and community owners full functionality from any screen
 * **Web Push notifications** — members receive real-time notifications inside and outside the app for events like new quest publications, community mentions, and chat activity, even when Gleyo is closed (with browser permission)
 * **Retention analytics:**
   - Active members over 7d / 30d / 90d

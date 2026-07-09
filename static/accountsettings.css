@@ -847,9 +847,9 @@ html.swiped-locked, body.swipe-locked {
 }
 
 
-@media(max-width: 767px) {
+@media(max-width: 410px) {
   .sk-card.wallet {
-  min-width: 350px;
+    min-width: 100% !important;
     
   }
 }

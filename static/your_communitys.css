@@ -4943,6 +4943,11 @@ border-top-color: var(--text-main) !important;
   line-height: 1.4;
 }
 
+.polltitq {
+  font-weight: 550 !important;
+}
+
+
 .content-quest.quiz-root .polldescq {
   margin-top: 2px;
   font-size: 14px;

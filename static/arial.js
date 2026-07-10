@@ -6002,6 +6002,15 @@ function hookInviteTasks(root = document){
 }
 
 
+function escapeHTMLFunc(str = "") {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 
 function renderTask(task){
   if(!task || !task.type) return "";
@@ -6793,7 +6802,7 @@ function renderTask(task){
           type="text"
           placeholder="Enter the title of your quiz..."
           style="color: aliceblue;"
-          value="${task.config?.title || ""}"
+          value="${escapeHTMLFunc(task.config?.title || "")}"
         />
 
         <!-- DESCRIPTION -->
@@ -6988,7 +6997,7 @@ function renderTask(task){
             type="text"
             placeholder="Enter the title of your poll..."
             style="color: aliceblue;"
-            value="${task.config?.title || ""}"
+            value="${escapeHTMLFunc(task.config?.title || "")}"
           />
 
           <!-- Description -->

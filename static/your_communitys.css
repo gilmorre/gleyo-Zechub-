@@ -10433,13 +10433,7 @@ background-color: var(--bg-app);
   );
   box-shadow: 0 4px 12px rgba(0,0,0,0.5);
 }
-.badge-xp,
-.badge-role,
-.badge-token,
-.badge-custom {
-  flex-shrink: 0;         /* ❌ don’t let it shrink */
-  margin-left: 15px;      /* add some breathing space */
-}
+ 
 
 /* Role badge */
 .badge-role {
@@ -10621,20 +10615,7 @@ background-color: var(--bg-app);
   z-index: 5;
   box-sizing: border-box;
 }
-.badge-xp,
-.badge-role,
-.badge-token,
-.badge-custom {
-  position: relative;
-  width: 60px;
-  height: 60px;
-  flex-shrink: 0;
-  margin-left: 15px;
-  border-radius: 12px;
-  overflow: hidden;   /* 🔑 ensures .points stays inside */
-}
-
-
+ 
 /* span inside points */
 .points span {
   display: inline-block;
@@ -10669,11 +10650,6 @@ background-color: var(--bg-app);
 }
 
 
-
-.badge-container > div:nth-child(1) { z-index: 1; }
-.badge-container > div:nth-child(2) { z-index: 2; }
-.badge-container > div:nth-child(3) { z-index: 3; }
-.badge-container > div:nth-child(4) { z-index: 4; }
 
 
 

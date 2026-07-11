@@ -1572,7 +1572,6 @@ function renderSubquest(subquest, questUUID) {
     isLocked ||
     subquest.no_retry === true;
 
-
   let classes = ["preview-box"];
   if (subquest.is_completed) classes.push("completed");
   if (subquest.is_pending) classes.push("pending");
@@ -1597,8 +1596,11 @@ function renderSubquest(subquest, questUUID) {
   el.dataset.quest = questUUID;
   el.dataset.subquest = subquest.uuid;
 
+  const rewardCount = (subquest.rewards || []).length;
+  const textShrinkClass = rewardCount >= 2 ? "multi-reward" : "";
+
   el.innerHTML = `
-    <div class="preview-text ${isLocked ? "task-locked" : ""}">
+    <div class="preview-text ${isLocked ? "task-locked" : ""} ${textShrinkClass}">
       <div class="subquest-name">${subquest.name}</div>
       <div class="preview-dec">${subquest.description || ""}</div>
 

@@ -771,8 +771,8 @@ background-color: var(--bg-app);
 .badge-role,
 .badge-token,
 .badge-custom {
-  flex-shrink: 0;         /* ❌ don’t let it shrink */
-  margin-left: 15px;      /* add some breathing space */
+  flex-shrink: 0;          
+  margin-left: 15px;       
 }
 
 /* Role badge */
@@ -857,7 +857,7 @@ background-color: var(--bg-app);
   font-size: 12px;
   margin-bottom: 10px;
   color: rgb(170, 170, 170);
-  max-width: 150px;       /* give it real room to show text */
+  max-width: 150px;       
   white-space: nowrap;
   text-overflow: ellipsis;
   overflow: hidden;
@@ -4008,4 +4008,13 @@ background-color: var(--bg-app);
 .claim-task.login {
   background-color: #4285F4 !important;
   cursor: pointer !important;
+}
+.preview-text.multi-reward {
+  max-width: 55%;
+}
+
+.preview-text.multi-reward .subquest-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

@@ -11,15 +11,13 @@
 .quest-complete.initall {
   display: flex !important;
 }
-  .claim-button {
-    background: var(--bg-app);   
-    position: sticky;
-    bottom: 0;
-    z-index: 14;
-    display: flex;
-
-
-  }
+.claim-button {
+  background: var(--bg-app);   
+  position: sticky;
+  bottom: 0;
+  z-index: 14;
+  display: flex;
+}
 
 .quest-state-ui {
   display: flex;
@@ -28,6 +26,15 @@
   height: 90%;
   flex-direction: column;
   justify-content: center;
+}
+
+.quest-content {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.quest-content::-webkit-scrollbar {
+  display: none;
 }
 
 @media(min-width: 1059px) {

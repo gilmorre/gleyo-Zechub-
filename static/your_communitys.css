@@ -14,7 +14,6 @@ body {
 *{
   -webkit-text-size-adjust: 100% !important;
   -webkit-tap-highlight-color: transparent;
-  /* border: 1px solid red; */
   box-sizing: border-box !important;
   font-family: 'Outfit', sans-serif !important;
 }
@@ -32,91 +31,7 @@ body {
 }
 
 
-:root {
-  --bg-app-set-up: #0b0b12;
-  --bg-app: #1c1c2c;
-  --sub-init-app: #232335a2;
-  --bg-app-others: #212136;
-  --bg-app-init: #0b0b12;
-  --bg-surface: #222236;
-  /* --bg-app: #0b0b12; */
-  --bg-sidebar: #13131f;
-  /* --bg-sidebar: #1818266c; */
-  --bg-sidebar-opaque: #181826a4;
-  --bg-sidebar-opaque-back: #181826cc;
-  --bg-sidebar-inactive: #181826c5;
-  --main-ui: #1e1e2f;
-  --bg-surface-lower-q: #191929;
-  --border-nexterr: #222236;
-  --bg-surface-plan-card: #222236b0;
-  --bg-surface-dropdown: #1b1b2c;
-  --bg-surface-in-active: #161623;
-  --multi-spacing: #1b1b2b;
-  --bg-hover-hover-init-q-qq: #161623;
-  --bg-hover-hover-init-q-qq-hover: #161623;
-  --bg-surface-active: rgba(28, 28, 43, 0.851);
-  --bg-surface-active-q-p: rgba(28, 28, 43, 0.784);
-  --bg-surface-active-hover: rgba(28, 28, 43, 0.82);
-  --bg-hover: #2a2a44;
-  --bg-surface-lower: #222236e3;
-  --bg-surface-active-q: rgba(90, 120, 255, 0.18);
-  --bg-surface-active-q-active: rgba(120, 160, 255, 0.45);
-  --border-q-p: #2a2a44e4;
-  --bg-hover-q-p: #3c3c51c0;
-  --bg-hover-back-q-p: #222236c3;
-  --border-split: #e4e4e4da;
-  --bg-hover-hover: #2a2a449c;
-  --content-dropper: #151520;
-  --bg-hover-hover-init-q: #2a2a4469;
-  --bg-hover-hover-init-q-hover: #2a2a4449;
-  --bg-hover-hover-plain: #232339;
-  --bg-hover-hover-lower: #2a2a4467;
-  --bg-hover-hover-3: #2323389c;
-  --satus-yyr : #212135ea;
-  --error-alt: #e74c3c;
-  --sub-muted: #9aa0b4;
-  --active-ness: #2ecc71;
-  --red: rgba(255, 0, 0, 0.519);
-  --bg-active-border: #353555;
-  --bg-active: #303050;
-  --accent-color: #6366f1;   
-  --text-main-q: #e5e7eb3f;
-  --accent-70: color-mix(in srgb, var(--accent-color) 70%, transparent);
-  --accent-45: color-mix(in srgb, var(--accent-color) 45%, transparent);
-  --accent-25: color-mix(in srgb, var(--accent-color) 25%, transparent);
-  --text-main: #e5e7eb;
-  --sub-accent: #5865F2;
-  --bg-hover-hover-adder: #2f2f4a96;
-  --bg-hover-hover-init-r: #2a2a4488;
-  --text-main-items: #e5e7ebdf;
-  --accent-color-hover: #2a2a4472;
-  --text-main-items-reviews: #dadcdffa;
-  --main-ui-snap: #2a2a463c;
-  --main-ui-snap-hover: #2a2a462a;
-  --border-main-ui-snap: #2f2f4add;
-  --bg-hover-hover-dim: #2a2a4465;
-  --text-muted: #bbbfc7;
-  --text-muted-svg: #bbbfc78b;
-  --text-muted-bg: #b4b8c0;
-  --toggle-knob: #f3f4f6;
-  --text-main-small: #d9dbdf;
-  --bg-surface-lighter: #222236be;
-  --border: #2f2f4a;
-  --border-light: #404060;
-  /* --border-light: #32324e; */
-  --border-lighter: #2f2f4a9d;
-  --bg-hover-hover-init-q-hover-border: #2f2f4ab6;
-  --radius: 12px;
-  --bg-surface-init: #222236c3;
-  --info-bg: rgba(250, 204, 21, 0.08);
-  --info-border: rgba(250, 204, 21, 0.25);
-  --accent2: #3ecfcf;
-  --green: #2ecc71;
-  --red: #e74c3c;
-  --orange: #f39c12;
-
-}
-
+ 
 * { box-sizing: border-box;  -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; font-family: 'Outfit', sans-serif !important;
 }
 
@@ -9814,64 +9729,7 @@ width: 220px
 
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  
   .content-block {
     position: relative;
     bottom: 28px;
@@ -9882,7 +9740,7 @@ width: 220px
   }
   .preview-content {
   display: flex;
-  flex-direction: column; /* stack vertically on mobile */
+  flex-direction: column;  
   width: 100%;
   background-color: var(--bg-app);
   border-radius: 32px;
@@ -10460,30 +10318,6 @@ background-color: var(--bg-app);
   opacity: 0.5;
 }
 
-
-    .progress-bars {
-      width: 100%;
-      height: 6px;
-      padding: 0;
-      align-items: flex-start;
-      justify-content: flex-start;
-      background-color: var(--text-main-q) !important;
-      border-radius: 3px;
-      overflow: hidden;
-    }
- 
-
-  .preview-text {
-    flex: 1;                 
-    display: flex;
-    flex-direction: column;  
-    gap: 4px;
-  }
-
-  .preview-box > div:first-child {
-    flex: 1;  
-  }
-
  
 
 
@@ -10670,23 +10504,8 @@ background-color: var(--bg-app);
 }
 
 
-  .subquest-name{
-  font-size: 14px;
-  font-weight: bold;
-  max-width: 150px;
-  white-space: nowrap;
-  color: var(--text-main) !important;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: block;
-}
 
-@media (max-width: 600px) {
-  .subquest-name{
-    max-width: 160px;
-  }
-}
-
+ 
 
 .preview-dec {
   font-size: 12px;

@@ -4088,7 +4088,7 @@ function renderClaimSection(subquest, ui, socials_to_show) {
             ? `
               <button
                 style="outline:none; ${remaining > 0 ? "display:none;" : ""}"
-                class="claim-task"
+                class="claim-task login"
                 onclick="openAuthModal()">
                 Log in
               </button>

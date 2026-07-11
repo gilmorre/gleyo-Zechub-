@@ -346,6 +346,7 @@
     display: flex;
     justify-content: space-between;  
     align-items: center;
+    overflow: hidden;
   }
 
 
@@ -638,11 +639,14 @@ background-color: var(--bg-app);
  
 
   .preview-text {
-    flex: 1;                /* take all remaining space */
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
     display: flex;
-    flex-direction: column; /* stack name + description */
+    flex-direction: column;
     gap: 4px;
   }
+  
 
   .preview-box > div:first-child {
     flex: 1; /* ✅ text side takes remaining space */
@@ -834,22 +838,19 @@ background-color: var(--bg-app);
 }
 
 
-  .subquest-name{
+.subquest-name {
   font-size: 14px;
   font-weight: bold;
-  max-width: 150px;
-  white-space: nowrap;
   color: var(--text-main) !important;
-  overflow: hidden;
-  text-overflow: ellipsis;
+
   display: block;
+  width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
-@media (max-width: 600px) {
-  .subquest-name{
-    max-width: 160px;
-  }
-}
+
 
 
 .preview-dec {
@@ -4000,4 +4001,11 @@ background-color: var(--bg-app);
 
   font-size: 12px;
   font-weight: 600;
+}
+
+
+
+.claim-task.login {
+  background-color: #4285F4 !important;
+  cursor: pointer !important;
 }

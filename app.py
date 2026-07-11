@@ -357,7 +357,7 @@ app.register_blueprint(google_bp)
 with app.app_context():
     db.create_all()
 
-# start_bot_in_background(app) #---Start Discord Bot By Uncommenting (Option)----
+start_bot_in_background(app) #---Start Discord Bot By Uncommenting (Option)----
 
 ALLOWED_ROUTES = {
     # public
@@ -20049,7 +20049,7 @@ def claim_subquest(subquest_id):
         return jsonify({
             "success": False,
             "error_code": "MAX_CLAIM_REACHED",
-            "toast": f"You are not yet a member of {community.name}"
+            "toast": f"Join the {community.name} community to claim this quest."
         }), 403
 
 
@@ -20060,7 +20060,7 @@ def claim_subquest(subquest_id):
         return jsonify({
             "success": False,
             "error_code": "MAX_CLAIM_REACHED",
-            "toast": "You are banned from this community and cannot claim subquests."
+            "toast": "You are banned from this community and cannot claim Quests."
         }), 403
 
 
@@ -30831,4 +30831,4 @@ def page_not_found(e):
 
 
 if __name__ == "__main__":
-    socketio.run(app, host="0.0.0.0", port=8000, debug=True)
+    socketio.run(app, host="0.0.0.0", port=8000)

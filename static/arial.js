@@ -4790,7 +4790,6 @@ function syncPollToCard(taskWrap){
           type="text"
           class="other-input"
           placeholder="Other (please specify)"
-          onfocus="this.previousElementSibling.querySelector('input').checked = true"
         />
       </div>
     `;
@@ -4888,6 +4887,68 @@ function hookPollTasks(root = document){
     }
   });
 
+  root.addEventListener("change", e => {
+
+    const input = e.target;
+
+    // ignore "other"
+    if (
+      !input.matches('.radio-group input') ||
+      input.closest('.other-option')
+    ) return;
+
+    const taskWrap = input.closest(".poll-task");
+    const allowMulti = taskWrap.querySelector(".js-multi-toggle")?.checked;
+
+    if (!allowMulti) {
+      const other = taskWrap.querySelector(".other-option input");
+      if (other) {
+        other.checked = false;
+
+        const otherText = taskWrap.querySelector(".other-input");
+        if (otherText) otherText.value = "";
+      }
+    }
+
+  });
+  
+  // select OTHER option
+  root.addEventListener("change", e=>{
+    const otherInput = e.target.closest(".other-option input");
+    if(!otherInput) return;
+
+    const taskWrap = e.target.closest(".poll-task");
+    const group = taskWrap.querySelector(".radio-group");
+
+    const allowMulti = taskWrap
+      .querySelector(".js-multi-toggle")
+      ?.checked;
+
+    // only force single selection
+    if(!allowMulti){
+
+      group.querySelectorAll(".custom-radio input, .other-option input")
+        .forEach(input=>{
+          input.checked = false;
+        });
+
+      otherInput.checked = true;
+    }
+  });
+
+
+  // clicking other text focuses/selects other
+  root.addEventListener("focusin", e=>{
+    const otherText = e.target.closest(".other-input");
+    if(!otherText) return;
+
+    const other = otherText.closest(".other-option");
+    const radio = other.querySelector("input");
+
+    radio.dispatchEvent(new Event("change", { bubbles:true }));
+  });
+
+
   // remove option
   root.addEventListener("click", e=>{
     if(e.target.classList.contains("remove-option")){
@@ -4895,27 +4956,33 @@ function hookPollTasks(root = document){
     }
   });
 
+
   // input sync
   root.addEventListener("input", e=>{
     if(e.target.classList.contains("optn")){
       const taskWrap = e.target.closest(".poll-task");
+
       reindexPoll(taskWrap);
       syncPollToCard(taskWrap);
     }
   });
 
+
   // multiple toggle
   root.addEventListener("change", e=>{
     if(e.target.classList.contains("js-multi-toggle")){
       const taskWrap = e.target.closest(".poll-task");
+
       syncPollToCard(taskWrap);
     }
   });
+
 
   // other toggle
   root.addEventListener("change", e=>{
     if(e.target.classList.contains("js-other-toggle")){
       const taskWrap = e.target.closest(".poll-task");
+
       togglePollOther(taskWrap, e.target.checked);
     }
   });
@@ -5370,7 +5437,7 @@ function hookQuizTasks(root = document){
 
     const taskWrap = correct.closest(".quiz-task");
     const popup = correct.closest(".quiz-popup");
-    const allowMulti = popup.querySelector(".js-multi-toggle")?.checked;
+    const allowMulti = popup.querySelector(".js-quiz-toggle")?.checked;
 
     if(!allowMulti){
       // force single correct
@@ -5455,7 +5522,12 @@ function hookQuizTasks(root = document){
       // unlock multi
       multiToggle.disabled = false;
 
-      // ✅ store state from UI
+      // ✅ clear all selected correct answers
+      popup.querySelectorAll(".correct-answer").forEach(input => {
+        input.checked = false;
+      });
+
+      // store current multi state
       taskWrap.dataset.multi = multiToggle.checked ? "true" : "false";
 
       paintCorrect(taskWrap);
@@ -5507,16 +5579,12 @@ function syncQuizToCard(taskWrap){
 function switchQuizMode(taskWrap, allowMulti){
   const popup = taskWrap.querySelector(".quiz-popup");
 
-  // editor inputs
   popup.querySelectorAll(".correct-answer").forEach(i=>{
     i.type = allowMulti ? "checkbox" : "radio";
-    if(!allowMulti) i.checked = false;
   });
 
-  // card inputs
   taskWrap.querySelectorAll(".radio-group input").forEach(i=>{
     i.type = allowMulti ? "checkbox" : "radio";
-    if(!allowMulti) i.checked = false;
   });
 
   paintCorrect(taskWrap);
@@ -6959,7 +7027,6 @@ function renderTask(task){
                       type="text"
                       class="other-input"
                       placeholder="Other (please specify)"
-                      onfocus="this.previousElementSibling.querySelector('input').checked = true"
                     />
                   </div>
                 ` : ""}

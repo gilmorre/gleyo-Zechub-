@@ -1078,10 +1078,10 @@ body::before {
 
 .community-card {
   background: var(--surface);
-  border-radius: 14px;
+  border-radius: 20px;
   text-decoration: none;
   padding: 18px;
-  border: 0.9px solid #4285f4;
+  border: 0.9px solid #4784e5d1;
   display: flex;
   gap: 14px;
   align-items: flex-start;
@@ -1305,5 +1305,9 @@ body::before {
   html, body {
     height: 100%;
     min-height: 100% !important;
+  }
+
+  #community-search-results {
+    top: 104px !important;
   }
 }

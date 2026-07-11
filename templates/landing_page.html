@@ -18,6 +18,12 @@
 </head>
 <body data-auth="{{ '1' if user_id else '0' }}" data-vapid="{{ vapid_public_key }}">
 <div class="scroll-wrap" id="scroll-wrap"> 
+  <svg style="position:absolute; width:0; height:0; overflow:hidden;" aria-hidden="true">
+  <filter id="glass-distort" x="-30%" y="-30%" width="160%" height="160%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.02 0.035" numOctaves="3" seed="7" result="noise"/>
+    <feDisplacementMap in="SourceGraphic" in2="noise" scale="45" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+</svg>
   <div class="nav-shell">
     <div class="nav-fade" aria-hidden="true"></div>
     <header class="top-nav">

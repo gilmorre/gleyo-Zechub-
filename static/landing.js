@@ -128,7 +128,54 @@ window.addEventListener("scroll", () => {
   if (nav) nav.style.background = scrollY > 20 ? "rgba(11,11,18,0.95)" : "rgba(11,11,18,0.78)";
 });
 
- 
+function showToast(msg, type = "error") {
+  document.querySelectorAll(".toast").forEach(t => t.remove());
+
+  const t = document.createElement("div");
+  t.className = `toast ${type}`;
+  t.textContent = msg;
+  document.body.appendChild(t);
+
+  requestAnimationFrame(() => t.classList.add("show"));
+
+  setTimeout(() => {
+    t.classList.remove("show");
+    setTimeout(() => t.remove(), 300);
+  }, 2600);
+}
+
+function showError(msg) {
+  showToast(msg, "error");
+}
+
+function showSuccess(msg) {
+  showToast(msg, "success");
+}
+
+const topNav = document.querySelector(".top-nav");
+
+if (topNav) {
+  let isPressing = false;
+
+  topNav.addEventListener("pointerdown", () => {
+    if (window.innerWidth > 768) return;
+    isPressing = true;
+    topNav.classList.remove("bounce-out");
+    topNav.classList.add("pressing");
+  });
+
+  const release = () => {
+    if (!isPressing) return;
+    isPressing = false;
+    topNav.classList.remove("pressing");
+    void topNav.offsetWidth; // restart animation cleanly
+    topNav.classList.add("bounce-out");
+  };
+
+  topNav.addEventListener("pointerup", release);
+  topNav.addEventListener("pointercancel", release);
+  topNav.addEventListener("pointerleave", release); // finger/cursor drags off the pill while held
+}
 const revealObserver = new IntersectionObserver(entries => {
   entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add("active"); });
 }, { threshold: 0.12 });

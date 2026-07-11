@@ -15,6 +15,7 @@ message_upload/
 *.db
 
 *.exe
+.ngrok.exe.old
 
 .DS_Store
 Thumbs.db

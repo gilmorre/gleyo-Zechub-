@@ -11099,7 +11099,7 @@ def process_zec_withdrawal(tx_id, address, amount_to_send, full_amount, platform
             user_balance.balance         += Decimal(str(full_amount))
             user_balance.total_withdrawn -= Decimal(str(platform_fee))
             tx.status = "failed"
-            tx.remark = "Refunded · withdrawal failed."
+            tx.remark = "Refunded · withdrawal failed — your ZEC has been returned, please try again"
             db.session.commit()
             return
 

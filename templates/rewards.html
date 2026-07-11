@@ -3,6 +3,10 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <style>
 
+*, *::before, *::after {
+  box-sizing: border-box !important;
+}
+
 :root{
   --p:#5b6ef5;--p-light:#7b8aff;
   --green:#12d87a;--amber:#f5a623;--red:#f05070;
@@ -21,6 +25,21 @@ input[type="number"] {
   -moz-appearance: textfield;
 }
 
+.desktop-grid > div {
+  min-width: 0;
+}
+
+.tx-section {
+  min-width: 0;
+}
+
+.tx-card {
+  min-width: 0;
+}
+
+.stx {
+  min-width: 0;
+}
 
 .no-tx {
   text-align: center;

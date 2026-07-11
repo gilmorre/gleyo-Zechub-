@@ -11799,17 +11799,17 @@ background-color: var(--bg-app);
 .module-section-back {
   display: flex;
   flex: 1;           
-    background-clip: padding-box; 
+  background-clip: padding-box; 
   -webkit-mask-image: -webkit-radial-gradient(white, black); 
+  scrollbar-gutter: stable both-edges;
   mask-image: radial-gradient(white, black);
-  min-width: 0;       /* ← CRITICAL for overflow-x in flex */
-  overflow-x: auto;   /* horizontal scroll */
+  min-width: 0;       
+  overflow-x: auto;   
   overflow-y: hidden;
   padding: 0 12px;
   gap: 15px;
   align-items: center;
   background-clip: padding-box;
-  scrollbar-gutter: stable both-edges;
 }
 .init-back-btn-q {
   background-color: transparent;
@@ -13852,16 +13852,23 @@ background-color: var(--bg-app);
   background-color: var(--bg-sidebar)
 }
 
-  .lb-s-side-card {
-    background-color: var(--bg-sidebar) !important
-  }
+.lb-s-side-card {
+  background-color: var(--bg-sidebar) !important
+}
 
 
+.reward-conte-inner-sideline {
+  overflow-y: auto !important;
+  -webkit-mask-image: -webkit-radial-gradient(white, black); 
+  mask-image: radial-gradient(white, black);
+  scrollbar-gutter: stable both-edges; 
 
+}
 
 @media(min-width:700px) {
   .reward-conte-inner {
     padding: 0;
+    overflow: hidden !important;
     height: calc(100dvh - 20px) !important;
     width: 100%
   }
@@ -13882,6 +13889,7 @@ background-color: var(--bg-app);
 @media(max-width:700px){
   .reward-conte-inner {
     padding: 12px 14px;
+    overflow: hidden !important;
     height: calc(100dvh - 64px);
     width: 100%
   }

@@ -174,8 +174,18 @@ if (topNav) {
 
   topNav.addEventListener("pointerup", release);
   topNav.addEventListener("pointercancel", release);
-  topNav.addEventListener("pointerleave", release); // finger/cursor drags off the pill while held
+  topNav.addEventListener("pointerleave", release);
+
+  window.addEventListener("load", () => {
+    if (window.innerWidth > 768) return;
+    if (isPressing || topNav.classList.contains("pressing")) return;
+    if (topNav.classList.contains("bounce-out")) return;
+
+    void topNav.offsetWidth;
+    topNav.classList.add("bounce-out");
+  });
 }
+
 const revealObserver = new IntersectionObserver(entries => {
   entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add("active"); });
 }, { threshold: 0.12 });

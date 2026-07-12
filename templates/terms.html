@@ -37,9 +37,20 @@ html, body {
   background: radial-gradient(circle at 30% 20%, #151528 0%, #0b0b12 60%);
   color: var(--text-main);
   display: flex;
-  width: 100%;
   justify-content: center;
   align-items: center;
+  width: 100%;
+  flex-direction: column;
+}
+
+@media (max-width: 768px) {
+  html, body {
+    height: 100% !important;
+    min-height: 100% !important;
+  }
+  .container {
+    overflow-y: auto !important;
+  }
 }
 .container {
   width: 100%;

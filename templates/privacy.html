@@ -21,6 +21,7 @@
   * {
     box-sizing: border-box;
   }
+
   html, body {
     margin: 0;
     padding: 0;
@@ -32,7 +33,19 @@
     justify-content: center;
     align-items: center;
     width: 100%;
+    flex-direction: column;
   }
+
+  @media (max-width: 768px) {
+    html, body {
+      height: 100% !important;
+      min-height: 100% !important;
+    }
+    .container {
+      overflow-y: auto !important;
+    }
+  }
+
   ::selection {
     background: #4effcd29; 
     color: var(--text-main);        

@@ -46,6 +46,20 @@
     min-height:100vh;
   }
 
+
+  @media (max-width: 768px) {
+    html, body {
+      height: 100% !important;
+      min-height: 100% !important;
+    }
+
+    .documentation-cotainer {
+      overflow-y: auto;
+      background: var(--bg-sidebar-mob);
+
+    }
+  }
+  
   .topbar{
     display:none;
     position:fixed;top:0;left:0;right:0;
@@ -224,7 +238,7 @@
   </style>
 </head>
 <body>
-
+<div class="documentation-cotainer">
 <div class="topbar">
   <div class="topbar-logo">Gleyo <span>Docs</span></div>
   <button class="hamburger" id="hamburger" aria-label="Toggle menu">
@@ -549,6 +563,8 @@
   </section>
 
 </main>
+
+</div>
 
 <script>
 const hamburger = document.getElementById('hamburger');

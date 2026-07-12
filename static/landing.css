@@ -1240,12 +1240,6 @@ body::before {
 }
 
 
-@media (max-width: 900px) {
-  .info-img-wrap img {
-    filter: brightness(0.89);
-  }
-}
-
 .toast {
   max-width: 350px;
   position: fixed;

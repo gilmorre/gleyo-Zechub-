@@ -168,7 +168,7 @@ if (topNav) {
     if (!isPressing) return;
     isPressing = false;
     topNav.classList.remove("pressing");
-    void topNav.offsetWidth; // restart animation cleanly
+    void topNav.offsetWidth;  
     topNav.classList.add("bounce-out");
   };
 

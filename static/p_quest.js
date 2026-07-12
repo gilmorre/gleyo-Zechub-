@@ -4592,6 +4592,11 @@ async function routeToSubquest(box){
   container.innerHTML = "";
 
     container.innerHTML = stateUI;
+
+    // ⬆️ scroll content container back to top
+    const scrollTargetState = document.querySelector(".quest-complete.quest-content") || document.querySelector(".quest-content");
+    if (scrollTargetState) scrollTargetState.scrollTop = 0;
+
     window.__ACTIVE_SUBQUEST__ = { questUUID, subUUID };
 
     return; // ⛔ stop API fetch, but UI is rendered
@@ -4654,6 +4659,11 @@ async function routeToSubquest(box){
     let stateUI = "";
 
     container.innerHTML = renderQuestComplete(data);
+
+    // ⬆️ scroll content container back to top
+    const scrollTarget = document.querySelector(".quest-complete.quest-content") || document.querySelector(".quest-content");
+    if (scrollTarget) scrollTarget.scrollTop = 0;
+
     initSocialTooltips(communitySlug);
 
     /* backend source of truth */
@@ -4707,7 +4717,6 @@ async function routeToSubquest(box){
     window.__FETCH_LOCK__ = false;  // 🔓 unlock
   }
 }
-
 
 
 

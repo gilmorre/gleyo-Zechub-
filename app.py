@@ -17897,12 +17897,7 @@ def test_claim_subquest(subquest_uuid):
         subquest_uuid=subquest_uuid
     ).all()
 
-    if not preview_tasks:
-        print(f"🚫 [test_claim] No PreviewTaskState found for user={user.id}, subquest_uuid={subquest_uuid}")
-        return jsonify({
-            "success": False,
-            "error": "No preview session found for this subquest"
-        }), 403
+    print(f"🧪 [test_claim] user={user.id} subquest_uuid={subquest_uuid} preview_tasks={len(preview_tasks)}")
 
     # ==============================
     # 4) Parse frontend payload
@@ -17924,14 +17919,12 @@ def test_claim_subquest(subquest_uuid):
         "files":               request.files.getlist("files")
     }
 
-    print(f"🧪 [test_claim] user={user.id} subquest_uuid={subquest_uuid} preview_tasks={len(preview_tasks)}")
-
     # ==============================
     # 5) VALIDATE (PREVIEW ENGINE)
     # ==============================
     result = validate_tasks_engine(
         user=user,
-        tasks=preview_tasks,   # ✅ PreviewTaskState
+        tasks=preview_tasks,   # ✅ PreviewTaskState (can be empty — loop no-ops)
         mode="preview",        # ✅ preview mode
         payload=payload,
         community=community,
@@ -17946,7 +17939,7 @@ def test_claim_subquest(subquest_uuid):
 
     print(f"🧪 [test_claim] result.success={result['success']} auto_validate={auto_validate}")
 
-    # ---------- ALL SUCCESS ----------
+    # ---------- ALL SUCCESS (or zero tasks → nothing to fail) ----------
     if result["success"]:
 
         if auto_validate:
@@ -18018,7 +18011,6 @@ def test_claim_subquest(subquest_uuid):
             "max_claimed_count": subquest.claim_count,
             "max_claim": subquest.max_claim
         })
-
 
 
 def get_max_claim_count(subquest_id):

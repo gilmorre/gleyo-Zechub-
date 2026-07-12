@@ -4032,9 +4032,8 @@ const ChevronSVGQ = `
 
 `
 
-
-
-function showPreviewModal(html) {
+ 
+function showPreviewModal(html, isLoading = false) {
   const modal = document.getElementById("preview-modal");
   const content = document.getElementById("preview-content");
 
@@ -4044,9 +4043,16 @@ function showPreviewModal(html) {
   }
 
   content.innerHTML = html;
+  content.classList.toggle("is-loading", isLoading);
+
+  if (!isLoading) {
+    content.scrollTop = 0;
+  }
+
   modal.style.display = "flex";
-  document.body.style.overflow = "hidden"; // lock background scroll
+  document.body.style.overflow = "hidden";  
 }
+
 
 function closePreview() {
   const modal = document.getElementById("preview-modal");
@@ -4055,7 +4061,51 @@ function closePreview() {
   if (content) content.innerHTML = "";
   if (modal) modal.style.display = "none";
 
-  document.body.style.overflow = ""; // restore scroll
+  document.body.style.overflow = "";  
+}
+
+
+function getPreviewSkeleton() {
+  return `
+    <div class="sqsk-container">
+
+      <div class="sqsk-topbar">
+        <div class="sqsk sqsk-back"></div>
+        <div class="sqsk sqsk-pill"></div>
+      </div>
+
+      <div class="sqsk sqsk-title"></div>
+
+      <div class="sqsk-meta">
+        <div class="sqsk sqsk-meta-item"></div>
+        <div class="sqsk sqsk-meta-item"></div>
+      </div>
+
+      <div class="sqsk-main">
+        <div class="sqsk-left">
+          <div class="sqsk sqsk-section"></div>
+          <div class="sqsk-reward-card">
+            <div class="sqsk sqsk-card-label"></div>
+            <div class="sqsk sqsk-reward"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sqsk-right">
+        <div class="sqsk sqsk-section"></div>
+        <div class="sqsk-tab"></div>
+        <div class="sqsk-quest-card">
+          <div class="sqsk sqsk-question"></div>
+          <div class="sqsk sqsk-input"></div>
+        </div>
+      </div>
+
+      <div class="sqsk-bottom-bar">
+        <div class="sqsk sqsk-btn"></div>
+      </div>
+
+    </div>
+  `;
 }
 
 
@@ -8245,6 +8295,7 @@ function mapActionToTaskType(type) {
  
 
 async function previewSubquest() {
+  showPreviewModal(getPreviewSkeleton(), true);
 
   const payload = await buildSubquestPayload();
   console.log("Payload:", payload);

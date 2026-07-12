@@ -111,26 +111,26 @@
   border-color: rgba(251,191,36,0.25);
 }
 
-  .topnav {
-    display: flex;
-    gap: 6px;
-    align-items: center;
-    height: 65px;
-    width: 100% !important;
-    padding: 0 20px;
-    background-color: var(--bg-sidebar);
-    overflow-x: auto;
-    border-top-left-radius: 26px;
-    border-top-right-radius: 26px;
-    justify-content: space-between;
-    white-space: nowrap;
+.topnav {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  height: 65px;
+  width: 100% !important;
+  padding: 0 20px;
+  background-color: var(--bg-sidebar);
+  overflow-x: auto;
+  border-top-left-radius: 26px;
+  border-top-right-radius: 26px;
+  justify-content: space-between;
+  white-space: nowrap;
 
-    border-bottom-left-radius: 12px;
-    border-bottom-right-radius: 12px;
-    border: 0.9px solid var(--border);
-    flex-shrink: 0;
-    box-sizing: border-box;
-  }
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+  border: 0.9px solid var(--border);
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
 
 
 

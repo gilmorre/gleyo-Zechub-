@@ -1826,25 +1826,20 @@ function renderTaskIcons(tasks = []) {
 
 
 function renderRewards(rewards = []) {
-  return rewards.slice(0,3).map(r => {
+  const maxRewards = window.innerWidth <= 430 ? 2 : 3;
+
+  return rewards.slice(0, maxRewards).map(r => {
     const type = r.type;
     const data = r.data || {};
     const dist = (r.distribution_type || "ALL").toUpperCase();
-let icon = REWARD_ICONS[dist] || REWARD_ICONS.ALL;
-
-  if (r.fcfs) {
-
-  }
-
+    let icon = REWARD_ICONS[dist] || REWARD_ICONS.ALL;
 
     let setupStyle = "";
 
     if (r.fcfs) {
-  const { claim_count, max_claim } = r.fcfs;
-  icon = buildFcfsGradientSvg(claim_count, max_claim); 
+      const { claim_count, max_claim } = r.fcfs;
+      icon = buildFcfsGradientSvg(claim_count, max_claim);
     }
-
-
 
     if (type === "xp") {
       return `

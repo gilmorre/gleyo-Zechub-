@@ -10,65 +10,87 @@
 
 <script>
 let emojiPack = {};
-let emojiMeta = {};      
-let variantGroups = {};  
+let emojiMeta = {};       // keyed by Noto filename, e.g. "emoji_u1f600.svg"
+let variantGroups = {};
 let groupedByCategory = {};
 let recentEmojis = [];
+
+// Public metadata: { "😀": { name, slug, group, ... }, ... }
 const EMOJI_META_URL =
-  " ";
+  "https://cdn.jsdelivr.net/npm/unicode-emoji-json@0.4.0/data-by-emoji.json";
 
+// Where the actual emoji SVGs live
 const NOTO_EMOJI_BASE =
-  " /";
+  "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/svg/";
 
- 
 const emojiLoadPromise = loadEmojiPack();
 
+// Noto filenames are built from codepoints joined by "_", WITHOUT the
+// variation-selector (U+FE0F). e.g. 😀 -> emoji_u1f600.svg
+// Flag pairs -> emoji_u1f1e6_1f1e8.svg
+function emojiToFilename(emoji) {
+  const codepoints = Array.from(emoji)
+    .map(ch => ch.codePointAt(0))
+    .filter(cp => cp !== 0xfe0f);
+
+  if (!codepoints.length) return null;
+
+  return "emoji_u" + codepoints.map(cp => cp.toString(16)).join("_") + ".svg";
+}
+
 async function loadEmojiPack() {
-  const res = await fetch(EMOJI_META_URL);
-  emojiMeta = await res.json();
+  try {
+    const res = await fetch(EMOJI_META_URL);
+    if (!res.ok) throw new Error("Emoji metadata fetch failed: " + res.status);
 
-  for (const filename in emojiMeta) {
-    if (!filename.endsWith(".svg")) continue;
+    const rawData = await res.json(); // keyed by emoji char
 
-    emojiPack[filename] = NOTO_EMOJI_BASE + filename;
+    emojiMeta = {};
+    emojiPack = {};
+
+    for (const emojiChar in rawData) {
+      const info = rawData[emojiChar];
+      const filename = emojiToFilename(emojiChar);
+      if (!filename) continue;
+
+      emojiMeta[filename] = {
+        name: info.name || info.slug || "",
+        group: info.group || "Misc",
+        keywords: info.slug ? info.slug.split("_") : [],
+        char: emojiChar
+      };
+
+      emojiPack[filename] = NOTO_EMOJI_BASE + filename;
+    }
+  } catch (err) {
+    console.error("Failed to load emoji pack:", err);
+    // fail soft — picker just won't populate, rest of the app keeps working
   }
-
 }
 
 let unicodeToFilename = {};
 
 function buildUnicodeEmojiMap() {
+  unicodeToFilename = {};
   for (const filename in emojiMeta) {
-    if (!filename.endsWith(".svg")) continue;
-
-    const codepoints = filename
-      .replace(/^emoji_/, "")
-      .replace(/\.svg$/, "")
-      .split("_")
-      .map(cp => parseInt(cp.replace("u", ""), 16));
-
-    const emoji = String.fromCodePoint(...codepoints);
-
-    unicodeToFilename[emoji] = filename;
+    const emoji = emojiMeta[filename].char;
+    if (emoji) unicodeToFilename[emoji] = filename;
   }
-
 }
+
 let is_mobile = {{ is_mobile | tojson }};
 
-if(!is_mobile){
-document.addEventListener("DOMContentLoaded", async () => {
-  await emojiLoadPromise;
+if (!is_mobile) {
+  document.addEventListener("DOMContentLoaded", async () => {
+    await emojiLoadPromise;
 
-  requestAnimationFrame(() => {
-    buildVariantGroupsAndCategoryMap();
-    buildUnicodeEmojiMap();
-    renderEmojiPicker();
-    renderRecentEmojis();
+    requestAnimationFrame(() => {
+      buildVariantGroupsAndCategoryMap();
+      buildUnicodeEmojiMap();
+      renderEmojiPicker();
+      renderRecentEmojis();
+    });
   });
-});
-
-
-
 }
 
 

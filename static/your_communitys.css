@@ -10879,13 +10879,26 @@ background-color: var(--bg-app);
   }
 }
 
-.module-nav-scroll{
-  display: flex;
-  padding-right: 30px !important;
-  gap: 10px;
-  padding: 20px 25px;
-  overflow-x: auto;
-  scrollbar-width: none;
+@media (min-width: 1000px) {
+  .module-nav-scroll{
+    display: flex;
+    padding-right: 30px !important;
+    gap: 10px;
+    padding: 20px 25px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .module-nav-scroll{
+    display: flex;
+    padding-right: 30px !important;
+    gap: 10px;
+    padding: 20px 25px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
 }
 
 .module-nav-scroll::-webkit-scrollbar{
@@ -13906,9 +13919,9 @@ background-color: var(--bg-app);
 
 /* skeleton page */
 .sk-page{width:100%;max-width:740px;margin:0 auto;padding:20px 16px 60px;}
-@media(min-width:700px){.sk-page{padding:32px 24px 60px;}}
+@media(min-width:900px){.sk-page{padding:32px 24px 60px;}}
 .sk-grid{display:grid;grid-template-columns:1fr;gap:14px;}
-@media(min-width:700px){.sk-grid{grid-template-columns:1fr 300px;gap:20px;align-items:start;}}
+@media(min-width:900px){.sk-grid{grid-template-columns:1fr 300px;gap:20px;align-items:start;}}
 
 /* skeleton wallet */
 .sk-wallet{background:var(--surface);border:1px solid var(--border2);border-radius:20px;padding:22px 20px;margin-bottom:14px;}
@@ -13921,7 +13934,7 @@ background-color: var(--bg-app);
 .sk-zec{width:66px;height:26px;border-radius:20px;}
 .sk-bal-lbl{width:105px;height:10px;margin-bottom:8px;}
 .sk-bal{width:175px;height:32px;margin-bottom:7px;}
-@media(min-width:700px){.sk-bal{height:38px;}}
+@media(min-width:900px){.sk-bal{height:38px;}}
 .sk-usd{width:155px;height:10px;margin-bottom:20px;}
 .sk-addr{display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:10px 12px;}
 .sk-addr-meta{display:flex;flex-direction:column;gap:5px;}
@@ -13939,7 +13952,7 @@ background-color: var(--bg-app);
 
 /* skeleton actions */
 .sk-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
-@media(min-width:700px){.sk-actions{margin-bottom:0;}}
+@media(min-width:900px){.sk-actions{margin-bottom:0;}}
 .sk-btn{height:46px;border-radius:13px;}
 
 /* skeleton tx */

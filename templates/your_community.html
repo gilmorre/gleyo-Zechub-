@@ -1700,7 +1700,7 @@ function closeSidebar() {
   }, 300); // adjust if your sidebar animation is longer
 }
 
-// Click outside sidebar closes it
+
 document.addEventListener("click", function (e) {
   const sidebar = document.getElementById('sidebar');
   const ham = document.getElementById('hamburger');
@@ -5329,27 +5329,59 @@ async function loadScript(src) {
   let __IS_LOADING__ = false;
 
 /* ---------------- MAIN LOADER ---------------- */
-  function showDashboardSkeleton(target) {
-    const container =
-      typeof target === "string"
-        ? document.querySelector(target)
-        : target;
+function showDashboardSkeleton(target) {
+  const container =
+    typeof target === "string"
+      ? document.querySelector(target)
+      : target;
 
-    if (!container) return;
+  if (!container) return;
 
-    container.innerHTML = `
-      <div class="dashboard-serecterial">
-        <div class="settter-iplline">
-          
-          <!-- HERO -->
-          <div class="skeleton skeleton-hero hero"></div>
+  container.innerHTML = `
+    <div class="dashboard-serecterial">
+      <div class="settter-iplline">
+        
+        <!-- HERO -->
+        <div class="skeleton skeleton-hero hero"></div>
 
-          <!-- CARDS -->
-          <div class="skeleton-grid steps">
-            <div class="skeleton skeleton-card step-card"></div>
-            <div class="skeleton skeleton-card step-card"></div>
-            <div class="skeleton skeleton-card step-card"></div>
-            <div class="skeleton skeleton-card step-card"></div>
+        <!-- CARDS -->
+        <div class="skeleton-grid steps">
+          <div class="skeleton skeleton-card step-card"></div>
+          <div class="skeleton skeleton-card step-card"></div>
+          <div class="skeleton skeleton-card step-card"></div>
+          <div class="skeleton skeleton-card step-card"></div>
+        </div>
+
+      </div>
+    </div>
+  `;
+}
+
+
+function showPaymentsSkeleton(target) {
+  const container =
+    typeof target === "string"
+      ? document.querySelector(target)
+      : target;
+
+  if (!container) return;
+
+  let cards = "";
+
+  for (let i = 0; i < 6; i++) {
+    cards += `
+      <div class="payment-card" style="height: 108px">
+        <div class="payment-header">
+          <div class="sk sk-text" style="width: 120px; height: 16px;"></div>
+          <div class="sk sk-text" style="width: 70px; height: 20px; border-radius: 999px;"></div>
+        </div>
+
+        <div class="payment-meta">
+          <div>
+            <div class="sk sk-text" style="width: 80%; height: 12px;"></div>
+          </div>
+          <div>
+            <div class="sk sk-text" style="width: 60%; height: 12px;"></div>
           </div>
 
         </div>
@@ -5357,190 +5389,153 @@ async function loadScript(src) {
     `;
   }
 
+  container.innerHTML = `
+    <div class="payments-section">
 
-  function showPaymentsSkeleton(target) {
-    const container =
-      typeof target === "string"
-        ? document.querySelector(target)
-        : target;
+      <h2>
+        <div class="sk sk-text" style="width: 240px; height: 18px;"></div>
+      </h2>
 
-    if (!container) return;
-
-    let cards = "";
-
-    for (let i = 0; i < 6; i++) {
-      cards += `
-        <div class="payment-card" style="height: 108px">
-          <div class="payment-header">
-            <div class="sk sk-text" style="width: 120px; height: 16px;"></div>
-            <div class="sk sk-text" style="width: 70px; height: 20px; border-radius: 999px;"></div>
-          </div>
-
-          <div class="payment-meta">
-            <div>
-              <div class="sk sk-text" style="width: 80%; height: 12px;"></div>
-            </div>
-            <div>
-              <div class="sk sk-text" style="width: 60%; height: 12px;"></div>
-            </div>
-
-          </div>
+      <div class="filter-dropdown">
+        <div class="filter-icon">
+          <div class="sk" style="width: 100%; height: 100%; border-radius: 10px;"></div>
         </div>
-      `;
-    }
+      </div>
 
-    container.innerHTML = `
-      <div class="payments-section">
-
-        <h2>
-          <div class="sk sk-text" style="width: 240px; height: 18px;"></div>
-        </h2>
-
-        <div class="filter-dropdown">
-          <div class="filter-icon">
-            <div class="sk" style="width: 100%; height: 100%; border-radius: 10px;"></div>
-          </div>
+      <section class="payment-section" style="margin-top: 10px">
+        <div class="payment-card-container">
+          ${cards}
         </div>
+      </section>
 
-        <section class="payment-section" style="margin-top: 10px">
-          <div class="payment-card-container">
-            ${cards}
-          </div>
-        </section>
+    </div>
+  `;
+}
 
+function showAnalyticsSkeleton(target) {
+  const container =
+    typeof target === "string"
+      ? document.querySelector(target)
+      : target;
+
+  if (!container) return;
+
+  // KPI skeleton
+  let kpis = "";
+  for (let i = 0; i < 4; i++) {
+    kpis += `
+      <div class="an-kpi-card">
+        <div class="an an-text" style="width: 100px; height: 12px; margin-bottom:8px;"></div>
+        <div class="an an-text" style="width: 80px; height: 20px;"></div>
       </div>
     `;
   }
 
-  function showAnalyticsSkeleton(target) {
-    const container =
-      typeof target === "string"
-        ? document.querySelector(target)
-        : target;
-
-    if (!container) return;
-
-    // KPI skeleton
-    let kpis = "";
-    for (let i = 0; i < 4; i++) {
-      kpis += `
-        <div class="an-kpi-card">
-          <div class="an an-text" style="width: 100px; height: 12px; margin-bottom:8px;"></div>
-          <div class="an an-text" style="width: 80px; height: 20px;"></div>
+  // Activity skeleton
+  let activity = "";
+  for (let i = 0; i < 4; i++) {
+    activity += `
+      <div class="an-activity-item">
+        <div class="an an-circle"></div>
+        <div style="flex:1">
+          <div class="an an-text" style="width: 70%; height: 12px; margin-bottom:6px;"></div>
+          <div class="an an-text" style="width: 40%; height: 10px;"></div>
         </div>
-      `;
-    }
+      </div>
+    `;
+  }
 
-    // Activity skeleton
-    let activity = "";
-    for (let i = 0; i < 4; i++) {
-      activity += `
-        <div class="an-activity-item">
-          <div class="an an-circle"></div>
-          <div style="flex:1">
-            <div class="an an-text" style="width: 70%; height: 12px; margin-bottom:6px;"></div>
-            <div class="an an-text" style="width: 40%; height: 10px;"></div>
-          </div>
+  // Locations skeleton
+  let locations = "";
+  for (let i = 0; i < 5; i++) {
+    locations += `
+      <div class="an-location-row">
+        <div class="an an-text" style="width: 80px; height: 10px;"></div>
+        <div class="an an-bar"></div>
+        <div class="an an-text" style="width: 40px; height: 10px;"></div>
+      </div>
+    `;
+  }
+
+  container.innerHTML = `
+    <div class="an-shell">
+
+      <!-- TOP NAV -->
+      <nav class="an-topnav">
+        <div class="an-tabs-left">
+          <div class="an an-pill" style="width:80px;"></div>
+          <div class="an an-pill" style="width:80px;"></div>
+          <div class="an an-pill" style="width:120px;"></div>
+          <div class="an an-pill" style="width:90px;"></div>
         </div>
-      `;
-    }
 
-    // Locations skeleton
-    let locations = "";
-    for (let i = 0; i < 5; i++) {
-      locations += `
-        <div class="an-location-row">
-          <div class="an an-text" style="width: 80px; height: 10px;"></div>
-          <div class="an an-bar"></div>
-          <div class="an an-text" style="width: 40px; height: 10px;"></div>
+        <div class="live-indicator-right">
+          <div class="an an-text" style="width:100px; height:14px;"></div>
         </div>
-      `;
-    }
+      </nav>
 
-    container.innerHTML = `
-      <div class="an-shell">
+      <!-- BOTTOM PANELS -->
+      <div class="bottom-panels-anal">
+        <div class="panel active">
 
-        <!-- TOP NAV -->
-        <nav class="an-topnav">
-          <div class="an-tabs-left">
-            <div class="an an-pill" style="width:80px;"></div>
-            <div class="an an-pill" style="width:80px;"></div>
-            <div class="an an-pill" style="width:120px;"></div>
-            <div class="an an-pill" style="width:90px;"></div>
-          </div>
+          <!-- HEADER -->
+          <div class="analytics-header">
+            <div class="an an-text" style="width:180px; height:16px;"></div>
 
-          <div class="live-indicator-right">
-            <div class="an an-text" style="width:100px; height:14px;"></div>
-          </div>
-        </nav>
-
-        <!-- BOTTOM PANELS -->
-        <div class="bottom-panels-anal">
-          <div class="panel active">
-
-            <!-- HEADER -->
-            <div class="analytics-header">
-              <div class="an an-text" style="width:180px; height:16px;"></div>
-
-              <div class="range-pills">
-                <div class="an an-pill"></div>
-                <div class="an an-pill"></div>
-                <div class="an an-pill"></div>
-                <div class="an an-pill"></div>
-              </div>
+            <div class="range-pills">
+              <div class="an an-pill"></div>
+              <div class="an an-pill"></div>
+              <div class="an an-pill"></div>
+              <div class="an an-pill"></div>
             </div>
+          </div>
 
-            <!-- KPI GRID -->
-            <div class="an-kpi-grid">
-              ${kpis}
-            </div>
+          <!-- KPI GRID -->
+          <div class="an-kpi-grid">
+            ${kpis}
+          </div>
 
-            <!-- CHART -->
-            <div class="an-card" style="margin-bottom: 14px">
+          <!-- CHART -->
+          <div class="an-card" style="margin-bottom: 14px">
+            <div class="an an-text" style="width:140px; height:14px; margin-bottom:10px;"></div>
+            <div class="an an-chart"></div>
+          </div>
+
+          <!-- TWO COL -->
+          <div class="an-two-col">
+
+            <!-- ACTIVITY -->
+            <div class="an-card">
               <div class="an an-text" style="width:140px; height:14px; margin-bottom:10px;"></div>
-              <div class="an an-chart"></div>
+              ${activity}
             </div>
 
-            <!-- TWO COL -->
-            <div class="an-two-col">
-
-              <!-- ACTIVITY -->
-              <div class="an-card">
-                <div class="an an-text" style="width:140px; height:14px; margin-bottom:10px;"></div>
-                ${activity}
-              </div>
-
-              <!-- SEGMENTS -->
-              <div class="an-card">
-                <div class="an an-text" style="width:140px; height:14px; margin-bottom:10px;"></div>
-                <div class="an an-donut"></div>
-              </div>
-
-              <!-- LOCATION -->
-              <div class="an-card">
-                <div class="an an-text" style="width:140px; height:14px; margin-bottom:10px;"></div>
-                ${locations}
-              </div>
-
+            <!-- SEGMENTS -->
+            <div class="an-card">
+              <div class="an an-text" style="width:140px; height:14px; margin-bottom:10px;"></div>
+              <div class="an an-donut"></div>
             </div>
 
-            <!-- INSIGHTS -->
-            <div class="an-two-col">
-              <div class="an an-insight"></div>
-              <div class="an an-insight"></div>
+            <!-- LOCATION -->
+            <div class="an-card">
+              <div class="an an-text" style="width:140px; height:14px; margin-bottom:10px;"></div>
+              ${locations}
             </div>
 
           </div>
+
+          <!-- INSIGHTS -->
+          <div class="an-two-col">
+            <div class="an an-insight"></div>
+            <div class="an an-insight"></div>
+          </div>
+
         </div>
-
       </div>
-    `;
-  }
 
-
-
-
-
+    </div>
+  `;
+}
 
 function showInviteTeamSkeleton(target) {
   const el = document.querySelector(target);

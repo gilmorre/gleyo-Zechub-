@@ -17,7 +17,7 @@ bp = Blueprint("discord", __name__, url_prefix="/discord")
 CLIENT_ID     = os.getenv("DISCORD_CLIENT_ID")
 CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET")
 
-DISCORD_REDIRECT_URI = os.getenv("DISCORD_REDIRECT_URI")
+DISCORD_REDIRECT_URI = "https://gleyo.app/discord/callback"
 
 SCOPE         = "identify email"
 

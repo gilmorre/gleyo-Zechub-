@@ -13810,13 +13810,6 @@ background-color: var(--bg-app);
 }
 
 
-.reward-conte-inner-sideline {
-  overflow-y: auto !important;
-  -webkit-mask-image: -webkit-radial-gradient(white, black); 
-  mask-image: radial-gradient(white, black);
-  scrollbar-gutter: stable both-edges; 
-
-}
 
 @media(min-width:700px) {
   .reward-conte-inner {

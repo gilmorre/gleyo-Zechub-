@@ -866,6 +866,10 @@ body::before {
   .spotlight-card, .spotlight-card * {
     box-sizing: border-box;
   }
+
+  img {
+    pointer-events: none
+  }
 }
 
 .spotlight-card::before {

@@ -3,6 +3,7 @@
   --bg-surface: #222236;
   --bg-hover: #2a2a44;
   --border: #2f2f4a;
+  --font-heading: 'Syne', sans-serif;
   --border-light: #404060;
   --accent-color: #6366f1;
   --text-main: #e5e7eb;
@@ -56,6 +57,7 @@ html, body {
 .interger {
   margin: 0 0 10px;
   font-size: 28px;
+  font-family: var(--font-heading) !important;
   font-weight: 600;
 }
 

@@ -1,97 +1,7 @@
-
-
 :root {
-  --bg-app-set-up: #0b0b12;
-  --bg-app-others: #212136;
-  --bg-app-init: #0b0b12;
-  --bg-app: #0b0b12;
-  --bg-sidebar: #181826;
-  /* --bg-sidebar: #1818266c; */
-  --bg-sidebar-opaque: #181826a4;
-  --bg-sidebar-opaque-back: #181826cc;
-  --bg-sidebar-inactive: #181826c5;
-  --main-ui: #1e1e2f;
-  --bg-surface-lower-q: #191929;
-  --bg-surface: #222236;
-  --bg-surface-dropdown: #1b1b2c;
-  --bg-surface-in-active: #161623;
-  --multi-spacing: #1b1b2b;
-  --bg-hover-hover-init-q-qq: #161623;
-  --bg-hover-hover-init-q-qq-hover: #161623;
-  --bg-surface-active: rgba(28, 28, 43, 0.851);
-  --bg-surface-active-q-p: rgba(28, 28, 43, 0.784);
-  --bg-surface-active-hover: rgba(28, 28, 43, 0.82);
-  --bg-hover: #2a2a44;
-  --bg-surface-lower: #222236e3;
-  --bg-surface-active-q: rgba(90, 120, 255, 0.18);
-  --bg-surface-active-q-active: rgba(120, 160, 255, 0.45);
-  --border-q-p: #2a2a44e4;
-  --bg-hover-q-p: #3c3c51c0;
-  --bg-hover-back-q-p: #222236c3;
-  --bg-hover-back-q-p-balck: #2222368e;
-  --border-split: #e4e4e4da;
-  --bg-hover-hover: #2a2a449c;
-  --content-dropper: #151520;
-  --bg-hover-hover-init-q: #2a2a4469;
-  --bg-hover-hover-init-q-hover: #2a2a4449;
-  --bg-hover-hover-plain: #232339;
-  --bg-hover-hover-lower: #2a2a4467;
-  --bg-hover-hover-3: #2323389c;
-  --satus-yyr : #212135ea;
-  --error-alt: #e74c3c;
-  --sub-muted: #9aa0b4;
-  --active-ness: #2ecc71;
-  --red: rgba(255, 0, 0, 0.519);
-  --bg-active-border: #353555;
-  --bg-active: #303050;
-  --accent-color: #6366f1;   
-  --text-main-q: #e5e7eb3f;
-  --accent-70: color-mix(in srgb, var(--accent-color) 70%, transparent);
-  --accent-45: color-mix(in srgb, var(--accent-color) 45%, transparent);
-  --accent-25: color-mix(in srgb, var(--accent-color) 25%, transparent);
   --text-main: #e5e7eb;
-  --sub-accent: #5865F2;
-  --bg-hover-hover-adder: #2f2f4a96;
-  --bg-hover-hover-init-r: #2a2a4488;
-  --text-main-items: #e5e7ebdf;
-  --accent-color-hover: #2a2a4472;
-  --text-main-items-reviews: #dadcdffa;
-  --main-ui-snap: #2a2a463c;
-  --main-ui-snap-hover: #2a2a462a;
-  --border-main-ui-snap: #2f2f4add;
-  --bg-hover-hover-dim: #2a2a4465;
-  --text-muted: #bbbfc7;
-  --text-muted-svg: #bbbfc78b;
-  --text-muted-bg: #b4b8c0;
-  --toggle-knob: #f3f4f6;
-  --text-main-small: #d9dbdf;
-  --bg-surface-lighter: #222236be;
-  --border: #2f2f4a;
-  --border-light: #404060;
-  /* --border-light: #32324e; */
-  --border-lighter: #2f2f4a9d;
-  --bg-hover-hover-init-q-hover-border: #2f2f4ab6;
-  --radius: 12px;
-  --bg-surface-init: #222236c3;
-  --info-bg: rgba(250, 204, 21, 0.08);
-  --info-border: rgba(250, 204, 21, 0.25);
-  --accent2: #3ecfcf;
-  --green: #2ecc71;
-  --red: #e74c3c;
-  --orange: #f39c12;
-
-
-
-  --main-text: #FFF;
-
-  --card-bg: var(--bg-sidebar);
-  --page-bg: #0b0f0e;
-  --border-muted-start: #2a2f2e;
-  --border-muted-end: #1a1f1e;
- 
- 
-
- 
+  --font-heading: 'Syne', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
 }
 
 * {
@@ -99,7 +9,14 @@
   padding: 0;
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
-  font-family: 'Outfit', sans-serif !important;
+  font-family: var(--font-body) !important;
+}
+
+.interger,
+.secondary-btn,
+.main-login-btn,
+.info-panel h3 {
+  font-family: var(--font-heading) !important;
 }
 
 html, body {
@@ -118,10 +35,6 @@ html, body {
 @media (min-width: 769px) {
   .onboarding-wrapper {
     height: 100dvh !important;
-  }
-
-  .onboarding-car {
-    padding-bottom: 40px !important;
   }
 }
 .onboarding-wrapper {
@@ -166,24 +79,8 @@ input::placeholder {
 
 .interger {
   font-size: 32px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: -0.5px;
-}
-
-.info-icon {
-  width: 22px;
-  height: 22px;
-  stroke: #9aa0b4;
-  fill: none;
-  stroke-width: 2;
-  cursor: pointer;
-  opacity: 0.7;
-  transition: 0.2s ease;
-}
-
-.info-icon:hover {
-  opacity: 1;
-  stroke: #6366f1;
 }
 
 .subtext {
@@ -205,8 +102,8 @@ input::placeholder {
 
 .invite-row input {
   flex: 1;
-  height: 50px;
-  border-radius: 14px;
+  height: 44px;
+  border-radius: 12px;
   border: 1px solid #2f2f4a;
   background: #222236;
   color: white;
@@ -228,10 +125,10 @@ input::placeholder {
 }
 
 .select-selected {
-  height: 50px;
+  height: 44px;
   background: #222236;
   border: 1px solid #2f2f4a;
-  border-radius: 14px;
+  border-radius: 12px;
   padding: 0 14px;
   display: flex;
   align-items: center;
@@ -258,12 +155,12 @@ input::placeholder {
 
 .select-items {
   position: absolute;
-  top: 55px;
+  top: 49px;
   left: 0;
   right: 0;
   background: #1b1b2b;
   border: 1px solid #2f2f4a;
-  border-radius: 14px;
+  border-radius: 12px;
   overflow: hidden;
   z-index: 99;
 }
@@ -325,6 +222,10 @@ input::placeholder {
 
 .main-login-btn:hover {
   background: #4f52d6;
+}
+
+.add-row {
+  margin-bottom: 14px;
 }
 
 .add-row {
@@ -467,40 +368,6 @@ input::placeholder {
     height: 16px;
   }
 
-
-  .nbp-title {
-    font-size: 22px;
-    line-height: 1.3;
-    margin-bottom: 10px;
-  }
-
-  .nbp-subtext {
-    font-size: 14px;
-    color: var(--text-muted);
-    margin-bottom: 28px;
-  }
-
-  .nbp-subtext br {
-    display: none;  
-  }
-
-  /* Stack cards nicely */
-  .choice-box {
-    padding: 18px;
-    border-radius: 16px;
-    margin-bottom: 16px;
-  }
-
-  .choice-box h3 {
-    font-size: 16px;
-    margin-bottom: 8px;
-  }
-
-  .choice-box p {
-    font-size: 13px;
-    line-height: 1.5;
-  }
-
   .progress-lines {
     margin: 28px 0;
   }
@@ -515,10 +382,53 @@ input::placeholder {
     display: flex;
   }
 
-  .btn {
-    width: 100%;
-    height: 48px;
-    border-radius: 14px;
-  }
+}
+
+.button-content, .secondary-btn.full-btn {
+  display: flex;
+  align-items: center;
+  font-weight: 550 !important;
+  font-family: 'Outfit', sans-serif !important;
+  gap: 7px;
+}
+
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translate(-50%, 12px);
+  background: rgba(25, 25, 40, 0.515);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 90, 90, 0.4);
+  color: #ff9b9b;
+  padding: 12px 18px;
+  border-radius: 14px;
+  font-size: 14px;
+  white-space: nowrap;
+  opacity: 0;
+  transition: transform .28s ease, opacity .28s ease;
+  z-index: 9999;
+}
+
+.toast span {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;            /* allow span to fill remaining space */
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
 
 }
+
+.toast.success {
+  border: 1px solid rgba(80, 220, 160, 0.45);   
+  color: #9ff3cf;                              
+  background: rgba(20, 50, 40, 0.55);          
+  box-shadow: 0 0 0 1px rgba(80, 220, 160, 0.08),
+              0 8px 24px rgba(0, 0, 0, 0.35);
+}
+

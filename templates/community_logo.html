@@ -7,6 +7,11 @@
 
 <title>Create Community</title>
 
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,600;12..96,700&family=Lora:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+
 <style>
   :root {
     --bg-app: #0b0b12;
@@ -23,20 +28,26 @@
     --green: #2ecc71;
     --red: #e74c3c;
     --radius: 14px;
+    --font-heading: 'Syne', sans-serif;
+    --font-body: 'DM Sans', sans-serif;
   }
 
 
   * {
     box-sizing: border-box;
-    font-family: 'Outfit', sans-serif !important;
+    font-family: var(--font-body) !important;
     -webkit-tap-highlight-color: transparent;
+  }
+
+  h2, h4, .btn {
+    font-family: var(--font-heading) !important;
   }
 
   html, body {
     margin: 0;
     padding: 0;
     height: 100dvh;
-    font-family: 'Outfit', sans-serif;
+    font-family: var(--font-body);
     width: 100%;
     background: radial-gradient(circle at 30% 20%, #151528 0%, #0b0b12 60%);
     color: var(--text-main);
@@ -65,7 +76,7 @@
   h2 {
     margin: 0 0 12px;
     font-size: 24px;
-    font-weight: 600;
+    font-weight: 700;
     letter-spacing: -0.3px;
   }
 
@@ -199,16 +210,16 @@
 
   .button-row {
     display: flex;
-    gap: 12px;
-    margin-top: 32px;
+    gap: 10px;
+    margin-top: 28px;
   }
 
   .btn {
     flex: 1;
-    height: 48px;
-    border-radius: var(--radius);
+    height: 40px;
+    border-radius: 10px;
     font-weight: 600;
-    font-size: 14px;
+    font-size: 13px;
     cursor: pointer;
     border: none;
     transition: 0.2s ease;

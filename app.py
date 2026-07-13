@@ -3952,7 +3952,7 @@ We’ll review your application and respond within 48 hours.
 Donald  
 Founder, Gleyo
 """
-    mail.send(msg)
+    send_email_fm(msg) 
 
     return jsonify(
         success=True,
@@ -5520,6 +5520,45 @@ def toggle_theme():
         "theme_mode": setting.theme_mode
     }), 200
 
+def send_email_fm(msg):
+    """
+    Same as send_email(), but for flask_mail-style Message objects
+    (msg.subject, msg.recipients, msg.html, msg.body)
+    instead of stdlib EmailMessage objects (msg["Subject"], msg.iter_parts()).
+    Use this for any new code that builds Message(...) from flask_mail.
+    Do NOT merge this into send_email() — other routes depend on that one as-is.
+    """
+    html_content = getattr(msg, "html", None)
+    text_content = getattr(msg, "body", None)
+
+    params = {
+        "from": "Gleyo <noreply@gleyo.app>",
+        "to": msg.recipients,
+        "subject": msg.subject,
+    }
+    if html_content:
+        params["html"] = html_content
+    if text_content:
+        params["text"] = text_content
+
+    if RESEND_API_KEY:
+        try:
+            resend.Emails.send(params)
+            print("EMAIL SENT SUCCESSFULLY (Resend, fm)")
+            return
+        except Exception as e:
+            print("RESEND FAILED (fm):", e, "— falling back to SMTP")
+    else:
+        print("No RESEND_API_KEY set — using SMTP (fm)")
+
+    try:
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+            server.starttls()
+            server.login(SMTP_USERNAME, SMTP_PASSWORD)
+            mail.send(msg)   
+        print("EMAIL SENT SUCCESSFULLY (SMTP fallback, fm)")
+    except Exception as e:
+        print("SMTP FALLBACK FAILED (fm):", e)
 
 
 @app.route("/community/<string:community_slug>/send_invite", methods=["POST"])
@@ -5590,7 +5629,7 @@ def send_invite(community_slug):
             """
         )
         try:
-            mail.send(msg)
+            send_email_fm(msg)
             sent_emails.append(email)
         except Exception as e:
             print(f"Failed to send email to {email}: {e}")

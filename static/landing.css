@@ -540,6 +540,7 @@ body::before {
 
 .sheet-action-btn.settings {
   background: var(--bg-hover-hover);
+  white-space: nowrap;
   color: var(--text-muted);
   border: 1px solid var(--border);
 }
@@ -817,6 +818,7 @@ body::before {
   text-decoration: none;
   color: inherit;
   flex-shrink: 0;
+  box-sizing: border-box !important;
   display: block;
 }
 
@@ -834,6 +836,36 @@ body::before {
   width: 320px;
   position: relative;
   overflow: hidden;
+}
+
+@media (max-width: 360px) {
+  html, body {
+    max-width: 100%;
+  }
+
+  .spotlight-link {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .spotlight-card {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  .spotlight-content p {
+    max-width: 100%;
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+
+  .spotlight-card, .spotlight-card * {
+    box-sizing: border-box;
+  }
 }
 
 .spotlight-card::before {
@@ -1304,4 +1336,8 @@ body::before {
   #community-search-results {
     top: 104px !important;
   }
+}
+
+.btn-cta.create-comm {
+  white-space: nowrap;
 }

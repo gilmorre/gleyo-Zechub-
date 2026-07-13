@@ -6952,19 +6952,22 @@ async function loadMainSettingsSection(path, push = true, previewMode = false, n
   } else if (path.endsWith("/quest/admin")) {
 
 
-    showAdminSkeleton("#inject-main-card");
-    } else if (path.endsWith("/quest") || path.endsWith("/quest/sprint") || path.includes("/quest/")) {
-      // /quest
-      const layout = await injectQuestLayout("#inject-main-card", path);
-      renderQuestSkeleton(layout.questsRoot, 2, layout);
+  showAdminSkeleton("#inject-main-card");
+  } else if (path.endsWith("/quest") || path.endsWith("/quest/sprint") || path.includes("/quest/")) {
+    // /quest
+    const layout = await injectQuestLayout("#inject-main-card", path);
+    renderQuestSkeleton(layout.questsRoot, 2, layout);
 
 
-    }
-    else if (path.endsWith("/leaderboard")) {
+  }
+  else if (path.endsWith("/leaderboard")) {
       LeaderboardSkeleton("#inject-main-card");
   } 
-    else if (path.includes("/leaderboard/")) {
+  else if (path.includes("/leaderboard/")) {
       SprintLeaderboardSkeleton("#inject-main-card");
+  }
+  else if (path.includes("/dashboard")) {
+      showDashboardSkeleton("#inject-main-card");
   }
   else {
      LeaderboardSkeleton("#inject-main-card");

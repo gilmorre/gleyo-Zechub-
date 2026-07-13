@@ -1336,6 +1336,11 @@ body::before {
   #community-search-results {
     top: 104px !important;
   }
+  .quest-content {
+    -webkit-mask-image: -webkit-radial-gradient(white, black); 
+    mask-image: radial-gradient(white, black);
+    scrollbar-gutter: stable both-edges; 
+  }
 }
 
 .btn-cta.create-comm {

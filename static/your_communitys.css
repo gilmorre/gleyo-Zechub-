@@ -14413,3 +14413,48 @@ background-color: var(--bg-app);
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+@media(max-width: 767px) {
+  #inject-main-card {
+    overflow-y: hidden !important
+  }
+}
+.layout-root .quest-content,
+.layout-root .right-panel {
+  -webkit-mask-image: -webkit-radial-gradient(white, black) !important;
+  mask-image: radial-gradient(white, black) !important;
+  scrollbar-gutter: stable both-edges !important;
+}
+
+.layout-root .quest-content::-webkit-scrollbar,
+.layout-root .right-panel::-webkit-scrollbar,
+::-webkit-scrollbar {
+  width: 4px !important;
+  height: 4px !important;
+}
+
+.layout-root .quest-content::-webkit-scrollbar-track,
+.layout-root .right-panel::-webkit-scrollbar-track,
+::-webkit-scrollbar-track {
+  background: transparent !important;
+  border-radius: 10px !important;
+}
+
+.layout-root .quest-content::-webkit-scrollbar-thumb,
+.layout-root .right-panel::-webkit-scrollbar-thumb,
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2) !important;
+  border-radius: 10px !important;
+  border: none !important;
+}
+
+.layout-root .quest-content::-webkit-scrollbar-thumb:hover,
+.layout-root .right-panel::-webkit-scrollbar-thumb:hover,
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4) !important;
+}
+
+* {
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent !important;
+}

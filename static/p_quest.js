@@ -4660,8 +4660,12 @@ async function routeToSubquest(box){
 
     container.innerHTML = renderQuestComplete(data);
 
-    // ⬆️ scroll content container back to top
-    const scrollTarget = document.querySelector(".quest-complete.quest-content") || document.querySelector(".quest-content");
+    let scrollTarget;
+    if (window.innerWidth <= 767) {
+      scrollTarget = document.querySelector(".quest-complete.quest-content");
+    } else {
+      scrollTarget = document.querySelector(".quest-content");
+    }
     if (scrollTarget) scrollTarget.scrollTop = 0;
 
     initSocialTooltips(communitySlug);

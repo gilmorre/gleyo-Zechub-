@@ -14453,8 +14453,4 @@ background-color: var(--bg-app);
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.4) !important;
 }
-
-* {
-  scrollbar-width: thin !important;
-  scrollbar-color: rgba(255, 255, 255, 0.2) transparent !important;
-}
+  

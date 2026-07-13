@@ -1,12 +1,17 @@
 
-  .content-block {
-    position: relative;
-    bottom: 28px;
-  }
+* {
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent !important;
+}
 
-  .info-box.completed {
-    opacity: 0.6;
-  }
+.content-block {
+  position: relative;
+  bottom: 28px;
+}
+
+.info-box.completed {
+  opacity: 0.6;
+}
   .preview-content {
   display: flex;
   flex-direction: column; /* stack vertically on mobile */

@@ -826,11 +826,10 @@ body::before {
   display: flex;
   gap: 18px;
   align-items: center;
-  background: var(--surface);
+  background: #22223697;
   border: 0.9px solid var(--border);
   border-radius: 20px;
   padding: 16px 18px;
-  backdrop-filter: blur(10px);
   transition: border-color 0.3s, transform 0.3s, box-shadow 0.3s;
   cursor: pointer;
   width: 320px;

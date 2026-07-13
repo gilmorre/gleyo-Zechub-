@@ -14382,20 +14382,7 @@ background-color: var(--bg-app);
   #inject-main-card {
     overflow-y: hidden !important
   }
-}
-.layout-root .quest-content,
-.layout-root .right-panel {
-  -webkit-mask-image: -webkit-radial-gradient(white, black) !important;
-  mask-image: radial-gradient(white, black) !important;
-  scrollbar-gutter: stable both-edges !important;
-}
-
-.layout-root .quest-content::-webkit-scrollbar,
-.layout-root .right-panel::-webkit-scrollbar,
-::-webkit-scrollbar {
-  width: 4px !important;
-  height: 4px !important;
-}
+} 
 
 .layout-root .quest-content::-webkit-scrollbar-track,
 .layout-root .right-panel::-webkit-scrollbar-track,

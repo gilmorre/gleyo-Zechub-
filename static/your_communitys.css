@@ -6016,8 +6016,8 @@ border-top-color: var(--text-main) !important;
    }  
   
 .connect-btn.telegram:hover {
-   background: #006699;
-   }  
+  background: #006699;
+}  
 
 
 .contract-address {

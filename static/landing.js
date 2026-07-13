@@ -118,15 +118,25 @@ async function logoutUser(url) {
   }
 }
  
-window.addEventListener("scroll", () => {
-  const scrollY = window.scrollY;
+const scrollWrapEl = document.getElementById("scroll-wrap");
+
+function handleScroll() {
+  const scrollY = scrollWrapEl ? scrollWrapEl.scrollTop : window.scrollY;
+
   document.querySelectorAll(".parallax").forEach(el => {
     const speed = el.dataset.speed || 0.2;
     el.style.transform = `translateY(${scrollY * speed}px)`;
   });
+
   const nav = document.querySelector(".top-nav");
   if (nav) nav.style.background = scrollY > 20 ? "rgba(11,11,18,0.95)" : "rgba(11,11,18,0.78)";
-});
+}
+
+if (scrollWrapEl) {
+  scrollWrapEl.addEventListener("scroll", handleScroll);
+} else {
+  window.addEventListener("scroll", handleScroll);
+}
 
 function showToast(msg, type = "error") {
   document.querySelectorAll(".toast").forEach(t => t.remove());

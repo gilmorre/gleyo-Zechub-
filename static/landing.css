@@ -1349,3 +1349,10 @@ body::before {
 .btn-cta.create-comm {
   white-space: nowrap;
 }
+
+#scroll-wrap {
+  height: 100dvh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}

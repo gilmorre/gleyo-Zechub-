@@ -71,6 +71,14 @@ GITHUB_CLIENT_ID=your_github_client_id
 GITHUB_CLIENT_SECRET=your_github_client_secret
 GITHUB_REDIRECT_URI=https://yourdomain.com/github/callback
 
+# ── Google OAuth ─────────────────────────────────────
+# NOTE: always use the GOOGLE_ prefix here, never a bare CLIENT_ID/CLIENT_SECRET —
+# a generic name will collide with Discord's client_id/secret env vars below
+# and cause silent cross-provider auth failures.
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+GOOGLE_REDIRECT_URI=https://yourdomain.com/google/callback
+
 # ── Twitter OAuth ────────────────────────────────────
 TWITTER_CLIENT_ID=your_twitter_client_id
 TWITTER_CLIENT_SECRET=your_twitter_client_secret
@@ -81,11 +89,16 @@ COMM_TWITTER_CLIENT_SECRET=your_community_twitter_client_secret
 COMM_TWITTER_REDIRECT_URI=https://yourdomain.com/community-twitter-callback
 
 # ── Discord ──────────────────────────────────────────
+# Two separate Discord OAuth flows exist: user login/linking (DISCORD_*)
+# and the bot invite flow (BOT_DISCORD_*). Keep these prefixes distinct —
+# do not fall back to a bare CLIENT_ID/CLIENT_SECRET for either.
 DISCORD_BOT_TOKEN=your_discord_bot_token
+DISCORD_CLIENT_ID=your_discord_client_id
+DISCORD_CLIENT_SECRET=your_discord_client_secret
+DISCORD_REDIRECT_URI=https://yourdomain.com/discord/callback
 BOT_DISCORD_CLIENT_ID=your_bot_client_id
 BOT_DISCORD_CLIENT_SECRET=your_bot_client_secret
 BOT_DISCORD_REDIRECT_URI=https://yourdomain.com/bot/callback
-DISCORD_REDIRECT_URI=https://yourdomain.com/discord/callback
 
 # ── Telegram ─────────────────────────────────────────
 TELEGRAM_BOT_TOKEN=your_telegram_bot_token
@@ -97,6 +110,14 @@ TIKTOK_REDIRECT_URI=https://yourdomain.com/tiktok/callback
 
 # ── YouTube ──────────────────────────────────────────
 YOUTUBE_API_KEY=your_youtube_api_key
+YOUTUBE_CLIENT_ID=your_youtube_client_id
+YOUTUBE_CLIENT_SECRET=your_youtube_client_secret
+
+# ── Payments (optional) ──────────────────────────────
+STRIPE_SECRET_KEY=your_stripe_secret_key
+
+# ── Third-party data (optional) ──────────────────────
+RAPIDAPI_KEY=your_rapidapi_key
 
 # ── Push Notifications ───────────────────────────────
 VAPID_PUBLIC_KEY=your_vapid_public_key
@@ -115,6 +136,8 @@ REDIS_URL=redis://your_redis_url
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_KEY=your_supabase_key       # Server-side key (e.g. service role/secret key) — keep this out of any client-facing code, it's used server-side only for storage operations
 ```
+
+> ⚠️ **Never use a bare `CLIENT_ID` / `CLIENT_SECRET`.** Every OAuth provider (Google, Discord, Discord bot, GitHub, Twitter, TikTok, YouTube) must use its own prefixed variable name. A generic name gets read by whichever provider's code happens to call `os.getenv("CLIENT_ID")` first, silently sending the wrong credentials to the wrong provider — this has caused real outages (Discord requests failing with a Google client ID, and vice versa).
 
 ### 5. Run the app
 
@@ -147,6 +170,8 @@ zebrad start
 ```
 
 > Zebra must sync to Orchard activation height (~1.8M blocks) before Nozy can operate. Full sync to mainnet tip (~3.4M+ blocks) is required for live withdrawals and deposit verification.
+
+> Keep Zebra on the latest stable tagged release (not a release-candidate/`-rc` build). Zebra's built-in "end of support" check will force-stop the node once a build falls too far behind — check `git describe --tags` against the newest tag under [Releases](https://github.com/ZcashFoundation/zebra/tags) periodically.
 
 ---
 

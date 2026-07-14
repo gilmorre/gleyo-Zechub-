@@ -14,8 +14,8 @@ from backend.utils.utils import create_user_session, is_safe_url
 
 bp = Blueprint("discord", __name__, url_prefix="/discord")
 # ── Config ─────────────────────────────────────────────
-CLIENT_ID     = os.getenv("CLIENT_ID")
-CLIENT_SECRET = os.getenv("CLIENT_SECRET")
+CLIENT_ID     = os.getenv("DISCORD_CLIENT_ID")
+CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET")
 
 DISCORD_REDIRECT_URI = os.getenv("DISCORD_REDIRECT_URI")
 

@@ -229,11 +229,13 @@ Gleyo is live and processing real ZEC on mainnet, but it's currently in closed b
 - **[Tron](https://github.com/onajifortune)** — whose tutorial video was a huge help in getting Zebra running
 - **Dre & the ZecHub Developer Workshop series** — for creating the space that connected builders with the knowledge, discussions, and technical sessions that helped shape parts of Gleyo's journey.
 - **Elzz** — whose Contributor Workshop session on the contributor lifecycle (education → onboarding → activation → retention) directly shaped how Gleyo's quest and retention features were structured.
+- **ZecForge** — and the members there who jumped in to actually test Gleyo, connecting wallets, completing shielded withdrawals, and giving real feedback along the way, thank you 🙏
+
 ---
 
 ## Demo
 
-[Watch the demo](#) — coming soon
+[Watch the demo](https://youtu.be/Har9yk9Ep04)
 
 ---
 

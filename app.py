@@ -15599,7 +15599,11 @@ def publish_subquest(community_slug):
         subcontent = reward_data.get("subcontent") or {}
 
         if distribution_type == "FCFS":
-            claims_to_lock = max_claim if max_claim else 1
+            try:
+                max_supply = int(subcontent.get("max_supply", 0))
+            except (ValueError, TypeError):
+                max_supply = 0
+            claims_to_lock = max_supply if max_supply > 0 else (max_claim if max_claim else 1)
             total_zec_needed_zatoshi += amount_zatoshi * claims_to_lock
 
         elif distribution_type in ("RAFFLE", "VOTE"):

@@ -1,4 +1,4 @@
-from flask import Blueprint, redirect, request, session, url_for, flash
+from flask import Blueprint, redirect, request, session, url_for, flash, jsonify
 from flask_login import login_user, logout_user, current_user, login_required
 from datetime import datetime
 
@@ -25,7 +25,6 @@ _AUTH_URL  = "https://discord.com/api/oauth2/authorize"
 _TOKEN_URL = "https://discord.com/api/oauth2/token"
 _ME_URL    = "https://discord.com/api/users/@me"
 
-from flask import request, jsonify
 
 def is_ajax():
     return request.headers.get("X-Requested-With") == "XMLHttpRequest"
@@ -43,12 +42,18 @@ def block_if_pending_deletion(user):
     return False
 
 
+def safe_next(next_url, fallback):
+    """Only allow same-site redirect targets; fall back otherwise."""
+    if next_url and is_safe_url(next_url):
+        return next_url
+    return fallback
+
 
 # ── Helpers ─────────────────────────────────────────────
 def build_auth_url(state: str) -> str:
     params = {
         "client_id": CLIENT_ID,
-        "redirect_uri": REDIRECT_URI,
+        "redirect_uri": DISCORD_REDIRECT_URI,
         "response_type": "code",
         "scope": SCOPE,
         "state": state,
@@ -62,7 +67,7 @@ def exchange_code(code: str) -> dict:
         "client_secret": CLIENT_SECRET,
         "grant_type": "authorization_code",
         "code": code,
-        "redirect_uri": REDIRECT_URI,
+        "redirect_uri": DISCORD_REDIRECT_URI,
     }
     r = requests.post(_TOKEN_URL, data=data, headers={
         "Content-Type": "application/x-www-form-urlencoded"
@@ -82,18 +87,18 @@ def discord_login():
     if current_user.is_authenticated:
         return redirect(url_for("dashboard"))
 
-    next_url = request.args.get("next") or url_for("dashboard")
+    next_url = safe_next(request.args.get("next"), url_for("dashboard"))
 
     state = "login_" + secrets.token_urlsafe(8)
     session["discord_oauth_state"] = state
-    session["discord_oauth_next"] = next_url  
+    session["discord_oauth_next"] = next_url
 
     return redirect(build_auth_url(state))
 
 # ── Routes ─────────────────────────────────────────────
 @bp.route("/connect")
 def discord_connect():
-    next_url = request.args.get("next") or url_for("account_settings_linked_accounts")
+    next_url = safe_next(request.args.get("next"), url_for("account_settings_linked_accounts"))
 
     # Save it in session (or encode into state)
     state = secrets.token_urlsafe(8)
@@ -109,9 +114,12 @@ def discord_callback():
     state = request.args.get("state")
 
     saved_state = session.pop("discord_oauth_state", None)
-    next_url = session.pop("discord_oauth_next", url_for("account_settings_linked_accounts"))
+    raw_next = session.pop("discord_oauth_next", url_for("account_settings_linked_accounts"))
+    next_url = safe_next(raw_next, url_for("account_settings_linked_accounts"))
 
-    if not code or (saved_state and state != saved_state):
+    # Require a saved_state to exist AND match — previously a missing saved_state
+    # (e.g. expired session) silently skipped this check entirely.
+    if not code or not saved_state or state != saved_state:
         flash("Invalid OAuth response.", "error")
         return redirect(next_url)
 
@@ -122,7 +130,7 @@ def discord_callback():
         username = f"{user_json['username']}#{user_json['discriminator']}"
 
         # ── Determine if this is a login or linking flow ──
-        if saved_state and saved_state.startswith("login_"):
+        if saved_state.startswith("login_"):
             record = UserDiscord.query.filter_by(
                 discord_user_id=discord_id, action="connected"
             ).first()
@@ -139,7 +147,7 @@ def discord_callback():
                         )
                         return redirect(url_for("login"))
                     login_user(user, remember=True)
-                    create_user_session(user) 
+                    create_user_session(user)
 
                     session["user_id"] = user.id
                     session["username"] = user.username

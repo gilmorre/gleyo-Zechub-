@@ -31,7 +31,7 @@ API_BASE = "https://discord.com/api/v10"
 # ── Scopes & Permissions ─────────────────────────────────
 SCOPE = "bot applications.commands"
 PERMISSIONS = "268438544"  # adjust as needed
- 
+
 import asyncio
 
 role_assignment_queue = asyncio.Queue()
@@ -44,10 +44,9 @@ def _new_state() -> str:
 def build_bot_invite_url(sess) -> str:
     state = _new_state()
     sess["discord_bot_state"] = state
-    community_id = sess.get("community_id")
     params = {
-        "client_id": DISCORD_CLIENT_ID,
-        "redirect_uri": DISCORD_REDIRECT_URI,
+        "client_id": BOT_DISCORD_CLIENT_ID,
+        "redirect_uri": BOT_DISCORD_REDIRECT_URI,
         "response_type": "code",
         "scope": SCOPE,
         "permissions": PERMISSIONS,
@@ -66,7 +65,10 @@ def invite_bot():
     session["community_id"] = community_id
 
     # 🔹 Automatically save the page the user came from
+    # Only allow relative paths to prevent open-redirect via ?next= or spoofed referrer
     next_url = request.args.get("next") or request.referrer
+    if next_url and not next_url.startswith("/"):
+        next_url = None
     if next_url:
         session["discord_next_url"] = next_url
 
@@ -119,8 +121,6 @@ async def process_role_queue():
                 role_name_clean = role_name.strip().lower()
                 role_obj = discord.utils.find(lambda r: r.name.strip().lower() == role_name_clean, guild.roles)
 
-
-
             if not role_obj:
                 print(f"❌ Role not found in guild '{guild.name}'")
                 print(f"   Attempted lookup - id: {role_id}, name: {role_name}")
@@ -128,7 +128,6 @@ async def process_role_queue():
                 for r in guild.roles:
                     print(f"     id={r.id}, name='{r.name}'")
                 continue
-
 
             await member.add_roles(role_obj, reason="Subquest reward claim")
             print(f"✅ Assigned role {role_obj.name} to {member}")
@@ -158,11 +157,8 @@ async def update_guild_member_counts():
         await asyncio.sleep(4 * 60 * 60)  # 4 hours
 
 
-
-import requests
 from typing import Tuple, List, Dict
 
-# discord_bot.py
 def user_has_discord_role(user_roles: List[str], role_name_or_id: str, role_name_to_id: Dict[str, str]) -> bool:
     """
     Check if a Discord user has a specific role in a guild.
@@ -180,6 +176,7 @@ def user_has_discord_role(user_roles: List[str], role_name_or_id: str, role_name
             return False
 
     return role_id in user_roles
+
 def fetch_discord_roles_and_member(guild_id: str, discord_user_id: str) -> Tuple[List[str], Dict[str, str]]:
     """
     Fetches the member roles and guild roles for a Discord user in a guild.
@@ -222,8 +219,6 @@ def fetch_discord_roles_and_member(guild_id: str, discord_user_id: str) -> Tuple
     return user_roles, role_name_to_id
 
 
-
-
 def get_discord_channels(guild_id: str):
     url = f"{API_BASE}/guilds/{guild_id}/channels"
     headers = {"Authorization": f"Bot {DISCORD_BOT_TOKEN}"}
@@ -233,13 +228,11 @@ def get_discord_channels(guild_id: str):
         return [c for c in r.json() if c["type"] == 0]
     return []
 
-import requests
-from flask import flash
 
 def get_discord_roles(guild_id: str):
     url = f"{API_BASE}/guilds/{guild_id}/roles"
     headers = {"Authorization": f"Bot {DISCORD_BOT_TOKEN}"}
-    
+
     try:
         r = requests.get(url, headers=headers, timeout=15)
         r.raise_for_status()  # Raise for HTTP errors (optional)
@@ -252,7 +245,6 @@ def get_discord_roles(guild_id: str):
         # Catch all other requests errors
         flash(f"⚠️ Could not fetch Discord roles: {e}", "warning")
         return []
-
 
 
 @bp_discord_bot.route("/bot/callback")
@@ -272,11 +264,11 @@ def discord_bot_callback():
 
     # Exchange code → access token
     data = {
-        "client_id": DISCORD_CLIENT_ID,
-        "client_secret": DISCORD_CLIENT_SECRET,
+        "client_id": BOT_DISCORD_CLIENT_ID,
+        "client_secret": BOT_DISCORD_CLIENT_SECRET,
         "grant_type": "authorization_code",
         "code": code,
-        "redirect_uri": DISCORD_REDIRECT_URI,
+        "redirect_uri": BOT_DISCORD_REDIRECT_URI,
     }
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
     r = requests.post(TOKEN_URL, data=data, headers=headers, timeout=20)
@@ -314,6 +306,15 @@ def discord_bot_callback():
     # ✅ Check if guild already exists in DB
     existing_guild = DiscordGuild.query.filter_by(guild_id=guild_json["id"]).first()
     if existing_guild:
+        # Guard against hijacking a guild that's already linked to a different community
+        if existing_guild.community_id and str(existing_guild.community_id) != str(community_id):
+            flash(
+                "⚠️ This Discord server is already linked to another community. "
+                "Remove the bot from that community first if you want to relink it.",
+                "error"
+            )
+            return redirect(url_for("setup1", community_slug=community.slug))
+
         existing_guild.community_id = community_id
         existing_guild.guild_name = guild_json["name"]
         existing_guild.icon_url = guild_json.get("icon")
@@ -338,7 +339,7 @@ def discord_bot_callback():
         db.session.commit()
         flash(f"✅ Bot added to {guild_json['name']} (Community {community_id})", "success")
 
-    # 🔹 Respect saved next_url if available
+    # 🔹 Respect saved next_url if available (already validated as relative in /invite_bot)
     next_url = session.pop("discord_next_url", None)
     if next_url:
         return redirect(next_url)
@@ -352,13 +353,13 @@ intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 bot_members_cache = {}
- 
+
 
 @bot.event
 async def on_ready():
     global bot_members_cache
     bot.loop.create_task(process_role_queue())
-    bot.loop.create_task(update_guild_member_counts()) 
+    bot.loop.create_task(update_guild_member_counts())
     print(f"🤖 Logged in as {bot.user} (ID: {bot.user.id})")
     print("------")
 
@@ -391,7 +392,6 @@ async def on_member_remove(member):
     if member.guild.system_channel:
         await member.guild.system_channel.send(f"😥 {member.name} just left us.")
 
-# in discord_bot.py
 
 def get_or_create_invite(guild_id: str) -> str | None:
     """
@@ -468,9 +468,6 @@ async def on_guild_remove(guild: discord.Guild):
             print(f"📉 DB updated: {guild_record.guild_name} -> bot_joined=False, removed_at={guild_record.removed_at}")
         else:
             print("⚠️ Guild not found in DB, nothing updated.")
-
-
-
 
 
 # ---------------- SLASH COMMANDS ---------------- #

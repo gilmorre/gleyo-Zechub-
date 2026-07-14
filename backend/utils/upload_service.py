@@ -1,5 +1,5 @@
 import requests
-import os, json
+import os, json, time
 from backend.communities.communitynotification import CommunityNotificationSettings, PushSubscription, CategoryNotificationSettings, ChannelNotificationSettings
 from pywebpush import webpush, WebPushException
 from backend.utils.instance import db
@@ -16,13 +16,16 @@ VAPID_PRIVATE_KEY = os.getenv("VAPID_PRIVATE_KEY")
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 EMAIL_USER = os.getenv("SMTP_USERNAME")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-VAPID_PRIVATE_KEY = os.getenv("VAPID_PRIVATE_KEY")
 
 
-executor = ThreadPoolExecutor(max_workers=10)
+# Separate pools so a slow push-notification batch (which loops through
+# every subscriber synchronously inside one worker) can't starve or queue
+# behind avatar/file uploads, and vice versa.
+upload_executor = ThreadPoolExecutor(max_workers=5)
+push_executor = ThreadPoolExecutor(max_workers=5)
 
 
-def _upload_single(file_bytes, storage_name, content_type, max_retries=2):
+def _upload_single(file_bytes, storage_name, content_type, max_retries=5):
     print("🚀 Upload started:", storage_name)
 
     url = f"{SUPABASE_URL}/storage/v1/object/uploads/{storage_name}"
@@ -35,19 +38,22 @@ def _upload_single(file_bytes, storage_name, content_type, max_retries=2):
 
     last_error = None
 
-    for attempt in range(1, max_retries + 2):  # initial attempt + retries
+    for attempt in range(1, max_retries + 1):
         try:
             res = requests.post(
                 url,
                 headers=headers,
                 data=file_bytes,
-                timeout=30   # bumped from 10 to 30
+                timeout=30
             )
 
             if res.status_code >= 300:
                 print(f"❌ Upload failed (attempt {attempt}):", res.text)
                 last_error = Exception(res.text)
-                continue  # retry
+                # Backoff before retrying — a bare retry with no delay just
+                # re-hits the same transient network/server issue immediately.
+                time.sleep(min(2 ** attempt, 15))
+                continue
 
             print("✅ Upload finished:", storage_name)
             return f"{SUPABASE_URL}/storage/v1/object/public/uploads/{storage_name}"
@@ -55,18 +61,30 @@ def _upload_single(file_bytes, storage_name, content_type, max_retries=2):
         except requests.exceptions.Timeout as e:
             print(f"⏱️ Upload timed out (attempt {attempt}):", e)
             last_error = e
+            time.sleep(min(2 ** attempt, 15))
+            continue
+
+        except requests.exceptions.ConnectionError as e:
+            # Covers ConnectionResetError ("connection aborted") — usually a
+            # transient network blip or the remote host closing the socket
+            # mid-request. A short backoff gives it time to clear before
+            # hammering the same request again.
+            print(f"🔌 Connection error (attempt {attempt}):", e)
+            last_error = e
+            time.sleep(min(2 ** attempt, 15))
             continue
 
         except Exception as e:
             print(f"💥 Upload error (attempt {attempt}):", e)
             last_error = e
+            time.sleep(min(2 ** attempt, 15))
             continue
 
     raise last_error
 
 
 def upload_async(file_bytes, storage_name, content_type):
-    return executor.submit(_upload_single, file_bytes, storage_name, content_type)
+    return upload_executor.submit(_upload_single, file_bytes, storage_name, content_type)
 
 
 def send_push_notification_async(subs, title, body, data):
@@ -76,7 +94,7 @@ def send_push_notification_async(subs, title, body, data):
         with app.app_context():
             _send_push_notification(subs, title, body, data)
 
-    return executor.submit(task)
+    return push_executor.submit(task)
 
 
 def _send_discord_message(channel_id, content):
@@ -116,7 +134,7 @@ def _send_push_notification(subs, title, body, data):
 
     with app.app_context():
         for i, sub in enumerate(subs, start=1):
- 
+
             payload = {
                 "title": str(title),
                 "body": str(body),
@@ -177,11 +195,11 @@ def _send_push_notification(subs, title, body, data):
 
 
 def send_discord_message_async(channel_id, content):
-    
+
     app = current_app._get_current_object()
 
     def task():
         with app.app_context():
             _send_discord_message(channel_id, content)
 
-    return executor.submit(task)
+    return push_executor.submit(task)

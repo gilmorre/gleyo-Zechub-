@@ -11155,6 +11155,29 @@ def disconnect_zec():
     })
 
 
+def _nozy_sync():
+    """Sync Nozy wallet state before attempting a send. Returns (success, error)."""
+    try:
+        sync_resp = requests.post(
+            f"{NOZY_API_URL}/api/sync",
+            json={"password": NOZY_WALLET_PASSWORD},
+            headers={"X-API-Key": NOZY_API_KEY},
+            timeout=120
+        )
+        if sync_resp.status_code != 200:
+            return False, f"Sync failed: HTTP {sync_resp.status_code}"
+
+        data = sync_resp.json()
+        # Adjust this check based on what your /api/sync actually returns
+        # on success — assuming it returns balance_zec like your snippet showed
+        if 'balance_zec' not in data:
+            return False, "Sync response missing balance_zec"
+
+        return True, None
+    except Exception as e:
+        return False, f"Sync failed: {str(e)}"
+
+
 def process_zec_withdrawal(tx_id, address, amount_to_send, full_amount, platform_fee):
     print(f"DEBUG: process_zec_withdrawal STARTED tx_id={tx_id}")
     with app.app_context():
@@ -11167,11 +11190,24 @@ def process_zec_withdrawal(tx_id, address, amount_to_send, full_amount, platform
             user_id=tx.user_id
         ).first()
 
-        print(f"DEBUG: calling _nozy_send with address={address}, amount_to_send={amount_to_send}")
+        # 🔄 Sync wallet state BEFORE attempting the send
+        print("DEBUG: syncing Nozy wallet before send")
+        synced, sync_err = _nozy_sync()
+
+        if not synced:
+            print(f"DEBUG: SYNC FAILED: {sync_err}")
+            user_balance.balance         += Decimal(str(full_amount))
+            user_balance.total_withdrawn -= Decimal(str(platform_fee))
+            tx.status = "failed"
+            tx.remark = "Refunded · wallet sync failed — your ZEC has been returned, please try again"
+            db.session.commit()
+            return
+
+        print(f"DEBUG: sync succeeded, calling _nozy_send with address={address}, amount_to_send={amount_to_send}")
         tx_hash, err = _nozy_send(address, amount_to_send, memo="Gleyo ZEC Withdrawal")
 
         if err:
-            print(f"DEBUG: _nozy_send FAILED: {err}")  
+            print(f"DEBUG: _nozy_send FAILED: {err}")
             user_balance.balance         += Decimal(str(full_amount))
             user_balance.total_withdrawn -= Decimal(str(platform_fee))
             tx.status = "failed"
@@ -11184,8 +11220,7 @@ def process_zec_withdrawal(tx_id, address, amount_to_send, full_amount, platform
         tx.status   = "confirmed"
         tx.tx_hash  = tx_hash
         db.session.commit()
-
-
+        
         
 @app.route('/api/wallet/zec/withdraw', methods=['POST'])
 @login_required

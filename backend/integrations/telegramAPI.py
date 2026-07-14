@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from flask_login import current_user
+from flask_login import current_user, login_required
 
 from datetime import datetime
 import hmac
@@ -19,7 +19,6 @@ bot_token = os.getenv("TELEGRAM_BOT_TOKEN")
 def verify_telegram_auth(data: dict, bot_token: str) -> bool:
     if not data or not bot_token:
         return False
-    print(bot_token)
 
     check_hash = data.get("hash")
     if not check_hash:
@@ -43,12 +42,6 @@ def verify_telegram_auth(data: dict, bot_token: str) -> bool:
         data_check_string.encode(),
         hashlib.sha256
     ).hexdigest()
-
-    print("==== TELEGRAM DEBUG ====")
-    print("DATA:", data_for_check)
-    print("CHECK STRING:", data_check_string)
-    print("TG HASH:", check_hash)
-    print("MY HASH:", computed_hash)
 
     return computed_hash == check_hash
 
@@ -76,7 +69,7 @@ def telegram_connect():
     if not user_telegram:
         user_telegram = UserTelegram(
             user_id=current_user.id,
-            telegram_user_id=str(telegram_user_id), 
+            telegram_user_id=str(telegram_user_id),
             tusername=tusername,
             phone_number=None,
             action="connected",
@@ -86,23 +79,34 @@ def telegram_connect():
         )
         db.session.add(user_telegram)
     else:
-        user_telegram.user_id = current_user.id 
+        user_telegram.user_id = current_user.id
         user_telegram.action = "connected"
         user_telegram.tusername = tusername
         user_telegram.phone_number = phone_number
         user_telegram.auth_date = auth_date
-        user_telegram.photo_url = data.get("photo_url") 
+        user_telegram.photo_url = data.get("photo_url")
         user_telegram.hash = data.get("hash")
 
     db.session.commit()
     return jsonify({"success": True, "message": f"Telegram {tusername} connected"})
 
 
-@telegram_bp.route("/disconnect/<int:user_id>", methods=["GET"])
-def telegram_disconnect(user_id):
-    user_telegram = UserTelegram.query.filter_by(user_id=user_id).first()
+@telegram_bp.route("/disconnect", methods=["GET"])
+@login_required
+def telegram_disconnect():
+    # Only ever disconnect the CURRENT user's currently-connected record.
+    # Previously this took user_id from the URL (no auth check — anyone
+    # could disconnect anyone else's Telegram) and used .first() with no
+    # order_by, which could grab a stale already-disconnected row instead
+    # of the real active one, making disconnect silently do nothing.
+    user_telegram = (
+        UserTelegram.query.filter_by(user_id=current_user.id, action="connected")
+        .order_by(UserTelegram.timestamp.desc())
+        .first()
+    )
+
     if not user_telegram:
-        return jsonify({"error": "User not found"}), 404
+        return jsonify({"error": "No connected Telegram account found"}), 404
 
     user_telegram.action = "disconnected"
     db.session.commit()
@@ -148,8 +152,6 @@ def telegram_callback():
                 }
             }
 
-            console.log("FINAL TELEGRAM DATA:", data);
-
             fetch("/telegram/connect", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -158,7 +160,6 @@ def telegram_callback():
             })
             .then(async (res) => {
                 const result = await res.json();
-                console.log(result);
 
                 if (res.ok) {
                     window.location.href = "/settings/linked-accounts";

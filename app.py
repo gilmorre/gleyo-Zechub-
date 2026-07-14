@@ -41,7 +41,7 @@ from threading import Lock
 warnings.filterwarnings("ignore", category=UserWarning, module="flask_admin.contrib")
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("recurrence")
+logger = logging.getLogger("gleyo.profile")
 logger.setLevel(logging.INFO)
 
 # ─────────────────────────────────────────────────────────────
@@ -3180,12 +3180,15 @@ def save_avatar_when_done(future, user_id):
         except Exception as e:
             print("❌ Background upload failed:", e)
 
+
 @app.route("/api/account/profile", methods=["POST"])
 @login_required
 def update_profile():
+    request_start = time.monotonic()
+    logger.info("update_profile START user_id=%s", current_user.id)
+
     username = request.form.get("username")
     file = request.files.get("avatar")
-    print(file)
 
     updated_username = None
     updated_avatar_url = None
@@ -3194,9 +3197,11 @@ def update_profile():
         username = username.strip().lower()
 
         if not username:
+            logger.warning("update_profile REJECT user_id=%s reason=empty_username", current_user.id)
             return jsonify({"error": "Username is required"}), 400
 
         if " " in username:
+            logger.warning("update_profile REJECT user_id=%s reason=username_has_spaces", current_user.id)
             return jsonify({"error": "Username cannot contain spaces"}), 400
 
         if username != current_user.username:
@@ -3206,17 +3211,22 @@ def update_profile():
             ).first()
 
             if existing:
+                logger.warning("update_profile REJECT user_id=%s reason=username_taken new_username=%s",
+                                current_user.id, username)
                 return jsonify({"error": "username_taken"}), 409
 
             current_user.username = username
             updated_username = username
-
+            logger.info("update_profile username_updated user_id=%s new_username=%s",
+                        current_user.id, username)
 
     if file and file.filename:
         original_name = secure_filename(file.filename)
         ext = original_name.rsplit(".", 1)[-1].lower()
 
         if ext not in {"png", "jpg", "jpeg", "webp"}:
+            logger.warning("update_profile REJECT user_id=%s reason=invalid_image_type ext=%s",
+                            current_user.id, ext)
             return jsonify({"error": "invalid_image_type"}), 400
 
         avatar_uuid = str(uuid.uuid4())
@@ -3224,29 +3234,56 @@ def update_profile():
 
         file_bytes = file.read()
 
+        logger.info("update_profile upload_dispatch user_id=%s storage_name=%s size_bytes=%s mimetype=%s",
+                    current_user.id, storage_name, len(file_bytes), file.mimetype)
+
+        upload_start = time.monotonic()
         future = upload_to_supabase(
             file_bytes,
             storage_name,
             file.mimetype
         )
-        user_id = current_user.id
 
-        future.add_done_callback(
-            lambda f: save_avatar_when_done(f, user_id)
-        )
+        # Wait for the upload to actually complete (built-in retries/backoff
+        # live inside upload_async) before responding. Returning early and
+        # updating the DB later in a background callback meant the frontend
+        # could get a "success" response before the avatar was actually
+        # saved — or never find out at all if the upload ultimately failed.
+        try:
+            public_url = future.result()
+            upload_duration = time.monotonic() - upload_start
+            logger.info("update_profile upload_success user_id=%s duration_s=%.2f url=%s",
+                        current_user.id, upload_duration, public_url)
+        except Exception as e:
+            upload_duration = time.monotonic() - upload_start
+            logger.error("update_profile upload_failed user_id=%s duration_s=%.2f error=%s",
+                         current_user.id, upload_duration, e)
+            if updated_username:
+                db.session.commit()
+            total_duration = time.monotonic() - request_start
+            logger.info("update_profile END (upload failed) user_id=%s total_duration_s=%.2f",
+                        current_user.id, total_duration)
+            return jsonify({
+                "error": "avatar_upload_failed",
+                "message": "Could not upload avatar, please try again.",
+                "username": updated_username
+            }), 502
 
+        current_user.profile_pic = public_url
+        updated_avatar_url = public_url
 
-
-
-    if updated_username:
+    if updated_username or updated_avatar_url:
         db.session.commit()
+
+    total_duration = time.monotonic() - request_start
+    logger.info("update_profile END user_id=%s total_duration_s=%.2f username_updated=%s avatar_updated=%s",
+                current_user.id, total_duration, bool(updated_username), bool(updated_avatar_url))
 
     return jsonify({
         "success": True,
         "username": updated_username,
-        "avatar_url": None
+        "avatar_url": updated_avatar_url
     })
-
 
 @app.errorhandler(Exception)
 def handle_exception(e):

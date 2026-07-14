@@ -8195,15 +8195,6 @@ border-top-color: var(--text-main) !important;
 
 
 
-@media(max-width: 550px) {
-
-.inner-fiver-clan {
-  width: fit-content;
-  padding: 12 40px;
-  width: 80%;
-}
-
-}
 
 
   @keyframes pulse-fade {
@@ -8534,6 +8525,36 @@ border-top-color: var(--text-main) !important;
   border-radius:12px;
 }
 
+.inner-fiver-clan {
+  border: 0.9px solid var(--border);
+  background: var(--bg-surface);
+  display: flex;
+  min-width: 370px;
+  justify-content: center;
+  align-items: center;
+  white-space: nowrap;
+  color: var(--text-main);
+  padding: 12px 40px;
+  gap: 10px;
+  font-size: 15px;
+  border-radius: 14px;
+}
+
+.inner-fiver-clan svg {
+  width: 17px;
+  height: 17px;
+}
+
+
+@media(max-width: 550px) {
+
+.inner-fiver-clan {
+  padding: 12 40px;
+  width: 80%;
+  min-width: 80% !important;
+}
+
+}
 
 .analytics-header {
   display: flex;

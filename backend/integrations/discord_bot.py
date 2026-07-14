@@ -19,7 +19,7 @@ flask_app = None  # will be set from app.py
 BOT_DISCORD_CLIENT_ID = os.getenv("BOT_DISCORD_CLIENT_ID")
 BOT_DISCORD_CLIENT_SECRET = os.getenv("BOT_DISCORD_CLIENT_SECRET")
 BOT_DISCORD_REDIRECT_URI = "https://gleyo.app/bot/callback"
-DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
+DISCORD_BOT_TOKEN = os.getenv("BOT_DISCORD_REDIRECT_URI")
 
 bp_discord_bot = Blueprint("discord_bot", __name__)
 

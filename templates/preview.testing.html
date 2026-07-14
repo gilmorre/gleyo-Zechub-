@@ -9823,6 +9823,14 @@ reactionPopupMessage
     align-items: center;
     justify-content: center;
   }
+.init-sheet-role-item input[type="checkbox"] {
+  appearance: auto !important;
+  -webkit-appearance: checkbox !important;
+  accent-color: #5865f2; /* or your theme color */
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
   .show-who-reacted-container {
     position: fixed;
     inset: auto 0 0 0;
@@ -10055,14 +10063,7 @@ function renderReactedUsers(users) {
 }
 
 
-.init-sheet-role-item input[type="checkbox"] {
-  appearance: auto !important;
-  -webkit-appearance: checkbox !important;
-  accent-color: #5865f2; /* or your theme color */
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
-}
+
 
 
 
@@ -10091,6 +10092,7 @@ function updateMainReactionEmoji(emoji) {
 
 
 function initReactionLongPress() {
+
   const HOLD_DELAY = 450; // ms
   let holdTimer = null;
   let longPressed = false;
@@ -11116,6 +11118,8 @@ function clearTicketContent() {
 async function renderMessagesFromServer(messages, pins = []) {
   const messagesEl = document.getElementById("messages");
   if (!messagesEl) return;
+  await ensureMentionCache();
+
   
   const messageIndex = {};
   const timeline = [];
@@ -11123,7 +11127,7 @@ async function renderMessagesFromServer(messages, pins = []) {
   const displayId = CurrentActiveChat.ticketDisplayNumber;
   const communityId = CurrentActiveChat.communityId;
       messagesEl.innerHTML = "";
-
+  
   const ticket =
     TicketStore?.[communityId]?.tickets?.find(
       t => t.ticket_uuid === ticketUuid || t.uuid === ticketUuid
@@ -16663,31 +16667,33 @@ function capitalize(r) {
   return r.charAt(0).toUpperCase() + r.slice(1);
 }
 
-  document.addEventListener("DOMContentLoaded", function() {
-    // Grab elements
+document.addEventListener("DOMContentLoaded", function () {
+  // Grab elements
+  const channelPermissionsSection = document.querySelector(".channel-permissions-section");
+  const settingsModal = document.querySelector(".settings-modal");
+  const permissionsPage = document.querySelector(".permissions-page");
 
-      if (is_mobile) {
-
-          const backBtn = document.querySelector(".init-confi-left");
-      }
-    // Select the "Channel Permissions" section
- 
-    // When clicked, hide settings modal and show permissions page
+  // Open permissions page
+  if (channelPermissionsSection) {
     channelPermissionsSection.addEventListener("click", () => {
       settingsModal.style.display = "none";
       permissionsPage.style.display = "block";
-       injectChannelPermissionRoles();
+      injectChannelPermissionRoles();
     });
+  }
 
-  if (is_mobile){
+  // Mobile back button
+  if (is_mobile) {
     const backBtn = document.querySelector(".init-confi-left");
+
+    if (backBtn) {
       backBtn.addEventListener("click", () => {
         permissionsPage.style.display = "none";
         settingsModal.style.display = "flex";
-      });    
+      });
+    }
   }
-
-  });
+});
 
 function closeReactionPopup() {
     if (is_mobile) {

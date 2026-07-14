@@ -1,6 +1,7 @@
 import requests
 import os, json, time
 from backend.communities.communitynotification import CommunityNotificationSettings, PushSubscription, CategoryNotificationSettings, ChannelNotificationSettings
+from backend.utils.image_utils import compress_image
 from pywebpush import webpush, WebPushException
 from backend.utils.instance import db
 from flask import current_app
@@ -83,8 +84,40 @@ def _upload_single(file_bytes, storage_name, content_type, max_retries=5):
     raise last_error
 
 
+def _prepare_upload(file_bytes, storage_name, content_type, max_dimension=800):
+    """
+    If this is an image upload, resize/compress it before sending — cuts
+    upload time significantly (large originals can shrink 10x+ with no
+    visible quality loss) with zero changes needed in the calling route.
+    Non-image uploads (or anything that fails to parse as an image) pass
+    through unchanged.
+
+    max_dimension defaults to 800 here as a general-purpose size suitable
+    for most in-app images (avatars, thumbnails, banners). Callers with
+    stricter size needs (e.g. a tiny avatar) can still pre-resize before
+    calling upload_async if they want a smaller default.
+    """
+    if not content_type or not content_type.startswith("image/"):
+        return file_bytes, storage_name, content_type
+
+    compressed_bytes, new_content_type = compress_image(file_bytes, max_dimension=max_dimension, quality=85)
+
+    if new_content_type is None:
+        # compression failed — use original bytes/name/type unchanged
+        return file_bytes, storage_name, content_type
+
+    # compress_image always returns JPEG on success — swap the extension
+    # on storage_name to match, so the stored file and its content_type
+    # stay consistent (avoids a .png filename holding jpeg bytes).
+    base_name = storage_name.rsplit(".", 1)[0]
+    new_storage_name = f"{base_name}.jpg"
+
+    return compressed_bytes, new_storage_name, new_content_type
+
+
 def upload_async(file_bytes, storage_name, content_type):
-    return upload_executor.submit(_upload_single, file_bytes, storage_name, content_type)
+    prepared_bytes, prepared_name, prepared_type = _prepare_upload(file_bytes, storage_name, content_type)
+    return upload_executor.submit(_upload_single, prepared_bytes, prepared_name, prepared_type)
 
 
 def send_push_notification_async(subs, title, body, data):

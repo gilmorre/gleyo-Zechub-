@@ -79,7 +79,7 @@ def _process_next(tx_id):
 
     user_balance = UserBalance.query.filter_by(user_id=tx.user_id).first()
     address = q_row.address
-    amount_to_send = q_row.amount_to_send
+    amount_to_send = float(q_row.amount_to_send)
     full_amount = q_row.full_amount
     platform_fee = q_row.platform_fee
 

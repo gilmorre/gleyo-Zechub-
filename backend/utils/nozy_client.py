@@ -39,7 +39,7 @@ def _nozy_send(address, amount_zec, memo=None):
     try:
         payload = {
             "recipient": address,
-            "amount": amount_zec,
+            "amount": float(amount_zec), 
             "password": NOZY_WALLET_PASSWORD,
         }
         if memo:

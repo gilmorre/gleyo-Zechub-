@@ -142,6 +142,8 @@ from backend.integrations.youtubeAPI import youtube_bp
 from backend.integrations.tiktok_bp import tiktok_bp
 from backend.auth.github import bp, check_if_starred, get_repo_forks
 from backend.communities.community_twitter_bp import community_twitter_bp
+from backend.payments.wallet import ZecWithdrawalQueue
+from backend.utils.nozy_client import _nozy_sync, _nozy_send 
 
 # ─────────────────────────────────────────────────────────────
 # INTERNAL — DISCORD BOT
@@ -153,6 +155,7 @@ from backend.integrations.discord_bot import (
     role_assignment_queue, bot,
     user_has_discord_role, fetch_discord_roles_and_member,
 )
+from backend.utils.zec_worker import start_zec_worker, enqueue_zec_withdrawal
 
 # ─────────────────────────────────────────────────────────────
 # INTERNAL — MODELS
@@ -358,6 +361,7 @@ with app.app_context():
     db.create_all()
 
 start_bot_in_background(app) #---Start Discord Bot By Uncommenting (Option)----
+start_zec_worker(app)
 
 ALLOWED_ROUTES = {
     # public
@@ -563,7 +567,6 @@ NOZY_API_KEY = os.environ.get("NOZY_API_KEY")
 NOZY_WALLET_PASSWORD = os.getenv("NOZY_WALLET_PASSWORD")
 ZCASHD_FROM_ADDRESS = os.getenv("ZCASHD_FROM_ADDRESS")
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-_nozy_lock = threading.Lock()
 resend.api_key = RESEND_API_KEY
 @app.context_processor
 def inject_globals():
@@ -10936,45 +10939,6 @@ def validate_zec_address():
     })
 
 
-def _nozy_send(address, amount_zec, memo=None):
-    """Send ZEC via Nozy API."""
-    if not _nozy_lock.acquire(blocking=False):
-        return None, "Another withdrawal is already in progress, please wait"
-    try:
-        payload = {
-            "recipient": address,
-            "amount": amount_zec,
-            "password": NOZY_WALLET_PASSWORD,
-        }
-        if memo:
-            payload["memo"] = memo
-        print("=== SENDING TO NOZY ===")
-        print(payload)
-        response = requests.post(
-            f"{NOZY_API_URL}/api/transaction/send",
-            json=payload,
-            headers={"X-API-Key": NOZY_API_KEY},
-            timeout=180
-        )
-        print("STATUS:", response.status_code)
-        print("BODY:", response.text)
-        if response.status_code != 200:
-            return None, f"Nozy API error: {response.status_code}"
-        data = response.json()
-        print("PARSED:", data)
-        if not data.get("success"):
-            return None, data.get("message", "Unknown error")
-        txid = data.get("txid")
-        if not txid:
-            return None, "No txid returned"
-        return txid, None
-    except Exception as e:
-        print("NOZY ERROR:", str(e))
-        return None, str(e)
-    finally:
-        _nozy_lock.release()
-
-
 def _nozy_get_balance():
     """Fetch current Nozy wallet balance."""
     try:
@@ -11155,73 +11119,7 @@ def disconnect_zec():
     })
 
 
-def _nozy_sync():
-    """Sync Nozy wallet state before attempting a send. Returns (success, error)."""
-    try:
-        sync_resp = requests.post(
-            f"{NOZY_API_URL}/api/sync",
-            json={"password": NOZY_WALLET_PASSWORD},
-            headers={"X-API-Key": NOZY_API_KEY},
-            timeout=120
-        )
-        if sync_resp.status_code != 200:
-            return False, f"Sync failed: HTTP {sync_resp.status_code}"
 
-        data = sync_resp.json()
-        # Adjust this check based on what your /api/sync actually returns
-        # on success — assuming it returns balance_zec like your snippet showed
-        if 'balance_zec' not in data:
-            return False, "Sync response missing balance_zec"
-
-        return True, None
-    except Exception as e:
-        return False, f"Sync failed: {str(e)}"
-
-
-def process_zec_withdrawal(tx_id, address, amount_to_send, full_amount, platform_fee):
-    print(f"DEBUG: process_zec_withdrawal STARTED tx_id={tx_id}")
-    with app.app_context():
-        tx = UserTransaction.query.get(tx_id)
-        if not tx:
-            print("DEBUG: tx not found, exiting")
-            return
-
-        user_balance = UserBalance.query.filter_by(
-            user_id=tx.user_id
-        ).first()
-
-        # 🔄 Sync wallet state BEFORE attempting the send
-        print("DEBUG: syncing Nozy wallet before send")
-        synced, sync_err = _nozy_sync()
-
-        if not synced:
-            print(f"DEBUG: SYNC FAILED: {sync_err}")
-            user_balance.balance         += Decimal(str(full_amount))
-            user_balance.total_withdrawn -= Decimal(str(platform_fee))
-            tx.status = "failed"
-            tx.remark = "Refunded · wallet sync failed — your ZEC has been returned, please try again"
-            db.session.commit()
-            return
-
-        print(f"DEBUG: sync succeeded, calling _nozy_send with address={address}, amount_to_send={amount_to_send}")
-        tx_hash, err = _nozy_send(address, amount_to_send, memo="Gleyo ZEC Withdrawal")
-
-        if err:
-            print(f"DEBUG: _nozy_send FAILED: {err}")
-            user_balance.balance         += Decimal(str(full_amount))
-            user_balance.total_withdrawn -= Decimal(str(platform_fee))
-            tx.status = "failed"
-            tx.remark = "Refunded · withdrawal failed — your ZEC has been returned, please try again"
-            db.session.commit()
-            return
-
-        print(f"DEBUG: _nozy_send SUCCESS, txid={tx_hash}")
-        user_balance.total_withdrawn += Decimal(str(amount_to_send))
-        tx.status   = "confirmed"
-        tx.tx_hash  = tx_hash
-        db.session.commit()
-        
-        
 @app.route('/api/wallet/zec/withdraw', methods=['POST'])
 @login_required
 @csrf.exempt
@@ -11234,7 +11132,7 @@ def zec_withdraw():
 
     ZEC_MIN = 0.00185
     ZEC_PLATFORM = 0.03
-    ZEC_NET_FEE = 0.001  # network fee — must match Nozy's actual fee
+    ZEC_NET_FEE = 0.001
 
     if not is_valid_shielded_zec(address):
         print("DEBUG: FAILED at address validation")
@@ -11279,7 +11177,7 @@ def zec_withdraw():
 
     print("DEBUG: PASSED all checks, deducting balance and creating pending_tx")
 
-    user_balance.balance       -= Decimal(str(amount))
+    user_balance.balance         -= Decimal(str(amount))
     user_balance.total_withdrawn += Decimal(str(platform_fee))
 
     pending_tx = UserTransaction(
@@ -11290,23 +11188,28 @@ def zec_withdraw():
         status='pending',
         from_address=ZCASHD_FROM_ADDRESS,
         to_address=address,
-        remark=f'Gleyo ZEC Withdrawal',
+        remark='Gleyo ZEC Withdrawal',
         created_at=datetime.utcnow()
     )
     db.session.add(pending_tx)
-    db.session.commit()
+    db.session.flush()  # need pending_tx.id for the queue row below, before final commit
     print(f"DEBUG: pending_tx created with id={pending_tx.id}")
 
-    tx_id = pending_tx.id
-    app_ctx = current_app._get_current_object()
+    queue_row = ZecWithdrawalQueue(
+        tx_id=pending_tx.id,
+        user_id=current_user.id,
+        address=address,
+        amount_to_send=you_send,
+        full_amount=amount,
+        platform_fee=platform_fee,
+        status="queued"
+    )
+    db.session.add(queue_row)
+    db.session.commit()
+    print(f"DEBUG: queue_row created for tx_id={pending_tx.id}")
 
-    def task():
-        print(f"DEBUG: BACKGROUND TASK STARTED for tx_id={tx_id}")
-        with app_ctx.app_context():
-            process_zec_withdrawal(tx_id, address, you_send, amount, platform_fee)
-
-    executor.submit(task)
-    print("DEBUG: task submitted to executor")
+    enqueue_zec_withdrawal(pending_tx.id)
+    print("DEBUG: task enqueued to zec worker")
 
     return jsonify({
         'success': True,
@@ -11315,7 +11218,6 @@ def zec_withdraw():
         'actual_send': you_send,
         'message': 'Withdrawal submitted. It will confirm shortly.'
     })
-
 
 
 @app.route('/api/platform/zec-balance', methods=['GET'])

@@ -58,6 +58,7 @@ from flask_login import (
     login_required, current_user,
 )
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import func
 from flask_migrate import Migrate
 from flask_session import Session
 from flask_socketio import SocketIO, join_room, leave_room, emit
@@ -7413,19 +7414,37 @@ def api_alltime_leaderboard(community_slug):
 
     community = Community.query.filter_by(slug=community_slug).first_or_404()
 
+    # latest XP-earning timestamp per user, scoped to THIS community
+    latest_activity_subq = (
+        db.session.query(
+            UserXP.user_id.label('user_id'),
+            func.max(UserXP.created_at).label('last_xp_at')
+        )
+        .join(SubquestCompletion, UserXP.completion_id == SubquestCompletion.id)
+        .join(Subquest, SubquestCompletion.subquest_id == Subquest.id)
+        .join(Quest, Subquest.quest_id == Quest.id)
+        .filter(Quest.community_id == community.id)
+        .group_by(UserXP.user_id)
+        .subquery()
+    )
+
     leaderboard = (
         db.session.query(
             Users.id,
             Users.username,
             Users.profile_pic,
             CommunityUserXP.xp,
-            CommunityUserXP.id
+            CommunityUserXP.id,
+            latest_activity_subq.c.last_xp_at
         )
         .join(Users, Users.id == CommunityUserXP.user_id)
+        .outerjoin(latest_activity_subq, latest_activity_subq.c.user_id == Users.id)
         .filter(CommunityUserXP.community_id == community.id)
         .order_by(
             CommunityUserXP.xp.desc(),
-            CommunityUserXP.id.asc()
+            # earliest to reach this XP total wins ties; nulls (no logged activity) go last
+            latest_activity_subq.c.last_xp_at.asc().nullslast(),
+            CommunityUserXP.id.asc()  # final fallback, keeps it deterministic
         )
         .limit(30)
         .all()
@@ -7452,15 +7471,30 @@ def api_alltime_leaderboard(community_slug):
         )
 
         if full_rank:
+            my_last_xp_at = (
+                db.session.query(func.max(UserXP.created_at))
+                .join(SubquestCompletion, UserXP.completion_id == SubquestCompletion.id)
+                .join(Subquest, SubquestCompletion.subquest_id == Subquest.id)
+                .join(Quest, Subquest.quest_id == Quest.id)
+                .filter(Quest.community_id == community.id, UserXP.user_id == current_user.id)
+                .scalar()
+            )
+
+            # count everyone who should rank ABOVE current user
             higher_count = (
-                db.session.query(CommunityUserXP)
+                db.session.query(CommunityUserXP.user_id)
+                .outerjoin(latest_activity_subq, latest_activity_subq.c.user_id == CommunityUserXP.user_id)
                 .filter(
                     CommunityUserXP.community_id == community.id,
                     (
                         (CommunityUserXP.xp > full_rank.xp) |
                         (
                             (CommunityUserXP.xp == full_rank.xp) &
-                            (CommunityUserXP.id  < full_rank.id)
+                            (
+                                (latest_activity_subq.c.last_xp_at < my_last_xp_at)
+                                if my_last_xp_at is not None
+                                else False
+                            )
                         )
                     )
                 )
@@ -7476,7 +7510,7 @@ def api_alltime_leaderboard(community_slug):
 
     return jsonify({
         "leaderboard":  leaderboard_data,
-        "current_user": current_user_data   # null for guests
+        "current_user": current_user_data
     })
 
 
@@ -7491,18 +7525,34 @@ def api_sprint_leaderboard(community_slug, sprint_uuid):
     if not sprint:
         return jsonify({"error": "Sprint not found"}), 404
 
+    # Subquest already has sprint_id directly, so this scoping is simpler
+    latest_activity_subq = (
+        db.session.query(
+            UserXP.user_id.label('user_id'),
+            func.max(UserXP.created_at).label('last_xp_at')
+        )
+        .join(SubquestCompletion, UserXP.completion_id == SubquestCompletion.id)
+        .join(Subquest, SubquestCompletion.subquest_id == Subquest.id)
+        .filter(Subquest.sprint_id == sprint.id)
+        .group_by(UserXP.user_id)
+        .subquery()
+    )
+
     leaderboard = (
         db.session.query(
             Users.id,
             Users.username,
             Users.profile_pic,
             SprintUserXP.xp,
-            SprintUserXP.id
+            SprintUserXP.id,
+            latest_activity_subq.c.last_xp_at
         )
         .join(Users, Users.id == SprintUserXP.user_id)
+        .outerjoin(latest_activity_subq, latest_activity_subq.c.user_id == Users.id)
         .filter(SprintUserXP.sprint_id == sprint.id)
         .order_by(
             SprintUserXP.xp.desc(),
+            latest_activity_subq.c.last_xp_at.asc().nullslast(),
             SprintUserXP.id.asc()
         )
         .limit(30)
@@ -7519,7 +7569,6 @@ def api_sprint_leaderboard(community_slug, sprint_uuid):
             "rank":     index
         })
 
-    # ── current user rank (guests skip entirely) ─────────────────────────────
     current_user_data = None
 
     if current_user.is_authenticated:
@@ -7530,15 +7579,28 @@ def api_sprint_leaderboard(community_slug, sprint_uuid):
         )
 
         if current_user_entry:
+            my_last_xp_at = (
+                db.session.query(func.max(UserXP.created_at))
+                .join(SubquestCompletion, UserXP.completion_id == SubquestCompletion.id)
+                .join(Subquest, SubquestCompletion.subquest_id == Subquest.id)
+                .filter(Subquest.sprint_id == sprint.id, UserXP.user_id == current_user.id)
+                .scalar()
+            )
+
             higher_count = (
-                db.session.query(SprintUserXP)
+                db.session.query(SprintUserXP.user_id)
+                .outerjoin(latest_activity_subq, latest_activity_subq.c.user_id == SprintUserXP.user_id)
                 .filter(
                     SprintUserXP.sprint_id == sprint.id,
                     (
                         (SprintUserXP.xp > current_user_entry.xp) |
                         (
                             (SprintUserXP.xp == current_user_entry.xp) &
-                            (SprintUserXP.id  < current_user_entry.id)
+                            (
+                                (latest_activity_subq.c.last_xp_at < my_last_xp_at)
+                                if my_last_xp_at is not None
+                                else False
+                            )
                         )
                     )
                 )
@@ -7554,8 +7616,10 @@ def api_sprint_leaderboard(community_slug, sprint_uuid):
 
     return jsonify({
         "leaderboard":  leaderboard_data,
-        "current_user": current_user_data   # null for guests
+        "current_user": current_user_data
     })
+
+
 
 
 @app.route("/api/<community_slug>/user/<username>/activity")

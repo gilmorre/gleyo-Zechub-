@@ -50,6 +50,7 @@ Any project building on Zcash — or any project outside the ecosystem that want
 ## Features
 
 * **ZEC-only rewards** — admins fund tasks in ZEC, users withdraw in ZEC, no other token supported
+* **Multi-token funding on-ramp** — project owners can fund their community wallet with USDT or USDC (on Polygon, BSC, or Base) in addition to ZEC directly. Funding via USDT/USDC is auto-converted to ZEC through NEAR Intents (Defuse Protocol) — the community wallet only ever holds ZEC, so every dollar in still becomes ZEC end-to-end, with no other token ever touching Gleyo's balances.
 * **Optional Zcash wallet linking** — users earn and withdraw ZEC with no wallet connection required at all; they can simply paste a shielded address at withdrawal time. Optionally, from account settings, a user can connect and verify a real Unified shielded Zcash wallet (u1...) via micro-transaction memo verification, so Gleyo remembers the address and it doesn't need to be re-pasted on future withdrawals.
 * **Quest system** — admins create tasks with XP and/or ZEC reward pools, users complete and claim
 * **Instant reward crediting** — approved submissions credit ZEC to the user's in-app reward hub immediately
@@ -88,11 +89,13 @@ flowchart LR
     Flask -.-> Telegram[Telegram Bot]
     Flask -.-> YouTube[YouTube API]
     Flask -.-> Email[Resend + SMTP]
+    Flask -.-> Defuse[NEAR Intents<br/>Defuse Protocol]
+    Defuse -.-> Nozy
 ```
 
 Cloudflare fronts the Flask app and handles DNS/TLS termination. The Flask app and Redis run on AWS EC2, with PostgreSQL on AWS RDS. Everything ZEC-related goes through the Nozy Wallet API, which runs on a separate Contabo VPS alongside the self-hosted Zebra full node, decoupled from the app tier by design.
 
-Nozy's port is not publicly exposed. UFW restricts access to the Flask app's EC2 IP, and every request is authenticated using an API key as a second layer of security. Nozy communicates with Zebra over RPC for balance checks, deposit verification, and shielded transactions, while Zebra maintains its own P2P connection to the Zcash mainnet. Task verification integrations (GitHub, Discord, Telegram, and YouTube), together with email delivery (Resend/SMTP), are shown as dotted lines because they are independent, non-blocking outbound calls from the Flask app.
+Nozy's port is not publicly exposed. UFW restricts access to the Flask app's EC2 IP, and every request is authenticated using an API key as a second layer of security. Nozy communicates with Zebra over RPC for balance checks, deposit verification, and shielded transactions, while Zebra maintains its own P2P connection to the Zcash mainnet. Task verification integrations (GitHub, Discord, Telegram, and YouTube), together with email delivery (Resend/SMTP), are shown as dotted lines because they are independent, non-blocking outbound calls from the Flask app. USDT/USDC funding follows the same dotted, non-blocking pattern: the Flask app calls NEAR Intents (Defuse Protocol) to quote and route the swap, and Defuse settles the converted ZEC to Gleyo's shielded Orchard address — the same deposit address Nozy already watches — so no separate confirmation path is needed on Gleyo's side once the swap completes.
 
 ---
 
@@ -217,7 +220,7 @@ Gleyo is live and processing real ZEC on mainnet, but it's currently in closed b
 
 * **Billing & invoicing tab** — explore optional integration with Zcash-native payment infrastructure (e.g. CipherPay) to support recurring community funding, billing, and invoicing workflows directly in ZEC while preserving Gleyo's native funding model.
 
-* **Multi-token on-ramp for funding** — the #1 barrier to onboarding new communities isn't ZEC's utility, it's that most project owners don't hold ZEC yet. Gleyo will let owners fund their community wallet with USDC, ETH, SOL, or fiat, auto-converted to ZEC on deposit. Every dollar in still becomes ZEC — rewards, withdrawals, and on-chain activity stay 100% ZEC end-to-end. This isn't a compromise on Gleyo's ZEC-native identity — it's removing the one friction point standing between "interested in Zcash" and "actually funding a community with it."
+* **Expanded multi-token on-ramp** — USDT/USDC funding (via Polygon, BSC, and Base) is live today, auto-converted to ZEC through NEAR Intents. Still to come: ETH, SOL, and fiat on-ramps, using the same auto-convert-to-ZEC model so the platform stays 100% ZEC-native end-to-end regardless of what funding rail a project owner uses.
 
 ---
 

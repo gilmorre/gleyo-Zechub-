@@ -84,6 +84,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from wtforms import fields, TextAreaField, PasswordField
 from wtforms.validators import Regexp
+from apscheduler.triggers.interval import IntervalTrigger
+from apscheduler.schedulers.background import BackgroundScheduler 
 from markupsafe import Markup, escape
 
 # ─────────────────────────────────────────────────────────────
@@ -116,6 +118,8 @@ from dateutil.relativedelta import relativedelta
 from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
 from tzlocal import get_localzone
+from web3 import Web3
+
 
 # ─────────────────────────────────────────────────────────────
 # INTERNAL — CORE
@@ -144,7 +148,9 @@ from backend.integrations.tiktok_bp import tiktok_bp
 from backend.auth.github import bp, check_if_starred, get_repo_forks
 from backend.communities.community_twitter_bp import community_twitter_bp
 from backend.payments.wallet import ZecWithdrawalQueue
-from backend.utils.nozy_client import _nozy_sync, _nozy_send 
+from backend.utils.nozy_client import _nozy_sync, _nozy_send, fetch_nozy_balance, verify_zec_payment
+from backend.utils.off_ramp_to_zec import verify_evm_payment
+from backend.utils.swap_job import create_near_intent_deposit
 
 # ─────────────────────────────────────────────────────────────
 # INTERNAL — DISCORD BOT
@@ -2209,7 +2215,7 @@ def landing_page():
 
 @login_manager.user_loader
 def load_user(user_id):
-    return Users.query.get(int(user_id))
+    return db.session.get(Users, int(user_id))
 
 
 
@@ -21279,8 +21285,20 @@ def smart_amount(value):
     except (ValueError, TypeError):
         return value
 
-
-
+ 
+TOKENS = {
+    'BSC': {
+        'USDT': {'address': '0x55d398326f99059fF775485246999027B3197955', 'decimals': 18},
+        'USDC': {'address': '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d', 'decimals': 18},
+    },
+    'Polygon': {
+        'USDT': {'address': '0xc2132D05D31c914a87C6611C10748AEb04B58e8F', 'decimals': 6},
+        'USDC': {'address': '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359', 'decimals': 6},
+    },
+    'Base': {
+        'USDC': {'address': '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', 'decimals': 6}
+    },
+}
 
 @app.route('/<community_slug>/save_payment', methods=['POST'])
 @login_required
@@ -21289,7 +21307,14 @@ def smart_amount(value):
 def save_payment(community_slug):
     try:
         amount_raw = request.form.get('amount', '').strip()
+        refund_address = request.form.get('refund_address', '').strip()
         note = request.form.get('note', '').strip()
+        token = request.form.get('token', 'ZEC').strip().upper()
+        network = request.form.get('network', 'Zcash').strip()
+
+        # Only supplied when user selected USDT / USDC
+        origin_token = request.form.get('origin_token', '').strip().upper()
+        origin_network = request.form.get('origin_network', '').strip()
 
         if not amount_raw:
             return jsonify({'error': 'Missing required fields'}), 400
@@ -21299,104 +21324,225 @@ def save_payment(community_slug):
         except ValueError:
             return jsonify({'error': 'Amount must be a number'}), 400
 
-        ZEC_MIN_PAYMENT = 0.000001
-        if amount < ZEC_MIN_PAYMENT:
-            return jsonify({'error': f'Minimum payment is {ZEC_MIN_PAYMENT} ZEC'}), 400
+        is_zec = (token == "ZEC")
 
-        payment_address = os.getenv('WALLET')
-        if not payment_address:
-            return jsonify({'error': 'Wallet address not configured'}), 500
+        # --------------------------------------------------
+        # Validation
+        # --------------------------------------------------
+
+        if is_zec:
+
+            if len(note) > 512:
+                return jsonify({'error': 'Memo is too long'}), 400
+
+        else:
+
+            if not refund_address:
+                return jsonify({'error': 'Refund address is required'}), 400
+
+            if not Web3.is_address(refund_address):
+                return jsonify({'error': 'Invalid refund address'}), 400
+
+            refund_address = Web3.to_checksum_address(refund_address)
+
+        MIN_PAYMENT = 0.000001 if is_zec else 0.01
+
+        if amount < MIN_PAYMENT:
+            return jsonify({
+                'error': f'Minimum payment is {MIN_PAYMENT} {token}'
+            }), 400
 
         now = datetime.utcnow()
+
         user_id = current_user.id if current_user.is_authenticated else None
+
         if not user_id:
             return jsonify({'error': 'User not logged in'}), 400
 
-        community = Community.query.filter_by(slug=community_slug).first()
+        # --------------------------------------------------
+        # Lock the community row itself (it always exists, unlike a
+        # pending payment which may not yet). This serializes every
+        # save_payment call for this community — a second request
+        # (even from another device/session/token) blocks here until
+        # the first one commits or rolls back, so there's no window
+        # where two requests both see "no pending payment" and both
+        # go on to create one.
+        #
+        # NOTE: with_for_update() only takes effect on Postgres/MySQL.
+        # SQLite ignores it silently — fine for local dev, but if this
+        # ever runs on SQLite in production the race is NOT actually
+        # closed and you'd want the unique-index fallback discussed
+        # separately.
+        # --------------------------------------------------
+
+        community = (
+            Community.query
+            .filter_by(slug=community_slug)
+            .with_for_update()
+            .first()
+        )
+
         if not community:
             return jsonify({'error': 'Community not found'}), 404
 
+        # --------------------------------------------------
+        # Expire stale (>=30 min) pending payments for this community
+        # --------------------------------------------------
+
         Payment.query.filter(
-            Payment.status == 'pending',
-            (Payment.user_id == user_id) | (Payment.community_id == community.id)
-        ).filter(
+            Payment.status == "pending",
+            Payment.community_id == community.id,
             Payment.created_at <= now - timedelta(minutes=30)
-        ).update({'status': 'expired'}, synchronize_session=False)
+        ).update(
+            {"status": "expired"},
+            synchronize_session=False
+        )
+
         db.session.flush()
 
-        existing = Payment.query.filter_by(
-            user_id=user_id, community_id=community.id, status='pending'
-        ).order_by(Payment.created_at.desc()).first()
+        # --------------------------------------------------
+        # One pending payment per community, period — regardless of
+        # which user/device/token started it. If one exists and hasn't
+        # hit 30min, hand back its FULL details so the frontend can
+        # restore/offset to it instead of creating a duplicate.
+        # --------------------------------------------------
 
-        if existing:
-            expires_at = existing.created_at + timedelta(minutes=30)
-            if now < expires_at:
-                db.session.commit()
-                return jsonify({
-                    'error': 'You already have a pending payment.',
-                    'payment_id': existing.id,
-                    'amount': existing.amount,
-                    'address': existing.address,
-                    'created_at': int(existing.created_at.timestamp()),
-                    'expires_at': int(expires_at.timestamp()),
-                    'server_time': int(now.timestamp())
-                }), 400
-
-        community_pending = Payment.query.filter_by(
-            community_id=community.id, status='pending'
-        ).order_by(Payment.created_at.desc()).first()
+        community_pending = (
+            Payment.query
+            .filter_by(
+                community_id=community.id,
+                status="pending"
+            )
+            .order_by(Payment.created_at.desc())
+            .first()
+        )
 
         if community_pending:
-            expires_at = community_pending.created_at + timedelta(minutes=30)
-            if now < expires_at:
-                db.session.commit()
-                return jsonify({
-                    'error': 'community_pending',
-                    'message': 'This community already has an active payment.',
-                    'payment_id': community_pending.id,
-                    'expires_at': int(expires_at.timestamp())
-                }), 409
 
-        try:
-            balance_resp = requests.get(
-                f"{NOZY_API_URL}/api/balance",
-                headers={"X-API-Key": NOZY_API_KEY},
-                timeout=30
+            expires_at = community_pending.created_at + timedelta(minutes=30)
+
+            if now < expires_at:
+
+                db.session.commit()  # releases the community row lock
+
+                return jsonify({
+                    "error": "You already have a pending payment.",
+                    "payment_id": community_pending.id,
+                    "amount": community_pending.amount,
+                    "address": community_pending.address,
+                    "token": community_pending.token,
+                    "network": community_pending.network,
+                    "created_at": int(community_pending.created_at.timestamp()),
+                    "expires_at": int(expires_at.timestamp()),
+                    "server_time": int(now.timestamp())
+                }), 400
+
+            else:
+                community_pending.status = "expired"
+                db.session.flush()
+
+        # --------------------------------------------------
+        # Generate payment destination FIRST
+        # --------------------------------------------------
+
+        balance_before = fetch_nozy_balance() if is_zec else 0.0
+
+        swap_status = None
+        swap_tx = None
+
+        if is_zec:
+
+            payment_address = os.getenv("WALLET")
+
+            if not payment_address:
+                return jsonify({
+                    "error": "Wallet address not configured"
+                }), 500
+
+            swap_zec_amount = None
+
+        else:
+
+            token_info = TOKENS.get(origin_network, {}).get(origin_token)
+
+            if not token_info:
+                return jsonify({
+                    "error": "Unsupported token/network"
+                }), 400
+
+            #
+            # Temporary object ONLY for Defuse payload.
+            # It is NOT inserted into the database.
+            #
+            temp_payment = Payment(
+                amount=amount,
+                token=origin_token,
+                network=origin_network,
+                created_at=now
             )
-            balance_before = balance_resp.json().get('balance_zec', 0.0)
-        except Exception as e:
-            print(f"⚠️ Could not fetch Nozy balance: {e}")
-            balance_before = 0.0
+
+            payment_address = create_near_intent_deposit(
+                temp_payment,
+                token_info["address"],
+                token_info["decimals"],
+                refund_address
+            )
+
+            if not payment_address:
+                return jsonify({
+                    "error": "Unable to create Defuse deposit address"
+                }), 500
+
+            swap_status = temp_payment.swap_status
+            swap_tx = temp_payment.swap_tx
+            swap_zec_amount = temp_payment.swap_zec_amount
+
+        # --------------------------------------------------
+        # Create payment ONLY after address exists
+        # --------------------------------------------------
 
         new_payment = Payment(
             amount=amount,
-            token='ZEC',
-            network='Zcash',
+            token=token,
+            network=network,
             address=payment_address,
-            status='pending',
+            status="pending",
             timestamp=int(now.timestamp()),
-            note=note,
+            note=note if is_zec else refund_address,
             created_at=now,
             balance_before=balance_before,
             user_id=user_id,
-            community_id=community.id
+            community_id=community.id,
+            swap_status=swap_status,
+            swap_tx=swap_tx,
+            swap_zec_amount=swap_zec_amount
         )
+
         db.session.add(new_payment)
         db.session.commit()
 
-        print(f"🕒 WAITING for {amount:.8f} ZEC | Payment ID: {new_payment.id} | Balance before: {balance_before}")
+        print(
+            f"🕒 WAITING for {amount:.8f} {token} ({network}) | Payment ID: {new_payment.id}"
+        )
 
         return jsonify({
-            'id': new_payment.id,
-            'address': payment_address,
-            'created_at': int(now.timestamp()),
-            'expires_at': int((now + timedelta(minutes=30)).timestamp()),
-            'server_time': int(now.timestamp())
+            "id": new_payment.id,
+            "address": payment_address,
+            "token": token,
+            "network": network,
+            "created_at": int(now.timestamp()),
+            "expires_at": int((now + timedelta(minutes=30)).timestamp()),
+            "server_time": int(now.timestamp())
         })
 
     except Exception as e:
+        db.session.rollback()
         traceback.print_exc()
-        return jsonify({'error': f'Server error: {str(e)}'}), 500
+
+        return jsonify({
+            "error": f"Server error: {str(e)}"
+        }), 500
+    
 
 
 @app.route('/<community_slug>/verify_payment/<int:payment_id>', methods=['POST'])
@@ -21421,62 +21567,19 @@ def verify_payment(community_slug, payment_id):
                 db.session.commit()
             return jsonify({'status': 'expired'})
 
-        try:
-            sync_resp = requests.post(
-                f"{NOZY_API_URL}/api/sync",
-                json={"password": NOZY_WALLET_PASSWORD},
-                headers={"X-API-Key": NOZY_API_KEY},
-                timeout=120
-            )
-            current_balance = float(sync_resp.json().get('balance_zec', 0))
-        except Exception as e:
-            return jsonify({'error': f'Sync failed: {str(e)}', 'status': 'pending'}), 200
-
-        balance_increase = round(current_balance - float(payment.balance_before or 0), 8)
-
-        FEE_TOLERANCE = min(payment.amount * 0.05, 0.0001)
-        required_minimum = max(payment.amount - FEE_TOLERANCE, 0.00000001)
-
-        if balance_increase < required_minimum:
-            print(f"⏳ Payment {payment.id} pending — increase: {balance_increase:.8f}, "
-                  f"required: {required_minimum:.8f}, requested: {payment.amount:.8f}")
-            return jsonify({'status': 'pending'})
-
-        payment.status = 'paid'
-        payment.paid_at = datetime.utcnow()
-        payment.tx = f"nozy-balance-delta-{current_balance}"
-
-        amount_zatoshi = int(round(balance_increase * 100_000_000))
-
-        wallet = CommunityWallet.query.filter_by(community_id=payment.community_id).first()
-        if wallet:
-            wallet.available_balance += amount_zatoshi
-            wallet.updated_at = datetime.utcnow()
+        if (payment.token or '').upper() == 'ZEC':
+            result = verify_zec_payment(payment)
         else:
-            wallet = CommunityWallet(
-                community_id=payment.community_id,
-                available_balance=amount_zatoshi,
-                locked_balance=0,
-                currency='ZEC'
-            )
-            db.session.add(wallet)
-            db.session.flush()
+            result = verify_evm_payment(payment)
 
-        db.session.add(CommunityWalletTransaction(
-            wallet_id=wallet.id,
-            amount=amount_zatoshi,
-            type='deposit',
-            reference=f"payment:{payment.id}"
-        ))
-
-        db.session.commit()
-        print(f"✅ Payment {payment.id} confirmed — received: {balance_increase:.8f} ZEC, credited: {amount_zatoshi} zatoshi")
-        return jsonify({'status': 'paid'})
+        return jsonify(result), 200
 
     except Exception as e:
         traceback.print_exc()
         return jsonify({'error': f'Server error: {str(e)}', 'status': 'pending'}), 200
 
+
+        
         
 @app.route('/<community_slug>/leaderboard')
 @community_not_deleted()
@@ -30894,14 +30997,66 @@ admin.add_view(ZecWalletAdmin(ZecWallet, db.session))
 admin.add_view(ZecAuthSessionAdmin(ZecAuthSession, db.session))
 
 
-application = app
-
-
-# Global 404 error handler
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template('404.html'), 404
 
 
+scheduler = BackgroundScheduler()
+
+
+def poll_pending_evm_payments():
+    with app.app_context():
+        cutoff = datetime.utcnow() - timedelta(minutes=30)
+
+        pending = Payment.query.filter(
+            Payment.status == 'pending',
+            Payment.token != 'ZEC',
+            Payment.created_at > cutoff
+        ).all()
+
+        if not pending:
+            print("💤 No pending EVM payments — poller going idle")
+            scheduler.pause_job('evm_poll_job')
+            return
+
+        print(f"🔄 Polling {len(pending)} pending EVM payment(s)")
+        for payment in pending:
+            try:
+                verify_evm_payment(payment, called_from_background=True)   
+            except Exception as e:
+                print(f"⚠️ Background verify failed for payment {payment.id}: {e}")
+                db.session.rollback()
+
+
+def wake_evm_poller():
+    """
+    Resumes the poller if it's currently paused. Called from two places:
+      1. save_payment — right after a new non-ZEC Payment is created
+      2. verify_evm_payment (in evm_verify.py) — every time the browser's
+         "check payment" click finds the payment still pending, as a
+         defensive re-nudge in case the poller had gone idle for any
+         other reason while this payment was still outstanding
+    """
+    try:
+        job = scheduler.get_job('evm_poll_job')
+        if job and job.next_run_time is None:  # paused jobs have next_run_time=None
+            scheduler.resume_job('evm_poll_job')
+            print("⏰ Poller woken — pending EVM payment needs checking")
+    except Exception as e:
+        print(f"⚠️ Could not wake poller: {e}")
+
+
+application = app
+
+
 if __name__ == "__main__":
+    scheduler.add_job(
+        poll_pending_evm_payments,
+        trigger=IntervalTrigger(seconds=20),
+        id="evm_poll_job",
+        next_run_time=datetime.now(),
+    )
+    scheduler.start()
+
     socketio.run(app, host="0.0.0.0", port=8000)

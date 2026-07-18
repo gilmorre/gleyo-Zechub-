@@ -50,7 +50,9 @@ SECRET_KEY=your_secret_key
 WALLET=u1...                          # Gleyo's platform shielded address (receives deposits)
 ZCASHD_FROM_ADDRESS=u1...             # Address Nozy sends withdrawals from
 NOZY_API_URL=http://127.0.0.1:3000    # Nozy API server URL
-NOZY_API_KEY=                        # Optional — only needed if Nozy server enforces API key auth (set NOZY_API_KEY on the Nozy server to require this)
+EVM_WALLET=0x...                     # Off-ramp address — receives USDT/USDC deposits (BSC/Polygon/Base), converted and credited as ZEC in Gleyo's ledger
+DEFUSE_JWT_TOKEN=your_defuse_jwt_token # Auth token for NEAR Intents (Defuse Protocol) — required for USDT/USDC → ZEC auto-conversion on funding
+NOZY_API_KEY=                        # Required — must match the X-API-Key configured on the Nozy server.
 NOZY_WALLET_PASSWORD=your_password
 
 # ── Database ─────────────────────────────────────────

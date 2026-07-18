@@ -142,27 +142,48 @@ All transactions are shielded Orchard spends. The memo field on every withdrawal
 
 ## Setup
 
-The short version, to get the app running locally:
+Clone the repository and create a virtual environment:
 
 ```bash
-git clone https://github.com/gilmorre/gleyo-Zechub-
+git clone https://github.com/gilmorre/gleyo-Zechub-.git
 cd gleyo-Zechub-
 
 # Windows
 python -m venv venv
 venv\Scripts\activate
 
-# Mac/Linux
+# macOS / Linux
 python3 -m venv venv
 source venv/bin/activate
 
+python -m pip install --upgrade pip
 pip install -r requirements.txt
+```
+
+### Create your `.env`
+
+Before starting the app, create a `.env` file in the project root.
+
+At a minimum, the following are required for the application to start:
+
+```env
+SUPABASE_URL=your_supabase_project_url
+SUPABASE_KEY=your_supabase_anon_key
+```
+
+Additional environment variables are required depending on the features you want to use (ZEC deposits, withdrawals, Defuse swaps, Redis, Discord integration, email, OAuth providers, etc.).
+
+The complete list of environment variables and setup instructions is available in **[SETUP.md](./SETUP.md)**.
+
+### Run the application
+
+```bash
 python app.py
 ```
 
-App runs at **http://127.0.0.1:8000**
+Once your `.env` has been configured correctly, the application will be available at:
 
-That gets the app itself running, but full ZEC functionality (deposits, withdrawals, task verification integrations) needs a `.env` file populated, plus a running Zebra node and Nozy API server behind it. All of that — the complete environment variable reference, Zebra node setup, and Nozy API server setup — is in **[SETUP.md](./SETUP.md)**.
+**http://127.0.0.1:8000**
 
 ---
 

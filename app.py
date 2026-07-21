@@ -396,6 +396,7 @@ ALLOWED_ROUTES = {
     "api_alltime_leaderboard",
     "sprint_view",
     "quester_view_init",
+    "public_communities",
     "p_quest_sprint",
     "send_code",
     "verify_code",
@@ -3362,7 +3363,24 @@ def send_delete_otp():
 
 
 
+@app.get("/api/public/communities")
+def public_communities():
+    communities = (
+        Community.query
+        .order_by(Community.created_at.desc())
+        .all()
+    )
 
+    return jsonify([
+        {
+            "name": c.name,
+            "slug": c.slug,
+            "about": c.about or "",
+            "logo": c.logo_path or "/static/img/default-community.png",
+            "url": f"/{c.slug}/quest"
+        }
+        for c in communities
+    ])
 
 
 

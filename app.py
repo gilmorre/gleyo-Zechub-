@@ -2921,21 +2921,19 @@ def documentation():
     return render_template("documentation.html")
 
 
-@app.route("/gleyo")
-@login_required
-def gleyo_base():
-    return redirect("/gleyo/quest")
-
-
-
 @app.route("/<page>")
 def about(page):
     print("PAGE HIT:", page)
 
-    if page not in ALLOWED_PAGES:
+    if page in ALLOWED_PAGES:
+        return render_template("about.html", active_page=page)
+
+    community = Community.query.filter_by(slug=page).first()
+
+    if community is None:
         abort(404)
 
-    return render_template("about.html", active_page=page)
+    return redirect(f"/{community.slug}/quest")
 
 
 

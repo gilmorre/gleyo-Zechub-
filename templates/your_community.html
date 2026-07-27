@@ -7075,11 +7075,11 @@ async function loadMainSettingsSection(path, push = true, previewMode = false, n
   else if (finalPath.endsWith("/quest/admin")) {
   fint(communitySlug);
 
-    __CURRENT_SCRIPT__ = "/static/quest.js?v=1";
+    __CURRENT_SCRIPT__ = "/static/quest.js?v=3";
   let IsopenDropdown = null
   
   window.IsopenDropdown = IsopenDropdown
-    await loadScript("/static/quest.js?v=1");
+    await loadScript("/static/quest.js?v=3");
 
     if (window.QuestModule) {
       window.QuestModule.init();

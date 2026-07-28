@@ -1363,6 +1363,7 @@ body::before {
     align-items: center;
     gap: 16px;
     padding: 18px;
+    height: 116px;
     border-radius: 18px;
     pointer-events: none;
 }

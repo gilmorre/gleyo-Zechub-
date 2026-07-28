@@ -12,8 +12,8 @@
   <meta name="keywords" content="gleyo, gleyo app, community platform, build community, online community tools" />
 
   <meta name="csrf-token" content="{{ csrf_token() }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='landing.css') }}?v=5">
-  <script src="{{ url_for('static', filename='landing.js') }}?v=2" defer></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='landing.css') }}?v=7">
+  <script src="{{ url_for('static', filename='landing.js') }}?v=4" defer></script>
 
 </head>
 <body data-auth="{{ '1' if user_id else '0' }}" data-vapid="{{ vapid_public_key }}">

@@ -27338,7 +27338,7 @@ class CommunityAdmin(BaseAdmin):
 
     form_columns = (
         'name' ,'blockchain',
-        'website', 'logo_path', 'about', 'created_at', 'is_paid' 
+        'website', 'logo_path', 'about', 'created_by_id', 'created_at', 'is_paid' 
     )
 
     column_formatters = {

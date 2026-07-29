@@ -16577,11 +16577,9 @@ def check_discord_task_for_user(user, task):
 
 
 
+
 def check_youtube_task_for_user(user, task):
-
-
     try:
-
         if task.type != "youtube":
             return {"success": False, "error": "Invalid task type"}
 
@@ -16598,20 +16596,18 @@ def check_youtube_task_for_user(user, task):
                 "error": "Subscribe to the YouTube channel to claim this quest"
             }
 
-
         if not task.config or "link" not in task.config:
             return {"success": False, "error": "Invalid YouTube task configuration."}
 
         channel_id = extract_channel_id(task.config["link"])
-
 
         # ✅ Correct credentials creation
         creds = Credentials(
             token=yt_conn.access_token,
             refresh_token=yt_conn.refresh_token,
             token_uri="https://oauth2.googleapis.com/token",
-            client_id="116172970402-kfvmrosrbgti3h4jsg8nkooqi5s0hl10.apps.googleusercontent.com",
-            client_secret="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",
+            client_id=os.getenv("YOUTUBE_CLIENT_ID"),
+            client_secret=os.getenv("YOUTUBE_CLIENT_SECRET"),
             scopes=["https://www.googleapis.com/auth/youtube.readonly"],
             expiry=yt_conn.expires_at
         )
@@ -16630,7 +16626,6 @@ def check_youtube_task_for_user(user, task):
         subscribed = False
 
         for attempt in range(3):
-
             print(f"🔍 Checking subscription attempt {attempt+1}")
 
             subs = youtube.subscriptions().list(
@@ -16639,7 +16634,6 @@ def check_youtube_task_for_user(user, task):
                 forChannelId=channel_id,
                 maxResults=1
             ).execute()
-
 
             if subs.get("items"):
                 subscribed = True
@@ -16654,7 +16648,6 @@ def check_youtube_task_for_user(user, task):
                 "error": "Subscribe to the YouTube channel to claim this quest"
             }
 
-
         channel_info = youtube.channels().list(
             part="snippet",
             id=channel_id
@@ -16665,15 +16658,12 @@ def check_youtube_task_for_user(user, task):
         if channel_info.get("items"):
             name = channel_info["items"][0]["snippet"]["title"]
 
-
         return {
             "success": True,
             "channel_name": name
         }
 
     except Exception as e:
-
-
         if "invalid_grant" in str(e).lower():
             return {
                 "success": False,
@@ -16684,7 +16674,6 @@ def check_youtube_task_for_user(user, task):
             "success": False,
             "error": "Subscribe to the YouTube channel to claim this quest"
         }
-
  
 def check_quiz_answer(user, task, answer_obj):
     """

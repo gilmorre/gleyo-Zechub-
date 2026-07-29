@@ -34,8 +34,11 @@
 *{
   -webkit-text-size-adjust: 100% !important;
   -webkit-tap-highlight-color: transparent;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(140, 140, 140, 0.6) transparent;
   box-sizing: border-box !important;
 }
+
 
 ::-webkit-scrollbar {
   width: 4px;         
@@ -1359,13 +1362,13 @@ body::before {
 
 
 .spotlight-card.skeleton {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 18px;
-    height: 116px;
-    border-radius: 18px;
-    pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px;
+  height: 116px;
+  border-radius: 18px;
+  pointer-events: none;
 }
 
 .skeleton-box,

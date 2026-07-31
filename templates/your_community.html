@@ -3312,7 +3312,7 @@ const PLATFORM_ICONS = {
           <path d="M17.5 21L17.5 15M17.5 15L20 17.5M17.5 15L15 17.5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
         `,
-        color: "linear-gradient(145deg, #ff4da6, #ff0099)"
+        color: "var(--accent-upload)"
       },
 
     "puzzle": {
@@ -7075,11 +7075,11 @@ async function loadMainSettingsSection(path, push = true, previewMode = false, n
   else if (finalPath.endsWith("/quest/admin")) {
   fint(communitySlug);
 
-    __CURRENT_SCRIPT__ = "/static/quest.js?v=6";
+    __CURRENT_SCRIPT__ = "/static/quest.js?v=9";
   let IsopenDropdown = null
   
   window.IsopenDropdown = IsopenDropdown
-    await loadScript("/static/quest.js?v=6");
+    await loadScript("/static/quest.js?v=9");
 
     if (window.QuestModule) {
       window.QuestModule.init();

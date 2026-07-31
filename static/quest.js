@@ -101,6 +101,32 @@ const REWARD_UNIT_LABELS = {
   custom: ""    
 };
 
+function renderTaskTypeIcons(taskTypes) {
+  const types = [...new Set((taskTypes || []).map(t => (t || "").toLowerCase()))]
+    .filter(t => PLATFORM_ICONS[t]);
+
+  if (!types.length) return "";
+
+  const visible = types.slice(0, 3);
+  const extra = types.length - visible.length;
+
+  const icons = visible.map(t => {
+    const platform = PLATFORM_ICONS[t];
+    return `
+      <div class="task-type-badge" style="background-color:${platform.color};" title="${t}">
+        ${platform.icon}
+      </div>
+    `;
+  }).join("");
+
+  const extraBadge = extra > 0
+    ? `<div class="task-type-badge task-type-extra">+${extra}</div>`
+    : "";
+
+  return `<div class="task-type-stack">${icons}${extraBadge}</div>`;
+}
+
+
 const DISTRIBUTION_LABELS = {
   ALL: "ALL",
   FCFS: "FCFS",
@@ -1000,7 +1026,12 @@ function createQuestModule(quests, communitySlug, isMobile = false, subquestStat
 
               </div>
 
-              ${renderRewardsContainer(subquest.rewards)}
+              <div style="display: flex; align-items: center; gap: 17px">
+                ${renderTaskTypeIcons(subquest.task_types)}
+
+                ${renderRewardsContainer(subquest.rewards)}
+              </div>
+
             </div>
           `).join("")}
         </div>
@@ -1248,7 +1279,18 @@ function onDragStart(e){
   // ghost
   const ghost = questItem.cloneNode(true);
   ghost.classList.add('quest-drag-ghost');
-  ghost.style.width = questItem.offsetWidth + 'px';
+
+  // 🧹 strip badges — ghost only needs the title while dragging
+  const badgeRow = ghost.querySelector('.sub-quest-init-place, .task-type-stack')?.closest('div[style*="gap"]');
+  if (badgeRow) badgeRow.remove();
+
+  // also catch the standalone sub-quest-init-place if no wrapper div was used
+  ghost.querySelectorAll('.sub-quest-init-place, .task-type-stack').forEach(el => el.remove());
+
+  ghost.style.width = 'auto';
+  ghost.style.display = 'inline-flex';
+  ghost.style.alignItems = 'center';
+
   document.body.appendChild(ghost);
 
   dragState.ghost = ghost;
@@ -2125,7 +2167,11 @@ function LoadContextitemInit() {
 
               <div class="quest-link">${data.name}</div>
             </div>
-            ${renderRewardsContainer(data.rewards || [])}
+            
+            <div style="display: flex; align-items: center; gap: 17px">
+              ${renderTaskTypeIcons(data.task_types)}
+              ${renderRewardsContainer(data.rewards || [])}
+            </div>
           `;
 
           const subquestList = window.currentSubquest.closest('.subquests-list');
@@ -2280,7 +2326,6 @@ function initAddSubquestHandlers() {
 
           </div>
 
-          ${renderRewardsContainer([])}
         `;
 
 

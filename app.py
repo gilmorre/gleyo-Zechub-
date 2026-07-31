@@ -5342,14 +5342,16 @@ def duplicate_subquest(subquest_uuid):
         for r in duplicated.rewards
     ]
 
+    task_types_payload = [t.type for t in duplicated.tasks]
+
     return jsonify({
         'status': 'success',
         'subquest_uuid': duplicated.uuid,
         'name': duplicated.name,
         'rewards': rewards_payload,
+        'task_types': task_types_payload,
         'skipped_token_reward': skipped_token_reward
     })
-
 
 @app.route('/toggle_subquest_archive/<subquest_uuid>', methods=['POST'])
 @login_required
@@ -27321,6 +27323,8 @@ def duplicate_module(uuid_value):
     # ============================
     # 3. Clone Subquests
     # ============================
+    skipped_token_reward = False
+
     for subquest in quest.subquests:
 
         duplicated_subquest = Subquest(
@@ -27356,7 +27360,7 @@ def duplicate_module(uuid_value):
         for task in subquest.tasks:
             new_task = Task(
                 type=task.type,
-                config=task.config,   # JSON safe copy
+                config=task.config, 
                 subquest_id=duplicated_subquest.id
             )
             db.session.add(new_task)
@@ -27375,9 +27379,13 @@ def duplicate_module(uuid_value):
             db.session.add(new_cond)
 
         # ============================
-        # 6. Clone Rewards
+        # 6. Clone Rewards — SKIP TOKEN REWARDS ENTIRELY
         # ============================
         for reward in subquest.rewards:
+            if reward.reward_type == "token":
+                skipped_token_reward = True
+                continue  # 🚫 never duplicate token rewards
+
             new_reward = SubquestReward(
                 subquest_id=duplicated_subquest.id,
                 reward_type=reward.reward_type,
@@ -27386,23 +27394,15 @@ def duplicate_module(uuid_value):
             )
             db.session.add(new_reward)
 
-        # ❌ DO NOT COPY:
-        # - SubquestCompletion
-        # - SubquestCooldown
-        # - UserConditionStatus
-        # - TaskAttemptHistory
-        # - Any user-related state
-
+   
     db.session.commit()
 
     return jsonify({
         'status': 'success',
         'new_quest_uuid': new_quest.uuid,
-        'title': new_quest.title
+        'title': new_quest.title,
+        'skipped_token_reward': skipped_token_reward
     })
-
-
-
 
 
 @app.route('/check_uuid/<uuid_value>')

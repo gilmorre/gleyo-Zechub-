@@ -1001,3 +1001,39 @@ justify-content: center;
     display: none !important;
   }
 }
+
+.task-type-stack {
+  display: flex;
+  align-items: center;
+  margin-left: 6px;
+}
+
+.task-type-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 27px;
+  height: 27px;
+  border-radius: 50%;
+  color: #fff;
+  margin-left: -10px;
+}
+
+.task-type-badge svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+.task-type-badge:first-child { margin-left: 0; }
+
+.task-type-extra {
+  font-size: 10px;
+  font-weight: 700;
+  background-color: var(--bg-secondary);
+  color: var(--text-muted);
+}
+
+@media (max-width: 767px) {
+  .task-type-stack { display: none !important; }
+}

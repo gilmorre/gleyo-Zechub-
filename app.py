@@ -5256,9 +5256,6 @@ def rename_subquest(subquest_uuid):
 def duplicate_subquest(subquest_uuid):
     subquest = Subquest.query.filter_by(uuid=subquest_uuid).first_or_404()
 
-    # ============================
-    # 1. Clone Subquest core
-    # ============================
     duplicated = Subquest(
         quest_id=subquest.quest_id,
         uuid=str(uuid.uuid4()),
@@ -5276,10 +5273,13 @@ def duplicate_subquest(subquest_uuid):
         autovalidation=subquest.autovalidation,
         add_to_sprint=subquest.add_to_sprint,
         image_url=subquest.image_url,
+
+        is_draft=True,
+        locked_zec_zatoshi=0,
     )
 
     db.session.add(duplicated)
-    db.session.flush()  # get duplicated.id
+    db.session.flush()   
 
     # ============================
     # 2. Clone Tasks
@@ -5306,32 +5306,44 @@ def duplicate_subquest(subquest_uuid):
         db.session.add(new_cond)
 
     # ============================
-    # 4. Clone Rewards
+    # 4. Clone Rewards — SKIP TOKEN REWARDS ENTIRELY
     # ============================
+    skipped_token_reward = False
+
     for reward in subquest.rewards:
+        if reward.reward_type == "token":
+            skipped_token_reward = True
+            continue  # 🚫 never duplicate token rewards
+
         new_reward = SubquestReward(
             subquest_id=duplicated.id,
             reward_type=reward.reward_type,
             distribution_type=reward.distribution_type,
-            reward_data=reward.reward_data
+            reward_data=reward.reward_data,
+            claim_count=None,  
         )
         db.session.add(new_reward)
 
-    # ❌ DO NOT COPY:
-    # - SubquestCompletion
-    # - SubquestCooldown
-    # - UserConditionStatus
-    # - TaskAttemptHistory
-    # - Any user-linked state
 
     db.session.commit()
+
+    rewards_payload = [
+        {
+            "id": r.id,
+            "reward_type": r.reward_type,
+            "distribution_type": r.distribution_type,
+            "reward_data": json.loads(r.reward_data) if r.reward_data else {}
+        }
+        for r in duplicated.rewards
+    ]
 
     return jsonify({
         'status': 'success',
         'subquest_uuid': duplicated.uuid,
-        'name': duplicated.name
+        'name': duplicated.name,
+        'rewards': rewards_payload,
+        'skipped_token_reward': skipped_token_reward
     })
-
 
 
 @app.route('/toggle_subquest_archive/<subquest_uuid>', methods=['POST'])
@@ -7387,13 +7399,13 @@ def sprint_api(community_slug):
 
 
 
+
 @app.route('/api/<community_slug>/quests')
 @login_required
 def api_get_quests(community_slug):
     community = Community.query.filter_by(slug=community_slug).first_or_404()
     user_id = int(current_user.id)
 
-    # session toggle state
     subquest_states = session.get(
         f"subquest_state_{current_user.id}_{community.id}", {}
     )
@@ -7417,10 +7429,17 @@ def api_get_quests(community_slug):
                         quest_uuid=quest.uuid,
                         subquest_uuid=sq.uuid
                     ),
-
-                    # ✅ new fields
                     "is_draft": bool(sq.is_draft) if sq.is_draft is not None else False,
-                    "is_archive": bool(sq.is_archive) if sq.is_archive is not None else False
+                    "is_archive": bool(sq.is_archive) if sq.is_archive is not None else False,
+                    "rewards": [
+                        {
+                            "id": r.id,
+                            "reward_type": r.reward_type,
+                            "distribution_type": r.distribution_type,
+                            "reward_data": json.loads(r.reward_data) if r.reward_data else {}
+                        }
+                        for r in sq.rewards
+                    ]
                 }
                 for sq in quest.subquests
             ]

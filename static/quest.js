@@ -1,5 +1,182 @@
 (function () {
 
+REWARD_ICONS = {
+ ALL: `
+        <svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#4285f4">
+          <path
+            d="M232,128.00037A104.11767,104.11767,0,0,0,128.042,24.00086L128,23.96423l-.042.03663a103.99952,103.99952,0,0,0-.001,207.999l.043.0376.043-.0376A104.11763,104.11763,0,0,0,232,128.00037Zm-16.36768-8h-39.853c-1.5918-29.637-12.01123-57.01758-29.5044-78.08643A88.1919,88.1919,0,0,1,215.63232,120.00037Zm-119.37353,16h63.48242C157.93164,164.75623,146.44678,191.703,128,210.44177,109.55322,191.703,98.06836,164.75623,96.25879,136.00037Zm0-16C98.06836,91.24353,109.55322,64.29675,128,45.559c18.44678,18.73779,29.93164,45.68457,31.74121,74.44141Zm50.01562,94.08642c17.49317-21.06933,27.9126-48.45044,29.50489-78.08642h39.853A88.19181,88.19181,0,0,1,146.27441,214.08679Z"
+            fill="#4285f4"
+          />
+        </svg>
+
+    `,
+
+    FCFS: `
+        <svg xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24" style="flex-shrink: 0"
+            width="16"
+            height="16"
+            fill="#e67e22"
+            stroke="#e67e22"
+            stroke-width="2"
+            stroke-linejoin="round"
+            stroke-linecap="round">
+        <path d="M13 3 
+                C12.6 2.5,12 2.5,11.7 3 
+                L5.5 12.2 
+                C5.2 12.7,5.5 13.3,6 13.3 
+                H10 
+                V21 
+                C10 21.5,10.7 21.7,11.1 21.3 
+                L18.2 12.3 
+                C18.6 11.8,18.3 11.2,17.7 11.2 
+                H13 
+                V3 Z"/>
+        </svg> 
+    `,
+
+    RAFFLE: `
+        "svg": """
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
+     width="16"
+     height="16">
+      <path fill-rule="evenodd" clip-rule="evenodd"
+        d="M14.0079 19.0029L14.0137 17C14.0137 16.4477 14.4625 16 15.0162 16C15.5698 16 16.0187 16.4477 16.0187 17V18.9765C16.0187 19.458 16.0187 19.6988 16.1731 19.8464C16.3275 19.9941 16.5637 19.984 17.0362 19.964C18.8991 19.8852 20.0437 19.6332 20.8504 18.8284C21.6591 18.0218 21.911 16.8766 21.9894 15.0105C22.005 14.6405 22.0128 14.4554 21.9437 14.332C21.8746 14.2085 21.5987 14.0545 21.0469 13.7463C20.4341 13.4041 20.0199 12.7503 20.0199 12C20.0199 11.2497 20.4341 10.5959 21.0469 10.2537C21.5987 9.94554 21.8746 9.79147 21.9437 9.66803C22.0128 9.54458 22.005 9.35954 21.9894 8.98947C21.911 7.12339 21.6591 5.97823 20.8504 5.17157C19.9727 4.29604 18.6952 4.0748 16.5278 4.0189C16.2482 4.01169 16.0187 4.23718 16.0187 4.51618V7C16.0187 7.55228 15.5698 8 15.0162 8C14.4625 8 14.0137 7.55228 14.0137 7L14.0064 4.49855C14.0056 4.22298 13.7814 4 13.5052 4H9.99502C6.21439 4 4.32407 4 3.14958 5.17157C2.34091 5.97823 2.08903 7.12339 2.01058 8.98947C1.99502 9.35954 1.98724 9.54458 2.05634 9.66802C2.12545 9.79147 2.40133 9.94554 2.95308 10.2537C3.56586 10.5959 3.98007 11.2497 3.98007 12C3.98007 12.7503 3.56586 13.4041 2.95308 13.7463C2.40133 14.0545 2.12545 14.2085 2.05634 14.332C1.98724 14.4554 1.99502 14.6405 2.01058 15.0105C2.08903 16.8766 2.34091 18.0218 3.14958 18.8284C4.32407 20 6.21438 20 9.99502 20H13.0054C13.4767 20 13.7124 20 13.8591 19.8541C14.0058 19.7081 14.0065 19.4731 14.0079 19.0029ZM16.0187 13V11C16.0187 10.4477 15.5698 10 15.0162 10C14.4625 10 14.0137 10.4477 14.0137 11V13C14.0137 13.5523 14.4625 14 15.0162 14C15.5698 14 16.0187 13.5523 16.0187 13Z"
+        fill="#8B5CF6"
+      />
+    </svg>
+  `,
+
+
+    VOTE: `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="rgb(0, 255, 0)"
+            width="16"
+            height="16" class="reward-icons" >
+          <g transform="scale(0.0375)">
+            <path d="M144 224C161.7 224 176 238.3 176 256L176 512C176 529.7 161.7 544 144 544L96 544C78.3 544 64 529.7 64 512L64 256C64 238.3 78.3 224 96 224L144 224zM334.6 80C361.9 80 384 102.1 384 129.4L384 133.6C384 140.4 382.7 147.2 380.2 153.5L352 224L512 224C538.5 224 560 245.5 560 272C560 291.7 548.1 308.6 531.1 316C548.1 323.4 560 340.3 560 360C560 383.4 543.2 402.9 521 407.1C525.4 414.4 528 422.9 528 432C528 454.2 513 472.8 492.6 478.3C494.8 483.8 496 489.8 496 496C496 522.5 474.5 544 448 544L360.1 544C323.8 544 288.5 531.6 260.2 508.9L248 499.2C232.8 487.1 224 468.7 224 449.2L224 262.6C224 247.7 227.5 233 234.1 219.7L290.3 107.3C298.7 90.6 315.8 80 334.6 80z"/>
+          </g>
+        </svg>
+  `,
+
+
+
+};
+
+const svgMap = { 
+  xp: `
+
+      <svg viewBox="0 0 24 24" width="16" height="16"  style="margin-right: 5px;"  xmlns="http://www.w3.org/2000/svg" stroke="#4285f4" fill="#4285f4" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9.15316 5.40838C10.4198 3.13613 11.0531 2 12 2C12.9469 2 13.5802 3.13612 14.8468 5.40837L15.1745 5.99623C15.5345 6.64193 15.7144 6.96479 15.9951 7.17781C16.2757 7.39083 16.6251 7.4699 17.3241 7.62805L17.9605 7.77203C20.4201 8.32856 21.65 8.60682 21.9426 9.54773C22.2352 10.4886 21.3968 11.4691 19.7199 13.4299L19.2861 13.9372C18.8096 14.4944 18.5713 14.773 18.4641 15.1177C18.357 15.4624 18.393 15.8341 18.465 16.5776L18.5306 17.2544C18.7841 19.8706 18.9109 21.1787 18.1449 21.7602C17.3788 22.3417 16.2273 21.8115 13.9243 20.7512L13.3285 20.4768C12.6741 20.1755 12.3469 20.0248 12 20.0248C11.6531 20.0248 11.3259 20.1755 10.6715 20.4768L10.0757 20.7512C7.77268 21.8115 6.62118 22.3417 5.85515 21.7602C5.08912 21.1787 5.21588 19.8706 5.4694 17.2544L5.53498 16.5776C5.60703 15.8341 5.64305 15.4624 5.53586 15.1177C5.42868 14.773 5.19043 14.4944 4.71392 13.9372L4.2801 13.4299C2.60325 11.4691 1.76482 10.4886 2.05742 9.54773C2.35002 8.60682 3.57986 8.32856 6.03954 7.77203L6.67589 7.62805C7.37485 7.4699 7.72433 7.39083 8.00494 7.17781C8.28555 6.96479 8.46553 6.64194 8.82547 5.99623L9.15316 5.40838Z" />
+      </svg>
+       `,
+
+  role: `<svg xmlns="http://www.w3.org/2000/svg" style="margin-right: 4px;" width="14" height="14" fill="#5865F2" viewBox="0 0 24 24" style="margin-right: 5px;"> 
+            <path d="M20.318 4.36a19.8 19.8 0 0 0-4.885-1.517c-.212.375-.445.866-.609 1.25a18.3 18.3 0 0 0-5.487 0 12 12 0 0 0-.618-1.25A19.9 19.9 0 0 0 3.214 4.36C.534 9.036-.32 13.57.1 18.048a19.9 19.9 0 0 0 5.992 3.03q.695-.945 1.227-1.994a13.5 13.5 0 0 1-1.872-.892q.191-.143.372-.292c3.928 1.794 8.181 1.794 12.062 0q.181.149.372.292a12 12 0 0 1-1.873.891c.36.697.773 1.363 1.226 1.994a19.8 19.8 0 0 0 6.001-3.03c.501-5.176-.839-9.673-3.55-13.658M8.02 15.32c-1.184 0-2.157-1.085-2.157-2.419s.956-2.419 2.157-2.419c1.21 0 2.176 1.095 2.157 2.419 0 1.333-.956 2.419-2.157 2.419m7.974 0c-1.183 0-2.157-1.085-2.157-2.419s.956-2.419 2.157-2.419c1.21 0 2.177 1.095 2.157 2.419 0 1.333-.947 2.419-2.157 2.419"/>
+         </svg>`,
+
+  custom: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+           fill="none" stroke="var(--text-muted)" stroke-width="2" style="margin-right: 4px;"
+           viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 5px;">
+             <path d="M11 4H5a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3h12a3 3 0 0 0 3-3v-7"/>
+             <path d="M18.2 2.8a2 2 0 0 1 2.8 2.8L12 14.8l-3.5.9.9-3.5L18.2 2.8z"/>
+         </svg>`,
+
+token: `  <svg fill="none" viewBox="0 0 24 24" style="margin-right: 5px; overflow: visible;"  xmlns="http://www.w3.org/2000/svg" width="14" height="14">
+            <g transform="translate(12 12) scale(1.6) translate(-12 -12)">
+              <circle cx="12" cy="12" r="9" fill="#F3B724"/>
+              <polyline points="9 9 15 9 9 15 15 15" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+              <line x1="12" y1="7" x2="12" y2="9" stroke="#fff" stroke-linecap="round" stroke-width="2"/>
+              <line x1="12" y1="15" x2="12" y2="17" stroke="#fff" stroke-linecap="round" stroke-width="2"/>
+            </g>
+          </svg>`
+};
+
+
+
+
+const REWARD_UNIT_LABELS = {
+  xp: "XP",
+  token: "ZEC",
+  role: "",      
+  custom: ""    
+};
+
+const DISTRIBUTION_LABELS = {
+  ALL: "ALL",
+  FCFS: "FCFS",
+  RAFFLE: "RAFFLE",
+  VOTE: "VOTE"
+};
+
+function renderRewardBadge(reward) {
+  let data = reward.reward_data;
+  if (typeof data === "string") {
+    try { data = JSON.parse(data); } catch (e) { data = {}; }
+  }
+  data = data || {};
+
+  const typeIcon = svgMap[reward.reward_type] || "";
+  const distIcon = REWARD_ICONS[reward.distribution_type] || REWARD_ICONS.ALL;
+  const distLabel = DISTRIBUTION_LABELS[reward.distribution_type] || reward.distribution_type || "";
+  const typeClass = `reward-badge-${reward.reward_type || "custom"}`;
+
+  let displayValue = "";
+
+  switch (reward.reward_type) {
+    case "xp":
+      displayValue = `${data.amount ?? ""} XP`;
+      break;
+
+    case "token": {
+      const symbol = data.symbol || REWARD_UNIT_LABELS.token || "ZEC";
+      displayValue = `${data.amount_per_winner ?? ""} ${symbol}`;
+      break;
+    }
+
+    case "custom":
+      displayValue = data.text || "";
+      break;
+
+    case "role":
+      displayValue = data.role_name || data.text || "";
+      break;
+
+    default:
+      displayValue = data.amount ?? "";
+  }
+
+  return `
+    <div class="reward-badge ${typeClass}" title="${reward.reward_type} · ${reward.distribution_type}">
+      ${typeIcon}
+      <span class="reward-amount">${displayValue}</span>
+      ${distIcon}
+      <span class="reward-dist-label">${distLabel}</span>
+    </div>
+  `;
+}
+
+function renderRewardsContainer(rewards) {
+  rewards = rewards || [];
+
+  if (!rewards.length) {
+    return `<div class="sub-quest-init-place"></div>`;
+  }
+
+  const visible = rewards.slice(0, 3);
+  const extra = rewards.length - visible.length;
+
+  const badges = visible.map(renderRewardBadge).join("");
+  const extraBadge = extra > 0
+    ? `<div class="reward-badge reward-extra">+${extra}</div>`
+    : "";
+
+  return `
+    <div class="sub-quest-init-place">
+      ${badges}${extraBadge}
+    </div>
+  `;
+}
+
 
 const contextMenu = document.getElementById('custom-context-menu');
 
@@ -822,7 +999,7 @@ function createQuestModule(quests, communitySlug, isMobile = false, subquestStat
 
               </div>
 
-              <div class="sub-quest-init-place">Reward</div>
+              ${renderRewardsContainer(subquest.rewards)}
             </div>
           `).join("")}
         </div>
@@ -1900,80 +2077,85 @@ function LoadContextitemInit() {
 
   /* ===== DUPLICATE ===== */
   contextMenu.querySelector('.menu-item:nth-child(2)').addEventListener('click', function (e) {
-    e.preventDefault();
-    e.stopPropagation();
-    e.stopImmediatePropagation();
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
 
-    if (!window.currentSubquest) return;
+      if (!window.currentSubquest) return;
 
-    const uuid = window.currentSubquest.dataset.subquestUuid;
+      const uuid = window.currentSubquest.dataset.subquestUuid;
 
-    const subquestContainer = window.currentSubquest.closest('.subquests-list');
-    if (!subquestContainer) return;
+      const subquestContainer = window.currentSubquest.closest('.subquests-list');
+      if (!subquestContainer) return;
 
-    const questUUID = subquestContainer.id.replace('subquests_add-', '');
+      const questUUID = subquestContainer.id.replace('subquests_add-', '');
 
-    fetch(`/duplicate_subquest/${uuid}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': csrfToken
-      }
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.status === 'success') {
-
-        const newItem = document.createElement('div');
-        newItem.className = 'quest-item';
-        newItem.dataset.subquestUuid = data.subquest_uuid;
-        newItem.dataset.archive = "false";
-        newItem.dataset.active = "true";
-        newItem.dataset.draft = "false";
-        newItem.dataset.url = window.currentSubquest.dataset.url;
-
-        newItem.innerHTML = `
-          <div class="diver-quest-123321">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="17" height="17" fill="currentColor">
-              <path d="M6.5 11a1.5 1.5 0 1 1-3 0
-                      1.5 1.5 0 0 1 3 0z
-                      M5 3.5A1.5 1.5 0 1 0 6.5 5
-                      1.5 1.5 0 0 0 5 3.5z
-                      M12.5 11a1.5 1.5 0 1 1-3 0
-                      1.5 1.5 0 0 1 3 0z
-                      M11 3.5A1.5 1.5 0 1 0 12.5 5
-                      1.5 1.5 0 0 0 11 3.5z"/>
-            </svg>
-
-            <div class="quest-link">${data.name}</div>
-          </div>
-          <div class="sub-quest-init-place">Reward</div>
-        `;
-
-        const subquestList = window.currentSubquest.closest('.subquests-list');
-        const module = window.currentSubquest.closest('.content-init-q');
-        const scrollContainer = module.closest('.scroll-container');
-
-        if (subquestList) {
-          subquestList.appendChild(newItem);
-          attachContextMenuEvents(newItem);
-
-          questUX({
-            module,
-            node: newItem,
-            scrollContainer,
-            toast: "Quest duplicated successfully",
-            toastType: "success",
-            highlight: true
-          });
+      fetch(`/duplicate_subquest/${uuid}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken
         }
-      } else {
-        questUX({ toast: data.message || "Duplicate failed", toastType: "error" });
-      }
-    });
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === 'success') {
 
-    hideMenu();
-  });
+          const newItem = document.createElement('div');
+          newItem.className = 'quest-item';
+          newItem.dataset.subquestUuid = data.subquest_uuid;
+          newItem.dataset.archive = "false";
+          newItem.dataset.active = "true";
+          newItem.dataset.draft = "false";
+          newItem.dataset.url = window.currentSubquest.dataset.url;
+
+          newItem.innerHTML = `
+            <div class="diver-quest-123321">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="17" height="17" fill="currentColor">
+                <path d="M6.5 11a1.5 1.5 0 1 1-3 0
+                        1.5 1.5 0 0 1 3 0z
+                        M5 3.5A1.5 1.5 0 1 0 6.5 5
+                        1.5 1.5 0 0 0 5 3.5z
+                        M12.5 11a1.5 1.5 0 1 1-3 0
+                        1.5 1.5 0 0 1 3 0z
+                        M11 3.5A1.5 1.5 0 1 0 12.5 5
+                        1.5 1.5 0 0 0 11 3.5z"/>
+              </svg>
+
+              <div class="quest-link">${data.name}</div>
+            </div>
+            ${renderRewardsContainer(data.rewards || [])}
+          `;
+
+          const subquestList = window.currentSubquest.closest('.subquests-list');
+          const module = window.currentSubquest.closest('.content-init-q');
+          const scrollContainer = module.closest('.scroll-container');
+
+          if (subquestList) {
+            subquestList.appendChild(newItem);
+            attachContextMenuEvents(newItem);
+
+            // 🔔 warn the admin if a token reward was silently dropped
+            const toastMsg = data.skipped_token_reward
+              ? "Quest duplicated — token reward was not copied"
+              : "Quest duplicated successfully";
+
+            questUX({
+              module,
+              node: newItem,
+              scrollContainer,
+              toast: toastMsg,
+              toastType: "success",
+              highlight: true
+            });
+          }
+        } else {
+          questUX({ toast: data.message || "Duplicate failed", toastType: "error" });
+        }
+      });
+
+      hideMenu();
+    });
 
 }
 
@@ -2097,7 +2279,7 @@ function initAddSubquestHandlers() {
 
           </div>
 
-          <div class="sub-quest-init-place">Reward</div>
+          ${renderRewardsContainer([])}
         `;
 
 

@@ -16,6 +16,42 @@ window.__SPRINT_DATA__ =  {
   name: ""
 }
 
+
+
+const TELEGRAM_BOT_MODAL_KEY = "gleyo_telegram_bot_notice_shown";
+
+function showTelegramBotModal(showagain=false) {
+  if (!showagain) {
+  if (sessionStorage.getItem(TELEGRAM_BOT_MODAL_KEY) === "1") return;
+  }
+  const modal = document.createElement("div");
+  modal.className = "modal-backdrop telegram-bot-modal";
+  modal.innerHTML = `
+    <div class="modal-glass">
+      <h3 style="font-size: 16px">Add @Gleyo_bot to your group</h3>
+      <p>
+        For Telegram tasks to work, please make sure you add
+        <strong>@Gleyo_bot</strong> to the group you want users to join,
+        with full permissions. This lets us verify membership properly.
+      </p>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+  requestAnimationFrame(() => modal.classList.add("show"));
+
+  const handleOutsideClick = (e) => {
+    if (e.target === modal) {
+      modal.classList.remove("show");
+      sessionStorage.setItem(TELEGRAM_BOT_MODAL_KEY, "1");
+      setTimeout(() => modal.remove(), 200);  
+      document.removeEventListener("click", handleOutsideClick);
+    }
+  };
+
+  document.addEventListener("click", handleOutsideClick);
+}
+
 function restoreSelectedSprint() {
 
   const sprintListBtn = document.querySelector(".sprint-list");
@@ -3994,7 +4030,7 @@ if (hasErrors) {
     console.error(err);
     disableClaimButton();
   } finally {
-    claimBtn.innerHTML = "Claim";
+    claimBtn.innerHTML = "Test Claim";
   }
 }
 
@@ -5318,14 +5354,14 @@ function parseYouTubeInput(input) {
   // https://www.youtube.com/user/username
   match = input.match(/youtube\.com\/user\/([a-zA-Z0-9_-]+)/);
   if (match) {
-    return { identifier: match[1], type: "forUsername" };
+    return { identifier: match[1], type: "handle" };
   }
 
   // Handle
   // https://www.youtube.com/@handle
   match = input.match(/youtube\.com\/@([a-zA-Z0-9_.-]+)/);
   if (match) {
-    return { identifier: match[1], type: "forUsername" };
+    return { identifier: match[1], type: "handle" };
   }
 
   // youtu.be links (videos → extract channel via backend later if needed)
@@ -5362,7 +5398,7 @@ async function fetchChannelInfo(input) {
     },
     body: JSON.stringify({
       identifier: parsed.identifier,
-      type: parsed.type   // ONLY channelId | forUsername
+      type: parsed.type    
     })
   });
 
@@ -6265,150 +6301,171 @@ function renderTask(task){
   }
 
   else if ([
-    "telegram",
-    "discord",
-    "youtube",
-    "partnership",
-    "partnership_quest"
-  ].includes(task.type)) {
-    
-    const PLATFORM_META = {
-      telegram: {
-        title: "Telegram",
-        action: "Join",
-        placeholder: "https://t.me",
-        accent: "telegram",
-        suffix: "Channel"
-      },
-      discord: {
-        title: "Discord",
-        action: "Join",
-        placeholder: "https://discord.gg",
-        accent: "discord",
-        suffix: "Server"
-      },
-      youtube: {
-        title: "YouTube",
-        action: "Subscribe",
-        placeholder: "https://youtube.com",
-        accent: "youtube",
-        suffix: "Channel",
-        extraLink: "?sub_confirmation=1"
-      },
-      partnership: {
-        title: "Partnership",
-        action: "Join",
-        placeholder: "https://",
-        accent: "partnership",
-        suffix: "Community",
-      },
-      partnership_quest: {
-        title: "Partnership Quest",
-        action: "Go to",
-        placeholder: "https://",
-        accent: "p-quest",
-        suffix: "Quest"
-      }
-    };
+      "telegram",
+      "discord",
+      "youtube",
+      "partnership",
+      "partnership_quest"
+    ].includes(task.type)) {
+      
+      const PLATFORM_META = {
+        telegram: {
+          title: "Telegram",
+          action: "Join",
+          placeholder: "https://t.me",
+          accent: "telegram",
+          suffix: "Channel"
+        },
+        discord: {
+          title: "Discord",
+          action: "Join",
+          placeholder: "https://discord.gg",
+          accent: "discord",
+          suffix: "Server"
+        },
+        youtube: {
+          title: "YouTube",
+          action: "Subscribe",
+          placeholder: "https://youtube.com",
+          accent: "youtube",
+          suffix: "Channel",
+          extraLink: "?sub_confirmation=1"
+        },
+        partnership: {
+          title: "Partnership",
+          action: "Join",
+          placeholder: "https://",
+          accent: "partnership",
+          suffix: "Community",
+        },
+        partnership_quest: {
+          title: "Partnership Quest",
+          action: "Go to",
+          placeholder: "https://",
+          accent: "p-quest",
+          suffix: "Quest"
+        }
+      };
 
-    const meta = PLATFORM_META[task.type];
+      const meta = PLATFORM_META[task.type];
 
-    const name =
-      task.config?.name ||
-      task.config?.community_name ||
-      meta.title;
+      const name =
+        task.config?.name ||
+        task.config?.community_name ||
+        meta.title;
 
-    const desc =
-      task.config?.about ||
-      task.config?.subquest_name ||
-      "";
+      const desc =
+        task.config?.about ||
+        task.config?.subquest_name ||
+        "";
 
-    const link =
-      (task.config?.link || "#") +
-      (meta.extraLink || "");
+      const link =
+        (task.config?.link || "#") +
+        (meta.extraLink || "");
 
-    html = `
-      <div class="container-all-contain-yinit social-task ${task.type}" 
-          data-platform="${task.type}"
-          data-task-id="${task.id}">
-
-        <div class="card-container-quest social-task ${task.type}"
-            style="color: var(--accent-${meta.accent})">
-
-          <div class="badge-quest">
-            <span class="badge-icon-quest">
-              ${PLATFORM_ICONS[task.type]?.icon || "🌐"}
-            </span>
-            <span>${meta.title}</span>
-          </div>
-
-          <div class="card-wrapper-quest">
-            <div class="card-quest">
-              <div class="content-quest">
-
-                <div class="avatar-quest">
-                  <img src="${task.config?.icon || ""}">
-                  <span class="fallback-letter"></span>
-                </div>
-
-                <h2 class="community_name">${name}</h2>
-
-                <div class="description-parnership">${desc}</div>
-
-                <a class="cta-quest"
-                  href="${link}"
-                  target="_blank"
-                  style="background: var(--accent-${meta.accent}-text)">
-                  ${meta.action} ${meta.suffix}
-                </a>
-
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- POPUP -->
-        <div class="popup-container social-popup is-open" data-platform="${task.type}">
-          <div class="popup-header">
-            <div class="telicon" style="background-color: var(--accent-${meta.accent})">
-              ${PLATFORM_ICONS[task.type]?.icon || "🌐"}
-            </div>
-
-            <div class="title">${meta.title}</div>
-            <div class="liner"></div>
-
-            <div class="popup-actions">
-              <button class="js-copy-link" title="close">${ChevronSVGQ}</button>
-              <button class="js-paste-link" title="paste">${PastSVGQ}</button>
-              <button class="js-delete-link" title="delete">${DeleteSVGQ}</button>
-            </div>
-          </div>
-
-          <div class="bottom-${task.type}">
-
-            <div class="liners"></div>
-
-            <label class="labeltesting">Link you want users to visit</label>
-
-            <input
-              class="social-input telinput"
-              data-platform="${task.type}"
-              type="text"
-              placeholder="${meta.placeholder}"
-              value="${task.config?.link || ""}"
-            />
-
+      // 🔥 telegram gets an extra bot-status icon next to the error message
+      const errorRowHTML = task.type === "telegram"
+        ? `
+          <div style="display: flex; align-items: center; justify-content: space-between;">
             <div class="error-message social-error-msg" style="display:none;">
               Invalid url
             </div>
+
+            <div class="svgclicker" onclick="showTelegramBotModal(true)">
+              <svg class="info-icon" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                <path d="M12 10V17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <circle cx="12" cy="7" r="1" fill="currentColor"/>
+              </svg>
+            </div>
           </div>
+        `
+        : `
+          <div class="error-message social-error-msg" style="display:none;">
+            Invalid url
+          </div>
+        `;
+
+      html = `
+        <div class="container-all-contain-yinit social-task ${task.type}" 
+            data-platform="${task.type}"
+            data-task-id="${task.id}">
+
+          <div class="card-container-quest social-task ${task.type}"
+              style="color: var(--accent-${meta.accent})">
+
+            <div class="badge-quest">
+              <span class="badge-icon-quest">
+                ${PLATFORM_ICONS[task.type]?.icon || "🌐"}
+              </span>
+              <span>${meta.title}</span>
+            </div>
+
+            <div class="card-wrapper-quest">
+              <div class="card-quest">
+                <div class="content-quest">
+
+                  <div class="avatar-quest">
+                    <img src="${task.config?.icon || ""}">
+                    <span class="fallback-letter"></span>
+                  </div>
+
+                  <h2 class="community_name">${name}</h2>
+
+                  <div class="description-parnership">${desc}</div>
+
+                  <a class="cta-quest"
+                    href="${link}"
+                    target="_blank"
+                    style="background: var(--accent-${meta.accent}-text)">
+                    ${meta.action} ${meta.suffix}
+                  </a>
+
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- POPUP -->
+          <div class="popup-container social-popup is-open" data-platform="${task.type}">
+            <div class="popup-header">
+              <div class="telicon" style="background-color: var(--accent-${meta.accent})">
+                ${PLATFORM_ICONS[task.type]?.icon || "🌐"}
+              </div>
+
+              <div class="title">${meta.title}</div>
+              <div class="liner"></div>
+
+              <div class="popup-actions">
+                <button class="js-copy-link" title="close">${ChevronSVGQ}</button>
+                <button class="js-paste-link" title="paste">${PastSVGQ}</button>
+                <button class="js-delete-link" title="delete">${DeleteSVGQ}</button>
+              </div>
+            </div>
+
+            <div class="bottom-${task.type}">
+
+              <div class="liners"></div>
+
+              <label class="labeltesting">Link you want users to visit</label>
+
+              <input
+                class="social-input telinput"
+                data-platform="${task.type}"
+                type="text"
+                placeholder="${meta.placeholder}"
+                value="${task.config?.link || ""}"
+              />
+
+              ${errorRowHTML}
+            </div>
+          </div>
+
         </div>
+    `;
 
-      </div>
-  `;
-
-    return html;   
-  }
+      return html;   
+    }
 
 /* ============================
    PUZZLE TASK
@@ -8045,7 +8102,10 @@ function collectTasks() {
        SOCIALS
        telegram | discord | youtube
        ============================ */
-    else if (["telegram","discord","youtube"].includes(type)) {
+    /* ============================
+      TELEGRAM
+    ============================ */
+    else if (type === "telegram") {
 
       config.link = wrapper.querySelector('.social-input')?.value || "";
 
@@ -8054,8 +8114,22 @@ function collectTasks() {
         wrapper.querySelector('.js-preview-title')?.innerText?.trim() ||
         "";
 
-      config.icon =
-        wrapper.querySelector('img')?.src || "";
+      config.icon = wrapper.querySelector('img')?.src || "";
+    }
+
+    /* ============================
+      SOCIALS (discord | youtube — unchanged)
+      ============================ */
+    else if (["discord","youtube"].includes(type)) {
+
+      config.link = wrapper.querySelector('.social-input')?.value || "";
+
+      config.name =
+        wrapper.querySelector('.community_name')?.innerText?.trim() ||
+        wrapper.querySelector('.js-preview-title')?.innerText?.trim() ||
+        "";
+
+      config.icon = wrapper.querySelector('img')?.src || "";
     }
 
     /* ============================
@@ -8385,6 +8459,10 @@ function LetsInitQuestBuildup() {
 
     const html = renderTask(task);
     if (!html) return;
+    const mappedType = mapActionToTaskType(type);
+    if (mappedType === "telegram") {
+      showTelegramBotModal();
+    }
 
     // inject at bottom
     container.insertAdjacentHTML("beforeend", html);
@@ -11244,7 +11322,7 @@ async function Initgrounderarial() {
 }
 
 
-
+window.showTelegramBotModal = showTelegramBotModal;
 
 restoreSelectedSprint();
   window.AialModule = {

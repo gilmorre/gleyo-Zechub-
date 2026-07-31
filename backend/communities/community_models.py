@@ -109,6 +109,12 @@ class Community(db.Model):
         passive_deletes=True
     )
 
+    telegram_groups = db.relationship(
+        "CommunityTelegramGroup",
+        back_populates="community",
+        cascade="all, delete-orphan"
+    )
+
     wallet = db.relationship(
         "CommunityWallet",
         back_populates="community",

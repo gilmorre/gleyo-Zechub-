@@ -24,4 +24,6 @@ class DiscordGuild(db.Model):
 
     def __repr__(self):
         return f"<DiscordGuild {self.guild_name} ({self.guild_id})>"
+
+
   

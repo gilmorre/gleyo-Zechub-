@@ -43,6 +43,8 @@ warnings.filterwarnings("ignore", category=UserWarning, module="flask_admin.cont
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("gleyo.profile")
 logger.setLevel(logging.INFO)
+telegram_logger = logging.getLogger("gleyo.telegram")
+telegram_logger.setLevel(logging.INFO)
 
 # ─────────────────────────────────────────────────────────────
 # THIRD-PARTY — FLASK
@@ -145,6 +147,7 @@ from backend.integrations.twitterAPI import twitter_bp, get_live_followers_count
 from backend.integrations.discord_name import bp as discord_bp
 from backend.integrations.youtubeAPI import youtube_bp
 from backend.integrations.tiktok_bp import tiktok_bp
+from backend.integrations.community_telegram import CommunityTelegramGroup
 from backend.auth.github import bp, check_if_starred, get_repo_forks
 from backend.communities.community_twitter_bp import community_twitter_bp
 from backend.payments.wallet import ZecWithdrawalQueue
@@ -377,6 +380,7 @@ ALLOWED_ROUTES = {
     "zec_login_session",
     "zec_login_poll",
     "sitemap",
+    "telegram_webhook",
     "about_us",
     "gleyo_base",
     "create_account",
@@ -564,6 +568,7 @@ ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "").strip().lower()
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "").strip()
 smtp_user = os.getenv("MAIL_USER")
 smtp_pass = os.getenv("MAIL_PASS")
+BOT_TELEGRAM_ID = os.getenv("BOT_TELEGRAM_ID")
 SMTP_HOST = "smtp.gmail.com"
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USERNAME = os.getenv("SMTP_USERNAME")
@@ -15455,6 +15460,34 @@ def attach_invite_code(task, user_id, community_id):
 
 
 
+def resolve_telegram_group(link_or_username):
+    text = (link_or_username or "").strip()
+
+    if "t.me/+" in text or "t.me/joinchat" in text:
+        # private invite link — cannot resolve via getChat, needs manual /connect
+        return None, None, None, "PRIVATE_LINK"
+
+    match = re.search(r"t\.me/([A-Za-z0-9_]+)", text)
+    username = match.group(1) if match else text.lstrip("@")
+
+    if not username:
+        return None, None, None, "Couldn't parse a Telegram username from that link"
+
+    resp = requests.get(
+        f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getChat",
+        params={"chat_id": f"@{username}"}
+    ).json()
+
+    if not resp.get("ok"):
+        return None, None, None, (
+            "Couldn't find that Telegram group — make sure @Gleyo_bot "
+            "has been added to it (as admin) before publishing."
+        )
+
+    chat = resp["result"]
+    return chat["id"], chat.get("title"), chat.get("type"), None
+
+
 @app.route('/<community_slug>/publish_subquest', methods=['POST'])
 @login_required
 def publish_subquest(community_slug):
@@ -15493,6 +15526,72 @@ def publish_subquest(community_slug):
             invite_total += num
             task["config"]["numInvites"] = num
 
+    # ──────────────────────────────────────────────────────────────
+    # 📨 TELEGRAM TASK RESOLUTION
+    # Resolve each telegram task's link to a real chat_id via the
+    # Bot API, and find-or-create the CommunityTelegramGroup row.
+    # Bot must already be in the chat (added manually beforehand).
+    # ──────────────────────────────────────────────────────────────
+    for task in tasks_data:
+        if task.get("type") != "telegram":
+            continue
+
+        config = task.get("config") or {}
+        link = config.get("link", "")
+
+        chat_id, chat_title, chat_type, error = resolve_telegram_group(link)
+
+        if error == "PRIVATE_LINK":
+            existing = CommunityTelegramGroup.query.filter_by(
+                community_id=community.id
+            ).filter(CommunityTelegramGroup.chat_id.isnot(None)).order_by(
+                CommunityTelegramGroup.connected_at.desc()
+            ).first()
+
+            if not existing:
+                return jsonify({
+                    'success': False,
+                    'error': (
+                        "This is a private Telegram group. Add @Gleyo_bot to it "
+                        "as admin, then send /connect <code> in the group first "
+                        "(get your code from Community Settings → Telegram)."
+                    )
+                }), 400
+
+            task["config"]["telegram_group_id"] = existing.id
+            task["config"]["chat_title"] = existing.chat_title
+            continue
+
+        if error:
+            return jsonify({'success': False, 'error': f"Telegram task: {error}"}), 400
+
+
+        group = CommunityTelegramGroup.query.filter_by(
+            community_id=community.id, chat_id=chat_id
+        ).first()
+
+        if not group:
+            member = requests.get(
+                f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getChatMember",
+                params={"chat_id": chat_id, "user_id": BOT_TELEGRAM_ID}
+            ).json()
+            bot_is_admin = member.get("result", {}).get("status") == "administrator"
+
+            group = CommunityTelegramGroup(
+                community_id=community.id,
+                label=chat_title,
+                chat_id=chat_id,
+                chat_title=chat_title,
+                chat_type=chat_type,
+                bot_is_admin=bot_is_admin,
+                connected_at=datetime.utcnow()
+            )
+            db.session.add(group)
+            db.session.flush()  # get group.id without a full commit yet
+
+        task["config"]["telegram_group_id"] = group.id
+        task["config"]["chat_title"] = group.chat_title
+        
     rewards_data = data.get('rewards', [])
     conditions_data = data.get('conditions', [])
 
@@ -17378,6 +17477,7 @@ def validate_tasks_engine(
     subquest=None
 ):
     errors = {}
+    cleaned_input = {}
     failed_inputs = {}
     all_success = True
 
@@ -17438,6 +17538,26 @@ def validate_tasks_engine(
                     }
                 }
 
+        elif task_type == "telegram":
+            res = check_telegram_task_for_user(user, task)
+            is_valid = res.get("success", False)
+
+            if is_valid:
+                cleaned_input[task_id] = {
+                    "telegram": {
+                        "joined": True,
+                        "chat_title": res.get("chat_title", "Unknown Group")
+                    }
+                }
+            else:
+                errors[task_id] = res.get(
+                    "error",
+                    "Join the Telegram group to claim this task"
+                )
+                failed_inputs[task_id] = {
+                    "telegram": "not joined"
+                }
+                
         # ============================
         # GITHUB
         # ============================
@@ -17808,6 +17928,7 @@ def preview_subquest(community_slug):
         "saved_at": time.time()
     }
 
+
     session.modified = True
     # =========================
     # Clear old preview state
@@ -17816,22 +17937,44 @@ def preview_subquest(community_slug):
         user_id=current_user.id,
         subquest_uuid=subquest_uuid
     ).delete()
+
     db.session.commit()
 
+
     # =========================
-    # Store preview tasks (DB = source of truth)
+    # Store preview tasks
     # =========================
     for task in tasks_data:
+
+        config = task.get("config", {}).copy()
+
+        if task.get("type") == "telegram":
+
+            link = config.get("link", "")
+
+            chat_id, chat_title, chat_type, error = resolve_telegram_group(link)
+
+            if error:
+                return jsonify({
+                    "error": f"Telegram task: {error}"
+                }), 400
+
+            config["telegram_chat_id"] = chat_id
+            config["chat_title"] = chat_title
+            config["chat_type"] = chat_type
+
+
         p = PreviewTaskState(
             user_id=current_user.id,
             type=task.get("type"),
-            config=task.get("config", {}),
+            config=config,
             subquest_uuid=subquest_uuid,
             state={
                 "status": "preview",
                 "completed": False
             }
         )
+
         db.session.add(p)
 
     db.session.commit()
@@ -20110,6 +20253,129 @@ def analytics_insights(community_slug):
     })
 
 
+@app.route("/telegram/webhook", methods=["POST"])
+@csrf.exempt
+def telegram_webhook():
+    update = request.get_json(force=True)
+    telegram_logger.info(f"📩 Telegram update received: {update}")
+
+    if "my_chat_member" in update:
+        mcm = update["my_chat_member"]
+        chat = mcm["chat"]
+        new_status = mcm["new_chat_member"]["status"]
+
+        row = CommunityTelegramGroup.query.filter_by(chat_id=chat["id"]).first()
+        if row:
+            row.bot_is_admin = (new_status == "administrator")
+            db.session.commit()
+            telegram_logger.info(f"Updated bot_is_admin={row.bot_is_admin} for chat_id={chat['id']}")
+        else:
+            telegram_logger.info(f"my_chat_member event for unknown chat_id={chat['id']} (no pending connect row)")
+
+    if "message" in update:
+        msg = update["message"]
+        text = msg.get("text", "")
+
+        if text.startswith("/connect"):
+            parts = text.split()
+            if len(parts) == 2:
+                code = parts[1]
+                row = CommunityTelegramGroup.query.filter_by(connect_code=code, chat_id=None).first()
+
+                if row:
+                    row.chat_id = msg["chat"]["id"]
+                    row.chat_title = msg["chat"].get("title")
+                    row.chat_type = msg["chat"]["type"]
+                    row.connect_code = None
+                    db.session.commit()
+
+                    telegram_logger.info(
+                        f"✅ Connected chat_id={row.chat_id} ({row.chat_title}) "
+                        f"to community_id={row.community_id}, group_row_id={row.id}"
+                    )
+
+                    requests.post(
+                        f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
+                        json={"chat_id": row.chat_id, "text": "✅ Connected to Gleyo."}
+                    )
+                else:
+                    telegram_logger.warning(f"❌ /connect used with unknown or already-used code: {code}")
+
+    return jsonify({"ok": True}) 
+
+def check_telegram_task_for_user(user, task):
+
+    config = task.config or {}
+
+    tg_chat_id = config.get("telegram_chat_id")
+
+
+    # published task fallback
+    if not tg_chat_id:
+        tg_group_id = config.get("telegram_group_id")
+
+        tg_group = (
+            CommunityTelegramGroup.query.get(tg_group_id)
+            if tg_group_id else None
+        )
+
+        if tg_group:
+            tg_chat_id = tg_group.chat_id
+            chat_title = tg_group.chat_title
+
+    else:
+        chat_title = config.get("chat_title")
+
+
+    if not tg_chat_id:
+        return {
+            "success": False,
+            "error": "Telegram group is not connected."
+        }
+
+
+    user_tg = UserTelegram.query.filter_by(
+        user_id=user.id,
+        action="connected"
+    ).first()
+
+    if not user_tg:
+        return {
+            "success": False,
+            "error": "Connect your Telegram account first."
+        }
+
+
+    resp = requests.get(
+        f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getChatMember",
+        params={
+            "chat_id": tg_chat_id,
+            "user_id": user_tg.telegram_user_id
+        }
+    ).json()
+
+
+    if not resp.get("ok"):
+        return {
+            "success": False,
+            "error": "Join the Telegram group to claim this task"
+        }
+
+
+    status = resp["result"]["status"]
+
+    if status in ("member", "administrator", "creator"):
+        return {
+            "success": True,
+            "chat_title": chat_title
+        }
+
+
+    return {
+        "success": False,
+        "error": "Join the Telegram group to claim this task"
+    }
+
 @app.route("/claim/<int:subquest_id>", methods=["POST"])
 @login_required
 @csrf.exempt
@@ -20339,6 +20605,18 @@ def claim_subquest(subquest_id):
 
                 failed_inputs[task.id] = {"youtube": "not subscribed"}
 
+        elif task.type == "telegram":
+            res = check_telegram_task_for_user(user, task)
+            is_valid = res.get("success", False)
+
+            if is_valid:
+                cleaned_input["telegram"] = {
+                    "joined": True,
+                    "chat_title": res.get("chat_title", "Unknown Group")
+                }
+            else:
+                errors[task.id] = res.get("error", "Join the Telegram group to claim this task")
+                failed_inputs[task.id] = {"telegram": "not joined"}
 
 
         elif task.type in ("text", "numbers", "url"):
@@ -21837,6 +22115,8 @@ def get_channel_info():
         url = f"https://www.googleapis.com/youtube/v3/channels?part=snippet&id={channel_identifier}&key={YOUTUBE_API_KEY}"
     elif lookup_type == "forUsername":
         url = f"https://www.googleapis.com/youtube/v3/channels?part=snippet&forUsername={channel_identifier}&key={YOUTUBE_API_KEY}"
+    elif lookup_type == "handle":
+        url = f"https://www.googleapis.com/youtube/v3/channels?part=snippet&forHandle={channel_identifier}&key={YOUTUBE_API_KEY}"
     else:
         return jsonify({"error": "Invalid type"}), 400
 
@@ -30910,6 +31190,71 @@ class ReviewNotificationAdmin(BaseAdmin):
     can_view_details = True
 
 
+class CommunityTelegramGroupAdmin(BaseAdmin):
+
+    can_create = True
+    can_edit = True
+    can_delete = True
+
+    column_list = (
+        "id",
+        "community",
+        "label",
+        "chat_id",
+        "chat_title",
+        "chat_type",
+        "connect_code",
+        "bot_is_admin",
+        "connected_at",
+    )
+
+    column_labels = {
+        "id": "ID",
+        "community": "Community",
+        "label": "Label",
+        "chat_id": "Chat ID",
+        "chat_title": "Chat Title",
+        "chat_type": "Chat Type",
+        "connect_code": "Connect Code",
+        "bot_is_admin": "Bot Admin",
+        "connected_at": "Connected At",
+    }
+
+    column_searchable_list = (
+        "label",
+        "chat_id",
+        "chat_title",
+        "connect_code",
+    )
+
+    column_filters = (
+        "bot_is_admin",
+        "chat_type",
+        "connected_at",
+        "community",
+    )
+
+    column_default_sort = ("connected_at", True)
+
+    form_columns = (
+        "community",
+        "label",
+        "chat_id",
+        "chat_title",
+        "chat_type",
+        "connect_code",
+        "bot_is_admin",
+    )
+
+    form_ajax_refs = {
+        "community": {
+            "fields": ("name",),
+        },
+    }
+
+    can_view_details = True
+
+
 admin.add_view(UserAdmin(Users, db.session))
 admin.add_view(UserTwoFactorAdmin(UserTwoFactor, db.session))
 admin.add_view(UserSessionAdmin(UserSession, db.session))
@@ -30937,6 +31282,7 @@ admin.add_view(UserCommunitySettingsAdmin(UserCommunitySettings, db.session))
 admin.add_view(LimitedCodeAdmin(LimitedCode, db.session))
 admin.add_view(CommunityInviteTaskAdmin(CommunityInviteTask, db.session))
 admin.add_view(DiscordGuildAdmin(DiscordGuild, db.session))
+admin.add_view(CommunityTelegramGroupAdmin(CommunityTelegramGroup, db.session))
 admin.add_view(DiscordNotificationSettingAdmin(DiscordNotificationSetting, db.session))
 admin.add_view(CommunityTwitterAdmin(CommunityTwitter, db.session))
 admin.add_view(CommunitySecurityAdmin(CommunitySecurity, db.session))

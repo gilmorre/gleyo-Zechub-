@@ -503,6 +503,8 @@ function applySubquestFilter(type) {
 let mobileMoveMode = false;
 let mobileMoveItem = null;
 let mobileOriginModule = null;
+window.activeQuestUUID = null;
+
 
 function guardMobileMove(e){
    
@@ -517,7 +519,6 @@ function guardMobileMove(e){
   return true; 
 }
 
-window.activeQuestUUID = null;
 
  
 

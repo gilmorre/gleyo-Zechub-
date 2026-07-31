@@ -7436,6 +7436,12 @@ def api_get_quests(community_slug):
                     ),
                     "is_draft": bool(sq.is_draft) if sq.is_draft is not None else False,
                     "is_archive": bool(sq.is_archive) if sq.is_archive is not None else False,
+
+                    "task_types": [
+                        task.type
+                        for task in sq.tasks
+                    ],
+
                     "rewards": [
                         {
                             "id": r.id,

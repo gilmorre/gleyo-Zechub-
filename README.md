@@ -10,6 +10,14 @@ Gleyo's feature set naturally spans the contributor lifecycle — education, onb
 
 ---
 
+## Traction
+
+- **35+ weekly active users** processing real mainnet ZEC — live in closed beta, not a testnet demo
+- Deposits, quest rewards, and shielded withdrawals all running end-to-end on Zcash mainnet
+- Multi-token funding (USDT/USDC → ZEC via NEAR Intents) live alongside direct ZEC funding
+
+---
+
 ## How it compares
 
 | Feature | Zealy | Gleyo |

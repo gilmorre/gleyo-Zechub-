@@ -1,9 +1,10 @@
-# backend/utils/zec_worker.py
-
 import queue
+import logging
 import threading
 from datetime import datetime, UTC
 from decimal import Decimal
+
+logger = logging.getLogger("gleyo.zec_worker")
 
 _zec_queue = queue.Queue()
 _worker_started = False
@@ -13,7 +14,7 @@ _worker_lock = threading.Lock()
 def enqueue_zec_withdrawal(tx_id):
     """Call this from the route after committing the pending tx + queue row."""
     _zec_queue.put(tx_id)
-    print(f"DEBUG: enqueued tx_id={tx_id}, queue depth={_zec_queue.qsize()}")
+    logger.info("Enqueued withdrawal | tx_id=%s queue_depth=%s", tx_id, _zec_queue.qsize())
 
 
 def start_zec_worker(app):
@@ -26,12 +27,12 @@ def start_zec_worker(app):
         t = threading.Thread(target=_worker_loop, args=(app,), daemon=True)
         t.start()
         _worker_started = True
-        print("DEBUG: ZEC withdrawal worker started")
+        logger.info("ZEC withdrawal worker started")
 
 
 def _recover_pending(app):
     """On restart, re-queue anything that never got picked up.
-    Anything stuck 'processing' from a crash is left alone and flagged —
+    Anything stuck 'processing' from a crash is left alone and flagged -
     we don't know if the send actually broadcast, so it needs a human look,
     not an automatic re-send."""
     from backend.payments.wallet import ZecWithdrawalQueue
@@ -39,14 +40,17 @@ def _recover_pending(app):
     with app.app_context():
         stuck = ZecWithdrawalQueue.query.filter_by(status="processing").all()
         for row in stuck:
-            print(f"DEBUG: tx_id={row.tx_id} was 'processing' at restart — needs manual review, not auto-resumed")
+            logger.warning(
+                "Withdrawal stuck in 'processing' at restart, needs manual review | tx_id=%s",
+                row.tx_id
+            )
 
         queued = ZecWithdrawalQueue.query.filter_by(status="queued") \
             .order_by(ZecWithdrawalQueue.created_at.asc()).all()
         for row in queued:
             _zec_queue.put(row.tx_id)
         if queued:
-            print(f"DEBUG: recovered {len(queued)} queued withdrawal(s) from DB")
+            logger.info("Recovered %s queued withdrawal(s) from DB", len(queued))
 
 
 def _worker_loop(app):
@@ -55,8 +59,8 @@ def _worker_loop(app):
         try:
             with app.app_context():
                 _process_next(tx_id)
-        except Exception as e:
-            print(f"DEBUG: worker crashed processing tx_id={tx_id}: {e}")
+        except Exception:
+            logger.exception("Worker crashed processing tx_id=%s", tx_id)
         finally:
             _zec_queue.task_done()
 
@@ -65,12 +69,12 @@ def _process_next(tx_id):
     from backend.utils.instance import db
     from backend.models.models import UserTransaction, UserBalance
     from backend.payments.wallet import ZecWithdrawalQueue
-    from backend.utils.nozy_client import _nozy_sync, _nozy_send   
+    from backend.utils.nozy_client import _nozy_sync, _nozy_send
 
     q_row = ZecWithdrawalQueue.query.filter_by(tx_id=tx_id).first()
     tx = UserTransaction.query.get(tx_id)
     if not tx or not q_row:
-        print(f"DEBUG: tx_id={tx_id} missing tx or queue row, skipping")
+        logger.error("tx_id=%s missing tx or queue row, skipping", tx_id)
         return
 
     q_row.status = "processing"
@@ -83,11 +87,11 @@ def _process_next(tx_id):
     full_amount = q_row.full_amount
     platform_fee = q_row.platform_fee
 
-    print(f"DEBUG: [worker] syncing before send, tx_id={tx_id}")
+    logger.info("Worker syncing before send | tx_id=%s", tx_id)
     synced, sync_err = _nozy_sync()
 
     if not synced:
-        print(f"DEBUG: [worker] SYNC FAILED tx_id={tx_id}: {sync_err}")
+        logger.error("Worker SYNC FAILED | tx_id=%s error=%s", tx_id, sync_err)
         user_balance.balance         += Decimal(str(full_amount))
         user_balance.total_withdrawn -= Decimal(str(platform_fee))
         tx.status = "failed"
@@ -97,11 +101,14 @@ def _process_next(tx_id):
         db.session.commit()
         return
 
-    print(f"DEBUG: [worker] sending tx_id={tx_id} address={address} amount={amount_to_send}")
+    logger.info(
+        "Worker sending | tx_id=%s address=%s amount=%s",
+        tx_id, address, amount_to_send
+    )
     tx_hash, err = _nozy_send(address, amount_to_send, memo="Gleyo ZEC Withdrawal")
 
     if err:
-        print(f"DEBUG: [worker] SEND FAILED tx_id={tx_id}: {err}")
+        logger.error("Worker SEND FAILED | tx_id=%s error=%s", tx_id, err)
         user_balance.balance         += Decimal(str(full_amount))
         user_balance.total_withdrawn -= Decimal(str(platform_fee))
         tx.status = "failed"
@@ -111,7 +118,7 @@ def _process_next(tx_id):
         db.session.commit()
         return
 
-    print(f"DEBUG: [worker] SEND SUCCESS tx_id={tx_id} txid={tx_hash}")
+    logger.info("Worker SEND SUCCESS | tx_id=%s txid=%s", tx_id, tx_hash)
     user_balance.total_withdrawn += Decimal(str(amount_to_send))
     tx.status = "confirmed"
     tx.tx_hash = tx_hash

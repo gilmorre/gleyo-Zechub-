@@ -334,19 +334,75 @@ sudo apt install protobuf-compiler
 
 # Clone and build
 git clone https://github.com/LEONINE-DAO/Nozy-wallet.git
-cd Nozy-wallet/api-server
+cd Nozy-wallet
 cargo build --release
-cargo run
 ```
 
-API server runs at **http://0.0.0.0:3000**
+### Starting the API server (production / VPS)
+
+Don't use `cargo run` for anything beyond a quick local check — it runs in the
+foreground and dies the moment your terminal/SSH session closes. For a real
+deployment (VPS, or a background process on WSL2), start the built binary
+directly with `nohup` so it survives your session ending:
+
+```bash
+nohup env NOZY_BIND_ADDR=0.0.0.0 NOZY_API_KEY="your-generated-api-key" \
+  /path/to/Nozy-wallet/target/release/nozywallet-api > /root/nozy-api.log 2>&1 &
+```
+
+- `NOZY_BIND_ADDR=0.0.0.0` — required if anything outside the box itself
+  (e.g. Gleyo's Flask backend on a separate EC2 instance) needs to reach this
+  API. The server **defaults to `127.0.0.1` (loopback only)** if this isn't
+  set, meaning nothing external can connect even if your firewall allows the
+  port through. This was a real outage we hit — see the note below.
+- `NOZY_API_KEY` — **required** when binding to `0.0.0.0`. The server refuses
+  to bind to all interfaces without an API key set, as a safety guard against
+  accidentally exposing an unauthenticated wallet API. Generate one with:
+  ```bash
+  openssl rand -hex 32
+  ```
+  This must match the `NOZY_API_KEY` in Gleyo's own `.env`.
+
+Verify it's actually listening on the right interface:
+```bash
+ss -tlnp | grep 3000
+```
+Should show `0.0.0.0:3000`, not `127.0.0.1:3000`, if you need external access.
+
+To check logs or confirm the process is alive:
+```bash
+tail -f /root/nozy-api.log
+ps aux | grep nozywallet-api
+```
+
+To restart after a rebuild:
+```bash
+kill $(pgrep nozywallet-api)
+nohup env NOZY_BIND_ADDR=0.0.0.0 NOZY_API_KEY="your-generated-api-key" \
+  /path/to/Nozy-wallet/target/release/nozywallet-api > /root/nozy-api.log 2>&1 &
+```
+
+> **Works on WSL2** — since WSL2 runs a real Linux kernel, `nohup`/background
+> `&` processes behave the same as on a native Linux VPS. WSL1 support is
+> less reliable for long-running background processes; WSL2 is recommended
+> if developing on Windows.
+
+> ⚠️ **Security note:** binding to `0.0.0.0` exposes port 3000 beyond just
+> `localhost`. If your firewall (ufw/iptables) currently allows that port
+> from "Anywhere", lock it down to only the specific IP(s) that need access
+> (e.g. your Flask backend's server IP) once you've confirmed the API works
+> externally:
+> ```bash
+> sudo ufw delete allow 3000/tcp
+> sudo ufw allow from YOUR_BACKEND_IP to any port 3000 proto tcp
+> ```
 
 See the [Nozy API docs](https://github.com/LEONINE-DAO/Nozy-wallet/blob/main/api-server/README.md) for full endpoint reference.
 
-> **Build/runtime crashes:** if `cargo run` crashes or the API server panics on startup, try pinning `axum` to `0.7` in `Nozy-wallet/api-server/Cargo.toml` and updating:
+> **Build/runtime crashes:** if the build or API server panics on startup, try pinning `axum` to `0.7` in `Nozy-wallet/api-server/Cargo.toml` and updating:
 > ```bash
 > cargo update -p axum
-> cargo run --release
+> cargo build --release
 > ```
 
 ---

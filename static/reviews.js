@@ -2025,7 +2025,99 @@ function appendHistoryBlock(item, reviewData, container) {
 
 
 
+function setupImageLightbox() {
 
+  // Build overlay once
+  let overlay = document.querySelector(".image-lightbox-overlay");
+
+  if (!overlay) {
+    overlay = document.createElement("div");
+    overlay.className = "image-lightbox-overlay";
+    overlay.innerHTML = `
+      <span class="image-lightbox-close">&times;</span>
+      <div class="image-lightbox-arrow left">&#8249;</div>
+      <div class="image-lightbox-content">
+        <img src="" alt="">
+        <span class="image-lightbox-counter"></span>
+      </div>
+      <div class="image-lightbox-arrow right">&#8250;</div>
+    `;
+    document.body.appendChild(overlay);
+  }
+
+  const imgEl = overlay.querySelector(".image-lightbox-content img");
+  const counterEl = overlay.querySelector(".image-lightbox-counter");
+  const closeBtn = overlay.querySelector(".image-lightbox-close");
+  const leftArrow = overlay.querySelector(".image-lightbox-arrow.left");
+  const rightArrow = overlay.querySelector(".image-lightbox-arrow.right");
+
+  let currentGallery = [];
+  let currentIndex = 0;
+
+  function renderCurrent() {
+    imgEl.src = currentGallery[currentIndex];
+
+    const showArrows = currentGallery.length > 1;
+    leftArrow.style.display = showArrows ? "flex" : "none";
+    rightArrow.style.display = showArrows ? "flex" : "none";
+
+    counterEl.style.display = showArrows ? "block" : "none";
+    counterEl.textContent = showArrows
+      ? `${currentIndex + 1} / ${currentGallery.length}`
+      : "";
+  }
+
+  function openLightbox(gallery, startIndex) {
+    currentGallery = gallery;
+    currentIndex = startIndex;
+    renderCurrent();
+    overlay.classList.add("open");
+  }
+
+  function closeLightbox() {
+    overlay.classList.remove("open");
+    imgEl.src = "";
+  }
+
+  function showNext() {
+    if (!currentGallery.length) return;
+    currentIndex = (currentIndex + 1) % currentGallery.length;
+    renderCurrent();
+  }
+
+  function showPrev() {
+    if (!currentGallery.length) return;
+    currentIndex = (currentIndex - 1 + currentGallery.length) % currentGallery.length;
+    renderCurrent();
+  }
+ 
+  document.addEventListener("click", (e) => {
+    const clicked = e.target.closest(".img-bubble");
+    if (!clicked) return;
+
+    const container = clicked.closest(".review-image") || document;
+    const gallery = Array.from(container.querySelectorAll(".img-bubble")).map(img => img.src);
+    const startIndex = gallery.indexOf(clicked.src);
+
+    openLightbox(gallery, startIndex === -1 ? 0 : startIndex);
+  });
+
+  closeBtn.addEventListener("click", closeLightbox);
+  rightArrow.addEventListener("click", showNext);
+  leftArrow.addEventListener("click", showPrev);
+ 
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) closeLightbox();
+  });
+ 
+  document.addEventListener("keydown", (e) => {
+    if (!overlay.classList.contains("open")) return;
+    if (e.key === "Escape") closeLightbox();
+    if (e.key === "ArrowRight") showNext();
+    if (e.key === "ArrowLeft") showPrev();
+  });
+}
+ 
 
 function buildRewardsHTML(rewards) {
   console.log(rewards)
@@ -3486,6 +3578,7 @@ undoBtn?.addEventListener('click', async () => {
     }  
 
   });
+  setupImageLightbox();
 
   window.ReviewsModule = {
     init: initReviewinit

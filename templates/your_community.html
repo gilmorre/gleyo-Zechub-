@@ -7114,9 +7114,9 @@ async function loadMainSettingsSection(path, push = true, previewMode = false, n
     /* ---------------- REVIEWS ---------------- */
 
   if (finalPath.includes("/reviews")) {
-    __CURRENT_SCRIPT__ = "/static/reviews.js";
+    __CURRENT_SCRIPT__ = "/static/reviews.js?v=1";
 
-    await loadScript("/static/reviews.js");
+    await loadScript("/static/reviews.js?v=1");
 
     if (window.ReviewsModule) {
       window.ReviewsModule.init();
@@ -7187,9 +7187,9 @@ async function loadMainSettingsSection(path, push = true, previewMode = false, n
   /* ---------------- INBOX ---------------- */
 
   if (finalPath.includes("/inbox")) {
-    __CURRENT_SCRIPT__ = "/static/inbox.js";
+    __CURRENT_SCRIPT__ = "/static/inbox.js?v=1";
 
-    await loadScript("/static/inbox.js");
+    await loadScript("/static/inbox.js?v=1");
     if (window.inBoxModule) {
       window.inBoxModule.init();
     }

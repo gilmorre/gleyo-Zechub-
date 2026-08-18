@@ -4607,6 +4607,7 @@ function hookSocialTasks(root){
 
 
 async function handleSocialUpdate(input, value){
+  if (input.dataset.platform === "twitter") return;
   const popup = input.closest(".popup-container");
   if (!popup) return;
 
@@ -4619,7 +4620,7 @@ async function handleSocialUpdate(input, value){
   const descEl    = card.querySelector(".description-parnership");
   const ctaBtn    = card.querySelector(".cta-quest");
   const errorMsg  = popup.querySelector(".social-error-msg");
-
+  
   if(errorMsg) errorMsg.style.display = "none";
 
   try{
@@ -5131,7 +5132,13 @@ function hookPopupControls(root){
 
     /* SOCIAL */
     if (platform) {
-      const input = popup.querySelector(".social-input");
+      // 🔥 FIX: pick the input belonging to the currently VISIBLE panel
+      const allInputs = [...popup.querySelectorAll(".social-input")];
+      const input = allInputs.find(el => {
+        const panel = el.closest(".twitter-panel");
+        return !panel || panel.style.display !== "none";
+      }) || allInputs[0];
+
       if (input) {
 
         /* 🔥 PATCH START (ONLY ADD THIS) */
@@ -5165,6 +5172,11 @@ function hookPopupControls(root){
         if (looksLikeUrlSocial(value)) {
           handleSocialUpdate(input, value);
         }
+
+        // 🔥 FIX: twitter follow/engage/space fields have no case in
+        // handleSocialUpdate — dispatch "change" so their own listeners
+        // (fetchTwitterProfile / fetchTweetPreview / space link) actually fire
+        input.dispatchEvent(new Event("change", { bubbles: true }));
       }
       return;
     }
@@ -5191,6 +5203,36 @@ const starstrerSvg = `
 `;
 
 
+function buildEngageChip(type, tweetLink){
+  const map = {
+    like:    { svg: HeartSVGQ,   label: "Like" },
+    retweet: { svg: RetweetSVGQ, label: "Retweet" }
+  };
+  const conf = map[type];
+  if(!conf) return "";
+
+  return `
+    <a class="engage-chip ${type}" href="${tweetLink || '#'}" target="_blank" rel="noopener noreferrer">
+      ${conf.svg}
+      <span class="engage-chip-label">${conf.label}</span>
+      ${NewaTabSVG}
+    </a>
+  `;
+}
+
+function buildReplyRow(value = ""){
+  return `
+    <div class="engage-reply-row js-engage-reply-row">
+      <input
+        type="text"
+        class="engage-reply-input js-engage-reply-input input-wrapper-quest"
+        placeholder="Paste the link to your reply"
+        value="${value}"
+      />
+    </div>
+  `;
+}
+
 function hookInputTasks(root){
 
   /* ===========================
@@ -5210,9 +5252,222 @@ function hookInputTasks(root){
     if (titleView) titleView.textContent = input.value || "";
   });
 
-  /* ===========================
-     EXISTING DESC SYNC
-  ============================ */
+root.addEventListener("paste", e => {
+  const input = e.target.closest(".social-input");
+  if (!input) return;
+
+  setTimeout(() => {
+    const value = input.value.trim();
+    if (!looksLikeUrlSocial(value)) return;
+
+    if (input.dataset.platform === "twitter") {
+      // hand off to the dedicated twitter change-handlers
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+      return;
+    }
+    handleSocialUpdate(input, value);
+  }, 0);
+});
+
+root.addEventListener("blur", e => {
+  const input = e.target.closest(".social-input");
+  if (!input) return;
+
+  const value = input.value.trim();
+  const popup = input.closest(".popup-container");
+  if (!popup) return;
+
+  // scope the error msg to the ACTIVE twitter panel, not just the first
+  // .social-error-msg in the popup (which is wrong for engage/space tabs)
+  const errorMsg = input.closest(".twitter-panel")?.querySelector(".social-error-msg")
+                 || popup.querySelector(".social-error-msg");
+
+  if (!value) { if (errorMsg) errorMsg.style.display = "none"; return; }
+  if (!looksLikeUrlSocial(value)) { if (errorMsg) errorMsg.style.display = "block"; return; }
+
+  if (errorMsg) errorMsg.style.display = "none";
+
+  if (input.dataset.platform === "twitter") {
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+    return;
+  }
+  handleSocialUpdate(input, value);
+}, true);
+  root.addEventListener("click", e => {
+    const tab = e.target.closest(".js-twitter-tab");
+    if (!tab) return;
+
+    const switchBox = tab.closest(".switch-3");
+    const wrapper = tab.closest(".container-all-contain-yinit");
+    if (!switchBox || !wrapper) return;
+
+    const mode = tab.dataset.mode;
+
+    switchBox.querySelectorAll(".js-twitter-tab").forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+
+    const pill = switchBox.querySelector(".js-twitter-pill");
+    if (pill) {
+      const index = { follow: 0, engage: 1, space: 2 }[mode];
+      pill.style.transform = `translateX(${index * 100}%)`;
+    }
+
+    wrapper.querySelectorAll(".twitter-panel").forEach(p => p.style.display = "none");
+    const panel = wrapper.querySelector(`.js-twitter-panel-${mode}`);
+    if (panel) panel.style.display = "block";
+
+    wrapper.dataset.mode = mode;
+
+    syncTwitterCardFace(wrapper);  
+    validateForm();
+  });
+
+  root.addEventListener("change", async e => {
+    const input = e.target.closest(".js-twitter-space-input");
+    if (!input) return;
+
+    const wrapper = input.closest(".container-all-contain-yinit");
+    const errorEl = wrapper?.querySelector(".js-twitter-panel-space .social-error-msg");
+    const url = input.value.trim();
+    if (!url) return;
+
+    try {
+      const space = await fetchSpacePreview(url);
+      if (!space) throw new Error("not found");
+
+      wrapper.dataset.twSpaceTitle             = space.title || "";
+      wrapper.dataset.twSpaceHostAvatar        = space.host_avatar || "";
+      wrapper.dataset.twSpaceHostName          = space.host_name || "";
+      wrapper.dataset.twSpaceHostHandle        = space.host_handle || "";      // ← new
+      wrapper.dataset.twSpaceHostVerified      = space.host_verified ? "1" : "0";
+      wrapper.dataset.twSpaceHostVerifiedType  = space.verified_type || "none";
+      wrapper.dataset.twSpaceLive              = space.is_live ? "1" : "0";
+      wrapper.dataset.twSpaceScheduled         = space.scheduled_start || ""; // ← new
+
+      if (errorEl) errorEl.style.display = "none";
+      input.dataset.valid = "true";
+    } catch (err) {
+      if (errorEl) errorEl.style.display = "block";
+      input.dataset.valid = "false";
+    } finally {
+      try {
+        syncTwitterCardFace(wrapper);
+      } catch (renderErr) {
+        console.error("syncTwitterCardFace render error:", renderErr);
+      }
+      validateForm();
+    }
+  });
+
+  /* =====================================================
+     🐦 LIKE / RETWEET / REPLY CHECKBOXES → TOP ICON CHIPS
+  ====================================================== */
+  root.addEventListener("input", e => {
+      const box = e.target.closest(".js-twitter-like, .js-twitter-retweet, .js-twitter-reply");
+      if (!box) return;
+
+      // ✅ force the custom checkbox skin to visually reflect the real checked state
+      box.closest(".engage-checkbox")?.classList.toggle("checked", box.checked);
+
+      const wrapper = box.closest(".container-all-contain-yinit");
+      if (!wrapper) return;
+
+      syncTwitterCardFace(wrapper); // rebuild the card face from current checkbox state
+  });
+
+  root.addEventListener("change", async e => {
+      const input = e.target.closest(".js-twitter-profile-input");
+      if (!input) return;
+
+      const wrapper = input.closest(".container-all-contain-yinit");
+      const errorEl = wrapper?.querySelector(".js-twitter-panel-follow .social-error-msg");
+      if (!wrapper) return;
+
+      const url = input.value.trim();
+      if (!url) return;
+
+      try {
+        const profile = await fetchTwitterProfile(url);
+        if (!profile) throw new Error("not found");
+
+        wrapper.dataset.twProfileName   = profile.name || "";
+        wrapper.dataset.twProfileHandle = profile.handle || "";
+        wrapper.dataset.twProfileAvatar = profile.avatar || "";
+        wrapper.dataset.twVerified      = profile.verified ? "1" : "0";
+        wrapper.dataset.twVerifiedType  = profile.verified_type || "none";
+
+        if (errorEl) errorEl.style.display = "none";
+        input.dataset.valid = "true";
+      } catch (err) {
+        if (errorEl) errorEl.style.display = "block";
+        input.dataset.valid = "false";
+      } finally {
+        try {
+          syncTwitterCardFace(wrapper);
+        } catch (renderErr) {
+          console.error("syncTwitterCardFace render error:", renderErr);
+        }
+        validateForm();
+      }
+  });
+
+  root.addEventListener("change", async e => {
+    const input = e.target.closest(".js-twitter-tweet-input");
+    if (!input) return;
+
+    const wrapper = input.closest(".container-all-contain-yinit");
+    const previewBox = wrapper?.querySelector(".tweet-fetch-preview");
+    const errorEl = wrapper?.querySelector(".js-twitter-panel-engage .social-error-msg");
+    if (!wrapper) return;
+
+    const url = input.value.trim();
+    if (!url) return;
+
+    try {
+      const tweet = await fetchTweetPreview(url);
+      if (!tweet) throw new Error("not found");
+
+      const textEl    = wrapper.querySelector(".js-tweet-fetch-text");
+      const avatarEl  = wrapper.querySelector(".js-tweet-fetch-avatar");
+      const authorEl  = wrapper.querySelector(".js-tweet-fetch-author");
+      const handleEl  = wrapper.querySelector(".js-tweet-fetch-handle");
+      const dateEl    = wrapper.querySelector(".js-tweet-fetch-date");
+      const verifiedEl= wrapper.querySelector(".js-tweet-fetch-verified");
+
+      if (textEl)     textEl.textContent = truncateTweetText(tweet.text, 220);
+      if (avatarEl)   avatarEl.src = tweet.avatar || "";
+      if (authorEl)   authorEl.textContent = tweet.author || "";
+      if (handleEl)   handleEl.textContent = tweet.handle ? `@${tweet.handle}` : "";
+      if (dateEl)     dateEl.textContent = formatTweetDate(tweet.created_at);
+      if (verifiedEl) verifiedEl.innerHTML = tweet.verified ? VerifiedBadgeSVG : "";
+
+      // stash raw values for card-face render
+      wrapper.dataset.twTweetText     = tweet.text || "";
+      wrapper.dataset.twTweetAvatar   = tweet.avatar || "";
+      wrapper.dataset.twTweetAuthor   = tweet.author || "";
+      wrapper.dataset.twTweetHandle   = tweet.handle || "";
+      wrapper.dataset.twTweetDate     = tweet.created_at || "";
+      wrapper.dataset.twTweetVerified = tweet.verified ? "1" : "0";
+      wrapper.dataset.twTweetVerifiedType = tweet.verified_type || "none";
+
+      if (previewBox) previewBox.style.display = "flex";
+      if (errorEl) errorEl.style.display = "none";
+
+      input.dataset.valid = "true";   // ← data fetch is the source of truth for validity
+    } catch (err) {
+      if (errorEl) errorEl.style.display = "block";
+      if (previewBox) previewBox.style.display = "none";
+      input.dataset.valid = "false";
+    } finally {
+      try {
+        syncTwitterCardFace(wrapper);   // ← render errors can't undo a successful fetch anymore
+      } catch (renderErr) {
+        console.error("syncTwitterCardFace render error:", renderErr);
+      }
+      validateForm();
+    }
+  });
+
   root.addEventListener("input", e => {
     const textarea = e.target.closest(".js-desc-input");
     if (!textarea) return;
@@ -5229,9 +5484,7 @@ function hookInputTasks(root){
   root.addEventListener("input", e => {
       validateForm();  
   });
-  /* =====================================================
-    ⭐ STAR SCALE LOGIC (FIXED)
-  ====================================================== */
+
   root.addEventListener("input", e => {
     const input = e.target.closest(".startcount");
     if (!input) return;
@@ -5267,9 +5520,7 @@ function hookInputTasks(root){
     `).join("");
   });
 
-  /* =====================================================
-     🔢 NUMBER SCALE LOGIC
-  ====================================================== */
+
   root.addEventListener("input", e => {
     const startInput = e.target.closest(".js-firstnum");
     const endInput   = e.target.closest(".js-lastnum");
@@ -6163,6 +6414,246 @@ function escapeHTMLFunc(str = "") {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+
+const HeartSVGQ = `<svg viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="#000000"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"><path d="M 983.384 381.465 c 0 -147.456 -119.467 -266.923 -266.923 -266.923 c -81.4649 0 -154.283 36.4089 -203.207 93.8662 c -48.9245 -57.4578 -121.856 -93.8662 -203.207 -93.8662 c -147.456 0 -266.923 119.467 -266.923 266.923 c 0 77.3689 35.6125 142.109 85.5609 195.811 L 514.275 947.964 l 378.994 -366.592 c 48.0142 -50.0622 90.112 -120.377 90.112 -199.907 Z" fill="currentColor"></path><path d="M 514.275 947.964 L 128.569 577.276 C 78.507 523.574 43.008 458.835 43.008 381.465 c 0 -147.456 119.467 -266.923 266.923 -266.923 c 81.4649 0 154.283 36.4089 203.207 93.8662 l 1.13778 739.555 Z" fill="currentColor"></path></g></svg>`;
+
+const RetweetSVGQ = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M17 1l4 4-4 4V6h-8a3 3 0 0 0-3 3v3H4V9a5 5 0 0 1 5-5h8V1zM7 23l-4-4 4-4v3h8a3 3 0 0 0 3-3v-3h2v3a5 5 0 0 1-5 5H7v3z"/></svg>`;
+
+const ReplySVGQ = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"/></svg>`;
+
+const NewaTabSVG = `
+<svg fill="currentColor"viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fill-rule="evenodd" d="M5,2 L7,2 C7.55228475,2 8,2.44771525 8,3 C8,3.51283584 7.61395981,3.93550716 7.11662113,3.99327227 L7,4 L5,4 C4.48716416,4 4.06449284,4.38604019 4.00672773,4.88337887 L4,5 L4,19 C4,19.5128358 4.38604019,19.9355072 4.88337887,19.9932723 L5,20 L19,20 C19.5128358,20 19.9355072,19.6139598 19.9932723,19.1166211 L20,19 L20,17 C20,16.4477153 20.4477153,16 21,16 C21.5128358,16 21.9355072,16.3860402 21.9932723,16.8833789 L22,17 L22,19 C22,20.5976809 20.75108,21.9036609 19.1762728,21.9949073 L19,22 L5,22 C3.40231912,22 2.09633912,20.75108 2.00509269,19.1762728 L2,19 L2,5 C2,3.40231912 3.24891996,2.09633912 4.82372721,2.00509269 L5,2 L7,2 L5,2 Z M21,2 L21.081,2.003 L21.2007258,2.02024007 L21.2007258,2.02024007 L21.3121425,2.04973809 L21.3121425,2.04973809 L21.4232215,2.09367336 L21.5207088,2.14599545 L21.5207088,2.14599545 L21.6167501,2.21278596 L21.7071068,2.29289322 L21.7071068,2.29289322 L21.8036654,2.40469339 L21.8036654,2.40469339 L21.8753288,2.5159379 L21.9063462,2.57690085 L21.9063462,2.57690085 L21.9401141,2.65834962 L21.9401141,2.65834962 L21.9641549,2.73400703 L21.9641549,2.73400703 L21.9930928,2.8819045 L21.9930928,2.8819045 L22,3 L22,3 L22,9 C22,9.55228475 21.5522847,10 21,10 C20.4477153,10 20,9.55228475 20,9 L20,5.414 L13.7071068,11.7071068 C13.3466228,12.0675907 12.7793918,12.0953203 12.3871006,11.7902954 L12.2928932,11.7071068 C11.9324093,11.3466228 11.9046797,10.7793918 12.2097046,10.3871006 L12.2928932,10.2928932 L18.584,4 L15,4 C14.4477153,4 14,3.55228475 14,3 C14,2.44771525 14.4477153,2 15,2 L21,2 Z"></path> </g></svg>
+`;
+const SpaceSVGQ = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2a4 4 0 0 0-4 4v6a4 4 0 0 0 8 0V6a4 4 0 0 0-4-4z" fill="currentColor"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
+
+const SetReminderSVG = `<svg width="16" height="16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 122.88 118.68"><title>time-reminder</title><path d="M73.23,104.88a17,17,0,0,1-2,5.34,17.28,17.28,0,0,1-3.79,4.48,16.76,16.76,0,0,1-5.11,3,17.25,17.25,0,0,1-5.86,1,17.47,17.47,0,0,1-5.87-1,16.47,16.47,0,0,1-5.09-3,17.06,17.06,0,0,1-3.79-4.48,16.78,16.78,0,0,1-2-5.52,1.8,1.8,0,0,1,1.46-2.09l.32,0H71.5a1.8,1.8,0,0,1,1.81,1.81,2.64,2.64,0,0,1-.08.49ZM104.36,15A30.08,30.08,0,1,1,62.72,42.78a30.55,30.55,0,0,1,18.72-28,29.79,29.79,0,0,1,11.37-2.05A31.24,31.24,0,0,1,104.31,15l0,0ZM87.68,42.24a5.54,5.54,0,0,1,.71-.65l.37-.26V29.89a3.18,3.18,0,0,1,5.44-2.25,3.17,3.17,0,0,1,.94,2.25V41.33a6,6,0,0,1,.92.75,5.91,5.91,0,0,1,.74.9h7.8a3.18,3.18,0,0,1,2.25.93l.06.06a3.2,3.2,0,0,1,.87,2.2,3.19,3.19,0,0,1-3.18,3.18H96.79A5.77,5.77,0,0,1,91.94,52a5.81,5.81,0,0,1-4.26-9.73Zm21.89-15.76a23.89,23.89,0,0,0-21.09-6.73A23.35,23.35,0,0,0,75.9,26.21a23,23,0,0,0-4.6,6.59,23.7,23.7,0,0,0,38.27,26.73,23.56,23.56,0,0,0,6.94-16.76,23.83,23.83,0,0,0-.6-5.32,23.54,23.54,0,0,0-1.77-5v0a17.19,17.19,0,0,0-2-3.09,34.8,34.8,0,0,0-2.57-2.81ZM66.05,6.64A36.29,36.29,0,0,1,70.33,8c.89.35,1.76.74,2.62,1.15a38.09,38.09,0,0,0-5.5,4.09A31.45,31.45,0,0,0,63.15,12a3,3,0,0,1-2.56-2.58,4.23,4.23,0,0,0-1.12-2.73,4.3,4.3,0,0,0-2.81-.8,4.14,4.14,0,0,0-2.79.75,4.33,4.33,0,0,0-1.09,2.76h0A3,3,0,0,1,50.37,12,32.09,32.09,0,0,0,45,13.5a31.19,31.19,0,0,0-5,2.41,32.19,32.19,0,0,0-4.45,3.2A32.84,32.84,0,0,0,31.76,23h0a34,34,0,0,0-3.12,4.5,36.21,36.21,0,0,0-2.38,5,30,30,0,0,0-1.51,5.36,31.67,31.67,0,0,0-.49,5.7V57.65a57,57,0,0,1-.4,6.84,49.83,49.83,0,0,1-1.22,6.38l0,.14a38.69,38.69,0,0,1-2.3,6.32A41.65,41.65,0,0,1,17,83.17l-.12.18a36.12,36.12,0,0,1-5.16,5.83l-.08.07h89.83a36.76,36.76,0,0,1-5.15-5.78h0c-.39-.56-.76-1.11-1.11-1.68a38.47,38.47,0,0,0,6.58-.9,31.2,31.2,0,0,0,3.72,4,50.63,50.63,0,0,0,6.24,4.85,3,3,0,0,1-1.66,5.43H3a3,3,0,0,1-1.53-5.52,52.83,52.83,0,0,0,6.19-4.84A30,30,0,0,0,11.94,80a.76.76,0,0,1,.11-.14,36,36,0,0,0,2.86-5,30.06,30.06,0,0,0,1.93-5.33l0-.11a43.26,43.26,0,0,0,1.05-5.61,50.68,50.68,0,0,0,.37-6.12V43.57a37.49,37.49,0,0,1,.61-6.75,36.4,36.4,0,0,1,1.78-6.42,39.69,39.69,0,0,1,2.81-5.88,37.12,37.12,0,0,1,3.7-5.31l0,0h0a38.5,38.5,0,0,1,4.53-4.59A40.25,40.25,0,0,1,37,10.82,39.25,39.25,0,0,1,42.92,8,38.32,38.32,0,0,1,47.3,6.59a9,9,0,0,1,2.64-4.34A9.66,9.66,0,0,1,56.71,0a9.76,9.76,0,0,1,6.71,2.32,9,9,0,0,1,2.63,4.32Z"/></svg>`
+const VerifiedBadgeSVG = `<svg viewBox="0 0 22 22" width="14" height="14" fill="#1d9bf0" style="flex-shrink:0;vertical-align:middle;"><path d="M20.396 11c-.018-.646-.215-1.275-.57-1.816-.354-.54-.852-.972-1.438-1.246.223-.607.27-1.264.14-1.897-.131-.634-.437-1.218-.885-1.687-.47-.448-1.053-.754-1.687-.886-.633-.132-1.29-.084-1.897.14-.273-.587-.704-1.086-1.245-1.44S11.647 1.62 11 1.604c-.646.017-1.273.213-1.813.568s-.969.854-1.24 1.44c-.608-.223-1.267-.272-1.902-.14-.635.13-1.22.436-1.69.886-.445.47-.749 1.055-.878 1.688-.13.633-.08 1.29.144 1.896-.587.274-1.087.705-1.443 1.245-.356.54-.555 1.17-.574 1.817.02.647.218 1.276.574 1.817.356.54.856.972 1.443 1.245-.224.606-.274 1.263-.144 1.896.13.634.433 1.218.877 1.688.47.446 1.054.752 1.687.884.633.132 1.29.084 1.897-.136.274.586.705 1.084 1.246 1.439.54.354 1.17.551 1.816.569.647-.016 1.276-.213 1.817-.567s.972-.854 1.245-1.44c.604.239 1.266.296 1.903.164.636-.132 1.22-.447 1.68-.907.46-.46.776-1.044.908-1.681s.075-1.299-.165-1.903c.586-.274 1.084-.705 1.439-1.246.354-.54.551-1.17.569-1.816zM9.662 14.85l-3.429-3.428 1.293-1.293 2.136 2.136 4.949-4.95 1.293 1.294z"/></svg>`;
+
+function truncateTweetText(text, max = 220){
+  if(!text) return "";
+  return text.length > max ? text.slice(0, max).trim() + "…" : text;
+}
+
+function getVerifiedBadgeSVG(verifiedType) {
+  const colors = {
+    blue: "#1d9bf0",        
+    business: "#ffd400",   
+    government: "#829aab", 
+  };
+
+  const color = colors[verifiedType] || colors.blue;
+
+  return `<svg viewBox="0 0 22 22" width="14" height="14" fill="${color}" style="flex-shrink:0;vertical-align:middle;"><path d="M20.396 11c-.018-.646-.215-1.275-.57-1.816-.354-.54-.852-.972-1.438-1.246.223-.607.27-1.264.14-1.897-.131-.634-.437-1.218-.885-1.687-.47-.448-1.053-.754-1.687-.886-.633-.132-1.29-.084-1.897.14-.273-.587-.704-1.086-1.245-1.44S11.647 1.62 11 1.604c-.646.017-1.273.213-1.813.568s-.969.854-1.24 1.44c-.608-.223-1.267-.272-1.902-.14-.635.13-1.22.436-1.69.886-.445.47-.749 1.055-.878 1.688-.13.633-.08 1.29.144 1.896-.587.274-1.087.705-1.443 1.245-.356.54-.555 1.17-.574 1.817.02.647.218 1.276.574 1.817.356.54.856.972 1.443 1.245-.224.606-.274 1.263-.144 1.896.13.634.433 1.218.877 1.688.47.446 1.054.752 1.687.884.633.132 1.29.084 1.897-.136.274.586.705 1.084 1.246 1.439.54.354 1.17.551 1.816.569.647-.016 1.276-.213 1.817-.567s.972-.854 1.245-1.44c.604.239 1.266.296 1.903.164.636-.132 1.22-.447 1.68-.907.46-.46.776-1.044.908-1.681s.075-1.299-.165-1.903c.586-.274 1.084-.705 1.439-1.246.354-.54.551-1.17.569-1.816zM9.662 14.85l-3.429-3.428 1.293-1.293 2.136 2.136 4.949-4.95 1.293 1.294z"/></svg>`;
+}
+
+function formatSpaceDateTime(iso){
+  if(!iso) return "";
+  const d = new Date(iso);
+  if(isNaN(d)) return "";
+  const dateStr = d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  const timeStr = d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  return `${dateStr} · ${timeStr}`;
+}
+
+// live > upcoming > ended — purely based on the viewer's own clock vs scheduled_start
+function getSpaceState(isLive, scheduledIso){
+  if(isLive) return "live";
+  if(!scheduledIso) return "ended";
+  const d = new Date(scheduledIso);
+  if(isNaN(d)) return "ended";
+  return d.getTime() > Date.now() ? "upcoming" : "ended";
+}
+
+function spaceCtaMeta(state){
+  if(state === "live") {
+    return { label: "Join Space Now", bg: "#1d9bf0", icon: SpaceSVGQ, disabled: false };
+  }
+  if(state === "upcoming") {
+    return { label: "Set Reminder", bg: "#7856FF", icon: SetReminderSVG, disabled: false };
+  }
+  return { label: "Space Ended", bg: "#3a3a45", icon: "", disabled: true };
+}
+
+function renderSpaceFace(data){
+  const {
+    link = "", title = "",
+    hostName = "", hostHandle = "", hostAvatar = "",
+    hostVerified = false, hostVerifiedType = "none",
+    isLive = false, scheduledStart = ""
+  } = data;
+
+  // nothing fetched yet — same bare placeholder pattern as engage mode
+  const hasData = !!(title || hostName);
+  if (!hasData) {
+    return `<span class="tweet-preview-text centertxt">Preview.</span>`;
+  }
+
+  const state = getSpaceState(isLive, scheduledStart);
+  const cta = spaceCtaMeta(state);
+  const dateLabel = formatSpaceDateTime(scheduledStart);
+
+  return `
+    <div class="space-card">
+      <div class="space-card-top">
+        ${hostAvatar
+          ? `<img class="space-host-avatar" src="${hostAvatar}">`
+          : `<span class="space-host-avatar fallback-letter">${hostName ? hostName[0].toUpperCase() : "?"}</span>`
+        }
+        <div class="space-host-meta">
+          <div class="space-host-name-row">
+            <span class="space-host-name">${hostName || "Host"}</span>
+            ${hostVerified ? getVerifiedBadgeSVG(hostVerifiedType) : ""}
+            <span class="space-host-pill">Host</span>
+          </div>
+          ${hostHandle ? `<div class="space-host-handle">@${hostHandle}</div>` : ""}
+        </div>
+      </div>
+
+      <div class="space-title">${title || "Space"}</div>
+
+      <div class="space-meta-row">
+        ${state === "live" ? `<span class="live-dot">● LIVE</span>` : ""}
+        ${dateLabel ? `<span class="space-meta-date">${dateLabel}</span>` : ""}
+      </div>
+    </div>
+
+    <a class="cta-quest space space-state-${state}"
+      href="${state === "ended" ? "#" : (link || "#")}"
+      target="_blank"
+      style="background:${cta.bg};${cta.disabled ? "pointer-events:none;opacity:.55;cursor:default;" : ""}">
+      ${cta.icon}
+      ${cta.label}
+    </a>
+  `;
+}
+
+function formatTweetDate(iso){
+  if(!iso) return "";
+  const d = new Date(iso);
+  if(isNaN(d)) return "";
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
+async function fetchTwitterProfile(url) {
+  const res = await fetch(`/api/social/twitter/profile?url=${encodeURIComponent(url)}`);
+  if (!res.ok) return null;
+  return res.json(); // expected shape: { name, handle, avatar }
+}
+
+async function fetchTweetPreview(url) {
+  const res = await fetch(`/api/social/twitter/tweet?url=${encodeURIComponent(url)}`);
+  if (!res.ok) return null;
+  return res.json(); // expected shape: { text, author, avatar }
+}
+
+async function fetchSpacePreview(url) {
+  const res = await fetch(`/api/social/twitter/space?url=${encodeURIComponent(url)}`);
+  if (!res.ok) return null;
+  return res.json(); // expected shape: { title, host, is_live }
+}
+
+function syncTwitterCardFace(wrapper){
+  if (!wrapper) return;
+
+  const card = wrapper.querySelector(".content-quest");
+  if (!card) return;
+
+  const mode =
+    wrapper.querySelector(".js-twitter-tab.active")?.dataset.mode ||
+    wrapper.dataset.mode ||
+    "follow";
+
+  wrapper.dataset.mode = mode;
+
+  /* ================= FOLLOW ================= */
+  if (mode === "follow") {
+      const profileLink   = wrapper.querySelector(".js-twitter-profile-input")?.value.trim() || "";
+      const previewName   = wrapper.dataset.twProfileName || "";
+      const previewHandle = wrapper.dataset.twProfileHandle ? `@${wrapper.dataset.twProfileHandle}` : "";
+      const previewAvatar = wrapper.dataset.twProfileAvatar || "";
+      const isVerified    = wrapper.dataset.twVerified === "1";
+      const verifiedType  = wrapper.dataset.twVerifiedType || "none";
+
+      card.innerHTML = `
+        <div class="avatar-quest">
+          <img src="${previewAvatar}" style="${previewAvatar ? '' : 'display:none'}">
+          <span class="fallback-letter" style="${previewAvatar ? 'display:none' : ''}">
+            ${previewName ? previewName[0].toUpperCase() : ''}
+          </span>
+        </div>
+        <h2 class="community_name" style="display:flex;align-items:center;gap:4px;justify-content:center;">
+          ${previewName || "X Profile"} ${isVerified ? getVerifiedBadgeSVG(verifiedType) : ""}
+        </h2>
+        <div class="description-parnership" style="font-size:12px;opacity:.6">
+          ${previewHandle || ""}
+        </div>
+        <a class="cta-quest"
+          href="${profileLink || '#'}"
+          target="_blank"
+          style="background: #e05526db">
+          Follow on X
+        </a>
+      `;
+  }
+
+  /* ================= ENGAGE ================= */
+  else if (mode === "engage") {
+      const tweetLink     = wrapper.querySelector(".js-twitter-tweet-input")?.value.trim() || "";
+      const tweetText     = wrapper.dataset.twTweetText || "";
+      const tweetAvatar   = wrapper.dataset.twTweetAvatar || "";
+      const tweetAuthor   = wrapper.dataset.twTweetAuthor || "";
+      const tweetHandle   = wrapper.dataset.twTweetHandle || "";
+      const tweetDate     = formatTweetDate(wrapper.dataset.twTweetDate || "");
+      const tweetVerified = wrapper.dataset.twTweetVerified === "1";
+      const tweetVerifiedType = wrapper.dataset.twTweetVerifiedType || "none";   // ← added
+
+      const doLike    = wrapper.querySelector(".js-twitter-like")?.checked;
+      const doRetweet = wrapper.querySelector(".js-twitter-retweet")?.checked;
+      const doReply   = wrapper.querySelector(".js-twitter-reply")?.checked;
+      const replyVal  = wrapper.querySelector(".js-engage-reply-input")?.value || "";
+
+      const previewInner = tweetText
+        ? `
+          <div class="tweet-preview-header">
+            <img class="tweet-preview-avatar-img" src="${tweetAvatar}" style="${tweetAvatar ? '' : 'display:none'}">
+            <div class="tweet-preview-meta">
+              <span class="tweet-preview-author">${tweetAuthor}${tweetVerified ? getVerifiedBadgeSVG(tweetVerifiedType) : ""}</span>
+              <span class="tweet-preview-handle-date">${tweetHandle ? '@'+tweetHandle : ''}${tweetDate ? ' · '+tweetDate : ''}</span>
+            </div>
+          </div>
+          <span class="tweet-preview-text">${truncateTweetText(tweetText, 220)}</span>
+        `
+        : `<span class="tweet-preview-text centertxt">Preview.</span>`;
+
+      card.innerHTML = `
+        ${tweetLink
+          ? `<a class="tweet-preview-mini" href="${tweetLink}" target="_blank" style="cursor:pointer;">${previewInner}</a>`
+          : `<div class="tweet-preview-mini">${previewInner}</div>`
+        }
+        <div class="engage-icons-row js-engage-icons">
+          ${doLike    ? buildEngageChip("like", tweetLink)    : ""}
+          ${doRetweet ? buildEngageChip("retweet", tweetLink) : ""}
+        </div>
+        ${doReply ? buildReplyRow(replyVal) : ""}
+      `;
+  }
+
+  /* ================= SPACE ================= */
+  else if (mode === "space") {
+    card.innerHTML = renderSpaceFace({
+      link: wrapper.querySelector(".js-twitter-space-input")?.value.trim() || "",
+      title: wrapper.dataset.twSpaceTitle || "",
+      hostName: wrapper.dataset.twSpaceHostName || "",
+      hostHandle: wrapper.dataset.twSpaceHostHandle || "",
+      hostAvatar: wrapper.dataset.twSpaceHostAvatar || "",
+      hostVerified: wrapper.dataset.twSpaceHostVerified === "1",
+      hostVerifiedType: wrapper.dataset.twSpaceHostVerifiedType || "none",
+      isLive: wrapper.dataset.twSpaceLive === "1",
+      scheduledStart: wrapper.dataset.twSpaceScheduled || ""
+    });
+  }
 }
 
 
@@ -7064,7 +7555,256 @@ function renderTask(task){
   `;
   }
 
+  else if (task.type === "twitter") {
 
+    const mode = task.config?.mode || "follow";
+
+    const profileLink   = task.config?.profile_link   || "";
+    const profileName   = task.config?.profile_name   || "";
+    const profileHandle = task.config?.profile_handle || "";
+    const profileAvatar = task.config?.profile_avatar || "";
+    const isProfileVerified   = !!task.config?.verified;
+    const profileVerifiedType = task.config?.verified_type || "none";
+
+    const tweetLink         = task.config?.tweet_link    || "";
+    const tweetText         = task.config?.tweet_preview || "";
+    const tweetAuthor       = task.config?.tweet_author  || "";
+    const tweetHandle       = task.config?.tweet_handle  || "";
+    const tweetAvatar       = task.config?.tweet_avatar  || "";
+    const tweetDateRaw      = task.config?.tweet_date    || "";
+    const tweetDate         = formatTweetDate(tweetDateRaw);
+    const tweetVerified     = !!task.config?.tweet_verified;
+    const tweetVerifiedType = task.config?.tweet_verified_type || "none";
+
+    const doLike    = task.config?.like    !== false;
+    const doRetweet = !!task.config?.retweet;
+    const doReply   = !!task.config?.reply;
+    const replyVal  = task.config?.reply_text || "";
+
+    const spaceLink             = task.config?.space_link  || "";
+    const spaceTitle            = task.config?.space_title || "";
+    const spaceHostName         = task.config?.space_host_name || "";
+    const spaceHostAvatar       = task.config?.space_host_avatar || "";
+    const spaceHostVerified     = task.config?.space_host_verified === true || task.config?.space_host_verified === "1";
+    const spaceHostVerifiedType = task.config?.space_host_verified_type || "none";
+    const spaceIsLive           = task.config?.space_is_live === true || task.config?.space_is_live === "1";
+
+    /* =========================================================
+       FACE CONTENT — mirrors syncTwitterCardFace exactly so the
+       initial render and later re-syncs never disagree.
+    ========================================================= */
+    let faceHTML = "";
+
+    if (mode === "follow") {
+      faceHTML = `
+        <div class="avatar-quest">
+          <img src="${profileAvatar}" style="${profileAvatar ? '' : 'display:none'}">
+          <span class="fallback-letter" style="${profileAvatar ? 'display:none' : ''}">
+            ${profileName ? profileName[0].toUpperCase() : ''}
+          </span>
+        </div>
+        <h2 class="community_name" style="display:flex;align-items:center;gap:4px;justify-content:center;">
+          ${profileName || "X Profile"} ${isProfileVerified ? getVerifiedBadgeSVG(profileVerifiedType) : ""}
+        </h2>
+        <div class="description-parnership" style="font-size:12px;opacity:.6">
+          ${profileHandle ? `@${profileHandle}` : ""}
+        </div>
+        <a class="cta-quest"
+          href="${profileLink || '#'}"
+          target="_blank"
+          style="background: #e05526db">
+          Follow on X
+        </a>
+      `;
+    }
+
+    else if (mode === "engage") {
+      const previewInner = tweetText
+        ? `
+          <div class="tweet-preview-header">
+            <img class="tweet-preview-avatar-img" src="${tweetAvatar}" style="${tweetAvatar ? '' : 'display:none'}">
+            <div class="tweet-preview-meta">
+              <span class="tweet-preview-author">${tweetAuthor}${tweetVerified ? getVerifiedBadgeSVG(tweetVerifiedType) : ""}</span>
+              <span class="tweet-preview-handle-date">${tweetHandle ? '@'+tweetHandle : ''}${tweetDate ? ' · '+tweetDate : ''}</span>
+            </div>
+          </div>
+          <span class="tweet-preview-text">${truncateTweetText(tweetText, 220)}</span>
+        `
+        : `<span class="tweet-preview-text centertxt">Preview.</span>`;
+
+      // ⚠️ NOTE: no cta-quest button here — engage mode is fully
+      // represented by the tweet preview + like/retweet chips + reply row.
+      faceHTML = `
+        ${tweetLink
+          ? `<a class="tweet-preview-mini" href="${tweetLink}" target="_blank" style="cursor:pointer;">${previewInner}</a>`
+          : `<div class="tweet-preview-mini">${previewInner}</div>`
+        }
+        <div class="engage-icons-row js-engage-icons">
+          ${doLike    ? buildEngageChip("like", tweetLink)    : ""}
+          ${doRetweet ? buildEngageChip("retweet", tweetLink) : ""}
+        </div>
+        ${doReply ? buildReplyRow(replyVal) : ""}
+      `;
+    }
+
+    else {  
+      faceHTML = renderSpaceFace({
+        link: spaceLink,
+        title: spaceTitle,
+        hostName: spaceHostName,
+        hostHandle: task.config?.space_host_handle || "",
+        hostAvatar: spaceHostAvatar,
+        hostVerified: spaceHostVerified,
+        hostVerifiedType: spaceHostVerifiedType,
+        isLive: spaceIsLive,
+        scheduledStart: task.config?.space_scheduled_start || ""
+      });
+    }
+
+    return `
+      <div class="container-all-contain-yinit social-task twitter"
+          data-platform="twitter"
+          data-mode="${mode}"
+          data-task-id="${task.id}"
+          data-tw-profile-name="${escapeHTMLFunc(profileName)}"
+          data-tw-profile-handle="${escapeHTMLFunc(profileHandle)}"
+          data-tw-profile-avatar="${escapeHTMLFunc(profileAvatar)}"
+          data-tw-verified="${isProfileVerified ? "1" : "0"}"
+          data-tw-verified-type="${escapeHTMLFunc(profileVerifiedType)}"
+          data-tw-tweet-text="${escapeHTMLFunc(tweetText)}"
+          data-tw-tweet-avatar="${escapeHTMLFunc(tweetAvatar)}"
+          data-tw-tweet-author="${escapeHTMLFunc(tweetAuthor)}"
+          data-tw-tweet-handle="${escapeHTMLFunc(tweetHandle)}"
+          data-tw-tweet-date="${escapeHTMLFunc(tweetDateRaw)}"
+          data-tw-tweet-verified="${tweetVerified ? "1" : "0"}"
+          data-tw-tweet-verified-type="${escapeHTMLFunc(tweetVerifiedType)}"
+          data-tw-space-title="${escapeHTMLFunc(spaceTitle)}"
+          data-tw-space-host-name="${escapeHTMLFunc(spaceHostName)}"
+          data-tw-space-host-avatar="${escapeHTMLFunc(spaceHostAvatar)}"
+          data-tw-space-host-handle="${escapeHTMLFunc(task.config?.space_host_handle || "")}"
+          data-tw-space-scheduled="${escapeHTMLFunc(task.config?.space_scheduled_start || "")}"
+          data-tw-space-host-verified="${spaceHostVerified ? "1" : "0"}"
+          data-tw-space-host-verified-type="${escapeHTMLFunc(spaceHostVerifiedType)}"
+          data-tw-space-live="${spaceIsLive ? "1" : "0"}">
+
+        <div class="card-container-quest social-task twitter"
+            style="color: #e05526db">
+
+          <div class="badge-quest">
+            <span class="badge-icon-quest">
+              ${PLATFORM_ICONS["twitter"]?.icon || "𝕏"}
+            </span>
+            <span>Twitter</span>
+          </div>
+
+          <div class="card-wrapper-quest">
+            <div class="card-quest">
+              <div class="content-quest">
+                ${faceHTML}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- POPUP -->
+        <div class="popup-container social-popup is-open" data-platform="twitter">
+          <div class="popup-header">
+            <div class="telicon" style="background-color: #e05526db">
+              ${PLATFORM_ICONS["twitter"]?.icon || "𝕏"}
+            </div>
+
+            <div class="title">Twitter</div>
+            <div class="liner"></div>
+
+            <div class="popup-actions">
+              <button class="js-copy-link" title="close">${ChevronSVGQ}</button>
+              <button class="js-paste-link" title="paste">${PastSVGQ}</button>
+              <button class="js-delete-link" title="delete">${DeleteSVGQ}</button>
+            </div>
+          </div>
+
+          <div class="bottom-twitter">
+
+            <div class="liners"></div>
+
+            <!-- 3-WAY MODE SWITCH -->
+            <div class="switch-between-sprints-wrap twitter-mode-wrap">
+              <div class="switch-between-sprints switch-3" data-task-id="${task.id}">
+                <div class="switch-pill switch-pill-3 js-twitter-pill"
+                    style="transform: translateX(${{follow:0,engage:1,space:2}[mode]*100}%)"></div>
+
+                <button class="switch-tab js-twitter-tab ${mode === "follow" ? "active" : ""}" data-mode="follow">Follow</button>
+                <button class="switch-tab js-twitter-tab ${mode === "engage" ? "active" : ""}" data-mode="engage">Like &amp; Repost</button>
+                <button class="switch-tab js-twitter-tab ${mode === "space"  ? "active" : ""}" data-mode="space">Space</button>
+              </div>
+            </div>
+
+            <!-- FOLLOW PANEL -->
+            <div class="twitter-panel js-twitter-panel-follow" style="display:${mode === "follow" ? "block" : "none"}">
+              <label class="labeltesting">X profile link</label>
+              <input
+                class="social-input twitter-input telinput js-twitter-profile-input"
+                data-platform="twitter"
+                type="text"
+                placeholder="https://x.com/username"
+                value="${profileLink}"
+              />
+              <div class="error-message social-error-msg" style="display:none">
+                Could not find a public profile at that URL
+              </div>
+            </div>
+
+            <!-- ENGAGE PANEL -->
+            <div class="twitter-panel js-twitter-panel-engage" style="display:${mode === "engage" ? "block" : "none"}">
+              <label class="labeltesting">Tweet link</label>
+              <input
+                class="social-input twitter-input telinput js-twitter-tweet-input"
+                data-platform="twitter"
+                type="text"
+                placeholder="https://x.com/username/status/12345"
+                value="${tweetLink}"
+              />
+              <div class="error-message social-error-msg" style="display:none">
+                Could not find a public tweet at that URL
+              </div> 
+
+              <div class="engage-checkbox-row">
+                <label class="engage-checkbox ${doLike ? 'checked' : ''}">
+                  <input type="checkbox" class="js-twitter-like" ${doLike ? "checked" : ""}>
+                  <span class="checkbox-ui"></span> Like
+                </label>
+                <label class="engage-checkbox ${doRetweet ? 'checked' : ''}">
+                  <input type="checkbox" class="js-twitter-retweet" ${doRetweet ? "checked" : ""}>
+                  <span class="checkbox-ui"></span> Retweet
+                </label>
+                <label class="engage-checkbox ${doReply ? 'checked' : ''}">
+                  <input type="checkbox" class="js-twitter-reply" ${doReply ? "checked" : ""}>
+                  <span class="checkbox-ui"></span> Reply
+                </label>
+              </div>
+            </div>
+
+            <!-- SPACE PANEL -->
+            <div class="twitter-panel js-twitter-panel-space" style="display:${mode === "space" ? "block" : "none"}">
+              <label class="labeltesting">Space link</label>
+              <input
+                class="social-input twitter-input telinput js-twitter-space-input"
+                data-platform="twitter"
+                type="text"
+                placeholder="https://x.com/i/spaces/1234"
+                value="${spaceLink}"
+              />
+              <div class="error-message social-error-msg" style="display:none">
+                Could not find a Space at that URL
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+
+      </div>`;
+  }
 
 
   else if (task.type === "poll") {
@@ -7373,9 +8113,7 @@ function renderTask(task){
   </div>
   `;
   }
-
-
-
+ 
 
   else if (task.type === "invite") {
 
@@ -7541,10 +8279,7 @@ function renderTask(task){
   </div>
   `;
   }
-
-  /* ============================
-    PROOF OF HUMANITY (P.O.H)
-    ============================ */
+ 
   else if (task.type === "p.o.h") {
 
     return `
@@ -7721,10 +8456,6 @@ function renderTask(task){
   }
 
 
-
-/* ============================
-     DEFAULT
-     ============================ */
   else {
     return `
 <div class="card-container-quest default">
@@ -8007,6 +8738,53 @@ function collectTasks() {
       config.placeholder = wrapper.querySelector('.js-puzzle-placeholder')?.value || "";
       config.auto_validate = wrapper.querySelector('.js-auto-validate')?.checked ?? true;
     }
+
+    else if (type === "twitter") {
+
+      const mode = wrapper.dataset.mode
+        || wrapper.querySelector(".js-twitter-tab.active")?.dataset.mode
+        || "follow";
+
+      config.mode = mode;
+
+      if (mode === "follow") {
+        config.profile_link    = wrapper.querySelector('.js-twitter-profile-input')?.value || "";
+        config.profile_name    = wrapper.dataset.twProfileName || "";
+        config.profile_handle  = wrapper.dataset.twProfileHandle || "";
+        config.profile_avatar  = wrapper.dataset.twProfileAvatar || "";
+        config.verified        = wrapper.dataset.twVerified === "1";
+        config.verified_type   = wrapper.dataset.twVerifiedType || "none";
+      }
+
+      if (mode === "engage") {
+        config.tweet_link           = wrapper.querySelector('.js-twitter-tweet-input')?.value || "";
+        config.tweet_preview        = wrapper.dataset.twTweetText || "";
+        config.tweet_author         = wrapper.dataset.twTweetAuthor || "";
+        config.tweet_handle         = wrapper.dataset.twTweetHandle || "";
+        config.tweet_avatar         = wrapper.dataset.twTweetAvatar || "";
+        config.tweet_date           = wrapper.dataset.twTweetDate || "";
+        config.tweet_verified       = wrapper.dataset.twTweetVerified === "1";
+        config.tweet_verified_type  = wrapper.dataset.twTweetVerifiedType || "none";
+
+        config.like       = wrapper.querySelector('.js-twitter-like')?.checked ?? true;
+        config.retweet     = wrapper.querySelector('.js-twitter-retweet')?.checked || false;
+        config.reply       = wrapper.querySelector('.js-twitter-reply')?.checked || false;
+        config.reply_text  = wrapper.querySelector('.js-engage-reply-input')?.value || "";
+      }
+
+if (mode === "space") {
+        config.space_link               = wrapper.querySelector('.js-twitter-space-input')?.value || "";
+        config.space_title              = wrapper.dataset.twSpaceTitle || "";
+        config.space_host_name          = wrapper.dataset.twSpaceHostName || "";
+        config.space_host_handle        = wrapper.dataset.twSpaceHostHandle || "";       
+        config.space_host_avatar        = wrapper.dataset.twSpaceHostAvatar || "";
+        config.space_host_verified      = wrapper.dataset.twSpaceHostVerified === "1";
+        config.space_host_verified_type = wrapper.dataset.twSpaceHostVerifiedType || "none";
+        config.space_is_live            = wrapper.dataset.twSpaceLive === "1";
+        config.space_scheduled_start    = wrapper.dataset.twSpaceScheduled || "";        
+      }
+    }
+
     else if (type === "github") {
 
       config.link = wrapper.querySelector(".github-input")?.value || "";
@@ -8316,7 +9094,13 @@ async function buildSubquestPayload() {
 
   const autovalidation =
     document.querySelector('input[name="autovalidation"]')?.value || "0";
-  
+
+  let user_timezone = "UTC";
+  try {
+    user_timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+  } catch (e) {
+  }
+
   return {
     quest_uuid,
     subquest_uuid,
@@ -8332,7 +9116,8 @@ async function buildSubquestPayload() {
     autovalidation,
     conditions,
     rewards,
-    communitySlug
+    communitySlug,
+    user_timezone   
   };
 }
 
@@ -8629,6 +9414,25 @@ function validateForm() {
         fail("Link not validated", ".social-error-msg");
       }
     }
+
+    if(type === "twitter"){
+    const mode = task.dataset.mode
+      || task.querySelector(".js-twitter-tab.active")?.dataset.mode
+      || "follow";
+
+    const inputSel = mode === "follow" ? ".js-twitter-profile-input"
+                    : mode === "engage" ? ".js-twitter-tweet-input"
+                    : ".js-twitter-space-input";
+
+    const input = task.querySelector(inputSel);
+    const panelErrSel = `.js-twitter-panel-${mode} .social-error-msg`;
+
+    if(!input || !input.value.trim()){
+      fail("Link required", panelErrSel);
+    } else if(input.dataset.valid !== "true"){
+      fail("Link not validated", panelErrSel);
+    }
+  }
 
     /* =========================
        2. URL / TEXT / NUMBERS

@@ -133,7 +133,7 @@
   --border-muted-end: #1a1f1e;
   --accent-discord: #5865F2;
   --accent-discord-text: #4f5de6;
-  --accent-twitter: #1DA1F2;
+  --accent-twitter: #E05326;
   --accent-twitter-text: #1991d9;
   --accent-token: #F97316;
   --accent-token-text: #E06612;
@@ -3270,10 +3270,12 @@ const PLATFORM_ICONS = {
     color: "#24292e"
   },
     "twitter": {
-            icon: `
+            icon: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-twitter-x" viewBox="0 0 16 16">
+      <path d="M12.6.75h2.454l-5.36 6.142L16 15.25h-4.937l-3.867-5.07-4.425 5.07H.316l5.733-6.57L0 .75h5.063l3.495 4.633L12.601.75Zm-.86 13.028h1.36L4.323 2.145H2.865z"/>
+    </svg>
 
     `,
-    color: "#FF0000"
+    color: "#e05526db"
   },
     "telegram": {
     icon: `
@@ -3813,6 +3815,11 @@ function syncPreviewDisplay(card){
 }
 
 
+function isValidTweetReplyUrl(url){
+  if(!url) return false;
+  return /^https:\/\/x\.com\/[A-Za-z0-9_]{1,15}\/status\/\d+(\?.*)?\/?$/i.test(url.trim());
+}
+
 
 function initSubquestTasks() {
 
@@ -3839,6 +3846,54 @@ function initSubquestTasks() {
     return valid;
   });
 
+  registerValidator(function(){
+    let valid = true;
+
+    getValidTaskCards('.card-container-quest.twitter').forEach(card=>{
+      const mode = card.dataset.mode;
+
+      if(mode === "follow"){
+        if(card.dataset.clicked !== "true"){
+          valid = false;
+        }
+        return;
+      }
+
+      if(mode === "engage"){
+        const engaged  = card.dataset.engaged === "true";
+        const replyRow = card.querySelector(".js-engage-reply-row");
+
+        if(replyRow){
+          // reply enabled: need a click AND a valid x.com status link
+          const replyInput = replyRow.querySelector(".js-engage-reply-input");
+          const replyVal    = replyInput ? replyInput.value.trim() : "";
+
+          if(!engaged || !isValidTweetReplyUrl(replyVal)){
+            valid = false;
+          }
+        } else {
+          if(!engaged){
+            valid = false;
+          }
+        }
+        return;
+      }
+
+      if(mode === "space"){
+        const clicked = card.dataset.clicked === "true";
+        const state   = card.dataset.spaceState;
+
+        if(state === "upcoming"){
+          valid = false;       
+        } else if(state === "live"){
+          if(!clicked) valid = false;  
+        }
+        return;
+      }
+    });
+
+    return valid;
+  });
 
   registerValidator(function(){
     let valid = true;
@@ -4179,7 +4234,12 @@ document.addEventListener("click", (e)=>{
         validateAll();
         return;
       }
-    /* POLL OTHER TEXT */
+
+      if(e.target.classList.contains("js-engage-reply-input")){
+        validateAll();
+        return;
+      }
+
     if(e.target.classList.contains("other-input")){
       const poll = e.target.closest(".card-container-quest.poll");
       const otherRadio = poll?.querySelector(".other-option input");
@@ -4195,393 +4255,403 @@ document.addEventListener("click", (e)=>{
     }
 
   });
-document.addEventListener("change", (e)=>{
-  if(e.target.closest("#uniqueItems")) return
-  if(!e.target.classList.contains("fileUpload-init-makein")) return;
 
-  const input = e.target;
-  const card  = input.closest(".card-container-quest.file-upload");
-  if(!card) return;
+  document.addEventListener("change", (e)=>{
+    if(e.target.closest("#uniqueItems")) return
+    if(!e.target.classList.contains("fileUpload-init-makein")) return;
 
-  const previewBox   = card.querySelector(".file-preview");
-  const uploadBox    = card.querySelector(".upload-box-init-q");
-  const prompt       = card.querySelector(".dragPrompt");
-  const uploaderRoot = card.querySelector(".uploader-root");
+    const input = e.target;
+    const card  = input.closest(".card-container-quest.file-upload");
+    if(!card) return;
 
-  /* =========================
-     📦 GLOBAL FILE STORE
-  ========================= */
-  if(!card.__files){
-    card.__files = [];
-  }
+    const previewBox   = card.querySelector(".file-preview");
+    const uploadBox    = card.querySelector(".upload-box-init-q");
+    const prompt       = card.querySelector(".dragPrompt");
+    const uploaderRoot = card.querySelector(".uploader-root");
 
-  const newFiles = Array.from(input.files);
-
-  /* =========================
-     🔢 MAX FILE COUNT
-  ========================= */
-  const maxCount = parseInt(uploaderRoot?.dataset.fileCount || "1");
-
-  /* =========================
-     ➕ APPEND FILES (WITH HARD LIMIT)
-  ========================= */
-  const acceptedFiles = [];
-
-  for(const file of newFiles){
-    if(card.__files.length < maxCount){
-      card.__files.push(file);
-      acceptedFiles.push(file);
+    /* =========================
+      📦 GLOBAL FILE STORE
+    ========================= */
+    if(!card.__files){
+      card.__files = [];
     }
-  }
 
-  /* =========================
-     🔁 REBUILD INPUT FILES
-  ========================= */
-  const dt = new DataTransfer();
-  card.__files.forEach(f => dt.items.add(f));
-  input.files = dt.files;
+    const newFiles = Array.from(input.files);
 
-  /* =========================
-     🧼 CLEAR INPUT BUFFER
-  ========================= */
+    /* =========================
+      🔢 MAX FILE COUNT
+    ========================= */
+    const maxCount = parseInt(uploaderRoot?.dataset.fileCount || "1");
 
-  /* =========================
-     🖼 RENDER PREVIEWS
-  ========================= */
-  acceptedFiles.forEach(file=>{
-    if(!file.type.startsWith("image/")) return;
+    /* =========================
+      ➕ APPEND FILES (WITH HARD LIMIT)
+    ========================= */
+    const acceptedFiles = [];
 
-    const wrap = document.createElement("div");
-    wrap.className = "upload-preview-item";
-
-    const img = document.createElement("img");
-    img.className = "upload-preview-img";
-    img.src = URL.createObjectURL(file);
-
-    const btn = document.createElement("div");
-    btn.className = "upload-remove-btn";
-    btn.innerHTML = `
-      <svg viewBox="0 0 24 24" fill="none">
-        <path d="M6 6L18 18M6 18L18 6"/>
-      </svg>
-    `;
-
-    /* ❌ REMOVE SINGLE FILE */
-    btn.onclick = ()=>{
-      const index = card.__files.indexOf(file);
-      if(index > -1) card.__files.splice(index, 1);
-
-      // rebuild input
-      const newDT = new DataTransfer();
-      card.__files.forEach(f => newDT.items.add(f));
-      input.files = newDT.files;
-
-      // remove preview
-      wrap.remove();
-      syncPreviewDisplay(card);
-
-
-      /* =========================
-         🧠 UI RESET
-      ========================= */
-      if(card.__files.length === 0){
-        uploadBox.classList.remove("has-file");
-        if(prompt) prompt.style.display = "flex";
+    for(const file of newFiles){
+      if(card.__files.length < maxCount){
+        card.__files.push(file);
+        acceptedFiles.push(file);
       }
+    }
 
-      /* =========================
-         ➕ ADD BUTTON STATE (SMART)
-      ========================= */
-      const allowMultiple = input.hasAttribute("multiple");
-      let addBtn = card.querySelector(".add-more-files");
+    /* =========================
+      🔁 REBUILD INPUT FILES
+    ========================= */
+    const dt = new DataTransfer();
+    card.__files.forEach(f => dt.items.add(f));
+    input.files = dt.files;
 
-      if(allowMultiple && card.__files.length >= 1 && card.__files.length < maxCount){
-        if(!addBtn){
-          addBtn = document.createElement("button");
-          addBtn.className = "add-more-files";
-          addBtn.type = "button";
-            addBtn.innerHTML = `
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                aria-hidden="true"
-              >
-                <path
-                  d="M13.5 3H8C6.34315 3 5 4.34315 5 6V18C5 19.6569 6.34315 21 8 21H11
-                    M13.5 3L19 8.625
-                    M13.5 3V7.625C13.5 8.17728 13.9477 8.625 14.5 8.625H19
-                    M19 8.625V11.8125"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-                <path
-                  d="M17 15V21M14 18H20"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-              </svg>
-              <span>Add another file</span>
-            `;
+    /* =========================
+      🧼 CLEAR INPUT BUFFER
+    ========================= */
 
-          addBtn.onclick = ()=> input.click();
-          previewBox.after(addBtn);
+    /* =========================
+      🖼 RENDER PREVIEWS
+    ========================= */
+    acceptedFiles.forEach(file=>{
+      if(!file.type.startsWith("image/")) return;
+
+      const wrap = document.createElement("div");
+      wrap.className = "upload-preview-item";
+
+      const img = document.createElement("img");
+      img.className = "upload-preview-img";
+      img.src = URL.createObjectURL(file);
+
+      const btn = document.createElement("div");
+      btn.className = "upload-remove-btn";
+      btn.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M6 6L18 18M6 18L18 6"/>
+        </svg>
+      `;
+
+      /* ❌ REMOVE SINGLE FILE */
+      btn.onclick = ()=>{
+        const index = card.__files.indexOf(file);
+        if(index > -1) card.__files.splice(index, 1);
+
+        // rebuild input
+        const newDT = new DataTransfer();
+        card.__files.forEach(f => newDT.items.add(f));
+        input.files = newDT.files;
+
+        // remove preview
+        wrap.remove();
+        syncPreviewDisplay(card);
+
+
+        /* =========================
+          🧠 UI RESET
+        ========================= */
+        if(card.__files.length === 0){
+          uploadBox.classList.remove("has-file");
+          if(prompt) prompt.style.display = "flex";
         }
-      } else {
-        if(addBtn) addBtn.remove();
-      }
+
+        /* =========================
+          ➕ ADD BUTTON STATE (SMART)
+        ========================= */
+        const allowMultiple = input.hasAttribute("multiple");
+        let addBtn = card.querySelector(".add-more-files");
+
+        if(allowMultiple && card.__files.length >= 1 && card.__files.length < maxCount){
+          if(!addBtn){
+            addBtn = document.createElement("button");
+            addBtn.className = "add-more-files";
+            addBtn.type = "button";
+              addBtn.innerHTML = `
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M13.5 3H8C6.34315 3 5 4.34315 5 6V18C5 19.6569 6.34315 21 8 21H11
+                      M13.5 3L19 8.625
+                      M13.5 3V7.625C13.5 8.17728 13.9477 8.625 14.5 8.625H19
+                      M19 8.625V11.8125"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                  <path
+                    d="M17 15V21M14 18H20"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+                <span>Add another file</span>
+              `;
+
+            addBtn.onclick = ()=> input.click();
+            previewBox.after(addBtn);
+          }
+        } else {
+          if(addBtn) addBtn.remove();
+        }
 
 
+        syncPreviewDisplay(card);
+
+
+        validateAll();
+      };
+
+      wrap.appendChild(img);
+      wrap.appendChild(btn);
+      previewBox.appendChild(wrap);
       syncPreviewDisplay(card);
 
+    });
 
-      validateAll();
-    };
+    /* =========================
+      🧠 UI STATE
+    ========================= */
+    if(card.__files.length > 0){
+      if(prompt) prompt.style.display = "none";
+      if(uploadBox) uploadBox.classList.add("has-file");
+    }
 
-    wrap.appendChild(img);
-    wrap.appendChild(btn);
-    previewBox.appendChild(wrap);
-    syncPreviewDisplay(card);
+    /* =========================
+      ➕ ADD MORE BUTTON (GLOBAL LOGIC)
+    ========================= */
+    const allowMultiple = input.hasAttribute("multiple");
+    let addBtn = card.querySelector(".add-more-files");
 
+    if(allowMultiple && card.__files.length >= 1 && card.__files.length < maxCount){
+      if(!addBtn){
+        addBtn = document.createElement("button");
+        addBtn.className = "add-more-files";
+        addBtn.type = "button";
+              addBtn.innerHTML = `
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M13.5 3H8C6.34315 3 5 4.34315 5 6V18C5 19.6569 6.34315 21 8 21H11
+                      M13.5 3L19 8.625
+                      M13.5 3V7.625C13.5 8.17728 13.9477 8.625 14.5 8.625H19
+                      M19 8.625V11.8125"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                  <path
+                    d="M17 15V21M14 18H20"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+                <span>Add another file</span>
+              `;
+        addBtn.onclick = ()=> input.click();
+        previewBox.after(addBtn);
+      }
+    } else {
+      if(addBtn) addBtn.remove();
+    }
+
+    card.dataset.uploaded = card.__files.length > 0 ? "true" : "false";
+    validateAll();
   });
 
-  /* =========================
-     🧠 UI STATE
-  ========================= */
-  if(card.__files.length > 0){
-    if(prompt) prompt.style.display = "none";
-    if(uploadBox) uploadBox.classList.add("has-file");
-  }
 
-  /* =========================
-     ➕ ADD MORE BUTTON (GLOBAL LOGIC)
-  ========================= */
-  const allowMultiple = input.hasAttribute("multiple");
-  let addBtn = card.querySelector(".add-more-files");
+  document.addEventListener("dragover", e=>{
+    if(e.target.closest("#uniqueItems")) return;
+    const box = e.target.closest(".upload-box-init-q");
 
-  if(allowMultiple && card.__files.length >= 1 && card.__files.length < maxCount){
-    if(!addBtn){
-      addBtn = document.createElement("button");
-      addBtn.className = "add-more-files";
-      addBtn.type = "button";
-            addBtn.innerHTML = `
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                aria-hidden="true"
-              >
-                <path
-                  d="M13.5 3H8C6.34315 3 5 4.34315 5 6V18C5 19.6569 6.34315 21 8 21H11
-                    M13.5 3L19 8.625
-                    M13.5 3V7.625C13.5 8.17728 13.9477 8.625 14.5 8.625H19
-                    M19 8.625V11.8125"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-                <path
-                  d="M17 15V21M14 18H20"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-              </svg>
-              <span>Add another file</span>
-            `;
-      addBtn.onclick = ()=> input.click();
-      previewBox.after(addBtn);
+    if(!box){
+      if(__ACTIVE_DROP_CARD__){
+        setUploadAccent(__ACTIVE_DROP_CARD__, "normal");
+        __ACTIVE_DROP_CARD__ = null;
+      }
+      return;
     }
-  } else {
-    if(addBtn) addBtn.remove();
-  }
 
-  card.dataset.uploaded = card.__files.length > 0 ? "true" : "false";
-  validateAll();
-});
-
-
-/* =========================
-   🖱 DRAG OVER
-========================= */
-document.addEventListener("dragover", e=>{
-  if(e.target.closest("#uniqueItems")) return;
-  const box = e.target.closest(".upload-box-init-q");
-
-  // if not over any upload box → reset
-  if(!box){
-    if(__ACTIVE_DROP_CARD__){
-      setUploadAccent(__ACTIVE_DROP_CARD__, "normal");
-      __ACTIVE_DROP_CARD__ = null;
-    }
-    return;
-  }
-
-  e.preventDefault();
-
-  const card = box.closest(".card-container-quest.file-upload");
-  if(!card) return;
-
-  const uploaderRoot = card.querySelector(".uploader-root");
-  const maxCount = parseInt(uploaderRoot?.dataset.fileCount || "1");
-
-  if(!card.__files) card.__files = [];
-
-  // ❌ max reached → no glow
-  if(card.__files.length >= maxCount){
-    if(__ACTIVE_DROP_CARD__){
-      setUploadAccent(__ACTIVE_DROP_CARD__, "normal");
-      __ACTIVE_DROP_CARD__ = null;
-    }
-    return;
-  }
-
-  // 🔄 switching between cards
-  if(__ACTIVE_DROP_CARD__ && __ACTIVE_DROP_CARD__ !== card){
-    setUploadAccent(__ACTIVE_DROP_CARD__, "normal");
-  }
-
-  // ✅ activate current
-  __ACTIVE_DROP_CARD__ = card;
-  setUploadAccent(card, "drop");
-});
-
-document.addEventListener("dragend", ()=>{
-  if(__ACTIVE_DROP_CARD__ && __ACTIVE_DROP_CARD__.closest("#uniqueItems")){
-    __ACTIVE_DROP_CARD__ = null;
-    return;
-  }
-
-  if(__ACTIVE_DROP_CARD__){
-    setUploadAccent(__ACTIVE_DROP_CARD__, "normal");
-    __ACTIVE_DROP_CARD__ = null;
-  }
-});
-
-document.addEventListener("drop", (e)=>{
-  if(e.target.closest("#uniqueItems")) return;
-  const box = e.target.closest(".upload-box-init-q");
-  if(!box) return;
-
-  e.preventDefault();
-
-  const card = box.closest(".card-container-quest.file-upload");
-  if(!card) return;
-
-  const input = card.querySelector(".fileUpload-init-makein");
-  if(!input) return;
-
-  // ❌ DO NOT TOUCH card.__files here
-  // ❌ DO NOT push files manually
-
-  const droppedFiles = Array.from(e.dataTransfer.files);
-
-  // rebuild input only
-  const dt = new DataTransfer();
-  droppedFiles.forEach(f => dt.items.add(f));
-  input.files = dt.files;
-
-  // 🔥 single source of truth
-  input.dispatchEvent(new Event("change", { bubbles:true }));
-
-  // reset accent
-  if(__ACTIVE_DROP_CARD__){
-    setUploadAccent(__ACTIVE_DROP_CARD__, "normal");
-    __ACTIVE_DROP_CARD__ = null;
-  }
-});
-
-document.addEventListener("click", (e) => {
-document.querySelectorAll(".poh-root").forEach(root => {
-  if(e.target.closest("#uniqueItems")) return;
-  const pohBtn = root.querySelector(".poh-btn");
-  const proveSelf = root.querySelector(".prove-self");
-  const claimBtn = document.getElementById("claim-task");
-
-  if (!pohBtn || !proveSelf || !claimBtn) return;
-
-  // initial state
-  root.dataset.verified = "false";
-
-  // lock claim
-  claimBtn.classList.remove("enabled");
-  claimBtn.style.cursor = "not-allowed";
-  claimBtn.setAttribute("disabled", "true");
-
-  pohBtn.addEventListener("click", async (e) => {
     e.preventDefault();
 
-    // reset
-    pohBtn.classList.remove("poh-success","poh-error");
+    const card = box.closest(".card-container-quest.file-upload");
+    if(!card) return;
 
-    // loading state
-    pohBtn.textContent = "Checking...";
-    pohBtn.style.pointerEvents = "none";
+    const uploaderRoot = card.querySelector(".uploader-root");
+    const maxCount = parseInt(uploaderRoot?.dataset.fileCount || "1");
 
-    proveSelf.style.display = "none";
-    proveSelf.textContent = "";
+    if(!card.__files) card.__files = [];
 
-    try {
-      const res = await fetch("/validate_poh");
-      const data = await res.json();
+    // ❌ max reached → no glow
+    if(card.__files.length >= maxCount){
+      if(__ACTIVE_DROP_CARD__){
+        setUploadAccent(__ACTIVE_DROP_CARD__, "normal");
+        __ACTIVE_DROP_CARD__ = null;
+      }
+      return;
+    }
 
-      if (data.success) {
+    if(__ACTIVE_DROP_CARD__ && __ACTIVE_DROP_CARD__ !== card){
+      setUploadAccent(__ACTIVE_DROP_CARD__, "normal");
+    }
 
-        /* ✅ SUCCESS UI */
-        pohBtn.classList.add("poh-success");
-        pohBtn.innerHTML = `
-          <span class="poh-label">Passed</span>
-          ${POH_CHECK_SVG}
-        `;
+    __ACTIVE_DROP_CARD__ = card;
+    setUploadAccent(card, "drop");
+  });
+
+  document.addEventListener("dragend", ()=>{
+    if(__ACTIVE_DROP_CARD__ && __ACTIVE_DROP_CARD__.closest("#uniqueItems")){
+      __ACTIVE_DROP_CARD__ = null;
+      return;
+    }
+
+    if(__ACTIVE_DROP_CARD__){
+      setUploadAccent(__ACTIVE_DROP_CARD__, "normal");
+      __ACTIVE_DROP_CARD__ = null;
+    }
+  });
+
+  document.addEventListener("drop", (e)=>{
+    if(e.target.closest("#uniqueItems")) return;
+    const box = e.target.closest(".upload-box-init-q");
+    if(!box) return;
+
+    e.preventDefault();
+
+    const card = box.closest(".card-container-quest.file-upload");
+    if(!card) return;
+
+    const input = card.querySelector(".fileUpload-init-makein");
+    if(!input) return;
 
 
-        root.dataset.verified = "true";
+    const droppedFiles = Array.from(e.dataTransfer.files);
 
-        // unlock claim
-        validateAll();
+    // rebuild input only
+    const dt = new DataTransfer();
+    droppedFiles.forEach(f => dt.items.add(f));
+    input.files = dt.files;
 
-      } else {
+    input.dispatchEvent(new Event("change", { bubbles:true }));
 
-        /* ❌ FAIL UI */
+    if(__ACTIVE_DROP_CARD__){
+      setUploadAccent(__ACTIVE_DROP_CARD__, "normal");
+      __ACTIVE_DROP_CARD__ = null;
+    }
+  });
+
+document.addEventListener("click", (e) => {
+  const engageChip = e.target.closest(".engage-chip");
+  if(engageChip){
+    const card = engageChip.closest(".card-container-quest.twitter");
+    if(card){
+      card.dataset.engaged = "true";
+      validateAll();
+    }
+    return;
+  }
+
+  /* 🐦 TWITTER ENGAGE (tweet preview click) */
+  const tweetPreviewLink = e.target.closest("a.tweet-preview-mini");
+  if(tweetPreviewLink){
+    const card = tweetPreviewLink.closest(".card-container-quest.twitter");
+    if(card){
+      card.dataset.engaged = "true";
+      validateAll();
+    }
+    return;
+  }
+  document.querySelectorAll(".poh-root").forEach(root => {
+    if(e.target.closest("#uniqueItems")) return;
+    const pohBtn = root.querySelector(".poh-btn");
+    const proveSelf = root.querySelector(".prove-self");
+    const claimBtn = document.getElementById("claim-task");
+
+    if (!pohBtn || !proveSelf || !claimBtn) return;
+
+    root.dataset.verified = "false";
+
+    // lock claim
+    claimBtn.classList.remove("enabled");
+    claimBtn.style.cursor = "not-allowed";
+    claimBtn.setAttribute("disabled", "true");
+
+    pohBtn.addEventListener("click", async (e) => {
+      e.preventDefault();
+
+      // reset
+      pohBtn.classList.remove("poh-success","poh-error");
+
+      // loading state
+      pohBtn.textContent = "Checking...";
+      pohBtn.style.pointerEvents = "none";
+
+      proveSelf.style.display = "none";
+      proveSelf.textContent = "";
+
+      try {
+        const res = await fetch("/validate_poh");
+        const data = await res.json();
+
+        if (data.success) {
+
+          /* ✅ SUCCESS UI */
+          pohBtn.classList.add("poh-success");
+          pohBtn.innerHTML = `
+            <span class="poh-label">Passed</span>
+            ${POH_CHECK_SVG}
+          `;
+
+
+          root.dataset.verified = "true";
+
+          // unlock claim
+          validateAll();
+
+        } else {
+
+          /* ❌ FAIL UI */
+          pohBtn.classList.add("poh-error");
+          pohBtn.textContent = "Failed ✗";
+
+          proveSelf.style.display = "block";
+          proveSelf.innerHTML = (data.errors || ["Verification failed"]).join("<br>");
+          proveSelf.style.color = "var(--poh-error-text)";
+
+          root.dataset.verified = "false";
+          validateAll();
+        }
+
+      } catch (err) {
+
+        /* ❌ ERROR UI */
         pohBtn.classList.add("poh-error");
-        pohBtn.textContent = "Failed ✗";
+        pohBtn.textContent = "Error ✗";
 
         proveSelf.style.display = "block";
-        proveSelf.innerHTML = (data.errors || ["Verification failed"]).join("<br>");
+        proveSelf.textContent = "⚠️ Error checking Proof of Humanity.";
         proveSelf.style.color = "var(--poh-error-text)";
 
         root.dataset.verified = "false";
         validateAll();
       }
 
-    } catch (err) {
-
-      /* ❌ ERROR UI */
-      pohBtn.classList.add("poh-error");
-      pohBtn.textContent = "Error ✗";
-
-      proveSelf.style.display = "block";
-      proveSelf.textContent = "⚠️ Error checking Proof of Humanity.";
-      proveSelf.style.color = "var(--poh-error-text)";
-
-      root.dataset.verified = "false";
-      validateAll();
-    }
-
-    // re-enable click
-    pohBtn.style.pointerEvents = "auto";
+      // re-enable click
+      pohBtn.style.pointerEvents = "auto";
+    });
   });
-});
 
 });
   /* =========================

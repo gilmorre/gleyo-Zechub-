@@ -4573,7 +4573,7 @@ border-top-color: var(--text-main) !important;
   color: var(--poh-error-text);
 }
 
-.prove-self, .wrong-anser, .partnership-error, .partnership-error, .discord-errir, .yotube-error, .telegram-error, .numbers-error, .text-error, .url-error, .puzzle-error, .invite-error, .github-error  {
+.prove-self, .wrong-anser, .partnership-error, .partnership-error, .discord-errir, .yotube-error, .telegram-error, .numbers-error, .text-error, .url-error, .puzzle-error, .invite-error, .github-error, .twitter-error  {
   font-size: 13px;
   width: 100%;
   text-align: flex-start;
@@ -14420,4 +14420,29 @@ background-color: var(--bg-app);
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.4) !important;
 }
-  
+
+
+.tweet-preview-header{
+  display:flex; align-items:center; gap:8px; margin-bottom:6px;
+}
+.tweet-preview-avatar-img{
+  width:32px; height:32px; border-radius:50%; object-fit:cover; flex-shrink:0;
+}
+.tweet-preview-meta{ display:flex; flex-direction:column; text-align:left; }
+.tweet-preview-author{
+  font-size:13px; font-weight:600; display:flex; align-items:center; gap:4px;
+}
+.tweet-preview-handle-date{ font-size:11px; opacity:.6; }
+.tweet-preview-text{
+  display:block; text-align:left; font-size:13px; line-height:1.4; opacity:.9;
+}
+.space-host-avatar{
+  width:44px; height:44px; border-radius:50%; object-fit:cover;
+}
+.space-host-row{
+  font-size:12px; opacity:.7; display:flex; align-items:center; gap:4px; justify-content:center;
+}
+.live-dot{ color:#ff4d4d; font-size:11px; font-weight:600; }
+.twitter-preview-verified, .js-tweet-fetch-verified, .js-space-fetch-verified{
+  display:inline-flex; align-items:center;
+}

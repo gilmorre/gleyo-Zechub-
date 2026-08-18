@@ -71,6 +71,7 @@ from flask_admin import Admin, AdminIndexView
 from flask_admin.contrib.sqla import ModelView
 from flask_admin.form import rules
 from flask_mail import Message, Mail
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 # ─────────────────────────────────────────────────────────────
 # THIRD-PARTY — SQLALCHEMY
@@ -146,6 +147,7 @@ from backend.integrations.telegramAPI import telegram_bp
 from backend.integrations.twitterAPI import twitter_bp, get_live_followers_count
 from backend.integrations.discord_name import bp as discord_bp
 from backend.integrations.youtubeAPI import youtube_bp
+from backend.integrations.twitter_task_checker import check_twitter_task_for_user
 from backend.integrations.tiktok_bp import tiktok_bp
 from backend.integrations.community_telegram import CommunityTelegramGroup
 from backend.auth.github import bp, check_if_starred, get_repo_forks
@@ -10442,7 +10444,7 @@ def process_single_review(completion, task_review, status, reviewer_id,
 
 
     instant_success_types = [
-        "discord", "youtube", "quiz", "partnership_quest", "partnership", "github",
+        "discord", "youtube", "quiz", "twitter", "partnership_quest", "partnership", "github",
         "Visit link", "p.o.h", "invite", "poll",
         "Optionscale(numbers)", "Optionscale(star)", "puzzle"
     ]
@@ -16157,6 +16159,16 @@ PLATFORM_ICONS = {
         """,
         "color": "linear-gradient(145deg, #ff4da6, #ff0099)"
     },
+"twitter": {
+        "icon": """
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-twitter-x" viewBox="0 0 16 16">
+            <path d="M12.6.75h2.454l-5.36 6.142L16 15.25h-4.937l-3.867-5.07-4.425 5.07H.316l5.733-6.57L0 .75h5.063l3.495 4.633L12.601.75Zm-.86 13.028h1.36L4.323 2.145H2.865z"/>
+        </svg>
+
+
+        """,
+        "color": "#e05526db"
+    },
 "discord": {
         "icon": """
 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-discord" viewBox="0 0 24 24">
@@ -16164,11 +16176,6 @@ PLATFORM_ICONS = {
 </svg>
 """,
         "color": "#5865F2"
-    },
-    "twitter": {
-        "icon": """
-""",
-        "color": "#1DA1F2"
     },
     "telegram": {
         "icon": """
@@ -17869,6 +17876,67 @@ def parse_quest_description(text: str):
 
     return Markup(out)
 
+
+
+def _parse_iso(iso_str):
+    """Best-effort ISO 8601 parser, tolerant of trailing 'Z'."""
+    if not iso_str:
+        return None
+    try:
+        return datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
+    except (ValueError, TypeError):
+        return None
+
+
+
+def get_user_timezone(tz_name):
+    """Validates a timezone name sent from the client. Falls back to UTC
+    if missing, invalid, or unsupported."""
+    if not tz_name:
+        return timezone.utc
+    try:
+        return ZoneInfo(tz_name)
+    except (ZoneInfoNotFoundError, ValueError, KeyError):
+        return timezone.utc
+
+def format_tweet_date(iso_str, tz=timezone.utc):
+    dt = _parse_iso(iso_str)
+    if not dt:
+        return ""
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    dt = dt.astimezone(tz)
+    return f"{dt.strftime('%b')} {dt.day}, {dt.year}"
+
+
+def format_space_datetime(iso_str, tz=timezone.utc):
+    dt = _parse_iso(iso_str)
+    if not dt:
+        return ""
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    dt = dt.astimezone(tz)
+
+    hour = dt.hour % 12
+    hour = 12 if hour == 0 else hour
+    ampm = "AM" if dt.hour < 12 else "PM"
+    return f"{dt.strftime('%b')} {dt.day} · {hour}:{dt.minute:02d} {ampm}"
+
+
+def get_space_state(is_live, scheduled_iso):
+    """Mirrors the JS getSpaceState() logic exactly."""
+    if is_live:
+        return "live"
+
+    dt = _parse_iso(scheduled_iso)
+    if not dt:
+        return "ended"
+
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+
+    now = datetime.now(timezone.utc)
+    return "upcoming" if dt > now else "ended"
     
 
 @app.route('/<community_slug>/preview_subquest', methods=['POST'])
@@ -17877,6 +17945,8 @@ def preview_subquest(community_slug):
     data = request.get_json(silent=True)
     if not data:
         return jsonify({'error': 'Invalid JSON'}), 400
+    
+    user_tz = get_user_timezone(data.get("user_timezone"))
 
     # =========================
     # Community validation
@@ -18003,23 +18073,40 @@ def preview_subquest(community_slug):
     for t in preview_tasks:
         progress = {}
 
-        # invite task progress support
         if t.type == "invite":
             active_invites = CommunityInviteLog.query.filter_by(
                 inviter_user_id=current_user.id,
                 community_id=community.id
             ).count()
-
             progress["active_invites"] = active_invites
         else:
-            progress["active_invites"] = 0  # 👈 template safety
+            progress["active_invites"] = 0
+
+        config = dict(t.config or {})
+
+        if t.type == "twitter":
+            mode = config.get("mode", "follow")
+
+            if mode == "engage":
+                config["tweet_date"] = format_tweet_date(
+                    config.get("tweet_date"), tz=user_tz
+                )
+
+            elif mode == "space":
+                is_live = config.get("space_is_live") in (True, "1", 1)
+                scheduled = config.get("space_scheduled_start")
+
+                config["space_state"] = get_space_state(is_live, scheduled)
+                config["space_date_label"] = format_space_datetime(
+                    scheduled, tz=user_tz
+                )
 
         tasks.append({
             "id": t.id,
             "type": t.type,
-            "config": t.config,
+            "config": config,
             "state": t.state,
-            "progress": progress   # 🔥 REQUIRED for Jinja
+            "progress": progress
         })
 
     # =========================
@@ -20545,6 +20632,7 @@ def claim_subquest(subquest_id):
     quiz_answers        = parse_json_field("quiz_answers")
     task_answers        = parse_json_field("task_answers")
     optionscale_answers = parse_json_field("optionscale_answers")
+    twitter_reply_answers = parse_json_field("twitter_reply_answers")
     poll_answers        = parse_json_field("poll_answers")
     poll_other_answers  = parse_json_field("poll_other_answers")
     puzzle_answers      = parse_json_field("puzzle_answers") 
@@ -20562,7 +20650,6 @@ def claim_subquest(subquest_id):
         cleaned_input = {}
         task_payload = task_answers.get(str(task.id), {})
         task_answer = task_payload.get("value")
-
         quiz_answer = quiz_answers.get(str(task.id), {})
         optionscale_answer = optionscale_answers.get(str(task.id))
         poll_answer = poll_answers.get(str(task.id))
@@ -20598,8 +20685,7 @@ def claim_subquest(subquest_id):
                     "subscribed": True,
                     "channel_name": res.get("channel_name", "Unknown Channel")
                 }
-            else:
-                # 🔥 preserve structured error
+            else: 
                 if res.get("error_type") == "HTML":
                     errors[task.id] = {
                         "type": "HTML",
@@ -20626,6 +20712,18 @@ def claim_subquest(subquest_id):
                 errors[task.id] = res.get("error", "Join the Telegram group to claim this task")
                 failed_inputs[task.id] = {"telegram": "not joined"}
 
+
+        elif task.type == "twitter":
+            reply_url = twitter_reply_answers.get(str(task.id))
+            res = check_twitter_task_for_user(user, task, reply_url=reply_url)
+
+            is_valid = res.get("success", False)
+
+            if is_valid:
+                cleaned_input["twitter"] = res.get("data", {})
+            else:
+                errors[task.id] = res.get("error", "Complete the Twitter task before claiming.")
+                failed_inputs[task.id] = {"twitter": res.get("reason", "verification_failed")}
 
         elif task.type in ("text", "numbers", "url"):
             if task.type == "text":
@@ -20938,7 +21036,7 @@ def claim_subquest(subquest_id):
 
         # --- Store attempt history ---
         instant_success_types = [
-            "discord", "youtube", "quiz", "partnership_quest", "partnership","Visit link","p.o.h", "github",
+            "discord", "youtube", "quiz", "twitter", "partnership_quest", "partnership","Visit link","p.o.h", "github",
             "invite", "poll", "Optionscale(numbers)", "Optionscale(star)", "puzzle"
         ]
 

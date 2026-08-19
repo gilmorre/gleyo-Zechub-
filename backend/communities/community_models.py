@@ -313,43 +313,24 @@ class CommunityInviteUsage(db.Model):
         index=True
     )
 
-    year = db.Column(
-        db.Integer,
-        nullable=False,
-        index=True
-    )
+    year = db.Column(db.Integer, nullable=False, index=True)
+    month = db.Column(db.Integer, nullable=False, index=True)
 
-    month = db.Column(
-        db.Integer,
-        nullable=False,
-        index=True
-    )
+    invite_count = db.Column(db.Integer, nullable=False, default=0)
 
-    invite_count = db.Column(
-        db.Integer,
-        nullable=False,
-        default=0
-    )
+    # 🆕 { subquest_uuid: invite_count } — per-subquest breakdown for this month
+    subquest_invites = db.Column(db.JSON, nullable=False, default=dict)
 
-    created_at = db.Column(
-        db.DateTime,
-        default=datetime.utcnow
-    )
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    community = db.relationship(
-        "Community",
-        back_populates="invite_usage"
-    )
+    community = db.relationship("Community", back_populates="invite_usage")
 
     __table_args__ = (
         db.UniqueConstraint(
-            "community_id",
-            "year",
-            "month",
+            "community_id", "year", "month",
             name="uq_community_invite_month"
         ),
     )
-
 
 
 class CommunityUserXP(db.Model):

@@ -226,6 +226,9 @@ position: fixed !important;
 .quest-list::-webkit-scrollbar-thumb:hover {
   background-color: #2980b9;
 }
+.quest-item {
+  font-weight: 550;
+}
 
 /* Quest Item */
 .quest-item, .role-item {
@@ -249,6 +252,8 @@ position: fixed !important;
 /* Subquest List */
 .subquest-list {
   list-style: none;
+  width: 100% !important;
+  min-width: 100% !important;
   margin: 5px 0 0 10px;
   padding: 0;
 }
@@ -256,6 +261,8 @@ position: fixed !important;
   padding: 6px 10px;
   border-radius: 8px;
   cursor: pointer;
+  width: 100%;
+  min-width: 100% !important;
   font-size: 13px;
   transition: background 0.15s;
 }
@@ -291,7 +298,7 @@ position: fixed !important;
 
 .quest-item i,
 .subquest-item i {
-  flex-shrink: 0; /* ✅ keeps checkmark visible */
+  flex-shrink: 0;  
 }
 
 .subquest-item:hover {
@@ -3027,6 +3034,96 @@ input {
 
 
 
+
+.zec-inline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.zec-inline-lbl {
+  font-size: .72rem;
+  font-weight: 600;
+  color: var(--sub);
+}
+.zec-platform-bal {
+  font-size: .66rem;
+  color: var(--sub2);
+}
+.zec-amt-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.zec-input-wrap {
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  overflow: hidden;
+  min-height: 40px;
+}
+.zec-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 10px;
+  background: rgba(244,183,40,.1);
+  border-right: 1px solid rgba(244,183,40,.2);
+  font-size: .7rem;
+  font-weight: 700;
+  color: #F4B728;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.zec-input-wrap input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  padding: 10px 12px;
+  font-size: .88rem;
+  color: var(--txt);
+  font-family: var(--ff);
+  outline: none;
+  min-width: 0;
+}
+.zec-usd-equiv {
+  font-size: .7rem;
+  color: var(--sub);
+  white-space: nowrap;
+  flex-shrink: 0;
+  align-self: center;
+}
+.zec-bal-feedback {
+  font-size: .68rem;
+  margin-top: 6px;
+  padding: 5px 8px;
+  border-radius: 7px;
+  width: fit-content;
+}
+.zec-bal-ok {
+  color: var(--green);
+  background: rgba(18,216,122,.08);
+}
+.zec-bal-err {
+  color: var(--red);
+  background: rgba(240,80,112,.08);
+}
+
+.zec-inline-reward {
+  position: absolute;
+  left: 0;
+  z-index: 99;
+  padding: 12px 14px;
+  background: var(--bg-sidebar);
+  border: 1px solid var(--border2);
+  border-radius: 14px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.45);
+}
+
  
 .streak-row {
   overflow: hidden;
@@ -4035,7 +4132,7 @@ input {
               {% set other_subquests = quest['subquests'] | selectattr('uuid', 'ne', subquest.uuid) | list %}
               {% if other_subquests|length > 0 %}
                 <li class="quest-item">
-                  {{ quest['title'] }}
+                  <span style="font-weight: 550; font-size: 15px;">{{ quest['title'] }}</span>
                   <ul class="subquest-list">
                     {% for subquest in other_subquests %}
                         <input type="hidden" class="selected-subquest-uuid" value="">
@@ -4072,7 +4169,7 @@ input {
             {% set other_subquests = quest['subquests'] | selectattr('uuid', 'ne', current_subquest_uuid) | list %}
             {% if other_subquests|length > 0 %}
               <li class="quest-item">
-                {{ quest['title'] }}
+                <span style="font-weight: 550; font-size: 15px;">{{ quest['title'] }}</span>
                 <ul class="subquest-list">
                   {% for subquest in other_subquests %}
                       <input type="hidden" class="selected-subquest-uuid" value="">

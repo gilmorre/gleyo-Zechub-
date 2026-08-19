@@ -1022,7 +1022,6 @@ justify-content: center;
 .task-type-badge svg {
   width: 16px;
   height: 16px;
-  fill: currentColor;
 }
 
 .task-type-badge:first-child { margin-left: 0; }

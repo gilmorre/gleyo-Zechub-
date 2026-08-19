@@ -25,3 +25,20 @@ class UserTwitter(db.Model):
 
     def __repr__(self):
         return f"<UserTwitter {self.xusername} ({self.action}) at {self.timestamp}>"
+
+
+class TwitterMentionInvite(db.Model):
+    __tablename__ = 'twitter_mention_invites'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    # the @handle that got tagged, lowercase, no "@"
+    handle = db.Column(db.String(255), nullable=False, index=True)
+
+    # pending -> matched (once that handle joins + connects X)
+    status = db.Column(db.String(50), nullable=False, default="pending")
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<TwitterMentionInvite @{self.handle} ({self.status})>"

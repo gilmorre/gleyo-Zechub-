@@ -4579,7 +4579,19 @@ border-top-color: var(--text-main) !important;
   text-align: flex-start;
   color: #ff9b9b !important;
 }
-/* CONTENT */
+
+.image-lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.88);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 40px;
+  box-sizing: border-box;
+}
+
 .content-quest {
   display: flex;
   flex-direction: column;
@@ -14445,4 +14457,12 @@ background-color: var(--bg-app);
 .live-dot{ color:#ff4d4d; font-size:11px; font-weight:600; }
 .twitter-preview-verified, .js-tweet-fetch-verified, .js-space-fetch-verified{
   display:inline-flex; align-items:center;
+}
+
+
+
+.invite-text-title {
+  color: var(--text-main);
+  font-size: 14px;
+  margin-bottom: 3px;
 }

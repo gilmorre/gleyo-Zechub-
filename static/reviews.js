@@ -1775,30 +1775,114 @@ async function initReviewinit() {
     card.appendChild(bubble);
   }
   else if (taskType === "url") {
-        const urlContainer = document.createElement("div");
-        urlContainer.className = "review-url";
-        const chip = document.createElement("span");
-        chip.className = "review-chip";
-        const input = document.createElement("input");
-        input.value = task.user_input?.url || task.subquest_url || "";
-        input.readOnly = true;
-        input.style.outline = "none";
-        urlContainer.appendChild(chip);
-        urlContainer.appendChild(input);
-        card.appendChild(urlContainer);
-      } else {
-        // Default bubble for unknown types
-        const bubble = document.createElement("div");
-        bubble.className = "review-bubble";
-        bubble.textContent = "Completed";
-        card.appendChild(bubble);
-      }
+    const mentions = task.user_input?.tracked_mentions || [];
+    const link = task.user_input?.task_answer || task.subquest_url || "";
 
-      container.appendChild(card);
-    });
+    const linkIcon = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;">
+        <path d="M9 15L15 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M11 6L11.5 5.5C13.5 3.5 16.5 3.5 18.5 5.5C20.5 7.5 20.5 10.5 18.5 12.5L18 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M13 18L12.5 18.5C10.5 20.5 7.5 20.5 5.5 18.5C3.5 16.5 3.5 13.5 5.5 11.5L6 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    `;
+
+    if (mentions.length > 0) {
+      // ✅ TRACKED INVITE URL — show link + tagged handles
+      const bubble = document.createElement("div");
+      bubble.className = "review-bubble review-tracked-invite";
+      bubble.style.display = "flex";
+      bubble.style.flexDirection = "column";
+      bubble.style.gap = "8px";
+
+      const linkRow = document.createElement("a");
+      linkRow.href = link;
+      linkRow.target = "_blank";
+      linkRow.rel = "noopener noreferrer";
+      linkRow.className = "review-chip";
+      linkRow.style.display = "inline-flex";
+      linkRow.style.alignItems = "center";
+      linkRow.style.gap = "6px";
+      linkRow.style.textDecoration = "none";
+      linkRow.style.color = "inherit";
+      linkRow.innerHTML = `
+        ${linkIcon}
+        <span style="font-size:13px; word-break:break-all;">${link}</span>
+      `;
+      bubble.appendChild(linkRow);
+
+      const label = document.createElement("div");
+      label.style.fontSize = "12px";
+      label.style.fontWeight = "600";
+      label.style.color = "var(--text-muted)";
+      label.textContent = `Tagged ${mentions.length} friend${mentions.length > 1 ? "s" : ""}`;
+      bubble.appendChild(label);
+
+      const chipRow = document.createElement("div");
+      chipRow.style.display = "flex";
+      chipRow.style.flexWrap = "wrap";
+      chipRow.style.gap = "6px";
+
+      const HANDLE_COLORS = [
+        { bg: "rgba(29,155,240,0.15)", fg: "#1d9bf0" },
+        { bg: "rgba(139,92,246,0.15)", fg: "#8B5CF6" },
+        { bg: "rgba(34,197,94,0.15)",  fg: "#22c55e" },
+        { bg: "rgba(244,183,40,0.18)", fg: "#F4B728" },
+        { bg: "rgba(233,30,99,0.15)",  fg: "#e91e63" },
+      ];
+
+      mentions.forEach((handle, i) => {
+        const color = HANDLE_COLORS[i % HANDLE_COLORS.length];
+
+        const chip = document.createElement("a");
+        chip.href = `https://x.com/${handle}`;
+        chip.target = "_blank";
+        chip.rel = "noopener noreferrer";
+        chip.textContent = `@${handle}`;
+        chip.style.background = color.bg;
+        chip.style.color = color.fg;
+        chip.style.fontWeight = "600";
+        chip.style.fontSize = "12px";
+        chip.style.padding = "4px 10px";
+        chip.style.borderRadius = "999px";
+        chip.style.textDecoration = "none";
+        chip.style.whiteSpace = "nowrap";
+
+        chipRow.appendChild(chip);
+      });
+
+      bubble.appendChild(chipRow);
+      card.appendChild(bubble);
+
+    } else {
+      // ⬜ PLAIN URL TASK — now a clickable link with icon, matching tracked style
+      const urlContainer = document.createElement("div");
+      urlContainer.className = "review-url";
+
+      const linkEl = document.createElement("a");
+      linkEl.href = link || "#";
+      linkEl.target = "_blank";
+      linkEl.rel = "noopener noreferrer";
+      linkEl.className = "review-chip";
+      linkEl.style.display = "inline-flex";
+      linkEl.style.alignItems = "center";
+      linkEl.style.gap = "6px";
+      linkEl.style.textDecoration = "none";
+      linkEl.style.color = "inherit";
+      linkEl.style.wordBreak = "break-all";
+      linkEl.innerHTML = `
+        ${linkIcon}
+        <span style="font-size:13px;">${link}</span>
+      `;
+
+      urlContainer.appendChild(linkEl);
+      card.appendChild(urlContainer);
+    }
+  }
+    container.appendChild(card);
+  });
     appendHistoryBlock(CURRENT_CLICKED_ITEM, reviewData, container);
 
-  }
+}
 
 
 
@@ -1871,7 +1955,7 @@ function appendHistoryBlock(item, reviewData, container) {
       </div>
     `;
   } else {
-    avatarHTML = `<div class="avatar-fallback-his fall">${firstLetter}</div>`;
+    avatarHTML = `<div class="avatar-fallback fall" style="width:25px;height:25px;position:absolute;left:0;top:-3px;">${firstLetter}</div>`;
   }
 
   const historyBlock = document.createElement("div");
@@ -2244,6 +2328,7 @@ function openReviewPanels() {
     const reviewFeed = document.querySelector(".review-feed");
 
     const subquestCrumb = document.querySelector(".review-bar .review-crumb.ellipsis:first-child");
+    const subquestCrumbPrefiled = document.querySelector(".quest-detail");
     const usernameCrumb = document.querySelector(".review-bar .review-crumb.ellipsis:last-child");
       const starBtn = document.querySelector(".free-xp-star");
       const freeXpBox = document.querySelector(".review-free-xp");
@@ -2426,6 +2511,7 @@ function openReviewPanels() {
         const rewardContainer = item.querySelector(".review-row.for-reward span.review-pill") || document.querySelector(".review-row.for-reward span.review-pill");
         if (rewardContainer) rewardContainer.innerHTML = rewardsHTML;
         // update crumbs
+        if (subquestCrumbPrefiled) subquestCrumbPrefiled.textContent = CURRENT_USER_DATA.subquest || "—";
         if (subquestCrumb) subquestCrumb.textContent = CURRENT_USER_DATA.subquest || "—";
         if (usernameCrumb) usernameCrumb.textContent = CURRENT_USER_DATA.username || "—";
         if (usernameCrumbStrong) {

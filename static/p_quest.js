@@ -2596,6 +2596,73 @@ function renderQuestBlocks(blocks){
   return html;
 }
 
+
+function getQuestUUIDsFromURL() {
+  const path = window.location.pathname.replace(/\/+$/, "");
+  const match = path.match(/\/quest\/([^/]+)\/([^/]+)$/);
+
+  if (!match) return { questUUID: null, subUUID: null };
+
+  return { questUUID: match[1], subUUID: match[2] };
+}
+
+async function hookInviteTaskProgress(root = document) {
+  const inviteCards = root.querySelectorAll('.card-container-quest.invite-task[data-task-id]');
+  if (!inviteCards.length) return;
+
+  const { questUUID, subUUID } = getQuestUUIDsFromURL();
+  if (!questUUID || !subUUID) {
+    console.warn("hookInviteTaskProgress: could not resolve quest/subquest UUID from URL");
+    return;
+  }
+
+  await Promise.all([...inviteCards].map(async (card) => {
+    const taskId = card.dataset.taskId;
+
+    try {
+      const res = await fetch(
+        `/api/${communitySlug}/quest/${questUUID}/${subUUID}/invite-progress/${taskId}`,
+        {
+          method: "GET",
+          headers: { "X-CSRFToken": csrfToken },
+          credentials: "include"
+        }
+      );
+
+      if (!res.ok) throw new Error("Failed to fetch invite progress");
+
+      const data = await res.json();
+      const invited  = data.invited_count  ?? 0;
+      const required = data.required_count ?? 1;
+      const percent  = Math.min(100, Math.round((invited / required) * 100));
+
+      // progress bar
+      const bar = card.querySelector(".progress-filled");
+      if (bar) bar.style.width = percent + "%";
+
+      // "N / M" count
+      const countStrong = card.querySelector(".invite-count strong");
+      if (countStrong) countStrong.textContent = invited;
+
+      const totalSpan = card.querySelector(".quering-root");
+      if (totalSpan) totalSpan.textContent = required;
+
+      // "Invite X more friends to claim"
+      const remainingStrong = card.querySelector(".invite-remaining strong");
+      if (remainingStrong) remainingStrong.textContent = Math.max(0, required - invited);
+
+      card.dataset.inviteCount    = invited;
+      card.dataset.inviteRequired = required;
+
+    } catch (err) {
+      console.error("Invite progress fetch failed:", err);
+    } finally {
+      if (typeof validateAll === "function") validateAll();
+    }
+  }));
+}
+
+
 function renderQuestComplete(data){
 
   const subquest = data.subquest || {};
@@ -4980,7 +5047,10 @@ async function routeToSubquest(box){
       const taskId = inviteTask.dataset.taskId;
       const overlay = createInviteOverlay(communitySlug, taskId);
       initInviteModal(overlay);
+
+      hookInviteTaskProgress(container);
     }
+
     /* 🔥 save active route */
     window.__ACTIVE_SUBQUEST__ = { questUUID, subUUID };
     window.__UI_STATE__ = data.ui_state || {};

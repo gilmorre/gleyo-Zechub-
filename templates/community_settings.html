@@ -859,7 +859,7 @@
         debounceTimer = setTimeout(() => {
           fetch("{{ url_for('toggle_setting', community_slug=community_slug) }}", {
             method: "POST",
-            headers: { "Content-Type": "application/json","X-CSRFToken": csrfToken },
+            headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken },
             body: JSON.stringify({
               field: input.name,
               value: input.value
@@ -868,12 +868,20 @@
           .then(r => r.json())
           .then(data => {
             if (!data.success) {
-              input.style.borderColor = "1px solid #ff4d4d";
+              // validation failure — keep the inline message, it's accurate here
+              input.style.border = "1px solid #ff4d4d";
               errorMsg.style.display = "inline";
             } else {
+              // success — actually hide it this time
               input.style.border = "0.1px solid #cccccc57";
-              errorMsg.style.borderColor = "none";
+              errorMsg.style.display = "none";
             }
+          })
+          .catch(() => {
+            // network failure — different problem, different message
+            input.style.border = "1px solid #ff4d4d";
+            errorMsg.style.display = "none"; // don't show "Invalid number" for a network issue
+            showError("Failed to save — check your connection");
           });
         }, 400);
       });

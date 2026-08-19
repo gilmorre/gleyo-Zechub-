@@ -144,8 +144,9 @@ import backend.utils.ai_init as ai_init
 # ─────────────────────────────────────────────────────────────
 from backend.auth.googleOauth import google_bp
 from backend.integrations.telegramAPI import telegram_bp
-from backend.integrations.twitterAPI import twitter_bp, get_live_followers_count
+from backend.integrations.twitterAPI import twitter_bp, get_live_followers_count, scrape_tweet_mentions, extract_handle_from_any_url, spawn_mention_match_for_handle, spawn_mention_match_for_new_tags
 from backend.integrations.discord_name import bp as discord_bp
+from backend.integrations.invite_progress import invite_progress_bp
 from backend.integrations.youtubeAPI import youtube_bp
 from backend.integrations.twitter_task_checker import check_twitter_task_for_user
 from backend.integrations.tiktok_bp import tiktok_bp
@@ -209,7 +210,7 @@ from backend.notifications.BugReport import BugReport
 # ─────────────────────────────────────────────────────────────
 # INTERNAL — USER INTEGRATIONS
 # ─────────────────────────────────────────────────────────────
-from backend.auth.usertwitter import UserTwitter
+from backend.auth.usertwitter import UserTwitter, TwitterMentionInvite
 from backend.auth.usertelegram import UserTelegram
 from backend.auth.userdiscord import UserDiscord
 from backend.auth.useryoutube import UserYouTube
@@ -264,7 +265,7 @@ app = Flask(__name__)
 
 limiter = Limiter(
     key_func=get_remote_address,
-    default_limits=["2000 per day", "200 per hour"]
+    default_limits=["3000 per day", "300 per hour"]
 )
 
 limiter.init_app(app)
@@ -368,6 +369,8 @@ app.register_blueprint(tiktok_bp)
 app.register_blueprint(bp)
 app.register_blueprint(community_twitter_bp)
 app.register_blueprint(google_bp)
+app.register_blueprint(invite_progress_bp)
+
 
 with app.app_context():
     db.create_all()
@@ -3301,12 +3304,7 @@ def update_profile():
         "avatar_url": updated_avatar_url
     })
 
-@app.errorhandler(Exception)
-def handle_exception(e):
-    return jsonify({
-        "success": False,
-        "error": str(e)
-    }), 500
+
 
 
 
@@ -15651,7 +15649,9 @@ def publish_subquest(community_slug):
     if recurrence.lower() != "daily":
         streak_enabled = False
 
-    if invite_total > 0:
+    if invite_total > 0 or has_invite_task:
+        from sqlalchemy.orm.attributes import flag_modified
+
         now = datetime.utcnow()
         year = now.year
         month = now.month
@@ -15667,25 +15667,36 @@ def publish_subquest(community_slug):
                 community_id=community.id,
                 year=year,
                 month=month,
-                invite_count=0
+                invite_count=0,
+                subquest_invites={}
             )
             db.session.add(usage)
             db.session.flush()
 
-        if invite_total < usage.invite_count:
+        breakdown = dict(usage.subquest_invites or {})
+        previous_for_this_subquest = breakdown.get(subquest_uuid, 0)
+
+        # 🔒 per-subquest decrease guard — scoped to THIS subquest only
+        if invite_total < previous_for_this_subquest:
             return jsonify({
                 "success": False,
-                "error": f"Invite tasks cannot decrease. Current: {usage.invite_count}"
+                "error": f"Invite tasks for this Quest cannot decrease. Current: {previous_for_this_subquest}"
             }), 400
+
+        # recompute community-wide total with this subquest's new value
+        breakdown[subquest_uuid] = invite_total
+        new_total = sum(breakdown.values())
 
         limit = community.invite_limit_per_month or 30
-        if invite_total > limit:
+        if new_total > limit:
             return jsonify({
                 "success": False,
-                "error": f"Invite tasks exceed monthly limit ({limit})"
+                "error": f"Invite tasks exceed monthly limit ({limit}) across all quests"
             }), 400
 
-        usage.invite_count = invite_total
+        usage.subquest_invites = breakdown
+        flag_modified(usage, "subquest_invites")  # ensure SQLAlchemy sees the JSON mutation
+        usage.invite_count = new_total
 
     sprint_id = data.get('sprint_id')
     sprint_name = data.get('sprint_name')
@@ -17260,6 +17271,10 @@ def quester_view(community_slug, quest_uuid, subquest_uuid):
                 config = json.loads(config)
             except Exception:
                 config = {}
+
+        if t.type == "invite":
+            config["xp_for_valid_invite"] = security.xp_for_valid_invite if security else 0
+
         task_dicts.append({
             "id":          t.id,
             "type":        t.type,
@@ -18872,33 +18887,7 @@ def p_quest(community_slug):
     )
 
 
-    
-    # return render_template(
-    #     community_visible=community_list_visible,
-    #     username=user.username,
-    #     level_data=level_data,
-    #     logo=community.logo_path,
-    #     name=community.name,
-    #     profile_pic=user.profile_pic,
-    #     has_role=has_role, 
-    #     community_slug=community.slug,
-    #     fab_state=state,
-    #     quest=quest,
-    #     community_twitter=community_twitter,
-    #     community_discord=community_discord,
-    #     subquest=subquest,
-    #     theme_mode=theme_mode,
-    #     current_community=current_community,
-    #     community=community,
-    #     is_banned=banned,
-    #     show_welcome_banner=show_welcome_banner,
-    #     user_has_role=user_has_role,
-    #     inviter_username=inviter_username,
-    #     inviter_profile_pic=inviter_profile_pic,
-    #     limited_code=invite_entry.code if invite_entry else "",
-    #     community_tuples=user_communities
-    # )
-
+ 
 
 @app.route('/<community_slug>/quest/<string:quest_uuid>/<string:subquest_uuid>')
 def quester_view_init(community_slug, quest_uuid, subquest_uuid):
@@ -20645,6 +20634,8 @@ def claim_subquest(subquest_id):
 
     successful_tasks_data = []
     all_success = True
+    newly_tracked_handles = []
+
     for task in tasks:
         is_valid = False
         cleaned_input = {}
@@ -20737,11 +20728,66 @@ def claim_subquest(subquest_id):
                 except Exception:
                     errors[task.id] = "Invalid number."
             elif task.type == "url":
-                
                 parsed = urlparse(task_answer or "")
                 is_valid = parsed.scheme in ("http", "https") and parsed.netloc
                 if not is_valid:
                     errors[task.id] = "Enter a valid URL starting with https:// or http://"
+
+                track_invites = bool((task.config or {}).get("track_invites"))
+
+                if is_valid and track_invites:
+                    netloc = parsed.netloc.lower().replace("www.", "")
+
+                    if netloc not in ("twitter.com", "x.com"):
+                        is_valid = False
+                        errors[task.id] = "This link must be a Twitter/X post to track invites."
+                    else:
+
+                        # 1) must have a connected X account
+                        user_tw = UserTwitter.query.filter_by(
+                            user_id=user.id,
+                            action="connected"
+                        ).first()
+
+                        if not user_tw:
+                            is_valid = False
+                            errors[task.id] = "Connect your X account before submitting this task."
+                        else:
+                            # 2) the posted link's handle must be THIS user's connected handle
+                            posted_handle = extract_handle_from_any_url(task_answer)
+
+                            if not posted_handle or posted_handle.lower() != (user_tw.xusername or "").lower():
+                                is_valid = False
+                                errors[task.id] = "This post must be from your connected X account."
+                            else:
+                                handles, scrape_err = scrape_tweet_mentions(task_answer)
+
+                                if scrape_err == "tweet_text_unavailable":
+                                    is_valid = False
+                                    errors[task.id] = "Couldn't read your post right now — please try again in a moment."
+                                elif scrape_err or not handles:
+                                    is_valid = False
+                                    errors[task.id] = "You didn't tag anyone in this post."
+                                else:
+                                    existing_handles = {
+                                        h for (h,) in db.session.query(TwitterMentionInvite.handle)
+                                        .filter(TwitterMentionInvite.handle.in_(handles))
+                                        .all()
+                                    }
+
+                                    for h in handles:
+                                        if h in existing_handles:
+                                            continue
+                                        db.session.add(TwitterMentionInvite(
+                                            handle=h,
+                                            status="pending"
+                                        ))
+                                        newly_tracked_handles.append(h)
+
+                                    cleaned_input["tracked_mentions"] = handles
+
+                if not is_valid:
+                    failed_inputs[task.id] = {"input": task_answer}
 
             if not is_valid:
                 failed_inputs[task.id] = {"input": task_answer}
@@ -21313,6 +21359,8 @@ def claim_subquest(subquest_id):
 
     # --- Finalize ---
     db.session.commit()
+    if newly_tracked_handles:
+        spawn_mention_match_for_new_tags(newly_tracked_handles)
 
 
     role_rewards_to_assign = []
@@ -22378,93 +22426,6 @@ def get_total_xp_for_invited(user_id, community_id):
         .scalar()
     )
     return total_xp
-
-
-
-@app.route("/<community_slug>/<int:task_id>/pending_invite")
-@login_required
-def pending_invite_route(community_slug, task_id):
-    community = Community.query.filter_by(slug=community_slug).first_or_404()
-
-    # Get all CommunityInviteTask entries for this task where status is pending
-    invite_tasks = CommunityInviteTask.query.join(CommunityInviteLog).filter(
-        CommunityInviteLog.inviter_user_id == current_user.id,
-        CommunityInviteLog.community_id == community.id,
-        CommunityInviteTask.task_id == task_id,
-        CommunityInviteTask.status == "pending"
-    ).all()
-
-    # Collect the corresponding invite logs and total XP
-    filtered_invites = []
-    for ct in invite_tasks:
-        ct.invite_log.total_xp = get_total_xp_for_invited(
-            ct.invite_log.invited_user_id,
-            ct.invite_log.community_id
-        )
-        filtered_invites.append(ct.invite_log)
-
-    return render_template(
-        "pending_invite.html",
-        community=community,
-        invites=filtered_invites,
-        task_id=task_id
-    )
-
-
-@app.route("/<community_slug>/<int:task_id>/active_invite")
-@login_required
-def active_invite_route(community_slug, task_id):
-    community = Community.query.filter_by(slug=community_slug).first_or_404()
-
-    invite_tasks = CommunityInviteTask.query.join(CommunityInviteLog).filter(
-        CommunityInviteLog.inviter_user_id == current_user.id,
-        CommunityInviteLog.community_id == community.id,
-        CommunityInviteTask.task_id == task_id,
-        CommunityInviteTask.status == "active"
-    ).all()
-
-    filtered_invites = []
-    for ct in invite_tasks:
-        ct.invite_log.total_xp = get_total_xp_for_invited(
-            ct.invite_log.invited_user_id,
-            ct.invite_log.community_id
-        )
-        filtered_invites.append(ct.invite_log)
-
-    return render_template(
-        "active_invite.html",
-        community=community,
-        invites=filtered_invites,
-        task_id=task_id
-    )
-
-
-@app.route("/<community_slug>/<int:task_id>/consumed_invite")
-@login_required
-def consumed_invite_route(community_slug, task_id):
-    community = Community.query.filter_by(slug=community_slug).first_or_404()
-
-    invite_tasks = CommunityInviteTask.query.join(CommunityInviteLog).filter(
-        CommunityInviteLog.inviter_user_id == current_user.id,
-        CommunityInviteLog.community_id == community.id,
-        CommunityInviteTask.task_id == task_id,
-        CommunityInviteTask.status == "consumed"
-    ).all()
-
-    filtered_invites = []
-    for ct in invite_tasks:
-        ct.invite_log.total_xp = get_total_xp_for_invited(
-            ct.invite_log.invited_user_id,
-            ct.invite_log.community_id
-        )
-        filtered_invites.append(ct.invite_log)
-
-    return render_template(
-        "consumed_invite.html",
-        community=community,
-        invites=filtered_invites,
-        task_id=task_id
-    )
 
 
 @app.route("/invite/<community_slug>")
@@ -31359,6 +31320,46 @@ class CommunityTelegramGroupAdmin(BaseAdmin):
     can_view_details = True
 
 
+
+class TwitterMentionInviteAdmin(BaseAdmin):
+
+    can_create = True
+    can_edit = True
+    can_delete = True
+
+    column_list = (
+        "id",
+        "handle",
+        "status",
+        "created_at",
+    )
+
+    column_labels = {
+        "id": "ID",
+        "handle": "Twitter Handle",
+        "status": "Status",
+        "created_at": "Created At",
+    }
+
+    column_searchable_list = (
+        "handle",
+    )
+
+    column_filters = (
+        "status",
+        "created_at",
+    )
+
+    column_default_sort = ("created_at", True)
+
+    form_columns = (
+        "handle",
+        "status",
+    )
+
+    can_view_details = True
+    
+
 admin.add_view(UserAdmin(Users, db.session))
 admin.add_view(UserTwoFactorAdmin(UserTwoFactor, db.session))
 admin.add_view(UserSessionAdmin(UserSession, db.session))
@@ -31374,6 +31375,7 @@ admin.add_view(EarlyAccessApplicationAdmin(EarlyAccessApplication, db.session))
 admin.add_view(ProWaitlistAdmin(ProWaitlist, db.session))
 admin.add_view(CommunityAdmin(Community, db.session))
 admin.add_view(CommunityInviteUsageAdmin(CommunityInviteUsage, db.session))
+admin.add_view(TwitterMentionInviteAdmin(TwitterMentionInvite, db.session))
 admin.add_view(CommunityClaimUsageAdmin(CommunityClaimUsage, db.session))
 admin.add_view(CommunityWalletAdmin(CommunityWallet, db.session))
 admin.add_view(CommunityWalletTransactionAdmin(CommunityWalletTransaction, db.session))

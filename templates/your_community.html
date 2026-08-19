@@ -501,8 +501,18 @@
             🎉 Welcome to {{ community.name }}!.
           </h2>
           <p style=" color: var(--text-muted); font-size: 15px; line-height: 1.4;">
-              <img src="{{ '/' + inviter_profile_pic }}"  alt="" 
-                  style="width: 22px; height: 22px; border-radius: 50%; vertical-align: middle; margin-right: 8px;">
+              {% if inviter_profile_pic %}
+                <img src="{{ '/' ~ inviter_profile_pic }}" alt=""
+                    style="width: 22px; height: 22px; border-radius: 50%; vertical-align: middle; margin-right: 8px;">
+              {% else %}
+                <span class="initials-circle"
+                    style="display:inline-flex; align-items:center; justify-content:center;
+                          width: 22px; height: 22px; border-radius: 50%;
+                          background-color: {{ bg_color }}; color: {{ text_color }};
+                          font-size: 11px; font-weight: 600; vertical-align: middle; margin-right: 8px;">
+                  {{ inviter_username[:1].upper() if inviter_username else "?" }}
+                </span>
+              {% endif %}
               
               <strong style="opacity: 0.9;">{{ inviter_username }}</strong> invited you to join the community click the button below to get started
           </p>
@@ -568,40 +578,7 @@
 
     </div>
 
-    {% if is_new_onto_this %}
-    <div class="join-container mobile-only">
-
-      <div class="content-in-uptter">
-
-
-        {% if user_was_invited %}
-            <div class="community-info" style="align-items: center;">
-                <img src="{{ '/' ~ inviter_profile_pic }}" class="invite-avatar">
-
-                <span>
-                    <strong>{{ inviter_username }}</strong> invited you to join
-                    <strong>{{ community.name }}</strong>
-                </span>
-            </div>
-        {% else %}
-            <div class="community-info init"> Join <strong>{{ community.name }}</strong> to start completing quests and earning rewards. </div>
-        {% endif %}
-      {% if not user.id %}
-      <span class="name-join join-bts"
-            onclick="openAuthModal()">
-        Login to Join
-      </span>
-      {% else %}
-      <span class="name-join join-bts"
-            onclick="acceptInviteNormal('{{ community.slug }}','{{ invitation_code or '' }}')">
-        Join
-      </span>
-      {% endif %}
-
-      </div>
-
-    </div>
-    {% endif %}
+  
 
     
     {% if show_welcome_banner %}
@@ -615,7 +592,18 @@
             </div>
         {% else %}
             <div class="community-info">
-                <img src="{{ '/' ~ inviter_profile_pic }}"  class="invite-avatar">
+                {% if inviter_profile_pic %}
+                  <img src="{{ '/' ~ inviter_profile_pic }}" alt=""
+                      style="width: 22px; height: 22px; border-radius: 50%; vertical-align: middle; margin-right: 8px;">
+                {% else %}
+                  <span class="initials-circle"
+                      style="display:inline-flex; align-items:center; justify-content:center;
+                            width: 22px; height: 22px; border-radius: 50%;
+                            background-color: {{ bg_color }}; color: {{ text_color }};
+                            font-size: 11px; font-weight: 600; vertical-align: middle; margin-right: 8px;">
+                    {{ inviter_username[:1].upper() if inviter_username else "?" }}
+                  </span>
+                {% endif %}
 
                 <div>
                   <strong>{{ inviter_username }}</strong> invited you to join 
@@ -3373,14 +3361,13 @@ const PLATFORM_ICONS = {
       },
     "url": {
         icon: `
-      <svg fill="none" stroke="#fff" width="17" height="17" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <g transform="scale(0.125)">
-          <path d="M84 128.6H54.6C36.6 128.6 22 114 22 96c0-9 3.7-17.2 9.6-23.1 5.9-5.9 14.1-9.6 23.1-9.6H84m24 65.3h29.4
-            c9 0 17.2-3.7 23.1-9.6 5.9-5.9 9.6-14.1 9.6-23.1 0-18-14.6-32.6-32.6-32.6H108M67.9 96h56.2"
-            stroke="#fff" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
-        </g>
-      </svg>
-
+<svg fill="none" stroke="#fff" width="17" height="17" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <g transform="scale(0.125)">
+    <path d="M84 128.6H54.6C36.6 128.6 22 114 22 96c0-9 3.7-17.2 9.6-23.1 5.9-5.9 14.1-9.6 23.1-9.6H84m24 65.3h29.4
+      c9 0 17.2-3.7 23.1-9.6 5.9-5.9 9.6-14.1 9.6-23.1 0-18-14.6-32.6-32.6-32.6H108M67.9 96h56.2"
+      stroke="#fff" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>
 
         `,
         color: "#ca1f1f"
@@ -7111,7 +7098,7 @@ async function loadMainSettingsSection(path, push = true, previewMode = false, n
   let cssToLoad = null;
 
   if (isUserQuest) {
-    cssToLoad = "/static/p_quest.css?v=7";
+    cssToLoad = "/static/p_quest.css?v=9";
   }
 
   if (cssToLoad) {
@@ -7126,9 +7113,9 @@ async function loadMainSettingsSection(path, push = true, previewMode = false, n
 
   if (finalPath.includes("/quest/admin/")) {
 
-    __CURRENT_SCRIPT__ = "/static/arial.js?v=4";
+    __CURRENT_SCRIPT__ = "/static/arial.js?v=6";
 
-  await loadScript("/static/arial.js?v=4");
+  await loadScript("/static/arial.js?v=6");
 
 
   if (window.AialModule) {
@@ -7169,9 +7156,9 @@ async function loadMainSettingsSection(path, push = true, previewMode = false, n
 
 
 
-    __CURRENT_SCRIPT__ = "/static/p_quest.js";
+    __CURRENT_SCRIPT__ = "/static/p_quest.js?v=9";
 
-    await loadScript("/static/p_quest.js");
+    await loadScript("/static/p_quest.js?v=9");
 
     if (window.PQUESTModule) {
       window.PQUESTModule.init();

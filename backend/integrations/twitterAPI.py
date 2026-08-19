@@ -10,13 +10,14 @@ import logging
 import json
 import re
 from datetime import datetime, timedelta
-
+from threading import Thread
+from flask import current_app
 from flask import Blueprint, session, redirect, url_for, request, flash, jsonify
 from flask_login import login_required, current_user
 
 from backend.utils.instance import db
 from backend.models.models import Users
-from backend.auth.usertwitter import UserTwitter
+from backend.auth.usertwitter import UserTwitter, TwitterMentionInvite
 
 logger = logging.getLogger(__name__)
 twitter_bp = Blueprint("twitter", __name__)
@@ -235,6 +236,8 @@ def twitter_callback():
 
     db.session.commit()
 
+    spawn_mention_match_for_handle(twitter_username)
+
     session["twitter_connected"] = True
     session["twitter_username"] = twitter_username
 
@@ -377,6 +380,17 @@ _SPACE_RE = re.compile(r"(?:twitter\.com|x\.com)/i/spaces/([A-Za-z0-9]+)")
 _RESERVED_PATH_SEGMENTS = {"i", "home", "explore", "notifications", "messages", "settings"}
 
 
+_URL_HANDLE_RE = re.compile(r"(?:twitter\.com|x\.com)/([A-Za-z0-9_]{1,15})(?:/|$)")
+
+def extract_handle_from_any_url(url):
+    match = _URL_HANDLE_RE.search(url)
+    if not match:
+        return None
+    handle = match.group(1)
+    if handle.lower() in _RESERVED_PATH_SEGMENTS:
+        return None
+    return handle
+
 def extract_handle(url):
     match = _HANDLE_RE.search(url)
     if not match:
@@ -385,7 +399,6 @@ def extract_handle(url):
     if handle.lower() in _RESERVED_PATH_SEGMENTS:
         return None
     return handle
-
 
 def extract_tweet_id(url):
     match = _TWEET_RE.search(url)
@@ -671,6 +684,35 @@ def twitter_tweet():
     _cache_set("tweet", tweet_id, result)
     return jsonify(result)
 
+_MENTION_RE = re.compile(r"@([A-Za-z0-9_]{1,15})")
+
+
+def scrape_tweet_mentions(url):
+    tweet_id = extract_tweet_id(url)
+    if not tweet_id:
+        return None, "not_a_tweet_url"
+
+    text = None
+    try:
+        tweet = _syndication_tweet(tweet_id)
+        if tweet:
+            text = tweet.get("text")
+    except Exception as e:
+        logger.warning(f"Mention scrape failed for tweet {tweet_id}: {e}")
+
+    if not text:
+        logger.warning(f"Mention scrape: syndication text unavailable for {tweet_id}, refusing truncated fallback")
+        return None, "tweet_text_unavailable"
+
+    # 🔍 DEBUG — remove once confirmed
+    logger.info(f"Mention scrape tweet {tweet_id}: text length={len(text)}")
+    logger.info(f"Mention scrape tweet {tweet_id}: full text=\n{text}")
+
+    handles = list(dict.fromkeys(h.lower() for h in _MENTION_RE.findall(text)))
+
+    logger.info(f"Mention scrape tweet {tweet_id}: found handles={handles}")
+
+    return handles, None
 
 # ────────────────────────────────
 # 3) SPACE
@@ -874,3 +916,94 @@ def twitter_space():
 
     _cache_set("space", space_id, result)
     return jsonify(result)
+
+
+
+
+
+
+
+
+
+def _match_pending_mentions_for_handle(app, handle):
+    """
+    Runs in a background thread after a user connects X.
+    Flips any pending TwitterMentionInvite rows for this handle to 'matched'.
+    """
+    if not handle:
+        return
+
+    with app.app_context():
+        try:
+            updated = (
+                TwitterMentionInvite.query
+                .filter(
+                    db.func.lower(TwitterMentionInvite.handle) == handle.lower(),
+                    TwitterMentionInvite.status == "pending"
+                )
+                .update({"status": "matched"}, synchronize_session=False)
+            )
+            db.session.commit()
+
+            if updated:
+                logger.info(f"Matched {updated} pending mention(s) for @{handle} after X connect")
+
+        except Exception as e:
+            db.session.rollback()
+            logger.exception(f"Failed to match mentions for @{handle}: {e}")
+
+
+def _match_mentions_against_connected_accounts(app, handles):
+    """
+    Runs in a background thread after a claim tracks new mentions.
+    Covers the case where the tagged friend already had X connected
+    BEFORE they got tagged — no need to wait for them to (re)connect.
+    """
+    if not handles:
+        return
+
+    with app.app_context():
+        try:
+            lowered = [h.lower() for h in handles]
+
+            connected = (
+                db.session.query(UserTwitter.xusername)
+                .filter(
+                    db.func.lower(UserTwitter.xusername).in_(lowered),
+                    UserTwitter.action == "connected"
+                )
+                .all()
+            )
+            connected_handles = {row[0].lower() for row in connected if row[0]}
+
+            if not connected_handles:
+                return
+
+            updated = (
+                TwitterMentionInvite.query
+                .filter(
+                    TwitterMentionInvite.status == "pending",
+                    db.func.lower(TwitterMentionInvite.handle).in_(connected_handles)
+                )
+                .update({"status": "matched"}, synchronize_session=False)
+            )
+            db.session.commit()
+
+            if updated:
+                logger.info(f"Matched {updated} mention(s) against already-connected accounts")
+
+        except Exception as e:
+            db.session.rollback()
+            logger.exception(f"Failed to match mentions against connected accounts: {e}")
+
+
+def spawn_mention_match_for_handle(handle):
+    """Fire-and-forget — call this right after a successful X connect."""
+    app_obj = current_app._get_current_object()
+    Thread(target=_match_pending_mentions_for_handle, args=(app_obj, handle), daemon=True).start()
+
+
+def spawn_mention_match_for_new_tags(handles):
+    """Fire-and-forget — call this right after a claim commits new tracked mentions."""
+    app_obj = current_app._get_current_object()
+    Thread(target=_match_mentions_against_connected_accounts, args=(app_obj, handles), daemon=True).start()

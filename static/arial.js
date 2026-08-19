@@ -4482,7 +4482,6 @@ function hookTaskInteractions(root = document){
   callingTriggerArialAsp();
   CalledIsmobMobile();
   Loadotherside();
-
 }
 
 
@@ -6338,7 +6337,6 @@ function hookInviteTasks(root = document){
         return;
       }
 
-      panel.style.display = "block";
       panel.style.zIndex = "999999";
       smartPositionDropdown(dropdownBtn, panel);
       panel.style.visibility = "visible";
@@ -6782,6 +6780,22 @@ function renderTask(task){
             <span class="slider"></span>
           </label>
         </div>
+
+        ${task.type === "url" ? `
+        <div class="mutiplespacing">
+          <div class="text">
+            <div class="title">Track invites from mentions</div>
+            <div class="description">
+              Gleyo will scan this post for tagged friends and log them as pending invites until each tagged user joins and connects X.
+            </div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" class="js-track-invites"
+              ${task.config?.track_invites ? "checked" : ""}>
+            <span class="slider"></span>
+          </label>
+        </div>
+        ` : ""}
       </div>
     </div>
 
@@ -8725,6 +8739,10 @@ function collectTasks() {
       config.description = wrapper.querySelector('.js-desc-input')?.value || "";
       config.placeholder = wrapper.querySelector('.input-wrapper-quest input')?.placeholder || "";
       config.auto_validate = wrapper.querySelector('.js-auto-validate')?.checked || false;
+
+      if (type === "url") {
+        config.track_invites = wrapper.querySelector('.js-track-invites')?.checked || false;
+      }
     }
 
     /* ============================

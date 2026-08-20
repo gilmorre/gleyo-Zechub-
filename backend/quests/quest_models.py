@@ -14,7 +14,6 @@ class Quest(db.Model):
     cover_url = db.Column(db.String(255))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # One Quest has many Subquests
     subquests = db.relationship('Subquest', back_populates='quest', cascade='all, delete')
 
     community_id = db.Column(db.Integer, db.ForeignKey('communities.id'), nullable=False)

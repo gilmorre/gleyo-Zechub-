@@ -1,4 +1,3 @@
-# community_models.py
 from backend.utils.instance import db
 
 
@@ -10,8 +9,8 @@ class CommunitySecurity(db.Model):
 
     community = db.relationship("Community", back_populates="security_settings")
 
-    # Private Community
-    private_community = db.Column(db.Boolean, default=False)  # Require invite to join
+    private_community = db.Column(db.Boolean, default=False)   
+    invite_permission = db.Column(db.String(20), default="members")  # "members" | "admins_only"
 
     # Invites
     xp_for_valid_invite = db.Column(db.Integer, default=1)   # XP needed for invite

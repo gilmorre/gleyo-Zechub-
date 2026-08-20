@@ -4251,8 +4251,6 @@ background-color: var(--bg-app);
   display:flex; align-items:center; justify-content:center; gap:6px;
 }
 
-  margin-bottom: 20px !important;
-}
 
 /* ============================
    PANELS (Follow / Engage / Space)

@@ -4,11 +4,17 @@
     .tab-content {
       padding-top: 20px  !important;
       padding: 24px 15px;
+      width: 100%;
+
     }
 
   }
-  .tab-content {
+  @media (min-width: 769px) {
+    .tab-content {
       padding-top: 20px  !important;
+      max-width: 520px;
+      min-width: 520px;
+    }
   }
   .setting-group {
     padding: 20px 0;
@@ -192,6 +198,8 @@
 
   .switch input:checked + .slider::before {
     transform: translateX(20px);
+    outline: 1px solid #fff;
+    outline-offset: 3px;
   }
 
   .switch input:focus-visible + .slider {
@@ -228,7 +236,7 @@
   .xp-input {
     width: 140px;
     padding: 9px 10px;
-    border-radius: 8px;
+    border-radius: 13px;
     color: white;
     background: #2c2c3f;
     border: 1px solid rgba(255,255,255,0.12);
@@ -260,128 +268,249 @@
     padding: 20px;
     border: 1px solid var(--border);
   }
+
+  /* ================= INVITE PERMISSION EXPANDER ================= */
+  .invite-perm-chevron-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 0.9px solid var(--border);
+    cursor: pointer;
+  }
+
+  .invite-perm-chevron-btn {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.75);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    transition: transform 0.2s ease;
+  }
+
+  .invite-perm-chevron-btn.open {
+    transform: rotate(180deg);
+  }
+
+  .invite-perm-panel {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.25s ease;
+  }
+
+  .invite-perm-panel.open {
+    max-height: 400px;
+    margin-top: 12px;
+  }
+
+  .invite-perm-option {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: border-color 0.2s ease, background 0.2s ease;
+  }
+
+  .invite-perm-option:last-of-type {
+    margin-bottom: 0;
+  }
+
+  .invite-perm-option:hover {
+    border-color: rgba(79,124,255,0.4);
+  }
+
+  .invite-perm-option.selected {
+    border-color: #4f7cff;
+    background: rgba(79,124,255,0.08);
+  }
+
+  .invite-perm-option-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .invite-perm-radio {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.35);
+    flex-shrink: 0;
+    position: relative;
+    transition: border-color 0.2s ease;
+  }
+
+  .invite-perm-option.selected .invite-perm-radio {
+    border-color: #4f7cff;
+  }
+
+  .invite-perm-option.selected .invite-perm-radio::after {
+    content: "";
+    position: absolute;
+    inset: 3px;
+    border-radius: 50%;
+    background: #4f7cff;
+  }
+
+  .invite-perm-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.95);
+  }
+
+  .invite-perm-desc {
+    font-size: 12.5px;
+    color: rgba(255,255,255,0.6);
+    line-height: 1.5;
+    margin: 6px 0 0 26px;
+  }
 </style>
-  
-  <div class="tab-content" id="security">
-    <h3 class="h3info">Security</h3>
-    <p class="section-desc" style="font-size: 13px;">Configure who can access your community and claim quests.</p>
 
-    <div class="setting-group">
+<div class="tab-content" id="security">
+  <h3 class="h3info">Security</h3>
+  <p class="section-desc" style="font-size: 13px;">Configure who can access your community and claim quests.</p>
+
+  <div class="setting-group">
     <div class="security-card">
-        <div class="setting-head">
-            <h3 class="h3info">Private Community</h3>
+      <div class="setting-head">
+        <h3 class="h3info">Private Community</h3>
 
-            <label class="switch">
-            <input type="checkbox" name="private_community"
-                {% if security_settings and security_settings.private_community %}checked{% endif %}>
-            <span class="slider"></span>
-            </label>
-            
-        </div>
+        <label class="switch">
+          <input type="checkbox" name="private_community" id="privateCommunityToggle"
+              {% if security_settings and security_settings.private_community %}checked{% endif %}>
+          <span class="slider"></span>
+        </label>
+      </div>
 
-        <p class="desc">
-            Require an invite to join the community and see the quests.
-        </p>
+      <p class="desc">
+        Require an invite to join the community and see the quests.
+      </p>
 
-    </div>
+      <!-- 🔥 INVITE PERMISSION EXPANDER -->
+      <div class="invite-perm-chevron-row" id="invitePermChevronRow"
+           style="{% if not (security_settings and security_settings.private_community) %}display:none;{% endif %}">
+        <span class="span" style="font-size:13px;">Who can invite people?</span>
+        <button type="button" class="invite-perm-chevron-btn" id="invitePermChevronBtn" aria-expanded="false">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="invite-perm-chevron-icon">
+            <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
 
+      <div class="invite-perm-panel" id="invitePermPanel">
 
-    <div class="setting-group">
-      <h3 class="h3info">Invites</h3>
-      <p class="desc" style="font-size: 13px;">Configure how invites are calculated</p>
-      <div class="security-card">
-
-        <label class="input-label">XP for Valid Invite</label>
-        <input 
-          type="number" 
-          class="xp-input"
-          style="background-color: #2c2c3f; border: 0.1px solid #cccccc57; font-size: 14px; outline: none !important;" 
-          name="xp_for_valid_invite" 
-          value="{{ security_settings.xp_for_valid_invite if security_settings else 0 }}">
-        <span class="error-msg" style="display:none; color:#ff4d4d; font-size:14px; margin-left:6px;">
-          Invalid number
-        </span>
-
-
-        <p class="note">XP needed for a user's invite to count</p>
-
-          <div class="setting-group">
-
-          <div class="setting-head">
-              <h3 class="h3info">Consume Invites</h3>
-
-              <label class="switch">
-              <input type="checkbox" name="consume_invites"
-                  {% if security_settings and security_settings.consume_invites %}checked{% endif %}>
-              <span class="slider"></span>
-              </label>
+        <div class="invite-perm-option" data-value="members">
+          <div class="invite-perm-option-head">
+            <div class="invite-perm-radio"></div>
+            <span class="invite-perm-title">Members can invite</span>
           </div>
-
-          <p class="desc">
-              Invites are used when quests are claimed
+          <p class="invite-perm-desc">
+            Any member of this community can generate an invite link and bring new people in.
           </p>
+        </div>
 
+        <div class="invite-perm-option" data-value="admins_only">
+          <div class="invite-perm-option-head">
+            <div class="invite-perm-radio"></div>
+            <span class="invite-perm-title">Admins only</span>
           </div>
+          <p class="invite-perm-desc">
+            Only admins can generate invite links. Regular members won't be able to invite anyone —
+            the <strong>Invite</strong> task type will no longer appear as an option when building quests.
+          </p>
+        </div>
+
+        <input type="hidden" name="invite_permission"
+               id="invitePermissionInput"
+               value="{{ security_settings.invite_permission if security_settings and security_settings.invite_permission else 'members' }}">
+
       </div>
 
-    </div>
-
-    <div class="setting-group">
-      <h3 class="h3info">Guest access verification</h3>
-      <p class="desc" style="font-size: 13px;">Ensure users connect using these platforms for added security before claiming quests.</p>
-      <div class="security-card">
-        <div class="toggle-row">
-          <span class="span">Zash-Wallet</span>
-          <label class="switch">
-            <input type="checkbox" name="require_wallet" {% if security_settings and security_settings.require_wallet %}checked{% endif %}>
-            <span class="slider"></span>
-          </label>
-        </div>
-
-        <div class="toggle-row">
-          <span class="span">Github</span>
-          <label class="switch">
-            <input type="checkbox" name="require_github" {% if security_settings and security_settings.require_github %}checked{% endif %}>
-            <span class="slider"></span>
-          </label>
-        </div>
-
-        <div class="toggle-row">
-          <span class="span">Discord</span>
-          <label class="switch">
-            <input type="checkbox" name="require_discord" {% if security_settings and security_settings.require_discord %}checked{% endif %}>
-            <span class="slider"></span>
-          </label>
-        </div>
-
-        <div class="toggle-row">
-          <span class="span">YouTube</span>
-          <label class="switch">
-            <input type="checkbox" name="require_youtube" {% if security_settings and security_settings.require_youtube %}checked{% endif %}>
-            <span class="slider"></span>
-          </label>
-        </div>
-
-        <div class="toggle-row">
-          <span class="span">Telegram</span>
-          <label class="switch">
-            <input type="checkbox" name="require_telegram" {% if security_settings and security_settings.require_telegram %}checked{% endif %}>
-            <span class="slider"></span>
-          </label>
-        </div>
-
-
-        <div class="toggle-row">
-          <span class="span">Twitter</span>
-          <label class="switch">
-            <input type="checkbox" name="require_twitter" {% if security_settings and security_settings.require_twitter %}checked{% endif %}>
-            <span class="slider"></span>
-          </label>
-        </div>
-
-
- 
-
-      </div>
     </div>
   </div>
+
+
+  <div class="setting-group">
+    <h3 class="h3info">Invites</h3>
+    <p class="desc" style="font-size: 13px;">Configure how invites are calculated</p>
+    <div class="security-card">
+
+      <label class="input-label" style="color: var(--text-main); font-weight: 550; margin-bottom: 4px; font-size: 12px;">XP for Valid Invite</label>
+      <input 
+        type="number" 
+        class="xp-input"
+        style="background-color: var(--bg-surface-dimmer); border: 0.1px solid var(--border); font-size: 14px; outline: none !important;" 
+        name="xp_for_valid_invite" 
+        value="{{ security_settings.xp_for_valid_invite if security_settings else 0 }}">
+      <span class="error-msg" style="display:none; color:#ff4d4d; font-size:14px; margin-left:6px;">
+        Invalid number
+      </span>
+
+
+      <p class="span" style="font-size:13px; opacity: 0.9;">XP needed for a user's invite to count</p>
+
+    </div>
+
+  </div>
+
+  <div class="setting-group">
+    <h3 class="h3info">Guest access verification</h3>
+    <p class="desc" style="font-size: 13px;">Ensure users connect using these platforms for added security before claiming quests.</p>
+    <div class="security-card">
+      <div class="toggle-row">
+        <span class="span">Zash-Wallet</span>
+        <label class="switch">
+          <input type="checkbox" name="require_wallet" {% if security_settings and security_settings.require_wallet %}checked{% endif %}>
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="toggle-row">
+        <span class="span">Github</span>
+        <label class="switch">
+          <input type="checkbox" name="require_github" {% if security_settings and security_settings.require_github %}checked{% endif %}>
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="toggle-row">
+        <span class="span">Discord</span>
+        <label class="switch">
+          <input type="checkbox" name="require_discord" {% if security_settings and security_settings.require_discord %}checked{% endif %}>
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="toggle-row">
+        <span class="span">YouTube</span>
+        <label class="switch">
+          <input type="checkbox" name="require_youtube" {% if security_settings and security_settings.require_youtube %}checked{% endif %}>
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="toggle-row">
+        <span class="span">Telegram</span>
+        <label class="switch">
+          <input type="checkbox" name="require_telegram" {% if security_settings and security_settings.require_telegram %}checked{% endif %}>
+          <span class="slider"></span>
+        </label>
+      </div>
+
+
+      <div class="toggle-row">
+        <span class="span">Twitter</span>
+        <label class="switch">
+          <input type="checkbox" name="require_twitter" {% if security_settings and security_settings.require_twitter %}checked{% endif %}>
+          <span class="slider"></span>
+        </label>
+      </div>
+
+    </div>
+  </div>
+</div>

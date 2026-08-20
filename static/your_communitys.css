@@ -14466,3 +14466,8 @@ background-color: var(--bg-app);
   font-size: 14px;
   margin-bottom: 3px;
 }
+
+.invite-preview-desc {
+  font-size: 15px;
+  font-weight: 550;
+}

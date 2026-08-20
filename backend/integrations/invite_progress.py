@@ -9,37 +9,9 @@ from backend.quests.task_models import Task
 from backend.quests.sub_quest_models import Subquest
 from backend.quests.subquest_completion import SubquestCompletion
 
-
+from backend.auth.usertwitter import UserTwitter, TwitterMentionInvite   
+from backend.quests.invite_validation import invited_user_is_valid as _invited_user_is_valid
 invite_progress_bp = Blueprint("invite_progress", __name__)
-
-
-def _invited_user_is_valid(task_config, invited_user_id, community_id):
-    from app import get_total_xp
-
-    subquest_uuid = task_config.get("subquest_uuid")
-
-    if subquest_uuid:
-        subquest = Subquest.query.filter_by(uuid=subquest_uuid).first()
-        if not subquest:
-            print(f"[invite_progress] misconfigured task: subquest_uuid={subquest_uuid} not found")
-            return False
-
-        completion = SubquestCompletion.query.filter_by(
-            user_id=invited_user_id,
-            subquest_id=subquest.id,
-            status="success",
-        ).first()
-        result = completion is not None
-        print(f"[invite_progress] user={invited_user_id} subquest_check -> {result}")
-        return result
-
-    security = CommunitySecurity.query.filter_by(community_id=community_id).first()
-    xp_threshold = security.xp_for_valid_invite if security else 1
-    xp = get_total_xp(invited_user_id, community_id)
-
-    result = xp >= xp_threshold
-    print(f"[invite_progress] user={invited_user_id} xp={xp} threshold={xp_threshold} -> {result}")
-    return result
 
 
 def _get_invite_logs_by_status(status, community_id):
@@ -74,6 +46,10 @@ def _get_all_invite_logs(community_id):
     "/api/<community_slug>/quest/<quest_uuid>/<subquest_uuid>/invite-progress/<int:task_id>",
     methods=["GET"],
 )
+@invite_progress_bp.route(
+    "/api/<community_slug>/quest/<quest_uuid>/<subquest_uuid>/invite-progress/<int:task_id>",
+    methods=["GET"],
+)
 @login_required
 def get_invite_progress(community_slug, quest_uuid, subquest_uuid, task_id):
     community = Community.query.filter_by(slug=community_slug).first()
@@ -87,13 +63,12 @@ def get_invite_progress(community_slug, quest_uuid, subquest_uuid, task_id):
     config = task.config or {}
     required_count = config.get("numInvites", 1)
 
-    # ✅ never gated on DB status — condition is computed live, every request
     logs = _get_all_invite_logs(community.id)
-    invited_user_ids = {log.invited_user_id for log in logs}
 
     invited_count = sum(
-        1 for uid in invited_user_ids
-        if _invited_user_is_valid(config, uid, community.id)
+        1 for log in logs
+        if log.status != "consumed"
+        and _invited_user_is_valid(config, log.invited_user_id, community.id)
     )
 
     print(f"[invite_progress] === RESULT invited_count={invited_count}/{required_count} ===")
@@ -133,7 +108,6 @@ def pending_invite_route(community_slug, task_id):
 def consumed_invite_route(community_slug, task_id):
     community = Community.query.filter_by(slug=community_slug).first_or_404()
 
-    # ✅ raw status only, no condition check — this is "who used the code"
     consumed = _get_invite_logs_by_status("consumed", community.id)
     _attach_total_xp(consumed, community.id)
 
@@ -152,11 +126,11 @@ def active_invite_route(community_slug, task_id):
     task = Task.query.get_or_404(task_id)
     config = task.config or {}
 
-    # ✅ condition only — no status gate at all
     logs = _get_all_invite_logs(community.id)
     active = [
         log for log in logs
-        if _invited_user_is_valid(config, log.invited_user_id, community.id)
+        if log.status != "consumed"
+        and _invited_user_is_valid(config, log.invited_user_id, community.id)
     ]
     _attach_total_xp(active, community.id)
 

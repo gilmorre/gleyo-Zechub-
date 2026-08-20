@@ -72,7 +72,32 @@ input{
   font-family: 'Outfit', sans-serif !important;
 }
 
+.copy-btn-quest {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 18px;
+  min-width: 78px;
+  border: 0.9px solid #4286f4cd;
+  background: #4286f4cd;
+  color: var(--text-main);
+  width: 40px !important;
+  max-width: 40px !important;
+  font-weight: 700;
+  font-size: 14px;
+  border-top-right-radius: 14px;
+  border-bottom-right-radius: 14px;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
 
+.copy-btn-quest:hover {
+  background: #4286f4cd;;
+}
+
+.copy-btn-quest:active {
+  transform: scale(0.97);
+}
  
 
 .header-actions .publish-btn.disabled {
@@ -4432,9 +4457,19 @@ input {
                 stroke="#fff" stroke-width="2"/>
             </g>
           </svg></span><div class="task-text"><div class="task-title">Visit link</div><div class="task-desc">Check out a specific link</div></div></div>
-          <div data-file="invite" data-community="{{ community.slug }}" class="task-item"><span class="icon green"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="#fff">
-          <path fill="#ffffff" transform="scale(0.0375)" d="M112 128C85.5 128 64 149.5 64 176C64 191.1 71.1 205.3 83.2 214.4L291.2 370.4C308.3 383.2 331.7 383.2 348.8 370.4L556.8 214.4C568.9 205.3 576 191.1 576 176C576 149.5 554.5 128 528 128L112 128zM64 260L64 448C64 483.3 92.7 512 128 512L512 512C547.3 512 576 483.3 576 448L576 260L377.6 408.8C343.5 434.4 296.5 434.4 262.4 408.8L64 260z"/>
-        </svg></span><div class="task-text"><div class="task-title">Invites</div><div class="task-desc">Invite people to join the community</div></div></div>
+          {% if can_add_invite_task %}
+          <div data-file="invite" data-community="{{ community.slug }}" class="task-item">
+            <span class="icon green">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="#fff">
+                <path fill="#ffffff" transform="scale(0.0375)" d="M112 128C85.5 128 64 149.5 64 176C64 191.1 71.1 205.3 83.2 214.4L291.2 370.4C308.3 383.2 331.7 383.2 348.8 370.4L556.8 214.4C568.9 205.3 576 191.1 576 176C576 149.5 554.5 128 528 128L112 128zM64 260L64 448C64 483.3 92.7 512 128 512L512 512C547.3 512 576 483.3 576 448L576 260L377.6 408.8C343.5 434.4 296.5 434.4 262.4 408.8L64 260z"/>
+              </svg>
+            </span>
+            <div class="task-text">
+              <div class="task-title">Invites</div>
+              <div class="task-desc">Invite people to join the community</div>
+            </div>
+          </div>
+          {% endif %}
           <div  class="task-item" ><span class="icon purple">
             <svg viewBox="0 0 35.033 35.033" xmlns="http://www.w3.org/2000/svg" fill="#fff" width="16" height="16">
               <path d="M11.811,10.535l-6.983,6.984l6.983,6.981c0.78,0.781,0.78,2.048,0,2.828c-0.392,0.392-0.901,0.586-1.414,0.586

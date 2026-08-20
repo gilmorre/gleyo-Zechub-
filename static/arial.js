@@ -1,5 +1,6 @@
 (function () {
 let controller = null;
+let __INVITE_USAGE__ = null;
 
 let selectedSprint = null;
 function getUuidsFromUrl() {
@@ -19,6 +20,55 @@ window.__SPRINT_DATA__ =  {
 
 
 const TELEGRAM_BOT_MODAL_KEY = "gleyo_telegram_bot_notice_shown";
+
+async function fetchInviteUsage() {
+  try {
+    const res = await fetch(`/api/community/${communitySlug}/invite-usage`);
+    if (!res.ok) throw new Error("Failed to fetch invite usage");
+    __INVITE_USAGE__ = await res.json();
+  } catch (err) {
+    console.error("Failed to fetch invite usage:", err);
+    __INVITE_USAGE__ = { used: 0, limit: 30, breakdown: {} };
+  }
+
+  // 🔥 NEW — refresh every invite task counter already on the page
+  refreshAllInviteCounters();
+}
+
+function refreshAllInviteCounters() {
+  const usage = __INVITE_USAGE__ || { used: 0, limit: 30, breakdown: {} };
+  const limit = usage.limit;
+
+  document.querySelectorAll(".invite-task-wrapper").forEach(wrapper => {
+    const input = wrapper.querySelector(".js-invite-count");
+    const counter = wrapper.querySelector(".error-init-max");
+    if (!input || !counter) return;
+
+    const subquestUuidGlobal = (typeof subquest_uuid !== "undefined") ? subquest_uuid : null;
+    const alreadyCountedForThisSubquest = subquestUuidGlobal
+      ? (usage.breakdown[subquestUuidGlobal] || 0)
+      : 0;
+
+    // 🔥 what every OTHER invite task has already consumed (DB truth)
+    const usedElsewhere = usage.used - alreadyCountedForThisSubquest;
+    const maxAllowedHere = Math.max(0, limit - usedElsewhere);
+
+    const currentVal = parseInt(input.value.replace(/\D/g, ""), 10) || 0;
+
+    // 🔥 real community total = everyone else's usage + THIS task's value
+    // (whether that value came straight from the DB on load, or the user
+    // just edited it — same formula either way, no double counting)
+    const totalIfThisStands = usedElsewhere + currentVal;
+
+    counter.textContent = `${totalIfThisStands}/${limit}`;
+
+    const errorMsg = wrapper.querySelector(".invite-error");
+    if (currentVal > maxAllowedHere && errorMsg) {
+      errorMsg.textContent = `Maximum monthly invite limit is ${limit} (only ${maxAllowedHere} left)`;
+      errorMsg.style.display = "block";
+    }
+  });
+}
 
 function showTelegramBotModal(showagain=false) {
   if (!showagain) {
@@ -4423,7 +4473,7 @@ function renderFileType(typeKey, label, activeTypes) {
 async function markBackendValidatedSocialTasks(root = document) {
   controller?.abort();        
   controller = new AbortController();
-
+  
   document.addEventListener("click", async (e) => {
     const claimBtn = e.target.closest("#claim-task");
     if (!claimBtn) return;
@@ -6242,53 +6292,92 @@ function hookInviteTasks(root = document){
 
   const searchInput = panel.querySelector(".searchQuest");
 
-  /* ================= INPUT ================= */
-  root.addEventListener("input", (e)=>{
-    const input = e.target.closest(".js-invite-count");
-    if(!input) return;
+  fetchInviteUsage();
 
-    const wrapper = input.closest(".invite-task-wrapper");
-    if(!wrapper) return;
+root.addEventListener("input", (e)=>{
+  const input = e.target.closest(".js-invite-count");
+  if(!input) return;
 
-    const previewNum = wrapper.querySelector(".number-of-invites");
-    const counter = wrapper.querySelector(".error-init-max");
-    const errorMsg = wrapper.querySelector(".invite-error");
+  const wrapper = input.closest(".invite-task-wrapper");
+  if(!wrapper) return;
 
-    let raw = input.value.replace(/\D/g, "");
+  const previewNum = wrapper.querySelector(".number-of-invites");
+  const counter = wrapper.querySelector(".error-init-max");
+  const errorMsg = wrapper.querySelector(".invite-error");
 
-    if(raw === ""){
-      if(previewNum) previewNum.textContent = "—";
-      if(counter) counter.textContent = `0/30`;
-      if(errorMsg) errorMsg.style.display = "none";
-      return;
+  const usage = __INVITE_USAGE__ || { used: 0, limit: 30, breakdown: {} };
+  const limit = usage.limit;
+
+  const subquestUuidGlobal = (typeof subquest_uuid !== "undefined") ? subquest_uuid : null;
+  const alreadyCountedForThisSubquest = subquestUuidGlobal
+    ? (usage.breakdown[subquestUuidGlobal] || 0)
+    : 0;
+
+  const usedElsewhere = usage.used - alreadyCountedForThisSubquest;
+  const maxAllowedHere = Math.max(0, limit - usedElsewhere);
+
+  let raw = input.value.replace(/\D/g, "");
+
+  if(raw === ""){
+    if(previewNum) previewNum.textContent = "—";
+    // 🔥 nothing typed yet → total is just what's used elsewhere
+    if(counter) counter.textContent = `${usedElsewhere}/${limit}`;
+    if(errorMsg) errorMsg.style.display = "none";
+    return;
+  }
+
+  let num = parseInt(raw, 10);
+
+  /* ---------- VALIDATION ---------- */
+  if(num > maxAllowedHere){
+    if(errorMsg){
+      errorMsg.textContent = `Maximum monthly invite limit is ${limit} (only ${maxAllowedHere} left)`;
+      errorMsg.style.display = "block";
     }
+    // 🔥 clamp the display too — show the max that would actually be valid
+    if(counter) counter.textContent = `${usedElsewhere + maxAllowedHere}/${limit}`;
+    return;
+  }
 
-    let num = parseInt(raw, 10);
+  /* ---------- VALID ---------- */
+  if(errorMsg) errorMsg.style.display = "none";
 
-    /* ---------- VALIDATION ---------- */
-    if(num > 30){
+  if(previewNum) previewNum.textContent = num;
+  // 🔥 real total = other tasks' usage + this task's live value
+  if(counter) counter.textContent = `${usedElsewhere + num}/${limit}`;
 
-      // ❌ DO NOT CHANGE INPUT VALUE
-      if(errorMsg){
-        errorMsg.textContent = "Maximum monthly invite limit is 30";
-        errorMsg.style.display = "block";
+  const hidden = wrapper.querySelector(".selected-num-invites");
+  if(hidden) hidden.value = num;
+});
+
+
+  root.addEventListener("click", async (e) => {
+    const toggle = e.target.closest(".js-invite-twitter-gate");
+    if (!toggle) return;
+
+    if (toggle.checked) {
+      e.preventDefault();
+      e.stopPropagation();
+
+      let unlocked = false;
+      try {
+        const res = await fetch(`/api/community/${communitySlug}/twitter-invite-tracking-status`);
+        const data = await res.json();
+        unlocked = !!data.unlocked;
+      } catch (err) {
+        console.error("Failed to check twitter invite tracking status", err);
       }
 
-      if(counter) counter.textContent = `30/30`;
-
+      if (unlocked) {
+        toggle.checked = true;   // confirm it stays on
+      } else {
+        toggle.checked = false;  // stay off, browser already reverted anyway
+        showTwitterInviteTrackingModal();
+      }
       return;
     }
 
-    /* ---------- VALID ---------- */
-    if(errorMsg) errorMsg.style.display = "none";
-
-    if(previewNum) previewNum.textContent = num;
-    if(counter) counter.textContent = `${num}/30`;
-
-    const hidden = wrapper.querySelector(".selected-num-invites");
-    if(hidden) hidden.value = num;
   });
-
 
   /* ================= SEARCH FILTER ================= */
   if(searchInput){
@@ -8131,167 +8220,201 @@ function renderTask(task){
 
   else if (task.type === "invite") {
 
-    const numInvites = task.config?.numInvites || "";
-    const subquestName = task.config?.subquest_name || "";
-    const subquestUUID = task.config?.subquest_uuid || "";
+      const numInvites = task.config?.numInvites || "";
+      const subquestName = task.config?.subquest_name || "";
+      const subquestUUID = task.config?.subquest_uuid || "";
 
-    return `
-  <div class="container-all-contain-yinit invite-task-wrapper"
-      data-type="invite"
-      data-task-id="${task.id}"
-      style="color: var(--accent-invite)">
+      return `
+    <div class="container-all-contain-yinit invite-task-wrapper"
+        data-type="invite"
+        data-task-id="${task.id}"
+        style="color: var(--accent-invite)">
 
-    <!-- ================= CARD ================= -->
-    <div class="card-container-quest invite-task">
+      <!-- ================= CARD ================= -->
+      <div class="card-container-quest invite-task">
 
-      <div class="badge-quest">
-        <span class="badge-icon-quest">
-          ${PLATFORM_ICONS["invite"]?.icon || "✉️"}
-        </span>
-        <span>Invite</span>
-      </div>
+        <div class="badge-quest">
+          <span class="badge-icon-quest">
+            ${PLATFORM_ICONS["invite"]?.icon || "✉️"}
+          </span>
+          <span>Invite</span>
+        </div>
 
-      <div class="card-wrapper-quest">
-        <div class="card-quest">
-          <div class="content-quest invite-root">
+        <div class="card-wrapper-quest">
+          <div class="card-quest">
+            <div class="content-quest invite-root">
 
-            <div class="invite-preview-box">
-              <div class="invite-preview-desc">
-                Invite <span class="number-of-invites">${numInvites}</span> people to complete this task
+              <div class="invite-preview-box">
+                <div class="invite-preview-desc">
+                  Invite <span class="number-of-invites">${numInvites}</span> people to complete this task
+                </div>
               </div>
-            </div>
 
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
 
-    <!-- ================= POPUP OVERLAY ================= -->
-    <div class="popup-container invite-popup" role="dialog" aria-label="Invite">
+      <!-- ================= POPUP OVERLAY ================= -->
+      <div class="popup-container invite-popup is-open" role="dialog" aria-label="Invite">
 
-      <div class="popup-header">
-        <div class="telicon" style="background: var(--accent-invite)">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="#fff">
-            <path fill="#ffffff" transform="scale(0.0375)" d="M112 128C85.5 128 64 149.5 64 176C64 191.1 71.1 205.3 83.2 214.4L291.2 370.4C308.3 383.2 331.7 383.2 348.8 370.4L556.8 214.4C568.9 205.3 576 191.1 576 176C576 149.5 554.5 128 528 128L112 128zM64 260L64 448C64 483.3 92.7 512 128 512L512 512C547.3 512 576 483.3 576 448L576 260L377.6 408.8C343.5 434.4 296.5 434.4 262.4 408.8L64 260z"/>
-          </svg>
+        <div class="popup-header">
+          <div class="telicon" style="background: var(--accent-invite)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="#fff">
+              <path fill="#ffffff" transform="scale(0.0375)" d="M112 128C85.5 128 64 149.5 64 176C64 191.1 71.1 205.3 83.2 214.4L291.2 370.4C308.3 383.2 331.7 383.2 348.8 370.4L556.8 214.4C568.9 205.3 576 191.1 576 176C576 149.5 554.5 128 528 128L112 128zM64 260L64 448C64 483.3 92.7 512 128 512L512 512C547.3 512 576 483.3 576 448L576 260L377.6 408.8C343.5 434.4 296.5 434.4 262.4 408.8L64 260z"/>
+            </svg>
+          </div>
+          <div class="title">Invite</div>
+
+            <div class="liner"></div>
+
+            <div class="popup-actions">
+              <button class="js-copy-link" title="close">${ChevronSVGQ}</button>
+              <button class="js-delete-link" title="delete">${DeleteSVGQ}</button>
+            </div>
         </div>
 
-          <div class="liner"></div>
+        <div class="bottom-invite">
 
+          <div class="liners"></div>
 
-          <div class="popup-actions">
-            <button class="js-copy-link" title="close">${ChevronSVGQ}</button>
-            <button class="js-delete-link" title="delete">${DeleteSVGQ}</button>
-          </div>
-      </div>
+          <div class="invite-row">
 
-      <div class="liners"></div>
+            <!-- Number of invites -->
+            <div class="invite-text">
+              <div class="invite-title">Number of invitations required</div>
 
+              <input 
+                type="text" 
+                class="invite-num js-invite-count" 
+                style="background-color: transparent; outline: none; font-size: 14px !important; cursor: text !important;" 
+                placeholder="1" 
+                value="${numInvites}"
+              >
 
-      <div class="invite-row">
+              <p class="error-init-max">30/30</p>
 
-        <!-- Number of invites -->
-        <div class="invite-text">
-          <div class="invite-title">Number of invitations required</div>
+              <p class="invite-hint">
+                You can set any number of invites for this task, but your community has a 
+                monthly limit of <strong>30 total invites</strong>. Once the limit is reached, 
+                you won’t be able to create additional invite tasks until the next month.
+              </p>
 
-          <input 
-            type="text" 
-            class="invite-num js-invite-count" 
-            style="background-color: transparent; outline: none; font-size: 14px !important; cursor: text !important;" 
-            placeholder="1" 
-            value="${numInvites}"
-          >
+              <p class="error-quest invite-error" style="color: red; display: none;">
+                Value must be greater than zero
+              </p>
 
-          <p class="error-init-max">30/30</p>
-
-
-
-          <p class="invite-hint">
-            You can set any number of invites for this task, but your community has a 
-            monthly limit of <strong>30 total invites</strong>. Once the limit is reached, 
-            you won’t be able to create additional invite tasks until the next month.
-          </p>
-
-
-          <p class="error-quest invite-error" style="color: red; display: none;">
-            Value must be greater than zero
-          </p>
-
-        </div>
-
-
-        <!-- Quest selector -->
-        <div class="invite-text">
-
-          <div class="invite-title-row">
-            <span class="invite-title">Quest needed to count</span>
-            <span class="smalltext optional-text">Optional</span>
-          </div>
-
-          <div class="invite-dropdown">
-
-            <div class="invite-dropdown-input js-invite-dropdown">
-              <span class="selected-quest-label" style="white-space: nowrap; text-overflow: ellipsis; max-width: 80%; overflow: hidden">
-                ${subquestName || "Select Quest"}
-              </span>
-              <span class="invite-arrow">${ChevronSVGQ}</span>
             </div>
 
-            <div class="invite-quest-select">
 
-              <div class="invite-quest-panel">
+            <!-- Quest selector -->
+            <div class="invite-text">
 
-                <div class="invite-search-box">
-                  <svg viewBox="0 0 24 24" fill="none">
-                    <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
-                    <path d="M20 20L16.65 16.65" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                  </svg>
-                  <input 
-                    type="search" 
-                    class="invite-searchQuest" 
-                    placeholder="Search quest..." 
-                  />
+              <div class="invite-title-row">
+                <span class="invite-title">Quest needed to count</span>
+                <span class="smalltext optional-text">Optional</span>
+              </div>
+
+              <div class="invite-dropdown">
+
+                <div class="invite-dropdown-input js-invite-dropdown">
+                  <span class="selected-quest-label" style="white-space: nowrap; text-overflow: ellipsis; max-width: 80%; overflow: hidden">
+                    ${subquestName || "Select Quest"}
+                  </span>
+                  <span class="invite-arrow">${ChevronSVGQ}</span>
                 </div>
 
-                <div class="invite-quest-divider"></div>
+                <div class="invite-quest-select">
 
-                <!-- hidden storage -->
-                <input type="hidden" class="selected-subquest-uuid" value="${subquestUUID}">
-                <input type="hidden" class="selected-subquest-name" value="${subquestName}">
-                <input type="hidden" class="selected-num-invites" value="${numInvites}">
+                  <div class="invite-quest-panel">
 
-                <ul class="invite-quest-list">
-                  <!-- dynamically filled later -->
-                  <li class="invite-quest-item disabled">No quests loaded</li>
-                </ul>
+                    <div class="invite-search-box">
+                      <svg viewBox="0 0 24 24" fill="none">
+                        <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
+                        <path d="M20 20L16.65 16.65" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                      </svg>
+                      <input 
+                        type="search" 
+                        class="invite-searchQuest" 
+                        placeholder="Search quest..." 
+                      />
+                    </div>
 
+                    <div class="invite-quest-divider"></div>
+
+                    <!-- hidden storage -->
+                    <input type="hidden" class="selected-subquest-uuid" value="${subquestUUID}">
+                    <input type="hidden" class="selected-subquest-name" value="${subquestName}">
+                    <input type="hidden" class="selected-num-invites" value="${numInvites}">
+
+                    <ul class="invite-quest-list">
+                      <!-- dynamically filled later -->
+                      <li class="invite-quest-item disabled">No quests loaded</li>
+                    </ul>
+
+                  </div>
+                </div>
+
+              </div>
+
+              <div class="smalltext">
+                Only users who claimed this quest will be count.
+                <a href="#" style="text-decoration: underline; ">Learn More.</a>
+              </div>
+
+            </div>
+
+            <!-- XP required for invite to count -->
+            <div class="invite-text" style="margin-top:16px;">
+              <div class="invite-title">XP required for invite to count</div>
+              <div class="smalltext" style="margin-top:4px;">
+                Update your invite requirements for your community in
+                <a href="/community/${communitySlug}/settings/security"
+                  style="text-decoration: underline; cursor: pointer; color: inherit;">
+                  settings.
+                </a>
               </div>
             </div>
 
-          </div>
+            <div class="mutiplespacing"
+                style="
+                  margin-top:16px;
+                  padding:14px 16px;
+                  border:1px solid var(--border);
+                  border-radius:14px;
+                  background:rgba(255,255,255,0.03);
+                  display:flex;
+                  align-items:flex-start;
+                  justify-content:space-between;
+                  gap:16px;
+                ">
+              <div class="text">
+                <div class="title" style="font-size:14px; font-weight:600; margin-bottom:4px;">
+                  Require X (Twitter) match
+                </div>
+                <div class="description" style="font-size:12px; color:var(--text-muted); line-height:1.5;">
+                  Only count invited users who were tagged in your tracked X post and have connected their X account.
+                </div>
+              </div>
 
-          <div class="smalltext">
-            Only users who claimed this quest will be count.
-            <a href="#" style="text-decoration: underline; ">Learn More.</a>
-          </div>
-
-        </div>
-
-
-        <div class="invite-text-topper">
-          <div class="invite-title">XP required for invite to count</div>
-          <div class="smalltext">
-            Update your invite requirements for your community in 
-            <a href="/community/${communitySlug}/settings/security" style="text-decoration: underline; ; cursor: pointer">settings.</a>
+              <label class="switch" style="flex-shrink:0; margin-top:2px;">
+                <input
+                  type="checkbox"
+                  class="js-invite-twitter-gate"
+                  data-task-id="${task.id}"
+                  ${task.config?.require_twitter_match ? "checked" : ""}
+                >
+                <span class="slider"></span>
+              </label>
+            </div>
           </div>
         </div>
 
       </div>
-    </div>
 
-  </div>
-  `;
+    </div>
+    `;
   }
  
   else if (task.type === "p.o.h") {
@@ -8512,7 +8635,44 @@ async function blobToBase64(blobUrl) {
 }
 
 
+function showTwitterInviteTrackingModal() {
+  const existing = document.getElementById("twitterInviteGateModal");
+  if (existing) {
+    existing.classList.add("show");
+    return;
+  }
 
+  const modal = document.createElement("div");
+  modal.className = "modal-backdrop";
+  modal.id = "twitterInviteGateModal";
+
+  modal.innerHTML = `
+    <div class="modal-glass">
+      <h3 style="font-size:16px">Set up X tracking first</h3>
+      <p>
+        This option matches invited users against people tagged in one of your
+        community's X (Twitter) posts. To unlock it, add a <strong>URL task</strong> 
+        pointing to an X post and turn on 
+        <strong>"Track invites from mentions"</strong> in that task's settings.
+      </p>
+      <p style="margin-top:10px; opacity:.75;">
+        Once that's live, come back here and this toggle will be available.
+      </p>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+  requestAnimationFrame(() => modal.classList.add("show"));
+
+  const handleOutsideClick = (e) => {
+    if (e.target === modal) {
+      modal.classList.remove("show");
+      setTimeout(() => modal.remove(), 200);
+      document.removeEventListener("click", handleOutsideClick);
+    }
+  };
+  document.addEventListener("click", handleOutsideClick);
+}
 
 
 
@@ -8985,6 +9145,9 @@ if (mode === "space") {
       if(num) config.numInvites = parseInt(num);
       if(uuid) config.subquest_uuid = uuid;
       if(name) config.subquest_name = name;
+
+      config.require_twitter_match =
+        wrapper.querySelector('.js-invite-twitter-gate')?.checked || false;
     }
 
     /* ============================

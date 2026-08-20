@@ -820,6 +820,72 @@
     dd.classList.remove("open");
   }
 
+  function initPrivateCommunityInvitePerm() {
+    const privateToggle = document.getElementById("privateCommunityToggle");
+    const chevronRow = document.getElementById("invitePermChevronRow");
+    const chevronBtn = document.getElementById("invitePermChevronBtn");
+    const panel = document.getElementById("invitePermPanel");
+    const hiddenInput = document.getElementById("invitePermissionInput");
+    const options = document.querySelectorAll(".invite-perm-option");
+
+    if (!privateToggle || !chevronRow || !panel) return;
+
+    // show/hide the whole chevron row based on private_community toggle
+    privateToggle.addEventListener("change", () => {
+      chevronRow.style.display = privateToggle.checked ? "flex" : "none";
+
+      if (!privateToggle.checked) {
+        panel.classList.remove("open");
+        chevronBtn.classList.remove("open");
+        chevronBtn.setAttribute("aria-expanded", "false");
+      }
+    });
+
+    // toggle expand/collapse
+    const toggleChevron = () => {
+      const isOpen = panel.classList.toggle("open");
+      chevronBtn.classList.toggle("open", isOpen);
+      chevronBtn.setAttribute("aria-expanded", isOpen ? "true" : "false");
+    };
+
+    chevronRow.addEventListener("click", toggleChevron);
+
+    // reflect saved value on load
+    const currentValue = hiddenInput.value || "members";
+    options.forEach(opt => {
+      opt.classList.toggle("selected", opt.dataset.value === currentValue);
+    });
+
+    // selecting an option
+    options.forEach(opt => {
+      opt.addEventListener("click", () => {
+        options.forEach(o => o.classList.remove("selected"));
+        opt.classList.add("selected");
+
+        const value = opt.dataset.value;
+        hiddenInput.value = value;
+
+        // save immediately, same pattern as the other toggles
+        fetch("{{ url_for('toggle_setting', community_slug=community_slug) }}", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken },
+          body: JSON.stringify({
+            field: "invite_permission",
+            value: value
+          })
+        })
+        .then(r => r.json())
+        .then(data => {
+          if (!data.success) {
+            showToast(data.error || "Failed to update invite permission");
+          }
+        })
+        .catch(() => {
+          showToast("Failed to save — check your connection");
+        });
+      });
+    });
+  }
 
   function functionMintSecurity() {
 
@@ -846,7 +912,28 @@
       });
     });
 
+    document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+      if (checkbox.closest('.notify-card')) return;  
 
+      checkbox.addEventListener('change', function () {
+        fetch("{{ url_for('toggle_setting', community_slug=community_slug) }}", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken },
+          body: JSON.stringify({
+            field: this.name,
+            value: this.checked
+          })
+        })
+        .then(r => r.json())
+        .then(data => {
+          if (!data.success) {
+            alert(data.error || "Failed to update setting");
+            this.checked = !this.checked;
+          }
+        });
+      });
+    });
+    
     const xpInput = document.querySelector('.xp-input');
     const errorMsg = document.querySelector('.error-msg');
     let debounceTimer;
@@ -868,19 +955,16 @@
           .then(r => r.json())
           .then(data => {
             if (!data.success) {
-              // validation failure — keep the inline message, it's accurate here
-              input.style.border = "1px solid #ff4d4d";
+              input.style.borderColor = "#ff4d4d";
               errorMsg.style.display = "inline";
             } else {
-              // success — actually hide it this time
-              input.style.border = "0.1px solid #cccccc57";
+              input.style.borderColor = "var(--border)";
               errorMsg.style.display = "none";
             }
           })
           .catch(() => {
-            // network failure — different problem, different message
-            input.style.border = "1px solid #ff4d4d";
-            errorMsg.style.display = "none"; // don't show "Invalid number" for a network issue
+            input.style.borderColor = "ff4d4d";
+            errorMsg.style.display = "none"; 
             showError("Failed to save — check your connection");
           });
         }, 400);
@@ -897,6 +981,8 @@
         toggleDiscordNotification(el, notifType)
       );
     });
+
+    initPrivateCommunityInvitePerm();
 
 
   }

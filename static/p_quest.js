@@ -4,6 +4,8 @@ let controller = null;
 async function LetsitQuestUp() {
   controller?.abort();
   controller = new AbortController();
+  bindShowInviteDelegate();
+
   document.addEventListener("click", async (e) => {
     const claimBtn = e.target.closest("#claim-task");
     if (!claimBtn) return;
@@ -2922,65 +2924,11 @@ function destroyInviteOverlay(){
   });
 }
 
+let __showInviteBound = false;
 
-function initInviteModal(overlay){
-
-  if(!overlay) return;
-
-  const inviteTabs     = overlay.querySelectorAll('.invite-tab');
-  const inviterContent = overlay.querySelector('.invite-content');
-  const closeBtn       = overlay.querySelector("#closeModalBtn");
-
-async function loadInviterContent(url, tab){
-  inviterContent.innerHTML = "Loading...";
-
-  try{
-    const res = await fetch(url);
-
-    if(!res.ok){
-      throw new Error("HTTP error " + res.status);
-    }
-
-    const html = await res.text();
-    inviterContent.innerHTML = html;
-
-    // ✅ safe calls
-    if(typeof initCopyButtons === "function"){
-      initCopyButtons();
-    }
-
-    if(typeof initSubquestRedirects === "function"){
-      initSubquestRedirects();
-    }
-
-  }catch(e){
-    console.error("Invite load error:", e);
-    inviterContent.innerHTML = "Error loading invites.";
-  }
-
-  inviteTabs.forEach(t=>t.classList.remove("invite-active"));
-  if(tab) tab.classList.add("invite-active");
-}
-
-
-  /* Tabs */
-  inviteTabs.forEach(tab=>{
-    tab.addEventListener("click", ()=>{
-      loadInviterContent(tab.dataset.url, tab);
-    });
-  });
-
-  /* Close */
-  closeBtn.addEventListener("click", ()=>{
-    destroyInviteOverlay(); // 💥 destroy
-  });
-
-  /* Click outside */
-  overlay.addEventListener("click",(e)=>{
-    if(e.target === overlay){
-      destroyInviteOverlay(); // 💥 destroy
-    }
-  });
+function bindShowInviteDelegate(){
+  if(__showInviteBound) return;
+  __showInviteBound = true;
 
   document.addEventListener("click", (e)=>{
     const btn = e.target.closest(".show-invite");
@@ -2995,18 +2943,65 @@ async function loadInviterContent(url, tab){
     const taskId = inviteCard.dataset.taskId;
     if(!taskId) return;
 
-    // 💥 destroy any existing overlay
     destroyInviteOverlay();
 
-    // 🆕 create fresh overlay
     const overlay = createInviteOverlay(communitySlug, taskId);
+    initInviteModal(overlay);   // no longer re-binds the document listener
 
-    // init modal logic
-    initInviteModal(overlay);
-
-    // 👁 show
     overlay.style.display = "flex";
   });
+}
+
+function initInviteModal(overlay){
+
+  if(!overlay) return;
+
+  const inviteTabs     = overlay.querySelectorAll('.invite-tab');
+  const inviterContent = overlay.querySelector('.invite-content');
+  const closeBtn       = overlay.querySelector("#closeModalBtn");
+
+  async function loadInviterContent(url, tab){
+    inviterContent.innerHTML = "Loading...";
+
+    try{
+      const res = await fetch(url);
+      if(!res.ok) throw new Error("HTTP error " + res.status);
+
+      const html = await res.text();
+      inviterContent.innerHTML = html;
+
+      if(typeof initCopyButtons === "function") initCopyButtons();
+      if(typeof initSubquestRedirects === "function") initSubquestRedirects();
+
+    }catch(e){
+      console.error("Invite load error:", e);
+      inviterContent.innerHTML = "Error loading invites.";
+    }
+
+    inviteTabs.forEach(t=>t.classList.remove("invite-active"));
+    if(tab) tab.classList.add("invite-active");
+  }
+
+  /* Tabs */
+  inviteTabs.forEach(tab=>{
+    tab.addEventListener("click", ()=>{
+      loadInviterContent(tab.dataset.url, tab);
+    });
+  });
+
+  /* Close */
+  closeBtn.addEventListener("click", ()=>{
+    destroyInviteOverlay();
+  });
+
+  /* Click outside */
+  overlay.addEventListener("click",(e)=>{
+    if(e.target === overlay){
+      destroyInviteOverlay();
+    }
+  });
+
+  // 🔥 REMOVED — the .show-invite document listener that used to live here
 
   // load default tab
   const defaultUrl = inviteTabs[0].dataset.url;
@@ -3978,10 +3973,71 @@ else if (task.type === "puzzle") {
     const subquestName = task.config?.subquest_name || null;
     const subquestUUID = task.config?.subquest_uuid || null;
 
+    const requireTwitterMatch = !!task.config?.require_twitter_match;
+
     const questUUID = task.quest_uuid || "";
 
 
     const inviteLink = `${window.location.origin}/${communitySlug}/invite/${inviteCode}`;
+
+    // 🔥 dynamic step numbering — blocks 1 & 2 are always shown,
+    // so conditional blocks pick up numbering from 3 onward,
+    // adjusting automatically based on which ones are actually present
+    let stepNum = 3;
+
+    const subquestBlock = (subquestName && subquestUUID) ? `
+      <div class="content-block-quest">
+        <div class="text-bold">
+          ${stepNum++}. Complete "${subquestName}" quest
+        </div>
+        <div class="text-small-invite">
+          Complete 
+          <a class="subquest-named"
+            href="/${communitySlug}/quest/${questUUID}/${subquestUUID}">
+            ${subquestName}
+            <svg xmlns="http://www.w3.org/2000/svg" 
+                width="13" height="13" 
+                fill="none" 
+                viewBox="0 0 24 24" 
+                stroke-width="1.5" 
+                stroke="currentColor" 
+                class="icon-inline">
+              <path stroke-linecap="round" stroke-linejoin="round" 
+                d="M9 8.25H7.5a2.25 2.25 0 0 0-2.25 2.25v9a2.25 2.25 0 0 0 2.25 2.25h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25H15m0-3-3-3m0 0-3 3m3-3V15" />
+            </svg>
+          </a>  
+          quest to count for this quest.
+        </div>
+      </div>
+    ` : ``;
+
+    const twitterBlock = requireTwitterMatch ? `
+      <div class="content-block-quest">
+        <div class="text-bold">
+          ${stepNum++}. Tag & connect on X
+        </div>
+        <div class="text-small-invite">
+          Tag your friends' X handles in a post using the
+          <span class="xp-together">URL task</span> (may be on a different quest) —
+          each tagged friend must then join this community and
+          connect their X account in
+          <a class="subquest-named" href="/settings/linked-accounts">
+            settings
+            <svg xmlns="http://www.w3.org/2000/svg" 
+                width="13" height="13" 
+                fill="none" 
+                viewBox="0 0 24 24" 
+                stroke-width="1.5" 
+                stroke="currentColor" 
+                class="icon-inline">
+              <path stroke-linecap="round" stroke-linejoin="round" 
+                d="M9 8.25H7.5a2.25 2.25 0 0 0-2.25 2.25v9a2.25 2.25 0 0 0 2.25 2.25h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25H15m0-3-3-3m0 0-3 3m3-3V15" />
+            </svg>
+          </a>
+          — otherwise the invite won't count.
+        </div>
+      </div>
+    ` : ``;
 
     return `
   <div class="card-container-quest invite-task"
@@ -4053,35 +4109,8 @@ else if (task.type === "puzzle") {
               </div>
             </div>
 
-            ${
-              subquestName && subquestUUID
-              ? `
-              <div class="content-block-quest">
-                <div class="text-bold">
-                  3. Complete "${subquestName}" quest
-                </div>
-                <div class="text-small-invite">
-                  Complete 
-                  <a class="subquest-named"
-                    href="/${communitySlug}/quest/${questUUID}/${subquestUUID}">
-                    ${subquestName}
-                    <svg xmlns="http://www.w3.org/2000/svg" 
-                        width="13" height="13" 
-                        fill="none" 
-                        viewBox="0 0 24 24" 
-                        stroke-width="1.5" 
-                        stroke="currentColor" 
-                        class="icon-inline">
-                      <path stroke-linecap="round" stroke-linejoin="round" 
-                        d="M9 8.25H7.5a2.25 2.25 0 0 0-2.25 2.25v9a2.25 2.25 0 0 0 2.25 2.25h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25H15m0-3-3-3m0 0-3 3m3-3V15" />
-                    </svg>
-                  </a>  
-                  quest to count for this quest.
-                </div>
-              </div>
-              `
-              : ``
-            }
+            ${subquestBlock}
+            ${twitterBlock}
 
           </div>
 

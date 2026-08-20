@@ -136,6 +136,7 @@ from backend.utils.utils import (
 from backend.notifications.notifications import increment_review_notification
 from backend.utils.scheduler import check_and_update_invite_status
 from backend.quests.check_analytics import generate_all_insights
+from backend.quests.invite_validation import invited_user_is_valid
 from backend.utils.upload_service import upload_async, send_push_notification_async, send_discord_message_async
 import backend.utils.ai_init as ai_init
 
@@ -3370,6 +3371,13 @@ def send_delete_otp():
 def public_communities():
     communities = (
         Community.query
+        .outerjoin(CommunitySecurity, Community.id == CommunitySecurity.community_id)
+        .filter(
+            db.or_(
+                CommunitySecurity.private_community.is_(None),
+                CommunitySecurity.private_community == False
+            )
+        )
         .order_by(Community.created_at.desc())
         .all()
     )
@@ -4543,7 +4551,7 @@ def next(community_slug):
     # GET: pre-select previously saved option
     selected_option = None
     if (
-        sec.private_community and sec.consume_invites and sec.require_wallet
+        sec.private_community and sec.require_wallet
         and sec.require_discord and sec.require_twitter
     ):
         selected_option = "bot"
@@ -4579,7 +4587,6 @@ def next_api(community_slug):
         return jsonify({"error": "no_option"}), 400
 
     sec.private_community = False
-    sec.consume_invites = False
     sec.require_wallet = False
     sec.require_discord = False
     sec.require_twitter = False
@@ -4587,7 +4594,6 @@ def next_api(community_slug):
     # Apply option
     if selected_option == "bot":
         sec.private_community = True
-        sec.consume_invites = True
         sec.require_wallet = True
 
     elif selected_option == "social":
@@ -9108,6 +9114,29 @@ def clear_invite_session():
     session.pop("invite_code", None)
 
 
+@app.route("/api/community/<community_slug>/twitter-invite-tracking-status")
+@login_required
+def twitter_invite_tracking_status(community_slug):
+    community = Community.query.filter_by(slug=community_slug).first_or_404()
+
+    url_tasks = (
+        Task.query
+        .join(Subquest, Task.subquest_id == Subquest.id)
+        .join(Quest, Subquest.quest_id == Quest.id)
+        .filter(
+            Quest.community_id == community.id,
+            Task.type == "url",
+        )
+        .all()
+    )
+
+    unlocked = any(
+        (task.config or {}).get("track_invites") is True
+        for task in url_tasks
+    )
+
+    return jsonify({"unlocked": unlocked})
+
 @app.route("/<string:community_slug>/team_invite/<string:limited_code>")
 def team_invite(community_slug, limited_code):
     community = Community.query.filter_by(slug=community_slug).first_or_404()
@@ -12546,14 +12575,12 @@ def settings_integrations(community_slug):
 
 
 
-
 @app.route('/<community_slug>/toggle_setting', methods=['POST'])
 @login_required
 @community_not_deleted()
 def toggle_setting(community_slug):
     community = Community.query.filter_by(slug=community_slug).first_or_404()
     user_id = current_user.id if current_user.is_authenticated else None
-
 
     if not has_role(user_id, community.id, "admin"):
         return jsonify({"success": False, "error": "Not authorized"}), 403
@@ -12569,19 +12596,45 @@ def toggle_setting(community_slug):
     if not hasattr(sec, field):
         return jsonify({"success": False, "error": "Invalid field"}), 400
 
-    # Boolean fields
-    if field != "xp_for_valid_invite":
-        value = bool(value)
-    else:
+    if field == "invite_permission":
+        if value not in ("members", "admins_only"):
+            return jsonify({"success": False, "error": "Invalid invite permission"}), 400
+
+    # Integer field
+    elif field == "xp_for_valid_invite":
         try:
             value = int(value)
-        except ValueError:
+        except (ValueError, TypeError):
             return jsonify({"success": False, "error": "Invalid number"}), 400
 
+    # Everything else — boolean
+    else:
+        value = bool(value)
+
     setattr(sec, field, value)
+
+    if field == "private_community" and value is False:
+        sec.invite_permission = "members"
+
+    # 🔒 If invite_permission is being set to admins_only, draft out
+    # every published subquest in this community that has an invite task
+    if field == "invite_permission" and value == "admins_only":
+        subquests_with_invite = (
+            Subquest.query
+            .join(Quest, Subquest.quest_id == Quest.id)
+            .join(Task, Task.subquest_id == Subquest.id)
+            .filter(Quest.community_id == community.id)
+            .filter(Task.type == "invite")
+            .filter(Subquest.is_draft == False)
+            .distinct()
+            .all()
+        )
+
+        for sq in subquests_with_invite:
+            sq.is_draft = True
+
     db.session.commit()
     return jsonify({"success": True})
-
 
 @app.route(
     "/api/community/<community_slug>/discord/notification",
@@ -15030,6 +15083,23 @@ def get_roles_and_level(community_id):
         "discord_roles": discord_roles
     }
 
+@app.get("/api/community/<community_slug>/invite-usage")
+@login_required
+def get_community_invite_usage(community_slug):
+    community = Community.query.filter_by(slug=community_slug).first_or_404()
+
+    now = datetime.utcnow()
+    usage = CommunityInviteUsage.query.filter_by(
+        community_id=community.id,
+        year=now.year,
+        month=now.month
+    ).first()
+
+    return jsonify({
+        "used": usage.invite_count if usage else 0,
+        "limit": community.invite_limit_per_month or 30,
+        "breakdown": usage.subquest_invites if usage else {}
+    })
 
 
 @app.route('/<community_slug>/quest/admin/<string:quest_uuid>/<string:subquest_uuid>')
@@ -15048,7 +15118,6 @@ def subquest_detail(community_slug, quest_uuid, subquest_uuid):
         .all()
     )
     subquest = Subquest.query.filter_by(uuid=subquest_uuid, quest_id=quest.id).first_or_404()
- 
 
     now = datetime.utcnow()
 
@@ -15059,41 +15128,34 @@ def subquest_detail(community_slug, quest_uuid, subquest_uuid):
             Sprint.start_date <= now,
             Sprint.end_date >= now
         )
-        .order_by(Sprint.start_date.desc())  # latest started sprint
+        .order_by(Sprint.start_date.desc())
         .first()
     )
 
-    
-    # ✅ Fetch rewards
     ever_had_rewards = db.session.query(SubquestReward.id).filter_by(subquest_id=subquest.id).first() is not None
 
-
-    # ✅ Permission check
     user_id = current_user.id if current_user.is_authenticated else None
 
     if not has_role(user_id, community.id, "editor"):
         flash("Access denied: Only editors/admins can view this subquest.", "error")
         return redirect(url_for("p_quest", community_slug=community.slug))
 
-    # ✅ Fetch discord roles for this community (if bot connected)
     discord_connected = False
     if DiscordGuild.query.filter_by(community_id=community.id, bot_joined=True).first():
         discord_connected = True
-
 
     invite = InvitationCode.query.filter_by(
         user_id=user.id,
         community_id=community.id
     ).first()
 
- 
     community_list_visible = session.get("community_list_visible", True)
     usersettings_states = session.get("usersettings_states", {})
     settingsinfo_visible = usersettings_states.get(str(community.id), True)
-  
 
-
-
+    security = CommunitySecurity.query.filter_by(community_id=community.id).first()
+    invite_permission = security.invite_permission if security else "members"
+    can_add_invite_task = invite_permission != "admins_only"
 
     if request.headers.get("X-Partial"):
         return render_template(
@@ -15108,12 +15170,12 @@ def subquest_detail(community_slug, quest_uuid, subquest_uuid):
             quest=quest,
             discord_connected=discord_connected,
             subquest=subquest,
-            current_sprint=current_sprint
+            current_sprint=current_sprint,
+            can_add_invite_task=can_add_invite_task,   # 🔥 NEW
         )
 
-    
     total_xp = get_total_xp(user.id, community.id)
-    level_data = get_level(total_xp)    
+    level_data = get_level(total_xp)
 
     latest_sprint = get_latest_valid_sprint(community.id)
     return render_template(
@@ -15130,10 +15192,9 @@ def subquest_detail(community_slug, quest_uuid, subquest_uuid):
         quest=quest,
         discord_connected=discord_connected,
         subquest=subquest,
-        current_sprint=current_sprint
+        current_sprint=current_sprint,
+        can_add_invite_task=can_add_invite_task,   # 🔥 NEW
     )
-
-
 
 
 
@@ -15533,6 +15594,16 @@ def publish_subquest(community_slug):
             num = max(0, num)
             invite_total += num
             task["config"]["numInvites"] = num
+
+    if has_invite_task:
+        security = CommunitySecurity.query.filter_by(community_id=community.id).first()
+        invite_permission = security.invite_permission if security else "members"
+
+        if invite_permission == "admins_only":
+            return jsonify({
+                'success': False,
+                'error': 'Invite tasks are turned off for this community. Turn off "Admins only" in community settings to use the invite task.'
+            }), 400
 
     # ──────────────────────────────────────────────────────────────
     # 📨 TELEGRAM TASK RESOLUTION
@@ -20815,70 +20886,52 @@ def claim_subquest(subquest_id):
             }
 
 
-
         elif task.type == "invite":
+            from backend.quests.invite_validation import invited_user_is_valid
+
             community_id = task.config.get("community_id") or task.subquest.quest.community_id
-            security = CommunitySecurity.query.filter_by(community_id=community_id).first()
+            config = task.config or {}
+            required_invites = config.get("numInvites", 1)
 
-            required_invites = task.config.get("numInvites", 1)
-            is_valid = False
-            cleaned_input["invite"] = {}
-
-            if security and security.consume_invites:
-                # Get all invite logs by this user in the community
-                logs = CommunityInviteLog.query.filter_by(
-                    inviter_user_id=user.id,
-                    community_id=community_id
-                ).order_by(CommunityInviteLog.created_at.asc()).all()
-
-                logging.info(f"User {user.id} has {len(logs)} invites in community {community_id}.")
-
-                if len(logs) >= required_invites:
-                    to_consume_logs = logs[:required_invites]
-
-                    for log in to_consume_logs:
-                        # Mark all tasks under this log as consumed
-                        for ct in log.invite_tasks:
-                            ct.status = "consumed"
-                            ct.completed_at = datetime.utcnow()
-                            db.session.add(ct)
-
-                        log.status = "consumed"
-                        log.consumed_at = datetime.utcnow()
-                        db.session.add(log)
-
-                    db.session.commit()
-                    logging.info(f"✅ Consumed {len(to_consume_logs)} invite logs and their tasks for inviter {user.id} in community {community_id}")
-                    is_valid = True
-                else:
-                    is_valid = False
-                    errors[task.id] = f"Invite {required_invites - len(logs)} more friends to claim."
-
-            else:
-                # 🚀 consume_invites = False → just check count, don’t consume
-                invited_count = CommunityInviteLog.query.filter_by(
-                    inviter_user_id=user.id,
-                    community_id=community_id
-                ).count()
-
-                if invited_count >= required_invites:
-                    is_valid = True
-                    logging.info(f"✅ User {user.id} validated invite task with {invited_count}/{required_invites} invites (consume disabled).")
-                else:
-                    is_valid = False
-                    errors[task.id] = f"Invite {required_invites - invited_count} more friends to claim."
-
-            # Update cleaned input for frontend
-            invited_count = CommunityInviteTask.query.join(CommunityInviteLog).filter(
+            logs = CommunityInviteLog.query.filter(
                 CommunityInviteLog.inviter_user_id == user.id,
                 CommunityInviteLog.community_id == community_id,
-                CommunityInviteTask.status.in_(["pending", "active"])
-            ).count()
+                CommunityInviteLog.status != "consumed"
+            ).order_by(CommunityInviteLog.created_at.asc()).all()
 
-            cleaned_input["invite"] = {
-                "invited_count": invited_count,
-                "required": required_invites
-            }
+            valid_logs = [
+                log for log in logs
+                if invited_user_is_valid(config, log.invited_user_id, community_id)
+            ]
+
+            if len(valid_logs) >= required_invites:
+                is_valid = True
+
+                to_consume = valid_logs[:required_invites]
+
+                for log in to_consume:
+                    for ct in log.invite_tasks:
+                        ct.status = "consumed"
+                        ct.completed_at = datetime.utcnow()
+                        db.session.add(ct)
+
+                    log.status = "consumed"
+                    log.consumed_at = datetime.utcnow()
+                    db.session.add(log)
+
+                cleaned_input["invite"] = {
+                    "invited_count": len(to_consume),  
+                    "required": required_invites,
+                    "consumed": len(to_consume)
+                }
+            else:
+                is_valid = False
+                errors[task.id] = f"Invite {required_invites - len(valid_logs)} more friends who meet the requirement to claim."
+                cleaned_input["invite"] = {
+                    "invited_count": len(valid_logs), 
+                    "required": required_invites
+                }
+
 
         elif task.type == "visit-link":
             is_valid = True
@@ -28178,6 +28231,7 @@ class CommunitySecurityAdmin(BaseAdmin):
         'community_id',
         'community_name',
         'private_community',
+        'invite_permission',
         'xp_for_valid_invite',
         'consume_invites',
         'require_wallet',
@@ -28193,6 +28247,7 @@ class CommunitySecurityAdmin(BaseAdmin):
         'community_id': 'Community ID',
         'community_name': 'Community Name',
         'private_community': 'Private?',
+        'invite_permission': 'Invite Permission',
         'xp_for_valid_invite': 'XP per Invite',
         'consume_invites': 'Consume Invites?',
         'require_wallet': 'Require Wallet',
@@ -28205,6 +28260,7 @@ class CommunitySecurityAdmin(BaseAdmin):
 
     form_columns = (
         'private_community',
+        'invite_permission',
         'xp_for_valid_invite',
         'consume_invites',
         'require_wallet',
@@ -31535,4 +31591,4 @@ if __name__ == "__main__":
     )
     scheduler.start()
 
-    socketio.run(app, host="0.0.0.0", port=8000)
+    socketio.run(app, host="0.0.0.0", port=8000, debug=True)

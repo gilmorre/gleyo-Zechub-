@@ -830,18 +830,66 @@
 
     if (!privateToggle || !chevronRow || !panel) return;
 
-    // show/hide the whole chevron row based on private_community toggle
-    privateToggle.addEventListener("change", () => {
-      chevronRow.style.display = privateToggle.checked ? "flex" : "none";
+    function saveInvitePermission(value) {
+      fetch("{{ url_for('toggle_setting', community_slug=community_slug) }}", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken },
+        body: JSON.stringify({
+          field: "invite_permission",
+          value: value
+        })
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (!data.success) {
+          showToast(data.error || "Failed to update invite permission");
+        }
+      })
+      .catch(() => {
+        showToast("Failed to save — check your connection");
+      });
+    }
 
-      if (!privateToggle.checked) {
-        panel.classList.remove("open");
-        chevronBtn.classList.remove("open");
-        chevronBtn.setAttribute("aria-expanded", "false");
+    function selectOption(value) {
+      options.forEach(o => o.classList.toggle("selected", o.dataset.value === value));
+      hiddenInput.value = value;
+    }
+
+    function closePanel() {
+      panel.classList.remove("open");
+      chevronBtn.classList.remove("open");
+      chevronBtn.setAttribute("aria-expanded", "false");
+    }
+
+    privateToggle.addEventListener("change", () => {
+      if (privateToggle.checked) {
+        // turning ON — show the chevron row right away, panel stays closed until clicked
+        chevronRow.style.display = "flex";
+        return;
+      }
+
+      // turning OFF — close panel first, THEN hide the row once it's done animating,
+      // so the row doesn't disappear out of sync with the panel collapsing
+      const wasOpen = panel.classList.contains("open");
+      closePanel();
+
+      const hideRow = () => { chevronRow.style.display = "none"; };
+
+      if (wasOpen) {
+        panel.addEventListener("transitionend", hideRow, { once: true });
+        // fallback in case there's no transition defined / it doesn't fire
+        setTimeout(hideRow, 250);
+      } else {
+        hideRow();
+      }
+
+      // force invite_permission back to "members" when private community is turned off
+      if (hiddenInput.value !== "members") {
+        selectOption("members");
+        saveInvitePermission("members");
       }
     });
 
-    // toggle expand/collapse
     const toggleChevron = () => {
       const isOpen = panel.classList.toggle("open");
       chevronBtn.classList.toggle("open", isOpen);
@@ -851,42 +899,16 @@
     chevronRow.addEventListener("click", toggleChevron);
 
     // reflect saved value on load
-    const currentValue = hiddenInput.value || "members";
-    options.forEach(opt => {
-      opt.classList.toggle("selected", opt.dataset.value === currentValue);
-    });
+    selectOption(hiddenInput.value || "members");
 
-    // selecting an option
     options.forEach(opt => {
       opt.addEventListener("click", () => {
-        options.forEach(o => o.classList.remove("selected"));
-        opt.classList.add("selected");
-
         const value = opt.dataset.value;
-        hiddenInput.value = value;
-
-        // save immediately, same pattern as the other toggles
-        fetch("{{ url_for('toggle_setting', community_slug=community_slug) }}", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken },
-          body: JSON.stringify({
-            field: "invite_permission",
-            value: value
-          })
-        })
-        .then(r => r.json())
-        .then(data => {
-          if (!data.success) {
-            showToast(data.error || "Failed to update invite permission");
-          }
-        })
-        .catch(() => {
-          showToast("Failed to save — check your connection");
-        });
+        selectOption(value);
+        saveInvitePermission(value);
       });
     });
   }
-
   function functionMintSecurity() {
 
     /* ================= COMMUNITY SECURITY TOGGLES ================= */

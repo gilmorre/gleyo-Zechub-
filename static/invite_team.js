@@ -1,6 +1,8 @@
 
 (function () {
 
+let currentIsLimited = false;
+let currentCode = null;
 
 
   
@@ -180,7 +182,6 @@ function checkEmptyState() {
   const roleToggle = modal.querySelector(".invite-user-dropdown");
   const roleSpan = roleToggle.querySelector("span");
   const copyLinkBtn = modal.querySelector(".invite-btn.copy-link-btn");
-  let currentCode = null;
 
   const inviterUserId = 1; 
   const inviterUsername = "nuce"; // current username
@@ -225,6 +226,7 @@ function checkEmptyState() {
       const data = await res.json();
       if (data.success) {
         currentCode = data.code;
+        currentIsLimited = data.is_limited;   
       } else {
         console.error("Error generating code:", data.error);
       }
@@ -234,6 +236,7 @@ function checkEmptyState() {
       restoreButton(copyLinkBtn);
     }
   };
+
 
 
   // --- Open modal & generate code ---
@@ -299,9 +302,15 @@ copyLinkBtn.addEventListener("click", async () => {
   const slug = communitySlug;
   const role = roleToggle.getAttribute("data-selected-role") || "editor";
 
-  const url = role === "member"
-    ? `https://gleyo.app/${slug}/invite/${currentCode}`
-    : `https://gleyo.app/${slug}/team_invite/${currentCode}`;
+  let url;
+  if (role === "member") {
+    url = currentIsLimited
+      ? `http://127.0.0.1:8000/${slug}/invite/${currentCode}?private`
+      : `http://127.0.0.1:8000/${slug}/invite/${currentCode}`;
+  } else {
+    url = `http://127.0.0.1:8000/${slug}/team_invite/${currentCode}`;
+  }
+
 
   try {
     await navigator.clipboard.writeText(url);

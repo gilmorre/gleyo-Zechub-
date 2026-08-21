@@ -5395,23 +5395,25 @@ def inbox(community_slug):
     user_communities = get_user_communities(user.id)
 
     user_id = current_user.id
-    
 
     community = Community.query.filter_by(slug=community_slug).first()
     if not community:
         abort(404)
 
+    # 🔒 NEW — private community gate
+    private_ctx = get_private_access_context(user_id, community, came_from_invite=False)
 
     if request.headers.get("X-Partial"):
         return render_template(
             "inbox.html",
             user=user,
             community=community,
+            private_locked=private_ctx["private_locked"],   # 🔒 NEW
         )
-    
+
     total_xp = get_total_xp(user.id, community.id)
-    level_data = get_level(total_xp)   
-    latest_sprint = get_latest_valid_sprint(community.id) 
+    level_data = get_level(total_xp)
+    latest_sprint = get_latest_valid_sprint(community.id)
     return render_template(
         'your_community.html',
         user=user,
@@ -5419,9 +5421,8 @@ def inbox(community_slug):
         community_tuples=user_communities,
         latest_sprint=latest_sprint,
         community=community,
+        private_locked=private_ctx["private_locked"],   # 🔒 NEW
     )
-
-
 
 @app.route('/community/<int:community_id>/update_role', methods=['POST'])
 @login_required
@@ -5538,31 +5539,38 @@ def generate_invite_code_route(community_slug):
     if not community:
         return jsonify({"success": False, "error": "Invalid community"}), 400
 
+    if not has_role(current_user.id, community.id, "admin"):
+        return jsonify({"error": "forbidden"}), 403
+
     data = request.json
     role = (data.get("role") or "Member").lower()
     inviter_user_id = current_user.id
     inviter_username = current_user.username
 
-    # --- If role is "member", fetch an existing InvitationCode ---
-    if role == "member":
+    security = CommunitySecurity.query.filter_by(community_id=community.id).first()
+    is_private = security.private_community if security else False
+    invite_permission = security.invite_permission if security else "members"
+
+    force_limited = is_private and invite_permission == "admins_only" and role == "member"
+
+    if role == "member" and not force_limited:
         existing_code = InvitationCode.query.filter_by(
-            user_id=inviter_user_id, 
+            user_id=inviter_user_id,
             community_id=community.id
         ).first()
 
-        # If none exists, create one
         if not existing_code:
             existing_code = InvitationCode(user_id=inviter_user_id, community_id=community.id)
             db.session.add(existing_code)
             db.session.commit()
 
         code_to_return = existing_code.code
+        is_limited = False
     else:
-        # Admin / Editor / Reviewer → generate LimitedCode
         code_entry = LimitedCode(
             community_id=community.id,
             role=role,
-            max_uses=3,
+            max_uses=1 if force_limited else 3,
             inviter_user_id=inviter_user_id,
             inviter_username=inviter_username,
             expires_at=datetime.utcnow() + timedelta(days=7)
@@ -5570,10 +5578,15 @@ def generate_invite_code_route(community_slug):
         db.session.add(code_entry)
         db.session.commit()
         code_to_return = code_entry.code
+        is_limited = True
 
-    return jsonify({"success": True, "code": code_to_return, "role": role})
+    return jsonify({
+        "success": True,
+        "code": code_to_return,
+        "role": role,
+        "is_limited": is_limited  
+    })
 
- 
 @app.route("/api/toggle_theme", methods=["POST"])
 @login_required
 def toggle_theme():
@@ -5927,16 +5940,20 @@ def partnerships(community_slug):
 def rewardmember(community_slug):
     user = current_user
     user_communities = get_user_communities(user.id)
-    
+
     community = Community.query.filter_by(slug=community_slug).first()
     if not community:
         abort(404)
-    
+
     user_id = current_user.id if current_user.is_authenticated else None
+
+    # 🔒 NEW — private community gate
+    private_ctx = get_private_access_context(user_id, community, came_from_invite=False)
+
     if not has_role(user_id, community.id, "member"):
         flash("Only admins can access this page.", "error")
         return redirect(url_for("dashboard"))
-    
+
     tfa_enabled = False
     if user.two_factor:
         tfa_enabled = user.two_factor.is_enabled
@@ -5961,10 +5978,11 @@ def rewardmember(community_slug):
             zec_balance=zec_balance,
             zec_total_earned=zec_total_earned,
             zec_total_withdrawn=zec_total_withdrawn,
+            private_locked=private_ctx["private_locked"],   # 🔒 NEW
         )
-    
+
     total_xp = get_total_xp(user.id, community.id)
-    level_data = get_level(total_xp)  
+    level_data = get_level(total_xp)
     return render_template(
         'your_community.html',
         user=user,
@@ -5976,8 +5994,8 @@ def rewardmember(community_slug):
         zec_balance=zec_balance,
         zec_total_earned=zec_total_earned,
         zec_total_withdrawn=zec_total_withdrawn,
+        private_locked=private_ctx["private_locked"],   # 🔒 NEW
     )
-
 
 @app.route('/api/user/transactions')
 @login_required
@@ -7265,37 +7283,39 @@ def quest(community_slug):
 
     user = current_user
     user_communities = get_user_communities(user.id)
-
     user_id = int(current_user.id)
-    user_communities = get_user_communities(user.id)
+
     community = Community.query.filter_by(slug=community_slug).first_or_404()
-    user_id = int(current_user.id)
     theme_mode = get_user_theme_mode(user.id, community.id)
-    current_community = community  
+    current_community = community
 
+    print(f"[quest] === hit /quest/admin === community={community.slug} user_id={user_id}")
 
-    db_has_editor_or_higher = has_role(user_id, community.id, "editor")
-    # --- DB role check
     db_has_editor_or_higher = has_role(user_id, community.id, "editor") or \
                             has_role(user_id, community.id, "admin")
-    role = CommunityUserRole.query.filter_by(user_id=user_id, community_id=community.id).first()
-    print("Role object:", role)
-    print("Banned:", getattr(role, "banned", "No role found"))
+
+    print(f"[quest] db_has_editor_or_higher={db_has_editor_or_higher}")
+
     # --- Invite session
     invite_flag = session.get("invite_flag", False)
     invite_role = (session.get("invite_role") or "").lower()
 
+    print(f"[quest] session BEFORE access check: invite_flag={invite_flag} invite_role={invite_role!r} "
+          f"invite_code={session.get('invite_code')!r} full_session_keys={list(session.keys())}")
+
     # --- Access control
     if db_has_editor_or_higher:
-        pass  
+        print("[quest] ACCESS GRANTED via db_has_editor_or_higher")
+    elif invite_flag and invite_role in ["editor", "admin"]:
+        print("[quest] ACCESS GRANTED via invite fallback")
     else:
+        print(f"[quest] ACCESS DENIED — db_has_editor_or_higher={db_has_editor_or_higher} "
+              f"invite_flag={invite_flag} invite_role={invite_role!r} -> redirecting to p_quest")
         flash("Only admins or editors can access this page.", "error")
         return redirect(url_for("p_quest", community_slug=community.slug))
 
-
- 
     title = request.args.get('title')
- 
+
     total_xp = get_total_xp(user.id, community.id)
     level_data = get_level(total_xp)
 
@@ -7303,7 +7323,6 @@ def quest(community_slug):
     user_has_role = user_role_entry is not None and not user_role_entry.banned
     banned = check_banned(user_id, community.id)
     subquest_states = session.get(f"subquest_state_{current_user.id}_{community.id}", {})
-
 
     invite_code = session.get("invite_code")
 
@@ -7314,6 +7333,8 @@ def quest(community_slug):
             community_id=community.id
         ).join(Users, Users.id == LimitedCode.inviter_user_id).first()
 
+    print(f"[quest] invite_code={invite_code!r} invite_entry_found={invite_entry is not None}")
+
     inviter_username = invite_entry.inviter_username if invite_entry else None
     inviter_profile_pic = None
     if invite_entry and invite_entry.inviter_user_id:
@@ -7321,42 +7342,42 @@ def quest(community_slug):
         if inviter_user:
             inviter_profile_pic = inviter_user.profile_pic
             inviter_username = inviter_user.username
-    user_role_entry = CommunityUserRole.query.filter_by(
-        user_id=user_id, community_id=community.id
-    ).first()
 
     is_banned = bool(user_role_entry.banned) if user_role_entry else False
-    role = CommunityUserRole.query.filter_by(user_id=user_id, community_id=community.id).first()
-    if role is not None:
-        print(role.banned, type(role.banned))
-        is_banned = bool(role.banned)
-    else:
-        print("No role found for this user, assuming not banned")
-        is_banned = False
 
     show_welcome_banner = invite_flag and not has_role(user_id, community.id, "admin")
+
+    print(f"[quest] show_welcome_banner={show_welcome_banner} user_has_role={user_has_role} is_banned={is_banned}")
+
     community_twitter = CommunityTwitter.query.filter_by(
         community_id=community.id,
         action="connected"
     ).order_by(CommunityTwitter.timestamp.desc()).first()
     community_discord = DiscordGuild.query.filter_by(
         community_id=community.id,
-        removed_at=None  # only consider active connection
+        removed_at=None
     ).first()
 
     community_list_visible = session.get("community_list_visible", True)
+
     if request.headers.get("X-Partial"):
+        print("[quest] X-Partial request -> returning quest.html partial (session NOT cleared here)")
         return render_template(
             "quest.html",
             user=user,
             community=community,
         )
-    total_xp = get_total_xp(user.id, community.id)
-    level_data = get_level(total_xp)    
+
     if invite_flag:
+        print("[quest] invite_flag was True -> calling clear_invite_session() NOW")
         clear_invite_session()
+        print(f"[quest] session AFTER clear_invite_session(): "
+              f"invite_flag={session.get('invite_flag')} invite_role={session.get('invite_role')!r} "
+              f"invite_code={session.get('invite_code')!r} full_session_keys={list(session.keys())}")
 
     latest_sprint = get_latest_valid_sprint(community.id)
+
+    print("[quest] rendering full your_community.html")
 
     return render_template(
         "your_community.html",
@@ -7374,15 +7395,13 @@ def quest(community_slug):
         title=title,
         community_twitter=community_twitter,
         community_discord=community_discord,
-        has_role=has_role, 
+        has_role=has_role,
         inviter_username=inviter_username,
         inviter_profile_pic=inviter_profile_pic,
         limited_code=invite_entry.code if invite_entry else "",
         community=community,
         show_welcome_banner=show_welcome_banner
     )
-
-
 
 
 @app.route('/api/<community_slug>/sprint')
@@ -9010,8 +9029,6 @@ def submit_bug():
 @community_not_deleted()
 def me_look(community_slug):
     user = current_user
-    
-
     community = Community.query.filter_by(slug=community_slug).first_or_404()
     invite_flag = session.get("invite_flag", False)
     invite_role = (session.get("invite_role") or "").lower()
@@ -9019,26 +9036,21 @@ def me_look(community_slug):
 
     is_admin = has_role(user_id, community.id, "admin")
     if is_admin:
-        pass  
+        pass
     elif not is_admin and invite_flag and invite_role == "admin":
-        pass   
+        pass
     else:
         flash("Only admins can access this page.", "error")
         return redirect(url_for("p_quest", community_slug=community.slug))
-        
+
     user_communities = get_user_communities(user.id)
-
     banned = check_banned(user_id, community.id)
-
-
-
 
     user_role_entry = CommunityUserRole.query.filter_by(user_id=user_id, community_id=community.id).first()
     user_has_role = user_role_entry is not None and not user_role_entry.banned
-    
+
     show_welcome_banner = invite_flag and not has_role(user_id, community.id, "admin")
     community_list_visible = session.get("community_list_visible", True)
-
 
     invite_code = session.get("invite_code")
 
@@ -9048,7 +9060,7 @@ def me_look(community_slug):
             code=invite_code,
             community_id=community.id
         ).join(Users, Users.id == LimitedCode.inviter_user_id).first()
-    
+
     inviter_username = invite_entry.inviter_username if invite_entry else None
     inviter_profile_pic = None
     if invite_entry and invite_entry.inviter_user_id:
@@ -9057,7 +9069,6 @@ def me_look(community_slug):
             inviter_profile_pic = inviter_user.profile_pic
             inviter_username = inviter_user.username
 
- 
     if invite_flag:
         clear_invite_session()
 
@@ -9067,13 +9078,14 @@ def me_look(community_slug):
             user=user,
             community=community,
         )
+
     total_xp = get_total_xp(user.id, community.id)
-    level_data = get_level(total_xp)    
+    level_data = get_level(total_xp)
     latest_sprint = get_latest_valid_sprint(community.id)
     return render_template(
         "your_community.html",
         community_visible=community_list_visible,
-        has_role=has_role, 
+        has_role=has_role,
         community_tuples=user_communities,
         latest_sprint=latest_sprint,
         level_data=level_data,
@@ -9086,7 +9098,6 @@ def me_look(community_slug):
         inviter_profile_pic=inviter_profile_pic,
         limited_code=invite_entry.code if invite_entry else "",
     )
-
 
 @app.route("/debug/session")
 @login_required
@@ -16097,6 +16108,16 @@ def redirect_to_quest(community_slug):
     return redirect(url_for('p_quest', community_slug=community_slug))
 
 
+def resolve_asset_url(path):
+    """Return a usable URL whether the stored path is a full external URL
+    (Supabase/S3/CDN) or a relative filename served from /static."""
+    if not path:
+        return None
+    if path.startswith(("http://", "https://")):
+        return path
+    return url_for("static", filename=path.lstrip("/"))
+
+
 @app.get("/<community_slug>/context")
 @login_required
 def community_context(community_slug):
@@ -16116,7 +16137,6 @@ def community_context(community_slug):
     total_xp = get_total_xp(user.id, community.id)
     level_data = get_level(total_xp)
 
-    # 🔥 same sprint logic used in Jinja
     latest_sprint = get_latest_valid_sprint(community.id)
 
     return jsonify({
@@ -16125,13 +16145,13 @@ def community_context(community_slug):
             "slug": community.slug,
             "name": community.name,
             "is_paid": community.is_paid,
-            "logo": community.logo_path,
+            "logo": resolve_asset_url(community.logo_path),
         },
 
         "user": {
             "id": user.id,
             "username": user.username,
-            "profile_pic": user.profile_pic,
+            "profile_pic": resolve_asset_url(user.profile_pic),
         },
 
         "role": role,
@@ -16154,9 +16174,6 @@ def community_context(community_slug):
             )
         }
     })
-
-
-
     
 
 @app.route('/<community_slug>/get_subquest/<string:subquest_uuid>')
@@ -18765,26 +18782,83 @@ def get_member_context(user_id, community_id):
 @app.route("/<community_slug>/invite/<invitation_code>")
 @login_required
 def handle_invite(community_slug, invitation_code):
-
     community = Community.query.filter_by(slug=community_slug).first_or_404()
 
-    invite_code = InvitationCode.query.filter_by(
-        code=invitation_code,
-        community_id=community.id
-    ).first_or_404()
+    is_limited = request.args.get("private") is not None
 
-    inviter = invite_code.user
+    security = CommunitySecurity.query.filter_by(community_id=community.id).first()
+    admins_only = bool(
+        security
+        and security.private_community
+        and security.invite_permission == "admins_only"
+    )
+
+    if is_limited:
+        invite_code = LimitedCode.query.filter_by(
+            code=invitation_code,
+            community_id=community.id
+        ).first_or_404()
+
+        inviter = Users.query.get(invite_code.inviter_user_id)
+        inviter_username = invite_code.inviter_username
+        inviter_profile_pic = inviter.profile_pic if inviter else None
+    else:
+        # personal InvitationCode links are worthless in an admins_only community —
+        # don't validate the code, don't stamp the session, just bounce to the page
+        if admins_only:
+            return redirect(url_for(
+                "p_quest",
+                community_slug=community_slug
+            ))
+
+        invite_code = InvitationCode.query.filter_by(
+            code=invitation_code,
+            community_id=community.id
+        ).first_or_404()
+
+        inviter = invite_code.user
+        inviter_username = inviter.username
+        inviter_profile_pic = inviter.profile_pic
 
     # mark invite flow
     session["invite_flag"] = True
-    session["inviter_username"] = inviter.username
+    session["inviter_username"] = inviter_username
     session["invite_code"] = invitation_code
-    session["inviter_profile_pic"] = inviter.profile_pic
+    session["inviter_profile_pic"] = inviter_profile_pic
+    session["is_limited_invite"] = is_limited
 
     return redirect(url_for(
         "p_quest",
         community_slug=community_slug
     ))
+
+def get_private_access_context(user_id, community, came_from_invite=False):
+    security = CommunitySecurity.query.filter_by(community_id=community.id).first()
+    is_private = security.private_community if security else False
+
+    print(f"[private_access] community={community.slug} (id={community.id}) user_id={user_id} "
+          f"security_row={'MISSING' if security is None else 'found'} is_private={is_private} "
+          f"came_from_invite={came_from_invite}")
+
+    if not is_private:
+        return {"private_locked": False}
+
+    if not user_id:
+        result = not came_from_invite
+        return {"private_locked": result}
+
+    is_member = CommunityUserRole.query.filter_by(
+        user_id=user_id,
+        community_id=community.id
+    ).first() is not None
+
+    if is_member:
+        return {"private_locked": False}
+
+    result = not came_from_invite
+    return {"private_locked": result}
+
+
 
 
 
@@ -18797,6 +18871,7 @@ def join_community_mapper(community_slug):
     community = Community.query.filter_by(slug=community_slug).first_or_404()
 
     invitation_code = data.get("invitation_code")
+    is_limited = request.args.get("private") is not None
 
     # 1️⃣ Check if already member
     existing_role = CommunityUserRole.query.filter_by(
@@ -18807,11 +18882,60 @@ def join_community_mapper(community_slug):
     if existing_role:
         return jsonify({"message": "Already a member"}), 200
 
+    # community security settings
+    security = CommunitySecurity.query.filter_by(community_id=community.id).first()
+    is_private = bool(security and security.private_community)
+    admins_only = bool(
+        security
+        and security.private_community
+        and security.invite_permission == "admins_only"
+    )
 
     status = "active"
+    role_to_assign = "member"
 
-    # 2️⃣ Invitation logging
-    if invitation_code:
+    if is_limited:
+        if not invitation_code:
+            return jsonify({"error": "Missing invitation code"}), 400
+
+        # lock the row so concurrent joins can't both slip past max_uses
+        limited_code = LimitedCode.query.filter_by(
+            code=invitation_code,
+            community_id=community.id
+        ).with_for_update().first()
+
+        if not limited_code:
+            return jsonify({"error": "Invalid invite code"}), 404
+
+        if not limited_code.is_valid:
+            return jsonify({"error": "Invite code expired or already used"}), 410
+
+        # always member on the limited/private path — code's stored role is ignored
+        role_to_assign = "member"
+
+        # tally usage — raises if it somehow got invalidated between checks
+        try:
+            limited_code.use()
+        except ValueError:
+            return jsonify({"error": "Invite code expired or already used"}), 410
+
+        log = CommunityInviteLog(
+            invited_user_id=current_user.id,
+            inviter_user_id=limited_code.inviter_user_id,
+            community_id=community.id,
+            invitation_code=invitation_code,
+            status=status,
+            consumed_at=datetime.utcnow()
+        )
+        db.session.add(log)
+
+    elif invitation_code:
+        # ---- PUBLIC / PERSONAL CODE FLOW ----
+        if admins_only:
+            # private community + admins_only => personal InvitationCode is never accepted,
+            # only LimitedCode (is_limited branch above) can get someone in
+            return jsonify({"error": "This community only accepts invites from admins"}), 403
+
         invite_code = InvitationCode.query.filter_by(
             code=invitation_code,
             community_id=community.id
@@ -18833,31 +18957,31 @@ def join_community_mapper(community_slug):
                 consumed_at=datetime.utcnow()
                 if status == "active" else None
             )
-
             db.session.add(log)
 
+    elif admins_only:
+        # no code at all, but private + admins_only => can't join without a LimitedCode
+        return jsonify({"error": "This community only accepts invites from admins"}), 403
 
-    # 3️⃣ Create role (STATE)
+    elif is_private:
+        # private but not admins_only (invite_permission == "members") — still needs *some*
+        # invitation_code, personal or limited, to get in
+        return jsonify({"error": "This is a private community and requires an invite"}), 403
+
     new_role = CommunityUserRole(
         user_id=current_user.id,
         community_id=community.id,
-        role="member"
+        role=role_to_assign
     )
-
     db.session.add(new_role)
 
-
-    # ⭐ 4️⃣ Create membership event (HISTORY)
     join_event = CommunityMembershipEvent(
         user_id=current_user.id,
         community_id=community.id,
         event_type="join"
     )
-
     db.session.add(join_event)
 
-
-    # 5️⃣ Ensure personal invite code exists
     existing_code = InvitationCode.query.filter_by(
         user_id=current_user.id,
         community_id=community.id
@@ -18872,24 +18996,19 @@ def join_community_mapper(community_slug):
     else:
         new_invite = existing_code
 
-
-    # ✅ ONE COMMIT FOR EVERYTHING
     db.session.commit()
 
-
-    # 6️⃣ Update invite logic
     check_and_update_invite_status(current_user.id, community.id)
 
+    for key in ("invite_flag", "inviter_username", "invite_code", "inviter_profile_pic", "is_limited_invite"):
+        session.pop(key, None)
 
     return jsonify({
         "message": "Joined successfully",
         "status": status,
-        "role": "member",
+        "role": role_to_assign,
         "invite_code": new_invite.code
     }), 200
-
-
-
 
 @app.route('/<community_slug>/quest')
 def p_quest(community_slug):
@@ -18901,6 +19020,7 @@ def p_quest(community_slug):
     user = current_user if current_user.is_authenticated else None
 
     invitation_code = session.get("invite_code")
+    is_limited_invite = session.get("is_limited_invite", False)   # 🔒 NEW
 
     user_communities = []
     member_ctx = {
@@ -18916,12 +19036,14 @@ def p_quest(community_slug):
 
     if user:
         user_communities = get_user_communities(user.id)
-
         member_ctx = get_member_context(user.id, community.id)
-
         total_xp = get_total_xp(user.id, community.id)
-
         level_data = get_level(total_xp)
+
+    user_id = user.id if user else None
+    private_ctx = get_private_access_context(
+        user_id, community, came_from_invite=member_ctx["user_was_invited"]
+    )
 
     if request.headers.get("X-Partial"):
         return render_template(
@@ -18931,7 +19053,10 @@ def p_quest(community_slug):
             from_slug_route=False,
             is_new_onto_this=member_ctx["is_new_onto_this"],
             user_was_invited=member_ctx["user_was_invited"],
-            is_authenticated=current_user.is_authenticated
+            is_authenticated=current_user.is_authenticated,
+            private_locked=private_ctx["private_locked"],
+            invitation_code=invitation_code,    
+            is_limited_invite=is_limited_invite,   
         )
 
     latest_sprint = get_latest_valid_sprint(community.id)
@@ -18954,11 +19079,11 @@ def p_quest(community_slug):
         inviter_username=member_ctx["inviter_username"],
         inviter_profile_pic=member_ctx["inviter_profile_pic"],
 
-        invitation_code=invitation_code
+        invitation_code=invitation_code,
+        is_limited_invite=is_limited_invite,  
+        private_locked=private_ctx["private_locked"],
     )
 
-
- 
 
 @app.route('/<community_slug>/quest/<string:quest_uuid>/<string:subquest_uuid>')
 def quester_view_init(community_slug, quest_uuid, subquest_uuid):
@@ -18986,6 +19111,11 @@ def quester_view_init(community_slug, quest_uuid, subquest_uuid):
         "inviter_profile_pic": None,
     }
     invitation_code = session.get("invite_code")
+    is_limited_invite = session.get("is_limited_invite", False)   # 🔒 NEW
+
+    private_ctx = get_private_access_context(
+        user_id, community, came_from_invite=member_ctx["user_was_invited"]
+    )
 
     if request.headers.get("X-Partial"):
         return render_template(
@@ -18996,7 +19126,10 @@ def quester_view_init(community_slug, quest_uuid, subquest_uuid):
             init_subquest_uuid=subquest.uuid,
             from_slug_route=True,
             is_new_onto_this=member_ctx["is_new_onto_this"],
-            user_was_invited=member_ctx["user_was_invited"]
+            user_was_invited=member_ctx["user_was_invited"],
+            private_locked=private_ctx["private_locked"],
+            invitation_code=invitation_code,        
+            is_limited_invite=is_limited_invite,      
         )
 
     total_xp = get_total_xp(user_id, community.id) if user_id else 0
@@ -19018,7 +19151,9 @@ def quester_view_init(community_slug, quest_uuid, subquest_uuid):
         is_banned=member_ctx["is_banned"],
         inviter_username=member_ctx["inviter_username"],
         inviter_profile_pic=member_ctx["inviter_profile_pic"],
-        invitation_code=invitation_code
+        invitation_code=invitation_code,
+        is_limited_invite=is_limited_invite,   # 🔒 NEW
+        private_locked=private_ctx["private_locked"],
     )
 
 
@@ -19039,6 +19174,7 @@ def p_quest_sprint(community_slug):
         "inviter_profile_pic": None,
     }
     invitation_code = session.get("invite_code")
+    is_limited_invite = session.get("is_limited_invite", False)   # 🔒 NEW
 
     active_sprint = (
         Sprint.query
@@ -19054,6 +19190,10 @@ def p_quest_sprint(community_slug):
     if not active_sprint:
         return redirect(url_for('p_quest', community_slug=community_slug))
 
+    private_ctx = get_private_access_context(
+        user_id, community, came_from_invite=member_ctx["user_was_invited"]
+    )
+
     if request.headers.get("X-Partial"):
         return render_template(
             "p_quest.html",
@@ -19062,7 +19202,10 @@ def p_quest_sprint(community_slug):
             quest_mode="sprint",
             from_slug_route=False,
             is_new_onto_this=member_ctx["is_new_onto_this"],
-            user_was_invited=member_ctx["user_was_invited"]
+            user_was_invited=member_ctx["user_was_invited"],
+            private_locked=private_ctx["private_locked"],
+            invitation_code=invitation_code,          # 🔒 NEW — was missing on partial render
+            is_limited_invite=is_limited_invite,       # 🔒 NEW
         )
 
     total_xp = get_total_xp(user_id, community.id) if user_id else 0
@@ -19083,273 +19226,11 @@ def p_quest_sprint(community_slug):
         is_banned=member_ctx["is_banned"],
         inviter_username=member_ctx["inviter_username"],
         inviter_profile_pic=member_ctx["inviter_profile_pic"],
-        invitation_code=invitation_code
-    )
-
-
-
-
-@app.route('/<community_slug>/quffest')
-@login_required
-def p_queest(community_slug):
-    user = current_user
-    user_id = int(current_user.id)
-    
-
-    community = Community.query.filter_by(slug=community_slug).first()
-    if not community:
-        abort(404)
-    theme_mode = get_user_theme_mode(user.id, community.id)
-    current_community = community
-    inviter_username = request.args.get("inviter_username")
-    invitation_code = request.args.get("invitation_code")
-    invited = bool(inviter_username and invitation_code)
-    inviter_user = None
-    inviter_profile_pic = None
-    if inviter_username:
-        inviter_user = Users.query.filter_by(username=inviter_username).first()
-        if inviter_user:
-            inviter_profile_pic = inviter_user.profile_pic
-
-    existing_role = CommunityUserRole.query.filter_by(
-        user_id=user.id,
-        community_id=community.id
-    ).first() 
-    completed_subquests = {
-        sc.subquest_id
-        for sc in SubquestCompletion.query.filter_by(
-            user_id=user.id,
-            status="success"
-        ).all()
-    }
-    pending_subquests = {
-        sc.subquest_id
-        for sc in SubquestCompletion.query.filter_by(
-            user_id=user.id,
-            status="pending"
-        ).all()
-    }
-
-    has_any_role = bool(existing_role)
-    can_view_info = has_role(user.id, community.id, "editor")
-
-    # Fetch all quests with subquests, tasks & rewards
-    quests = (
-        Quest.query
-        .filter(Quest.community_id == community.id)
-        .options(
-            joinedload(Quest.subquests).joinedload(Subquest.tasks),
-            joinedload(Quest.subquests).joinedload(Subquest.rewards)
-        )
-        .order_by(Quest.id.desc())
-        .all()
-    )
-
-    user_subquest_completions = {
-        sc.subquest.uuid: sc
-        for sc in SubquestCompletion.query.filter_by(
-            user_id=current_user.id,
-            status="success"
-        ).all()
-    }
-    total_xp = get_total_xp(user.id, community.id)
-    level_data = get_level(total_xp)
-
-
-    # Process quests & subquests
-    for quest in quests:
-        for subquest in quest.subquests:
-            # Parse reward data
-            for reward in subquest.rewards:
-                try:
-                    reward.reward_data_parsed = json.loads(reward.reward_data or "{}")
-                except json.JSONDecodeError:
-                    reward.reward_data_parsed = {}
-
-            # Parse subquest conditions
-            subquest.parsed_conditions = []
-            all_met = True   # 👈 assume all conditions met, will flip to False if any fails
-
-            for cond in getattr(subquest, "conditions", []):
-                cond_result = {
-                    "id": cond.id,
-                    "type": cond.condition_type,
-                    "value": cond.condition_value,
-                    "operator": cond.operator,
-                    "is_completed": cond.subquest_uuid in user_subquest_completions,
-                    "subquest_uuid": cond.subquest_uuid,
-                    "quest_uuid": resolve_quest_uuid(cond.subquest_uuid)  # ✅ fill quest UUID
-                }
-
-
-                if cond.condition_type == "Quest":
-                    is_completed = cond.subquest_uuid in user_subquest_completions
-                    cond_result["is_completed"] = is_completed
-                    print(f"Checking quest condition for subquest_uuid={cond.subquest_uuid} -> completed? {is_completed}")
-                    if cond.subquest_uuid:
-                        cond_result["quest_uuid"] = resolve_quest_uuid(cond.subquest_uuid)
-                        cond_result["is_completed"] = cond.subquest_uuid in user_subquest_completions
-                    else:
-                        cond_result["quest_uuid"] = None
-                        cond_result["is_completed"] = False
-                    cond_result["quest_uuid"] = resolve_quest_uuid(cond.subquest_uuid)
-                    
-                elif cond.condition_type == "Level":
-                    # Check if user level meets or exceeds required level
-                    required_level = int(cond.condition_value)
-                    user_level = level_data['level']
-                    
-                    cond_result["is_completed"] = user_level >= required_level
-
-                    print(f"Checking level condition: user_level={user_level} >= required_level={required_level}? {cond_result['is_completed']}")
-
-                    
-                elif cond.condition_type in ["Role", "Followers"]:
-                    # Query UserConditionStatus to see if the user has met this condition
-                    user_condition = UserConditionStatus.query.filter_by(
-                        user_id=user.id,
-                        subquest_id=subquest.id,
-                        condition_id=cond.id
-                    ).first()
-
-                    if user_condition:
-                        cond_result["is_completed"] = user_condition.met
-                        print(
-                            f"Checked {cond.condition_type} condition for user {user.id}, "
-                            f"subquest {subquest.id} → met={user_condition.met}"
-                        )
-                    else:
-                        cond_result["is_completed"] = False
-                        print(
-                            f"No UserConditionStatus found for user {user.id}, "
-                            f"subquest {subquest.id}, condition {cond.id}"
-                        )
-
-                elif cond.condition_type == "Date":
-                    try:
-                        # Parse the stored date (assume format: '13 Sep 00:00 2025')
-                        unlock_dt = datetime.strptime(cond.condition_value, "%d %b %H:%M %Y")
-                        unlock_dt = unlock_dt.replace(tzinfo=timezone.utc)  # treat as UTC
-                        now_utc = datetime.utcnow().replace(tzinfo=timezone.utc)
-                        cond_result["is_completed"] = now_utc >= unlock_dt
-                        print(f"Checking date condition {cond.condition_value} -> completed? {cond_result['is_completed']}")
-                    except Exception as e:
-                        print(f"Error parsing date for condition {cond}: {e}")
-                        cond_result["is_completed"] = False
-
-                # if any condition is not completed → subquest not ready
-                if not cond_result["is_completed"]:
-                    all_met = False
-
-                subquest.parsed_conditions.append(cond_result)
-
-            # 👇 Add a summary flag per subquest
-            subquest.all_conditions_met = all_met
-
-    # Flatten all tasks for grouped display
-    all_tasks = [task for q in quests for sq in q.subquests for task in sq.tasks]
-
-    # Count completed subquests per quest
-    completed_counts = {
-        q.id: SubquestCompletion.query.filter(
-            SubquestCompletion.subquest_id.in_([sq.id for sq in q.subquests]),
-            SubquestCompletion.user_id == user.id,
-            SubquestCompletion.status == "success"
-        ).count()
-        for q in quests
-    }
-
-    # Subquest cooldowns & remaining times
-    subquest_cooldowns, subquest_remaining = {}, {}
-    now_ts = datetime.utcnow().replace(tzinfo=timezone.utc).timestamp()
-    completed_counts = {}
-    progress_percents = {}
-
-    for q in quests:
-        # ✅ Only include subquests that are NOT drafts
-        visible_subquests = [sq for sq in q.subquests if not sq.is_draft]
-        total_visible = len(visible_subquests)
-
-        if total_visible == 0:
-            completed_counts[q.id] = 0
-            progress_percents[q.id] = 0
-            continue
-
-        # ✅ Count only completed subquests among visible ones
-        completed_visible = (
-            SubquestCompletion.query.filter(
-                SubquestCompletion.subquest_id.in_([sq.id for sq in visible_subquests]),
-                SubquestCompletion.user_id == user.id,
-                SubquestCompletion.status == "success"
-            ).count()
-        )
-
-        completed_counts[q.id] = completed_visible
-        progress_percents[q.id] = (completed_visible / total_visible) * 100
-
-
-    user_role_entry = CommunityUserRole.query.filter_by(
-        user_id=user_id, community_id=community.id
-    ).first()
-
-    banned = check_banned(user_id, community.id)
-
-
-    user_discord = UserDiscord.query.filter_by(user_id=user.id, action="connected").first()
-
-    # Connected accounts
-    user_twitter = UserTwitter.query.filter_by(user_id=user.id, action="connected").first()
-    role = existing_role.role if existing_role and not existing_role.banned else None
-    community_twitter = CommunityTwitter.query.filter_by(
-        community_id=community.id,
-        action="connected"
-    ).order_by(CommunityTwitter.timestamp.desc()).first()
-    community_discord = DiscordGuild.query.filter_by(
-        community_id=community.id,
-        removed_at=None  # only consider active connection
-    ).first()
-    filtered_quests = []
-    for q in quests:
-        visible_subquests = [sq for sq in q.subquests if not sq.is_draft]
-        if visible_subquests:
-            q.subquests = visible_subquests
-            filtered_quests.append(q)
-
-    quests = filtered_quests
-
-    return render_template(
-        "p_quest.html",
-        grouped_tasks=group_tasks(all_tasks),
-        community=community,
-        subquest_cooldowns=subquest_cooldowns,
-        subquest_remaining=subquest_remaining,
-        has_any_role=has_any_role,
-        role=role,
-        user_discord=user_discord,
-        user_twitter=user_twitter,
-        progress_percents=progress_percents,
-        is_banned=banned,
-        theme_mode=theme_mode,
-        name=community.name,
-        current_community=current_community,
-        profile_pic=user.profile_pic,
-        inviter_username=inviter_username,
-        community_twitter=community_twitter,
-        community_discord=community_discord,
         invitation_code=invitation_code,
-        invited=invited,
-        logo=community.logo_path,
-        inviter_profile_pic=inviter_profile_pic,
-        pending_subquests=pending_subquests,
-        completed_subquests=completed_subquests,
-        can_view_info=can_view_info,
-        community_slug=community.slug,
-        completed_counts=completed_counts,
-        level_data=level_data,
-        username=user.username,
-        quests=quests
-        
+        is_limited_invite=is_limited_invite,   # 🔒 NEW
+        private_locked=private_ctx["private_locked"],
     )
+
 
 def extract_first_text_html(desc_blocks):
     """
@@ -21626,6 +21507,9 @@ def sprint_view(community_slug, sprint_uuid):
     if not community:
         abort(404)
 
+    # 🔒 NEW — private community gate
+    private_ctx = get_private_access_context(user_id, community, came_from_invite=False)
+
     theme_mode = get_user_theme_mode(user_id, community.id) if user_id else "light"
     current_community = community
 
@@ -21682,6 +21566,7 @@ def sprint_view(community_slug, sprint_uuid):
             community=community,
             sprint=sprint,
             sprint_has_ended=sprint_has_ended,
+            private_locked=private_ctx["private_locked"],   # 🔒 NEW
         )
 
     total_xp = get_total_xp(user_id, community.id) if user_id else 0
@@ -21702,8 +21587,8 @@ def sprint_view(community_slug, sprint_uuid):
         community_discord=community_discord,
         current_community=current_community,
         sprint=sprint,
+        private_locked=private_ctx["private_locked"],   # 🔒 NEW
     )
-
 
 @app.route('/<community_slug>/pay')
 @login_required
@@ -22100,6 +21985,9 @@ def leaderboard(community_slug):
     if not community:
         abort(404)
 
+    # 🔒 NEW — private community gate
+    private_ctx = get_private_access_context(user_id, community, came_from_invite=False)
+
     banned = check_banned(user_id, community.id) if user_id else False
 
     sprint = (
@@ -22153,6 +22041,7 @@ def leaderboard(community_slug):
             sprint=sprint,
             latest_sprint=latest_sprint,
             sprint_status=sprint_status,
+            private_locked=private_ctx["private_locked"],   # 🔒 NEW
         )
 
     return render_template(
@@ -22175,8 +22064,8 @@ def leaderboard(community_slug):
         community_discord=community_discord,
         created_by_id=user_id,
         community_slug=community_slug,
+        private_locked=private_ctx["private_locked"],   # 🔒 NEW
     )
-
     
 
 @app.route("/<community_slug>/sprints/create", methods=["POST"])
@@ -31591,4 +31480,4 @@ if __name__ == "__main__":
     )
     scheduler.start()
 
-    socketio.run(app, host="0.0.0.0", port=8000)
+    socketio.run(app, host="0.0.0.0", port=8000)    

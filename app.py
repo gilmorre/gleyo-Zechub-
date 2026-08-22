@@ -715,7 +715,6 @@ def send_email(msg):
         print("SMTP FALLBACK FAILED:", e)
 
 
-
 @app.route("/api/search-communities")
 @login_required
 def search_communities():
@@ -724,9 +723,17 @@ def search_communities():
     if not q:
         return jsonify([])
 
-    communities = Community.query.filter(
+    communities = Community.query.join(
+        CommunitySecurity,
+        CommunitySecurity.community_id == Community.id,
+        isouter=True
+    ).filter(
         Community.is_paid == True,
-        Community.name.ilike(f"%{q}%")
+        Community.name.ilike(f"%{q}%"),
+        db.or_(
+            CommunitySecurity.private_community == False,
+            CommunitySecurity.private_community.is_(None) 
+        )
     ).limit(20).all()
 
     results = []
@@ -740,13 +747,10 @@ def search_communities():
 
         role = role_row.role if role_row else "member"
 
-        # Decide redirect
         if role == "admin":
             url = f"/{c.slug}/dashboard"
-
         elif role == "editor":
             url = f"/{c.slug}/quest/admin"
-
         else:
             url = f"/{c.slug}/quest"
 
@@ -759,6 +763,7 @@ def search_communities():
         })
 
     return jsonify(results)
+
 
         
 def send_email_code(email: str, code: str) -> None:
@@ -31689,4 +31694,4 @@ if __name__ == "__main__":
     )
     scheduler.start()
 
-    socketio.run(app, host="0.0.0.0", port=8000, debug=True)    
+    socketio.run(app, host="0.0.0.0", port=8000)    

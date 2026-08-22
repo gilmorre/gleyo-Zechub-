@@ -91,8 +91,19 @@ token: `  <svg fill="none" viewBox="0 0 24 24" style="margin-right: 5px; overflo
           </svg>`
 };
 
+const DraftSvg = `
+<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512" xml:space="preserve" fill="#000000">
+  <g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path style="fill:#2D50A7;" d="M267.636,0c-12.853,0-23.273,10.42-23.273,23.273v93.091c0,12.853,10.42,23.273,23.273,23.273 c12.853,0,23.273-10.42,23.273-23.273V23.273C290.909,10.42,280.489,0,267.636,0z"></path> <path style="fill:#73A1FB;" d="M267.638,372.364c-12.853,0-23.273,10.42-23.273,23.273v93.091c0,12.853,10.42,23.273,23.273,23.273 c12.853,0,23.273-10.42,23.273-23.273v-93.091C290.911,382.784,280.491,372.364,267.638,372.364z"></path> <path style="fill:#355EC9;" d="M185.355,140.808L119.529,74.98c-9.086-9.089-23.822-9.089-32.912,0 c-9.089,9.089-9.089,23.824,0,32.912l65.826,65.828c4.544,4.544,10.501,6.817,16.455,6.817c5.955,0,11.913-2.273,16.455-6.817 C194.444,164.631,194.444,149.897,185.355,140.808z"></path> <g> <path style="fill:#C4D9FD;" d="M477.091,232.727h-46.545c-12.853,0-23.273,10.42-23.273,23.273 c0,12.853,10.42,23.273,23.273,23.273h46.545c12.853,0,23.273-10.42,23.273-23.273 C500.364,243.147,489.944,232.727,477.091,232.727z"></path> <path style="fill:#C4D9FD;" d="M382.83,338.283c-9.087-9.089-23.823-9.087-32.912,0c-9.089,9.089-9.087,23.823,0,32.912 l65.828,65.825c4.544,4.544,10.501,6.816,16.457,6.816c5.956,0,11.913-2.273,16.455-6.816c9.089-9.089,9.089-23.824,0-32.912 L382.83,338.283z"></path> </g> <path style="fill:#3D6DEB;" d="M151.273,256c0-12.853-10.42-23.273-23.273-23.273H34.909c-12.853,0-23.273,10.42-23.273,23.273 c0,12.853,10.42,23.273,23.273,23.273H128C140.853,279.273,151.273,268.853,151.273,256z"></path> <path style="fill:#5286FA;" d="M185.355,338.283c-9.087-9.089-23.824-9.089-32.912,0l-65.825,65.825 c-9.089,9.087-9.089,23.824,0,32.912c4.544,4.544,10.501,6.816,16.457,6.816c5.956,0,11.913-2.271,16.455-6.816l65.825-65.825 C194.444,362.108,194.444,347.372,185.355,338.283z"></path>
+  </g>
+</svg>
+`;
 
-
+const LiveSvg = `
+<svg viewBox="0 0 24 24" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" fill="currentColor">
+<g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <!-- Uploaded to: SVG Repo, www.svgrepo.com, Generator: SVG Repo Mixer Tools --> <title>ic_fluent_live_24_regular</title> <desc>Created with Sketch.</desc> <g id="🔍-Product-Icons" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd"> <g id="ic_fluent_live_24_regular" fill="currentColor" fill-rule="nonzero"> <path d="M5.98959236,4.92893219 C6.28248558,5.22182541 6.28248558,5.69669914 5.98959236,5.98959236 C2.67013588,9.30904884 2.67013588,14.6909512 5.98959236,18.0104076 C6.28248558,18.3033009 6.28248558,18.7781746 5.98959236,19.0710678 C5.69669914,19.363961 5.22182541,19.363961 4.92893219,19.0710678 C1.02368927,15.1658249 1.02368927,8.83417511 4.92893219,4.92893219 C5.22182541,4.63603897 5.69669914,4.63603897 5.98959236,4.92893219 Z M19.0710678,4.92893219 C22.9763107,8.83417511 22.9763107,15.1658249 19.0710678,19.0710678 C18.7781746,19.363961 18.3033009,19.363961 18.0104076,19.0710678 C17.7175144,18.7781746 17.7175144,18.3033009 18.0104076,18.0104076 C21.3298641,14.6909512 21.3298641,9.30904884 18.0104076,5.98959236 C17.7175144,5.69669914 17.7175144,5.22182541 18.0104076,4.92893219 C18.3033009,4.63603897 18.7781746,4.63603897 19.0710678,4.92893219 Z M8.81801948,7.75735931 C9.1109127,8.05025253 9.1109127,8.52512627 8.81801948,8.81801948 C7.06066017,10.5753788 7.06066017,13.4246212 8.81801948,15.1819805 C9.1109127,15.4748737 9.1109127,15.9497475 8.81801948,16.2426407 C8.52512627,16.5355339 8.05025253,16.5355339 7.75735931,16.2426407 C5.41421356,13.8994949 5.41421356,10.1005051 7.75735931,7.75735931 C8.05025253,7.46446609 8.52512627,7.46446609 8.81801948,7.75735931 Z M16.2426407,7.75735931 C18.5857864,10.1005051 18.5857864,13.8994949 16.2426407,16.2426407 C15.9497475,16.5355339 15.4748737,16.5355339 15.1819805,16.2426407 C14.8890873,15.9497475 14.8890873,15.4748737 15.1819805,15.1819805 C16.9393398,13.4246212 16.9393398,10.5753788 15.1819805,8.81801948 C14.8890873,8.52512627 14.8890873,8.05025253 15.1819805,7.75735931 C15.4748737,7.46446609 15.9497475,7.46446609 16.2426407,7.75735931 Z M12,10.5 C12.8284271,10.5 13.5,11.1715729 13.5,12 C13.5,12.8284271 12.8284271,13.5 12,13.5 C11.1715729,13.5 10.5,12.8284271 10.5,12 C10.5,11.1715729 11.1715729,10.5 12,10.5 Z"> </path> </g> </g> 
+</g>
+</svg>
+`;
 
 const REWARD_UNIT_LABELS = {
   xp: "XP",
@@ -124,6 +135,20 @@ function renderTaskTypeIcons(taskTypes) {
     : "";
 
   return `<div class="task-type-stack">${icons}${extraBadge}</div>`;
+}
+
+
+function renderStatusBadge(isDraft) {
+  const icon = isDraft ? DraftSvg : LiveSvg;
+  const label = isDraft ? "Draft" : "Live";
+  const cls = isDraft ? "quest-status-draft" : "quest-status-live";
+
+  return `
+    <div class="quest-status-badge ${cls}" title="${label}">
+      <span class="status-icon">${icon}</span>
+      <span class="status-label">${label}</span>
+    </div>
+  `;
 }
 
 
@@ -1023,6 +1048,7 @@ function createQuestModule(quests, communitySlug, isMobile = false, subquestStat
                 <div class="quest-link" style="user-select:none !important;">
                   ${subquest.name}
                 </div>
+                ${renderStatusBadge(!!subquest.is_draft)}
 
               </div>
 
@@ -2166,6 +2192,8 @@ function LoadContextitemInit() {
               </svg>
 
               <div class="quest-link">${data.name}</div>
+              ${renderStatusBadge(true)}
+
             </div>
             
             <div style="display: flex; align-items: center; gap: 17px">
@@ -2323,6 +2351,7 @@ function initAddSubquestHandlers() {
             <div class="quest-link" style="user-select:none !important;">
               ${data.name || 'Untitled quest'}
             </div>
+            ${renderStatusBadge(true)}
 
           </div>
 

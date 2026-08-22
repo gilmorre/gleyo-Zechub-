@@ -1036,3 +1036,30 @@ justify-content: center;
 @media (max-width: 767px) {
   .task-type-stack { display: none !important; }
 }
+
+.quest-status-badge {
+  display: flex;
+  align-items: center;
+  background-color: var(--bg-surface);
+  border-radius: 14px;
+  color: var(--text-main);
+  border: 1px solid var(--border);
+  gap: 4px;
+  margin-left: 30px;
+  padding: 5px 10px;
+  font-weight: 550;
+  font-size: 12px;
+}
+
+.quest-status-badge .status-icon svg{
+  opacity: 1 !important;
+}
+
+.quest-status-badge .status-icon svg {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+
+.quest-status-draft { color: var(--text-muted); }
+.quest-status-live  { color: #2ecc71; }

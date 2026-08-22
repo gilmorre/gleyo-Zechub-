@@ -830,6 +830,7 @@ body::before {
   gap: 18px;
   align-items: center;
   background: #22223697;
+  height: 116px;
   border: 0.9px solid var(--border);
   border-radius: 20px;
   padding: 16px 18px;

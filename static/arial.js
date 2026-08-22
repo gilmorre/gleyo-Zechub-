@@ -381,6 +381,8 @@ window.previewSubquest = previewSubquest
 window.updateCounter = updateCounter
 window.stepValue = stepValue
 window.closePreview = closePreview
+window.toggleDraftMenu = toggleDraftMenu
+window.saveDraftSubquest = saveDraftSubquest
 window.publishSubquest = publishSubquest
 window.clearValue = clearValue
 
@@ -9355,10 +9357,19 @@ function mapActionToTaskType(type) {
  
 
 async function previewSubquest() {
+  const btn = document.getElementById('previewBtn');
+  const text = document.getElementById('previewBtnText');
+  const spinner = document.getElementById('previewSpinner');
+
   showPreviewModal(getPreviewSkeleton(), true);
 
   const payload = await buildSubquestPayload();
   console.log("Payload:", payload);
+
+  text.style.display = 'none';
+  spinner.style.display = 'inline-block';
+  btn.classList.add('loading');
+  btn.disabled = true;
 
   try {
     const res = await fetch(`/${payload.communitySlug}/preview_subquest`, {
@@ -9370,18 +9381,35 @@ async function previewSubquest() {
       body: JSON.stringify(payload)
     });
 
-    const html = await res.text(); 
+    const html = await res.text();
     showPreviewModal(html);
     initSubquestTasks();
 
   } catch (err) {
     console.error(err);
     showToast("Preview failed");
+  } finally {
+    text.style.display = '';
+    spinner.style.display = 'none';
+    btn.classList.remove('loading');
+    btn.disabled = false;
   }
 }
 
 async function publishSubquest() {
+  const label = document.getElementById('publishBtnLabel');
+  const text = document.getElementById('publishBtnText');
+  const spinner = document.getElementById('publishSpinner');
+  const chevronBtn = document.getElementById('publishChevronBtn');
+
   const payload = await buildSubquestPayload();
+
+  text.style.display = 'none';
+  spinner.style.display = 'inline-block';
+  label.classList.add('loading');
+  label.style.pointerEvents = 'none';
+  chevronBtn.style.pointerEvents = 'none';
+
   try {
     const res = await fetch(`/${payload.communitySlug}/publish_subquest`, {
       method: 'POST',
@@ -9395,18 +9423,109 @@ async function publishSubquest() {
     if (res.ok && data.success) {
       const path = `/${payload.communitySlug}/quest/admin`;
       loadMainSettingsSection(path);
+      return; // navigating away — no need to restore button state
     } else {
       showToast(data.error || "Publish failed");
     }
   } catch (err) {
     console.error(err);
     showToast("Publish failed");
+  } finally {
+    text.style.display = '';
+    spinner.style.display = 'none';
+    label.classList.remove('loading');
+    label.style.pointerEvents = '';
+    chevronBtn.style.pointerEvents = '';
   }
 }
 
 
+function toggleDraftMenu(e) {
+  e.stopPropagation();
+  const menu = document.getElementById('draftMenu');
+  const isOpen = menu.classList.contains('open');
 
+  if (isOpen) {
+    menu.classList.remove('open');
+    return;
+  }
 
+  positionDraftMenu();
+  menu.classList.add('open');
+}
+
+function positionDraftMenu() {
+  const btn = document.getElementById('publishBtnGroup');
+  const menu = document.getElementById('draftMenu');
+  const rect = btn.getBoundingClientRect();
+
+  menu.style.top = `${rect.bottom + 12}px`;
+  menu.style.left = `${rect.left - menu.offsetWidth - 39}px`;
+}
+
+// close on outside click
+document.addEventListener('click', (e) => {
+  const menu = document.getElementById('draftMenu');
+  const group = document.getElementById('publishBtnGroup');
+  if (menu.classList.contains('open') && !group.contains(e.target) && !menu.contains(e.target)) {
+    menu.classList.remove('open');
+  }
+});
+
+// reposition if the page scrolls or resizes while open
+window.addEventListener('scroll', () => {
+  const menu = document.getElementById('draftMenu');
+  if (menu.classList.contains('open')) positionDraftMenu();
+}, true);
+
+window.addEventListener('resize', () => {
+  const menu = document.getElementById('draftMenu');
+  if (menu.classList.contains('open')) positionDraftMenu();
+});
+
+async function saveDraftSubquest() {
+  const menuItem = document.getElementById('draftMenuItem');
+  const draftText = document.getElementById('draftMenuText');
+  const spinner = document.getElementById('draftSpinner');
+
+  const payload = await buildSubquestPayload();
+
+  // show ONLY the spinner, centered
+  draftText.style.display = 'none';
+  spinner.style.display = 'inline-block';
+  menuItem.classList.add('loading');    
+  menuItem.disabled = true;
+
+  try {
+    const res = await fetch(`/${payload.communitySlug}/save_draft_subquest`, {
+      method: 'POST',
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": csrfToken
+      },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      showToast("Saved as draft", "success");
+      document.getElementById('draftMenu').classList.remove('open');
+      const path = `/${payload.communitySlug}/quest/admin`;
+      loadMainSettingsSection(path);
+    } else {
+      showToast(data.error || "Save draft failed");
+    }
+  } catch (err) {
+    console.error(err);
+    showToast("Save draft failed");
+  } finally {
+    // restore text, hide spinner
+    draftText.style.display = '';
+    draftText.textContent = 'Save as Draft';
+    spinner.style.display = 'none';
+    menuItem.classList.remove('loading');   // ← and this
+    menuItem.disabled = false;
+  }
+}
 
 function LetsInitQuestBuildup() {
   const taskList = document.getElementById('taskList');

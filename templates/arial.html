@@ -100,12 +100,22 @@ input{
 }
  
 
-.header-actions .publish-btn.disabled {
+/* Only style the label portion when publish-btn is disabled */
+.header-actions .publish-btn.disabled .publish-btn-label {
   color: #888;
-  background-color: #35354f  !important;
-  border: 1px solid #3b3b57  !important;
+  background-color: #262633 !important;
+  border: 1px solid #17171e !important;
   cursor: not-allowed !important;
-  opacity: 0.7;
+}
+
+/* Explicitly exclude the chevron/divider from the disabled look */
+.header-actions .publish-btn.disabled .publish-btn-chevron,
+.header-actions .publish-btn.disabled .publish-btn-divider {
+  color: inherit;
+  background-color: transparent !important;
+  border: none !important;
+  cursor: pointer !important;
+  pointer-events: auto !important;
 }
 .publish-btn {
   color: var(--text-main);
@@ -2329,29 +2339,7 @@ input {
 }
 
 
-
-
-
-
-
-.quest-creator .header-actions button {
-  margin-left: 15px;
-  padding: 4px 20px;
-  background: #4285f4;
-  border: 1px solid #4285f4;
-  color: var(--text-main);
-  border-radius: 15px;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: bold;
-  transition: all 0.3s ease;
-}
-
-.quest-creator .header-actions button:hover {
-  background: #3574d9;
-  border: 1px solid #3574d9;
-  color: #fff;
-}
+ 
  
 .header-actions {
   display: flex;
@@ -3661,12 +3649,33 @@ input {
 
         
           </span>
+<div style="display: flex; gap: 5px;">
+  <button class="preview-desktop preview-btn" id="previewBtn" onclick="previewSubquest()">
+    <span class="preview-btn-text" id="previewBtnText">Preview</span>
+    <svg class="draft-spinner" id="previewSpinner" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;">
+      <circle cx="12" cy="12" r="9" stroke-opacity="0.25"></circle>
+      <path d="M21 12a9 9 0 0 0-9-9"></path>
+    </svg>
+  </button>
 
-          <div style="display: flex; gap: 5px;">
-            <button class="preview-desktop preview-btn" onclick="previewSubquest()">Preview</button>
-            <button class="publish-btn" id="publishBtn" onclick="publishSubquest();">Publish</button>          
-          </div>
-
+  <div class="publish-btn-group" id="publishBtnGroup">
+    <button class="publish-btn" id="publishBtn">
+      <span class="publish-btn-label" id="publishBtnLabel" onclick="publishSubquest();">
+        <span class="publish-btn-text" id="publishBtnText">Publish</span>
+        <svg class="draft-spinner" id="publishSpinner" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;">
+          <circle cx="12" cy="12" r="9" stroke-opacity="0.25"></circle>
+          <path d="M21 12a9 9 0 0 0-9-9"></path>
+        </svg>
+      </span>
+      <span class="publish-btn-divider"></span>
+      <span class="publish-btn-chevron" id="publishChevronBtn" onclick="toggleDraftMenu(event);">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </span>
+    </button>
+  </div>
+</div>
 
 
 
@@ -4710,3 +4719,12 @@ input {
 
   </div>
 
+
+<div class="draft-menu" id="draftMenu">
+  <button class="draft-menu-item" id="draftMenuItem" onclick="saveDraftSubquest();">
+    <span id="draftMenuText">Save as Draft</span>
+    <svg id="draftSpinner" class="draft-spinner" width="14" height="14" viewBox="0 0 24 24" style="display:none;">
+      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-dasharray="42" stroke-dashoffset="15"></circle>
+    </svg>
+  </button>
+</div>

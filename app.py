@@ -16103,6 +16103,262 @@ def publish_subquest(community_slug):
         print("❌ Error saving subquest:", e)
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/<community_slug>/save_draft_subquest', methods=['POST'])
+@login_required
+def save_draft_subquest(community_slug):
+    community = Community.query.filter_by(slug=community_slug).first()
+    if not community:
+        return jsonify({'success': False, 'error': 'Community not found'}), 404
+
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({'success': False, 'error': 'Invalid JSON'}), 400
+
+    if not has_role(current_user.id, community.id, "editor"):
+        flash("You are not an operator of this community.", "error")
+        return redirect(url_for("dashboard"))
+
+    community_id = community.id
+    quest_uuid = data.get('quest_uuid')
+    subquest_uuid = data.get('subquest_uuid')
+    tasks_data = data.get('tasks', [])
+    streak_enabled = str(
+        data.get("streak_enabled", False)
+    ).lower() in ["1", "true", "yes", "on"]
+
+    invite_total = 0
+    has_invite_task = False
+
+    for task in tasks_data:
+        if task.get("type") == "invite":
+            has_invite_task = True
+            config = task.get("config") or {}
+            try:
+                num = int(config.get("numInvites", 0))
+            except:
+                num = 0
+            num = max(0, num)
+            invite_total += num
+            task["config"]["numInvites"] = num
+
+    if has_invite_task:
+        security = CommunitySecurity.query.filter_by(community_id=community.id).first()
+        invite_permission = security.invite_permission if security else "members"
+
+        if invite_permission == "admins_only":
+            return jsonify({
+                'success': False,
+                'error': 'Invite tasks are turned off for this community. Turn off "Admins only" in community settings to use the invite task.'
+            }), 400
+
+    for task in tasks_data:
+        if task.get("type") != "telegram":
+            continue
+
+        config = task.get("config") or {}
+        link = config.get("link", "")
+
+        chat_id, chat_title, chat_type, error = resolve_telegram_group(link)
+
+        if error == "PRIVATE_LINK":
+            existing = CommunityTelegramGroup.query.filter_by(
+                community_id=community.id
+            ).filter(CommunityTelegramGroup.chat_id.isnot(None)).order_by(
+                CommunityTelegramGroup.connected_at.desc()
+            ).first()
+
+            if not existing:
+                return jsonify({
+                    'success': False,
+                    'error': (
+                        "This is a private Telegram group. Add @Gleyo_bot to it "
+                        "as admin, then send /connect <code> in the group first "
+                        "(get your code from Community Settings → Telegram)."
+                    )
+                }), 400
+
+            task["config"]["telegram_group_id"] = existing.id
+            task["config"]["chat_title"] = existing.chat_title
+            continue
+
+        if error:
+            return jsonify({'success': False, 'error': f"Telegram task: {error}"}), 400
+
+        group = CommunityTelegramGroup.query.filter_by(
+            community_id=community.id, chat_id=chat_id
+        ).first()
+
+        if not group:
+            member = requests.get(
+                f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getChatMember",
+                params={"chat_id": chat_id, "user_id": BOT_TELEGRAM_ID}
+            ).json()
+            bot_is_admin = member.get("result", {}).get("status") == "administrator"
+
+            group = CommunityTelegramGroup(
+                community_id=community.id,
+                label=chat_title,
+                chat_id=chat_id,
+                chat_title=chat_title,
+                chat_type=chat_type,
+                bot_is_admin=bot_is_admin,
+                connected_at=datetime.utcnow()
+            )
+            db.session.add(group)
+            db.session.flush()
+
+        task["config"]["telegram_group_id"] = group.id
+        task["config"]["chat_title"] = group.chat_title
+
+    rewards_data = data.get('rewards', [])
+    conditions_data = data.get('conditions', [])
+
+    subquest_name = data.get('subquest_name', '').strip()
+    subquest_desc = data.get('subquest_desc', [])
+    recurrence = data.get('recurrence', 'None')
+    cooldown = data.get('cooldown', 'None')
+
+    if has_invite_task:
+        recurrence = "None"
+        cooldown = "None"
+    raw_max_claim = data.get('max_claim')
+
+    if raw_max_claim in [None, "", "null", "None"]:
+        max_claim = None
+        subquest_claim_count = None
+    else:
+        try:
+            max_claim = int(raw_max_claim)
+            if max_claim == 0:
+                max_claim = None
+                subquest_claim_count = None
+            else:
+                subquest_claim_count = 0
+        except (ValueError, TypeError):
+            max_claim = None
+            subquest_claim_count = None
+
+    autovalidation = str(data.get("autovalidation", "0")) in ["1", "true", "True"]
+
+    quest = Quest.query.filter_by(uuid=quest_uuid, community_id=community.id).first()
+    if not quest:
+        return jsonify({'success': False, 'error': 'Quest not found'}), 404
+
+    subquest = Subquest.query.filter_by(uuid=subquest_uuid, quest_id=quest.id).first()
+    if not subquest:
+        return jsonify({'success': False, 'error': 'Subquest not found'}), 404
+
+    if recurrence.lower() != "daily":
+        streak_enabled = False
+
+
+    sprint_id = data.get('sprint_id')
+    sprint_name = data.get('sprint_name')
+
+    if sprint_id and sprint_name:
+        subquest.sprint_id = sprint_id
+        subquest.sprint_name = sprint_name
+        subquest.add_to_sprint = True
+    else:
+        subquest.sprint_id = None
+        subquest.sprint_name = None
+        subquest.add_to_sprint = False
+
+
+    try:
+        db.session.query(SubquestCondition).filter_by(subquest_id=subquest.id).delete()
+        db.session.query(SubquestReward).filter_by(subquest_id=subquest.id).delete()
+
+        for cond in conditions_data:
+            new_condition = SubquestCondition(
+                subquest_id=subquest.id,
+                subquest_uuid=cond.get("subquest_uuid"),
+                condition_type=cond.get("condition_type"),
+                condition_value=cond.get("condition_value"),
+                operator=cond.get("operator")
+            )
+            db.session.add(new_condition)
+
+        for reward in rewards_data:
+            reward_type = reward.get("reward_type")
+            distribution_type = reward.get("distribution_type")
+            reward_data = reward.get("reward_data")
+
+            if not reward_type:
+                raise ValueError("Reward type missing from frontend")
+
+            initial_claim_count = 0 if distribution_type == "FCFS" else None
+
+            new_reward = SubquestReward(
+                subquest_id=subquest.id,
+                reward_type=reward_type,
+                distribution_type=distribution_type,
+                reward_data=json.dumps(reward_data or {}),
+                claim_count=initial_claim_count
+            )
+            db.session.add(new_reward)
+        subquest.has_rewards_before = True
+
+        subquest.name = subquest_name or subquest.name
+        if isinstance(subquest_desc, list):
+            processed_desc, upload_jobs = upload_description_blocks(subquest_desc, subquest.uuid)
+            subquest.description = json.dumps(processed_desc)
+            db.session.commit()
+
+            for future, index in upload_jobs:
+                def callback(f, idx=index, sq_id=subquest.id):
+                    save_subquest_blocks_when_done(f, sq_id, idx)
+                future.add_done_callback(callback)
+        else:
+            subquest.description = subquest.description
+
+        subquest.recurrence = recurrence
+        subquest.cooldown = cooldown
+        subquest.max_claim = max_claim
+        subquest.claim_count = subquest_claim_count
+        subquest.streak_enabled = streak_enabled
+        subquest.autovalidation = autovalidation
+
+        existing_tasks = {t.id: t for t in subquest.tasks}
+
+        for i, task_data in enumerate(tasks_data):
+            if i < len(existing_tasks):
+                t = list(existing_tasks.values())[i]
+                t.type = task_data.get('type', t.type)
+                config = task_data.get('config', t.config)
+
+                if task_data.get("type") == "invite":
+                    try:
+                        num = int(config.get("numInvites", 0))
+                    except:
+                        num = 0
+                    config["numInvites"] = max(0, num)
+
+                t.config = config
+            else:
+                t = Task(
+                    type=task_data.get('type', 'unknown'),
+                    config=task_data.get('config', {}),
+                    subquest_id=subquest.id
+                )
+                db.session.add(t)
+
+        for t in list(existing_tasks.values())[len(tasks_data):]:
+            db.session.delete(t)
+
+        subquest.is_draft = True
+
+        db.session.commit()
+
+
+        return jsonify({'success': True, 'is_draft': True})
+
+    except Exception as e:
+        db.session.rollback()
+        print("❌ Error saving draft subquest:", e)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/<community_slug>')
 @login_required
 def redirect_to_quest(community_slug):
@@ -31433,4 +31689,4 @@ if __name__ == "__main__":
     )
     scheduler.start()
 
-    socketio.run(app, host="0.0.0.0", port=8000)    
+    socketio.run(app, host="0.0.0.0", port=8000, debug=True)    

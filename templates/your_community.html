@@ -35,7 +35,7 @@
 <meta name="color-scheme" content="light">
 <link rel="shortcut icon" href="https://zupdpwnloewdkjqsymdm.supabase.co/storage/v1/object/public/uploads/communities/7/logos/511f4996-5748-4f1f-b74c-5d5c33f7124c.png">
 
-<link rel="stylesheet" href="{{ url_for('static', filename='your_communitys.css') }}?v=9">
+<link rel="stylesheet" href="{{ url_for('static', filename='your_communitys.css') }}?v=8">
 <style>
 
 :root {
@@ -7218,7 +7218,7 @@ async function loadMainSettingsSection(path, push = true, previewMode = false, n
   let cssToLoad = null;
 
   if (isUserQuest) {
-    cssToLoad = "/static/p_quest.css?v=9";
+    cssToLoad = "/static/p_quest.css?v=8";
   }
 
   if (cssToLoad) {
@@ -7233,9 +7233,9 @@ async function loadMainSettingsSection(path, push = true, previewMode = false, n
 
   if (finalPath.includes("/quest/admin/")) {
 
-    __CURRENT_SCRIPT__ = "/static/arial.js?v=6";
+    __CURRENT_SCRIPT__ = "/static/arial.js?v=4";
 
-  await loadScript("/static/arial.js?v=6");
+  await loadScript("/static/arial.js?v=4");
 
 
   if (window.AialModule) {
@@ -7254,11 +7254,11 @@ async function loadMainSettingsSection(path, push = true, previewMode = false, n
   else if (finalPath.endsWith("/quest/admin")) {
   fint(communitySlug);
 
-    __CURRENT_SCRIPT__ = "/static/quest.js?v=9";
+    __CURRENT_SCRIPT__ = "/static/quest.js?v=8";
   let IsopenDropdown = null
   
   window.IsopenDropdown = IsopenDropdown
-    await loadScript("/static/quest.js?v=9");
+    await loadScript("/static/quest.js?v=8");
 
     if (window.QuestModule) {
       window.QuestModule.init();
@@ -7276,9 +7276,9 @@ async function loadMainSettingsSection(path, push = true, previewMode = false, n
 
 
 
-    __CURRENT_SCRIPT__ = "/static/p_quest.js?v=9";
+    __CURRENT_SCRIPT__ = "/static/p_quest.js?v=8";
 
-    await loadScript("/static/p_quest.js?v=9");
+    await loadScript("/static/p_quest.js?v=8");
 
     if (window.PQUESTModule) {
       window.PQUESTModule.init();
@@ -7317,9 +7317,9 @@ async function loadMainSettingsSection(path, push = true, previewMode = false, n
     DeclearedSprintSwitch();
 
   } else if (finalPath.includes("/leaderboard")) {
-    __CURRENT_SCRIPT__ = "/static/leaderboard.js";
+    __CURRENT_SCRIPT__ = "/static/leaderboard.js?v=9";
 
-    await loadScript("/static/leaderboard.js");
+    await loadScript("/static/leaderboard.js?v=9");
 
     if (window.LeaderboardModule) {
       window.LeaderboardModule.init();
@@ -7390,9 +7390,9 @@ async function loadMainSettingsSection(path, push = true, previewMode = false, n
   /* ---------------- TEAM ---------------- */
 
   if (finalPath.includes("/invite_team")) {
-    __CURRENT_SCRIPT__ = "/static/invite_team.js";
+    __CURRENT_SCRIPT__ = "/static/invite_team.js?v=9";
     
-    await loadScript("/static/invite_team.js");
+    await loadScript("/static/invite_team.js?v=9");
 
     if (window.TeamInviteModule) {
       window.TeamInviteModule.init();

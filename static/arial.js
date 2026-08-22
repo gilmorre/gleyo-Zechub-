@@ -35,6 +35,26 @@ async function fetchInviteUsage() {
   refreshAllInviteCounters();
 }
 
+async function copyInviteLink(btn) {
+  const link = btn.dataset.copyLink;
+  if (!link) return;
+
+  try {
+    await navigator.clipboard.writeText(link);
+
+    const originalText = btn.innerText;
+    btn.innerText = "Copied";
+
+    setTimeout(() => {
+      btn.innerText = originalText;
+    }, 1500);
+
+  } catch (err) {
+    console.error("Copy failed:", err);
+  }
+}
+
+
 function refreshAllInviteCounters() {
   const usage = __INVITE_USAGE__ || { used: 0, limit: 30, breakdown: {} };
   const limit = usage.limit;
@@ -6574,7 +6594,7 @@ function renderSpaceFace(data){
   // nothing fetched yet — same bare placeholder pattern as engage mode
   const hasData = !!(title || hostName);
   if (!hasData) {
-    return `<span class="tweet-preview-text centertxt">Preview.</span>`;
+    return `<span class="tweet-preview-text centertxt" style="color: var(--text-main) !important; font-style: italic !important;">Preview.</span>`;
   }
 
   const state = getSpaceState(isLive, scheduledStart);
@@ -6712,7 +6732,7 @@ function syncTwitterCardFace(wrapper){
           </div>
           <span class="tweet-preview-text">${truncateTweetText(tweetText, 220)}</span>
         `
-        : `<span class="tweet-preview-text centertxt">Preview.</span>`;
+        : `<span class="tweet-preview-text centertxt" style="color: var(--text-main) !important; font-style: italic !important;">Preview.</span>`;
 
       card.innerHTML = `
         ${tweetLink
@@ -7733,7 +7753,7 @@ function renderTask(task){
           </div>
           <span class="tweet-preview-text">${truncateTweetText(tweetText, 220)}</span>
         `
-        : `<span class="tweet-preview-text centertxt">Preview.</span>`;
+        : `<span class="tweet-preview-text centertxt" style="color: var(--text-main) !important; font-style: italic !important;">Preview.</span>`;
 
       // ⚠️ NOTE: no cta-quest button here — engage mode is fully
       // represented by the tweet preview + like/retweet chips + reply row.
@@ -12308,6 +12328,7 @@ async function Initgrounderarial() {
 
 
 window.showTelegramBotModal = showTelegramBotModal;
+window.copyInviteLink = copyInviteLink
 
 restoreSelectedSprint();
   window.AialModule = {

@@ -7493,17 +7493,20 @@ def api_alltime_leaderboard(community_slug):
 
     community = Community.query.filter_by(slug=community_slug).first_or_404()
 
-    # latest XP-earning timestamp per user, scoped to THIS community
+    # earliest COMPLETION timestamp per user, scoped to THIS community
     latest_activity_subq = (
         db.session.query(
-            UserXP.user_id.label('user_id'),
-            func.max(UserXP.created_at).label('last_xp_at')
+            SubquestCompletion.user_id.label('user_id'),
+            func.min(SubquestCompletion.completed_at).label('last_xp_at')
         )
-        .join(SubquestCompletion, UserXP.completion_id == SubquestCompletion.id)
         .join(Subquest, SubquestCompletion.subquest_id == Subquest.id)
         .join(Quest, Subquest.quest_id == Quest.id)
-        .filter(Quest.community_id == community.id)
-        .group_by(UserXP.user_id)
+        .filter(
+            Quest.community_id == community.id,
+            SubquestCompletion.status == "success",
+            SubquestCompletion.completed_at.isnot(None)
+        )
+        .group_by(SubquestCompletion.user_id)
         .subquery()
     )
 
@@ -7521,9 +7524,8 @@ def api_alltime_leaderboard(community_slug):
         .filter(CommunityUserXP.community_id == community.id)
         .order_by(
             CommunityUserXP.xp.desc(),
-            # earliest to reach this XP total wins ties; nulls (no logged activity) go last
             latest_activity_subq.c.last_xp_at.asc().nullslast(),
-            CommunityUserXP.id.asc()  # final fallback, keeps it deterministic
+            CommunityUserXP.id.asc()
         )
         .limit(30)
         .all()
@@ -7539,7 +7541,6 @@ def api_alltime_leaderboard(community_slug):
             "rank":     index
         })
 
-    # ── current user rank (guests skip entirely) ─────────────────────────────
     current_user_data = None
 
     if current_user.is_authenticated:
@@ -7551,15 +7552,18 @@ def api_alltime_leaderboard(community_slug):
 
         if full_rank:
             my_last_xp_at = (
-                db.session.query(func.max(UserXP.created_at))
-                .join(SubquestCompletion, UserXP.completion_id == SubquestCompletion.id)
+                db.session.query(func.min(SubquestCompletion.completed_at))
                 .join(Subquest, SubquestCompletion.subquest_id == Subquest.id)
                 .join(Quest, Subquest.quest_id == Quest.id)
-                .filter(Quest.community_id == community.id, UserXP.user_id == current_user.id)
+                .filter(
+                    Quest.community_id == community.id,
+                    SubquestCompletion.user_id == current_user.id,
+                    SubquestCompletion.status == "success",
+                    SubquestCompletion.completed_at.isnot(None)
+                )
                 .scalar()
             )
 
-            # count everyone who should rank ABOVE current user
             higher_count = (
                 db.session.query(CommunityUserXP.user_id)
                 .outerjoin(latest_activity_subq, latest_activity_subq.c.user_id == CommunityUserXP.user_id)
@@ -7591,8 +7595,6 @@ def api_alltime_leaderboard(community_slug):
         "leaderboard":  leaderboard_data,
         "current_user": current_user_data
     })
-
-
 @app.route('/api/<community_slug>/leaderboard/<sprint_uuid>')
 def api_sprint_leaderboard(community_slug, sprint_uuid):
 
@@ -7604,16 +7606,18 @@ def api_sprint_leaderboard(community_slug, sprint_uuid):
     if not sprint:
         return jsonify({"error": "Sprint not found"}), 404
 
-    # Subquest already has sprint_id directly, so this scoping is simpler
     latest_activity_subq = (
         db.session.query(
-            UserXP.user_id.label('user_id'),
-            func.max(UserXP.created_at).label('last_xp_at')
+            SubquestCompletion.user_id.label('user_id'),
+            func.min(SubquestCompletion.completed_at).label('last_xp_at')
         )
-        .join(SubquestCompletion, UserXP.completion_id == SubquestCompletion.id)
         .join(Subquest, SubquestCompletion.subquest_id == Subquest.id)
-        .filter(Subquest.sprint_id == sprint.id)
-        .group_by(UserXP.user_id)
+        .filter(
+            Subquest.sprint_id == sprint.id,
+            SubquestCompletion.status == "success",
+            SubquestCompletion.completed_at.isnot(None)
+        )
+        .group_by(SubquestCompletion.user_id)
         .subquery()
     )
 
@@ -7659,10 +7663,14 @@ def api_sprint_leaderboard(community_slug, sprint_uuid):
 
         if current_user_entry:
             my_last_xp_at = (
-                db.session.query(func.max(UserXP.created_at))
-                .join(SubquestCompletion, UserXP.completion_id == SubquestCompletion.id)
+                db.session.query(func.min(SubquestCompletion.completed_at))
                 .join(Subquest, SubquestCompletion.subquest_id == Subquest.id)
-                .filter(Subquest.sprint_id == sprint.id, UserXP.user_id == current_user.id)
+                .filter(
+                    Subquest.sprint_id == sprint.id,
+                    SubquestCompletion.user_id == current_user.id,
+                    SubquestCompletion.status == "success",
+                    SubquestCompletion.completed_at.isnot(None)
+                )
                 .scalar()
             )
 
@@ -7697,8 +7705,6 @@ def api_sprint_leaderboard(community_slug, sprint_uuid):
         "leaderboard":  leaderboard_data,
         "current_user": current_user_data
     })
-
-
 
 
 @app.route("/api/<community_slug>/user/<username>/activity")
@@ -18051,16 +18057,10 @@ def preview_subquest(community_slug):
     
     user_tz = get_user_timezone(data.get("user_timezone"))
 
-    # =========================
-    # Community validation
-    # =========================
     community = Community.query.filter_by(slug=community_slug).first()
     if not community:
         return jsonify({'error': 'Community not found'}), 404
 
-    # =========================
-    # Quest validation
-    # =========================
     quest_uuid = data.get("quest_uuid")
     if not quest_uuid:
         return jsonify({'error': 'quest_uuid missing'}), 400
@@ -18069,9 +18069,6 @@ def preview_subquest(community_slug):
     if not quest:
         return jsonify({'error': 'Quest not found'}), 404
 
-    # =========================
-    # Subquest UUID validation (optional in preview)
-    # =========================
     subquest_uuid = data.get("subquest_uuid")
     real_subquest = None
 
@@ -18083,169 +18080,136 @@ def preview_subquest(community_slug):
         if not real_subquest:
             return jsonify({'error': 'Subquest UUID invalid'}), 404
 
-    # =========================
-    # Normalize payload
-    # =========================
     tasks_data = data.get("tasks", [])
     rewards = data.get("rewards", [])
     conditions = data.get("conditions", [])
     cooldown_type = data.get("cooldown")  
     autovalidation = data.get("autovalidation") 
-    
 
     if "preview_cooldowns" not in session:
         session["preview_cooldowns"] = {}
-
     if "preview_autovalidation" not in session:
         session["preview_autovalidation"] = {}
 
     session["preview_cooldowns"][subquest_uuid] = {
-        "type": cooldown_type,   # None | 1 minute | 5 minutes | 15 minutes | 1 month | No retry
+        "type": cooldown_type,
         "saved_at": time.time()
     }
-
     session["preview_autovalidation"][subquest_uuid] = {
         "value": bool(int(autovalidation)) if isinstance(autovalidation, str) else bool(autovalidation),
         "saved_at": time.time()
     }
-
-
     session.modified = True
-    # =========================
-    # Clear old preview state
-    # =========================
+
     PreviewTaskState.query.filter_by(
         user_id=current_user.id,
         subquest_uuid=subquest_uuid
     ).delete()
-
     db.session.commit()
 
-
-    # =========================
-    # Store preview tasks
-    # =========================
     for task in tasks_data:
-
         config = task.get("config", {}).copy()
 
         if task.get("type") == "telegram":
-
             link = config.get("link", "")
-
             chat_id, chat_title, chat_type, error = resolve_telegram_group(link)
-
             if error:
-                return jsonify({
-                    "error": f"Telegram task: {error}"
-                }), 400
-
+                return jsonify({"error": f"Telegram task: {error}"}), 400
             config["telegram_chat_id"] = chat_id
             config["chat_title"] = chat_title
             config["chat_type"] = chat_type
-
 
         p = PreviewTaskState(
             user_id=current_user.id,
             type=task.get("type"),
             config=config,
             subquest_uuid=subquest_uuid,
-            state={
-                "status": "preview",
-                "completed": False
-            }
+            state={"status": "preview", "completed": False}
         )
-
         db.session.add(p)
 
     db.session.commit()
 
-    # =========================
-    # Load preview tasks from DB
-    # =========================
     preview_tasks = PreviewTaskState.query.filter_by(
         user_id=current_user.id,
         subquest_uuid=subquest_uuid
     ).all()
 
-    # =========================
-    # Build tasks for template (WITH progress)
-    # =========================
+    invite_code_entry = InvitationCode.query.filter_by(
+        user_id=current_user.id,
+        community_id=community.id
+    ).first()
+
+    if not invite_code_entry:
+        invite_code_entry = InvitationCode(user_id=current_user.id, community_id=community.id)
+        db.session.add(invite_code_entry)
+        db.session.commit()
+
     tasks = []
 
     for t in preview_tasks:
         progress = {}
+        config = dict(t.config or {})
 
         if t.type == "invite":
-            active_invites = CommunityInviteLog.query.filter_by(
+            required_count = config.get("numInvites", 1)
+
+            logs = CommunityInviteLog.query.filter_by(
                 inviter_user_id=current_user.id,
                 community_id=community.id
-            ).count()
+            ).all()
+
+            active_invites = sum(
+                1 for log in logs
+                if log.status != "consumed"
+                and invited_user_is_valid(config, log.invited_user_id, community.id)
+            )
+            active_invites = min(active_invites, required_count)    
+
             progress["active_invites"] = active_invites
+
+            config["invite_code"] = invite_code_entry.code
         else:
             progress["active_invites"] = 0
 
-        config = dict(t.config or {})
-
         if t.type == "twitter":
             mode = config.get("mode", "follow")
-
             if mode == "engage":
-                config["tweet_date"] = format_tweet_date(
-                    config.get("tweet_date"), tz=user_tz
-                )
-
+                config["tweet_date"] = format_tweet_date(config.get("tweet_date"), tz=user_tz)
             elif mode == "space":
                 is_live = config.get("space_is_live") in (True, "1", 1)
                 scheduled = config.get("space_scheduled_start")
-
                 config["space_state"] = get_space_state(is_live, scheduled)
-                config["space_date_label"] = format_space_datetime(
-                    scheduled, tz=user_tz
-                )
+                config["space_date_label"] = format_space_datetime(scheduled, tz=user_tz)
 
-        tasks.append({
+        entry = {
             "id": t.id,
             "type": t.type,
             "config": config,
             "state": t.state,
             "progress": progress
-        })
+        }
 
-    # =========================
-    # Claim count (real only)
-    # =========================
+        if t.type == "invite":
+            entry["community_slug"] = community_slug  
+            entry["quest_uuid"] = quest_uuid         
+
+        tasks.append(entry)
+
     real_claim_count = real_subquest.claim_count if real_subquest else 0
 
-    # =========================
-    # Hybrid subquest object
-    # =========================
-
     raw_desc = data.get("subquest_desc", [])
-
     parsed_blocks = []
 
     for block in raw_desc:
         if block.get("type") == "text":
             html = block.get("html", "")
-            parsed_html = parse_quest_description(html)   # regex only on text
-            parsed_blocks.append({
-                "type": "text",
-                "html": parsed_html
-            })
-
+            parsed_html = parse_quest_description(html)
+            parsed_blocks.append({"type": "text", "html": parsed_html})
         elif block.get("type") == "image":
-            parsed_blocks.append({
-                "type": "image",
-                "src": block.get("src")
-            })
-
+            parsed_blocks.append({"type": "image", "src": block.get("src")})
         elif block.get("type") == "video":
-            parsed_blocks.append({
-                "type": "video",
-                "src": block.get("src")
-            })
-
+            parsed_blocks.append({"type": "video", "src": block.get("src")})
 
     subquest = {
         "name": data.get("subquest_name"),
@@ -18257,13 +18221,7 @@ def preview_subquest(community_slug):
         "claim_count": real_claim_count,
     }
 
-    # =========================
-    # Community security
-    # =========================
-    security = CommunitySecurity.query.filter_by(
-        community_id=community.id
-    ).first()
-
+    security = CommunitySecurity.query.filter_by(community_id=community.id).first()
     socials_to_show = {
         "twitter": security.require_twitter if security else False,
         "discord": security.require_discord if security else False,
@@ -18271,9 +18229,6 @@ def preview_subquest(community_slug):
         "telegram": security.require_telegram if security else False,
     }
 
-    # =========================
-    # Render preview template
-    # =========================
     return render_template(
         "subquest_content.html",
         preview_mode=True,  
@@ -18289,8 +18244,6 @@ def preview_subquest(community_slug):
         subquest_uuid=subquest_uuid,
         PLATFORM_ICONS=PLATFORM_ICONS
     )
-
-
 
 @app.route("/test-claim/<string:subquest_uuid>", methods=["POST"])
 @login_required

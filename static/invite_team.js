@@ -305,10 +305,10 @@ copyLinkBtn.addEventListener("click", async () => {
   let url;
   if (role === "member") {
     url = currentIsLimited
-      ? `http://127.0.0.1:8000/${slug}/invite/${currentCode}?private`
-      : `http://127.0.0.1:8000/${slug}/invite/${currentCode}`;
+      ? `https://gleyo.app/${slug}/invite/${currentCode}?private`
+      : `https://gleyo.app/${slug}/invite/${currentCode}`;
   } else {
-    url = `http://127.0.0.1:8000/${slug}/team_invite/${currentCode}`;
+    url = `https://gleyo.app/${slug}/team_invite/${currentCode}`;
   }
 
 

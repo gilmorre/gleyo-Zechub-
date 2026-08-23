@@ -716,43 +716,65 @@ def send_email(msg):
 
 
 @app.route("/api/search-communities")
-@login_required
 def search_communities():
     q = request.args.get("q", "").strip()
 
     if not q:
         return jsonify([])
 
-    communities = Community.query.join(
+    query = Community.query.join(
         CommunitySecurity,
         CommunitySecurity.community_id == Community.id,
         isouter=True
-    ).filter(
-        Community.is_paid == True,
-        Community.name.ilike(f"%{q}%"),
-        db.or_(
-            CommunitySecurity.private_community == False,
-            CommunitySecurity.private_community.is_(None) 
+    )
+
+    if current_user.is_authenticated:
+        query = query.outerjoin(
+            CommunityUserRole,
+            db.and_(
+                CommunityUserRole.community_id == Community.id,
+                CommunityUserRole.user_id == current_user.id
+            )
+        ).filter(
+            Community.is_paid == True,
+            Community.name.ilike(f"%{q}%"),
+            db.or_(
+                CommunitySecurity.private_community == False,
+                CommunitySecurity.private_community.is_(None),
+                CommunityUserRole.id.isnot(None)
+            )
         )
-    ).limit(20).all()
+    else:
+        query = query.filter(
+            Community.is_paid == True,
+            Community.name.ilike(f"%{q}%"),
+            db.or_(
+                CommunitySecurity.private_community == False,
+                CommunitySecurity.private_community.is_(None)
+            )
+        )
+
+    communities = query.limit(20).all()
 
     results = []
 
     for c in communities:
 
-        role_row = CommunityUserRole.query.filter_by(
-            user_id=current_user.id,
-            community_id=c.id
-        ).first()
+        role = "member"
+        url = f"/{c.slug}/quest"
 
-        role = role_row.role if role_row else "member"
+        if current_user.is_authenticated:
+            role_row = CommunityUserRole.query.filter_by(
+                user_id=current_user.id,
+                community_id=c.id
+            ).first()
 
-        if role == "admin":
-            url = f"/{c.slug}/dashboard"
-        elif role == "editor":
-            url = f"/{c.slug}/quest/admin"
-        else:
-            url = f"/{c.slug}/quest"
+            role = role_row.role if role_row else "member"
+
+            if role == "admin":
+                url = f"/{c.slug}/dashboard"
+            elif role == "editor":
+                url = f"/{c.slug}/quest/admin"
 
         results.append({
             "name": c.name,
@@ -765,7 +787,6 @@ def search_communities():
     return jsonify(results)
 
 
-        
 def send_email_code(email: str, code: str) -> None:
     """Send OTP using HTML-styled EmailMessage."""
     formatted_code = f"{code[:3]}&nbsp;{code[3:]}"
@@ -3371,21 +3392,36 @@ def send_delete_otp():
 
 
 
-
 @app.get("/api/public/communities")
 def public_communities():
-    communities = (
+    query = (
         Community.query
         .outerjoin(CommunitySecurity, Community.id == CommunitySecurity.community_id)
-        .filter(
+    )
+
+    if current_user.is_authenticated:
+        query = query.outerjoin(
+            CommunityUserRole,
+            db.and_(
+                CommunityUserRole.community_id == Community.id,
+                CommunityUserRole.user_id == current_user.id
+            )
+        ).filter(
+            db.or_(
+                CommunitySecurity.private_community.is_(None),
+                CommunitySecurity.private_community == False,
+                CommunityUserRole.id.isnot(None)   # member/admin can see their own private community
+            )
+        )
+    else:
+        query = query.filter(
             db.or_(
                 CommunitySecurity.private_community.is_(None),
                 CommunitySecurity.private_community == False
             )
         )
-        .order_by(Community.created_at.desc())
-        .all()
-    )
+
+    communities = query.order_by(Community.created_at.desc()).all()
 
     return jsonify([
         {

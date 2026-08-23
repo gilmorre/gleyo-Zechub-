@@ -19055,7 +19055,7 @@ def get_invite_info(community_slug):
     invite_link = f"{request.url_root.rstrip('/')}/{community.slug}/invite/{invite.code}"
 
     return jsonify({
-        "logo": community.logo_path
+        "logo": community.logo_path,
         "name": community.name,
         "invite_link": invite_link
     })

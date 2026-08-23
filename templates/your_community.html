@@ -35,7 +35,7 @@
 <meta name="color-scheme" content="light">
 <link rel="shortcut icon" href="https://zupdpwnloewdkjqsymdm.supabase.co/storage/v1/object/public/uploads/communities/7/logos/511f4996-5748-4f1f-b74c-5d5c33f7124c.png">
 
-<link rel="stylesheet" href="{{ url_for('static', filename='your_communitys.css') }}?v=7">
+<link rel="stylesheet" href="{{ url_for('static', filename='your_communitys.css') }}?v=2">
 <style>
 
 :root {
@@ -68,6 +68,7 @@
   --bg-surface-active-hover: rgba(28, 28, 43, 0.82);
   --bg-hover: #2a2a44;
   --bg-surface-lower: #222236e3;
+  --bg-surface-lower-init: #13131ee3;;
   --bg-surface-active-q: rgba(90, 120, 255, 0.18);
   --bg-surface-active-q-active: rgba(120, 160, 255, 0.45);
   --border-q-p: #2a2a44e4;
@@ -5415,46 +5416,81 @@ function getCommunitySlugFromPath(path = window.location.pathname) {
       if (m) m.innerHTML = html;
     }
 
-function renderInviteFriend(data) {
-  const html = `
-    <div class="community-info">
-      <img src="${data.logo || '/static/default.png'}" class="ci-logo" alt="${data.name}"/>
-      <p class="ci-name">${data.name}</p>
-      <p class="ci-about">You can use this link to invite anyone to this community.</p>
-      <div class="ci-invite-link-wrap">
-        <input type="text" class="ci-invite-link" value="${data.invite_link}" readonly onclick="this.select()"/>
-        <button class="ci-copy-btn" onclick="copyInviteLink('${data.invite_link}')">
-          ${ICONS.copy || 'Copy'}
-        </button>
-      </div>
-    </div>`;
-  const d = document.getElementById("inject-main-card-desktop");
-  const m = document.getElementById("inject-main-card-mobile");
-  if (d) d.innerHTML = html;
-  if (m) m.innerHTML = html;
-}
+    function renderInviteFriend(data) {
+      const html = `
+        <div class="community-info">
+          <img src="${data.logo || '/static/default.png'}" class="ci-logo" alt="${data.name}"/>
+          <p class="ci-name">${data.name}</p>
+          <p class="ci-about">You can use this link to invite anyone to this community.</p>
+          <div class="ci-invite-link-wrap">
+            <input type="text" class="ci-invite-linked" value="${data.invite_link}" readonly onclick="this.select()"/>
+            <button type="button" class="ci-copy-btn">Copy</button>
+          </div>
+        </div>`;
 
-window.loadInviteFriend = async function () {
-  toggleSidebar();
-  document.querySelector(".community-dropdown").style.display = "none";
-  openCommunityModal();
-  renderSkeleton();
-  try {
-    const res = await fetch(`/community/${communitySlug}/invite-info`, {
-      headers: { "X-Partial": "1" }
-    });
-    if (!res.ok) {
-      showToast("Failed to load invite link");
-      return;
+      const d = document.getElementById("inject-main-card-desktop");
+      const m = document.getElementById("inject-main-card-mobile");
+      if (d) d.innerHTML = html;
+      if (m) m.innerHTML = html;
+
+      document.querySelectorAll(".ci-copy-btn").forEach(btn => {
+        btn.addEventListener("click", function () {
+          copyInviteLink(data.invite_link, btn);
+        });
+      });
     }
-    const data = await res.json();
-    renderInviteFriend(data);
-  } catch (err) {
-    console.error(err);
-    showToast("Network error");
-  }
-};
 
+    window.loadInviteFriend = async function () {
+      toggleSidebar();
+      document.querySelector(".community-dropdown").style.display = "none";
+      openCommunityModal();
+      renderSkeleton();
+      try {
+        const res = await fetch(`/community/${communitySlug}/invite-info`, {
+          headers: { "X-Partial": "1" }
+        });
+        if (!res.ok) {
+          showToast("Failed to load invite link");
+          return;
+        }
+        const data = await res.json();
+        renderInviteFriend(data);
+      } catch (err) {
+        console.error(err);
+        showToast("Network error");
+      }
+    };
+
+    function copyInviteLink(link, btn) {
+      const showCopied = () => {
+        showToast("Invite link copied", "success");
+        if (btn) {
+          const original = btn.textContent;
+          btn.textContent = "Copied";
+          btn.disabled = true;
+          setTimeout(() => {
+            btn.textContent = original;
+            btn.disabled = false;
+          }, 3000);
+        }
+      };
+
+      if (!navigator.clipboard || !navigator.clipboard.writeText) {
+        const temp = document.createElement("textarea");
+        temp.value = link;
+        document.body.appendChild(temp);
+        temp.select();
+        document.execCommand("copy");
+        document.body.removeChild(temp);
+        showCopied();
+        return;
+      }
+
+      navigator.clipboard.writeText(link)
+        .then(showCopied)
+        .catch(() => showToast("Failed to copy link"));
+    }
+        
     window.loadCommunityInfo = async function () {
       toggleSidebar();
       document.querySelector(".community-dropdown").style.display = "none"
@@ -5477,12 +5513,7 @@ window.loadInviteFriend = async function () {
     };
   })();
 
-window.copyInviteLink = function (link) {
-  navigator.clipboard.writeText(link)
-    .then(() => showToast("Invite link copied"))
-    .catch(() => showToast("Failed to copy link"));
-};
-
+ 
 async function handleSlugChange() {
 
   const newSlug = getCommunitySlugFromPath();

@@ -14771,3 +14771,28 @@ background-color: var(--bg-app);
   cursor: not-allowed;
   pointer-events: none;
 }
+.ci-invite-linked {
+  border: 0.9px solid var(--border);
+  background-color: var(--bg-surface-lower-init) !important;
+  border-radius: 12px;
+  font-size: 14px;
+  color: var(--text-main);
+  padding: 10px 14px;
+}
+
+
+.ci-copy-btn {
+  color: var(--text-main);
+  border-radius: 17px;
+  padding: 8px 23px;
+  margin-top: 17px;
+  width: 140px;
+  border: none;
+  background-color: #4285F4;
+  font-size: 13px;
+}
+
+.ci-copy-btn:hover {
+  outline: 1px solid #4285f4;
+  outline-offset: 3px;  
+}

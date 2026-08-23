@@ -786,7 +786,7 @@ def search_communities():
 
     return jsonify(results)
 
-
+    
 def send_email_code(email: str, code: str) -> None:
     """Send OTP using HTML-styled EmailMessage."""
     formatted_code = f"{code[:3]}&nbsp;{code[3:]}"
@@ -19423,20 +19423,30 @@ def p_quest_sprint(community_slug):
         "inviter_profile_pic": None,
     }
     invitation_code = session.get("invite_code")
-    is_limited_invite = session.get("is_limited_invite", False)   # 🔒 NEW
+    is_limited_invite = session.get("is_limited_invite", False)
 
-    active_sprint = (
+    # ✅ same pattern as subquest_detail — allows an UPCOMING sprint too,
+    # not just one that's currently active. Nearest sprint by start_date wins.
+    current_sprint = (
         Sprint.query
         .filter(
             Sprint.community_id == community.id,
-            Sprint.start_date <= now,
             Sprint.end_date >= now
         )
-        .order_by(Sprint.start_date.desc())
+        .order_by(Sprint.start_date.asc())
         .first()
     )
 
-    if not active_sprint:
+    if not current_sprint:
+        # 🔥 no more silent redirect-on-fetch — return real JSON for X-Partial callers
+        if request.headers.get("X-Partial"):
+            return jsonify({
+                "error": "no_sprint",
+                "message": "No active or upcoming sprint for this community."
+            }), 404
+
+        # full page nav still gets a friendly redirect
+        flash("No sprint is currently available for this community.", "error")
         return redirect(url_for('p_quest', community_slug=community_slug))
 
     private_ctx = get_private_access_context(
@@ -19449,12 +19459,13 @@ def p_quest_sprint(community_slug):
             user=user,
             community=community,
             quest_mode="sprint",
+            current_sprint=current_sprint,
             from_slug_route=False,
             is_new_onto_this=member_ctx["is_new_onto_this"],
             user_was_invited=member_ctx["user_was_invited"],
             private_locked=private_ctx["private_locked"],
-            invitation_code=invitation_code,          # 🔒 NEW — was missing on partial render
-            is_limited_invite=is_limited_invite,       # 🔒 NEW
+            invitation_code=invitation_code,
+            is_limited_invite=is_limited_invite,
         )
 
     total_xp = get_total_xp(user_id, community.id) if user_id else 0
@@ -19469,6 +19480,7 @@ def p_quest_sprint(community_slug):
         level_data=level_data,
         latest_sprint=latest_sprint,
         quest_mode="sprint",
+        current_sprint=current_sprint,
         from_slug_route=False,
         is_new_onto_this=member_ctx["is_new_onto_this"],
         user_was_invited=member_ctx["user_was_invited"],
@@ -19476,7 +19488,7 @@ def p_quest_sprint(community_slug):
         inviter_username=member_ctx["inviter_username"],
         inviter_profile_pic=member_ctx["inviter_profile_pic"],
         invitation_code=invitation_code,
-        is_limited_invite=is_limited_invite,   # 🔒 NEW
+        is_limited_invite=is_limited_invite,
         private_locked=private_ctx["private_locked"],
     )
 

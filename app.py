@@ -19028,6 +19028,38 @@ def get_member_context(user_id, community_id):
 
 
 
+
+@app.route("/community/<community_slug>/invite-info")
+@login_required
+def get_invite_info(community_slug):
+    community = Community.query.filter_by(slug=community_slug).first()
+    if not community:
+        return jsonify({"error": "Community not found"}), 404
+
+    security = CommunitySecurity.query.filter_by(community_id=community.id).first()
+
+    if security and security.invite_permission == "admins_only":
+        if not has_role(current_user.id, community.id, "admin"):
+            return jsonify({"error": "Only admins can generate invites for this community"}), 403
+
+    invite = InvitationCode.query.filter_by(
+        user_id=current_user.id,
+        community_id=community.id
+    ).first()
+
+    if not invite:
+        invite = InvitationCode(user_id=current_user.id, community_id=community.id)
+        db.session.add(invite)
+        db.session.commit()
+
+    invite_link = f"{request.url_root.rstrip('/')}/{community.slug}/invite/{invite.code}"
+
+    return jsonify({
+        "logo": community.logo_path
+        "name": community.name,
+        "invite_link": invite_link
+    })
+
 @app.route("/<community_slug>/invite/<invitation_code>")
 @login_required
 def handle_invite(community_slug, invitation_code):

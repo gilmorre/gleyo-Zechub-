@@ -1318,6 +1318,16 @@
         Info
     </a>
 
+    <a onclick="event.preventDefault(); loadInviteFriend()">
+      <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+        <circle cx="9" cy="7" r="4"/>
+        <line x1="19" y1="8" x2="19" y2="14"/>
+        <line x1="22" y1="11" x2="16" y2="11"/>
+      </svg>
+      Invite Friend
+    </a>
+
     <div class="dropdown-divider"></div>
 
 
@@ -5405,6 +5415,46 @@ function getCommunitySlugFromPath(path = window.location.pathname) {
       if (m) m.innerHTML = html;
     }
 
+function renderInviteFriend(data) {
+  const html = `
+    <div class="community-info">
+      <img src="${data.logo || '/static/default.png'}" class="ci-logo" alt="${data.name}"/>
+      <p class="ci-name">${data.name}</p>
+      <p class="ci-about">You can use this link to invite anyone to this community.</p>
+      <div class="ci-invite-link-wrap">
+        <input type="text" class="ci-invite-link" value="${data.invite_link}" readonly onclick="this.select()"/>
+        <button class="ci-copy-btn" onclick="copyInviteLink('${data.invite_link}')">
+          ${ICONS.copy || 'Copy'}
+        </button>
+      </div>
+    </div>`;
+  const d = document.getElementById("inject-main-card-desktop");
+  const m = document.getElementById("inject-main-card-mobile");
+  if (d) d.innerHTML = html;
+  if (m) m.innerHTML = html;
+}
+
+window.loadInviteFriend = async function () {
+  toggleSidebar();
+  document.querySelector(".community-dropdown").style.display = "none";
+  openCommunityModal();
+  renderSkeleton();
+  try {
+    const res = await fetch(`/community/${communitySlug}/invite-info`, {
+      headers: { "X-Partial": "1" }
+    });
+    if (!res.ok) {
+      showToast("Failed to load invite link");
+      return;
+    }
+    const data = await res.json();
+    renderInviteFriend(data);
+  } catch (err) {
+    console.error(err);
+    showToast("Network error");
+  }
+};
+
     window.loadCommunityInfo = async function () {
       toggleSidebar();
       document.querySelector(".community-dropdown").style.display = "none"
@@ -5426,6 +5476,12 @@ function getCommunitySlugFromPath(path = window.location.pathname) {
       }
     };
   })();
+
+window.copyInviteLink = function (link) {
+  navigator.clipboard.writeText(link)
+    .then(() => showToast("Invite link copied"))
+    .catch(() => showToast("Failed to copy link"));
+};
 
 async function handleSlugChange() {
 

@@ -15147,10 +15147,9 @@ def subquest_detail(community_slug, quest_uuid, subquest_uuid):
         Sprint.query
         .filter(
             Sprint.community_id == community.id,
-            Sprint.start_date <= now,
-            Sprint.end_date >= now
+            Sprint.end_date >= now   
         )
-        .order_by(Sprint.start_date.desc())
+        .order_by(Sprint.start_date.asc())   
         .first()
     )
 

@@ -738,10 +738,12 @@ body.no-scroll {
 }
 
 .reward-amount {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 800;
+  line-height: 1.6; 
+  white-space: pre-line;
   letter-spacing: -0.02em;
-  color: #facc15;
+  color: #facc15cd;
   margin-top: 10px !important;
   margin: 0;
   text-shadow: 0 0 12px rgba(250, 204, 21, 0.25);

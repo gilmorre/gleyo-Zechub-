@@ -1,6 +1,6 @@
 <title>{{ sprint.title }} Leaderboard</title>
 
- <link rel="stylesheet" href="{{ url_for('static', filename='sprint_view.css') }}">
+ <link rel="stylesheet" href="{{ url_for('static', filename='sprint_view.css') }}?v=1">
 
 
 
@@ -169,7 +169,7 @@
       <div class="highlight-box second">
         <h2 style="color: var(--text-main); font-weight: bold; margin: 0; font-size: 15px;">Why Join?</h2>
 
-        <p style="color: var(--text-main); font-size: 14px !important; line-height: 1.6;">{{ sprint.description }} 
+        <p style="color: var(--text-main); font-size: 14px !important; line-height: 1.6; white-space: pre-line;"> 
           {{ sprint.description }}
         </p>
       </div>
@@ -179,7 +179,7 @@
       <div class="highlight-box third">
         <h2 style="color: var(--text-main); font-weight: bold; margin: 0; font-size: 15px; margin: 0; padding: 0;">Top Prize</h2>
 
-        <p class="reward-amount">{{ sprint.rewards }} </p>
+        <p class="reward-amount">{{ sprint.rewards | safe }}</p>
       </div>
     </div>
   </div>  

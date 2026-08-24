@@ -27548,11 +27548,8 @@ def update_sprint(sprint_uuid):
     if not sprint:
         return jsonify({"success": False}), 404
 
-    # ✅ Permission check
-    is_sprint_creator = sprint.created_by_id == user_id
-    is_community_creator = sprint.community.created_by_id == user_id
-
-    if not (is_sprint_creator or is_community_creator):
+    # ✅ Permission check — must match the GET /sprint/edit route
+    if not has_role(user_id, sprint.community_id, "editor"):
         return jsonify({"success": False}), 403
 
     data = request.get_json()
@@ -27581,7 +27578,6 @@ def update_sprint(sprint_uuid):
     db.session.commit()
 
     return jsonify({"success": True}), 200
-
 
 
 @app.route('/edit_module/<uuid_value>', methods=['POST'])

@@ -23115,7 +23115,7 @@ def sprint_panel(community_slug, sprint_uuid):
     
     user_id = current_user.id if current_user.is_authenticated else None
 
-    if not has_role(user_id, community.id, "admin"):
+    if not has_role(user_id, community.id, "editor"):
         flash("Only admins can access this page.", "error")
         return redirect(url_for("dashboard"))
     

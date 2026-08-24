@@ -80,18 +80,7 @@ function buildUnicodeEmojiMap() {
 
 let is_mobile = {{ is_mobile | tojson }};
 
-if (!is_mobile) {
-  document.addEventListener("DOMContentLoaded", async () => {
-    await emojiLoadPromise;
-
-    requestAnimationFrame(() => {
-      buildVariantGroupsAndCategoryMap();
-      buildUnicodeEmojiMap();
-      renderEmojiPicker();
-      renderRecentEmojis();
-    });
-  });
-}
+ 
 
 
 

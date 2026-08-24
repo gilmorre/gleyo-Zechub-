@@ -17563,6 +17563,7 @@ def subquest_content(community_slug, quest_uuid, subquest_uuid):
 
 def utcnow():
     return datetime.now(timezone.utc)
+
 @app.route('/apiinit/<community_slug>/quest/<string:quest_uuid>/<string:subquest_uuid>')
 def quester_view(community_slug, quest_uuid, subquest_uuid):
     user    = current_user if current_user.is_authenticated else None
@@ -17725,6 +17726,25 @@ def quester_view(community_slug, quest_uuid, subquest_uuid):
         if t.type == "invite":
             config["xp_for_valid_invite"] = security.xp_for_valid_invite if security else 0
 
+            ref_uuid = config.get("subquest_uuid")
+            if ref_uuid:
+                ref_subquest = (
+                    Subquest.query
+                    .join(Quest, Subquest.quest_id == Quest.id)
+                    .filter(
+                        Subquest.uuid == ref_uuid,
+                        Quest.community_id == community.id    
+                    )
+                    .first()
+                )
+                if ref_subquest:
+                    config["subquest_name"]      = ref_subquest.name         
+                    config["subquest_uuid"]      = ref_subquest.uuid
+                    config["subquest_quest_uuid"] = ref_subquest.quest.uuid   
+                    config["subquest_valid"]     = True
+                else:
+                    config["subquest_valid"] = False
+
         task_dicts.append({
             "id":          t.id,
             "type":        t.type,
@@ -17733,6 +17753,7 @@ def quester_view(community_slug, quest_uuid, subquest_uuid):
             "labels":      config.get("labels", {"left": "", "right": ""}),
             "scale":       config.get("scale", {"from": 1, "to": 10}),
             "starCount":   int(config.get("starCount", 0)),
+            "quest_uuid":  quest.uuid,
             "config":      config
         })
 

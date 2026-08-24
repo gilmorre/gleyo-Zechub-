@@ -2202,7 +2202,7 @@ body.sidebar-open .bar-quest-container svg {
 
 @media (min-width: 768px) {
   .topbar {
-    display: none;
+    display: none !important;
   }
 }
  
@@ -2354,11 +2354,11 @@ body.sidebar-open .bar-quest-container svg {
 .profile-info {
   display: flex;
   align-items: center;
-  background-color: #2d2d49;    /* your pill background */
-  border-radius: 50px;      /* fully rounded edges */
-  padding: 8px 20px;        /* more horizontal padding = longer pill */
-  width: 100%;       /* only as wide as needed */
-  min-width: 170px;         /* force min width */
+  background-color: #2d2d49;    
+  border-radius: 50px;     
+  padding: 8px 20px;        
+  width: 100%;    
+  min-width: 170px;      
 }
 
 .profile-info img.profile-pic {
@@ -14775,4 +14775,32 @@ background-color: var(--bg-app);
 .ci-copy-btn:hover {
   outline: 1px solid #4285f4;
   outline-offset: 3px;  
+}
+
+
+@media (min-width: 768px) {
+
+.tooltip-text {
+  position: fixed;  
+  background: var(--bg-sidebar);
+  border: 1px solid var(--border);
+  color: var(--text-main);
+  font-size: 11px;
+  padding: 6px 12px;
+  border-radius: 8px;
+
+  opacity: 0;
+  pointer-events: none;
+  white-space: nowrap;
+
+  transform: translateY(4px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+
+  z-index: 99999;
+}
+
+
+  .tooltip-wrapper:hover .tooltip-text {
+    opacity: 1;
+  }
 }

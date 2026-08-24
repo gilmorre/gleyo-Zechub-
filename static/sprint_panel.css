@@ -196,6 +196,33 @@ textarea:focus {
 
 
 @media (min-width: 768px) {
+
+.tooltip-text {
+  position: fixed;  
+  background: var(--bg-sidebar);
+  border: 1px solid var(--border);
+  color: var(--text-main);
+  font-size: 11px;
+  padding: 6px 12px;
+  border-radius: 8px;
+
+  opacity: 0;
+  pointer-events: none;
+  white-space: nowrap;
+
+  transform: translateY(4px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+
+  z-index: 99999;
+}
+
+
+  .tooltip-wrapper:hover .tooltip-text {
+    opacity: 1;
+  }
+
+  
+  
   .info-left{
     width: 70%;
     height: 80%;
@@ -252,31 +279,7 @@ textarea:focus {
 
   }
   
-.tooltip-text {
-  position: fixed; /* 🔥 important */
-  background: var(--bg-sidebar);
-  border: 1px solid var(--border);
-  color: var(--text-main);
-  font-size: 11px;
-  padding: 6px 12px;
-  border-radius: 8px;
 
-  opacity: 0;
-  pointer-events: none;
-  white-space: nowrap;
-
-  transform: translateY(4px);
-  transition: opacity 0.2s ease, transform 0.2s ease;
-
-  z-index: 99999;
-}
-
-
-  .tooltip-wrapper:hover .tooltip-text {
-    opacity: 1;
-  }
-
-  
 
 
   .diver-svg {

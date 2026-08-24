@@ -35,7 +35,7 @@
 <meta name="color-scheme" content="light">
 <link rel="shortcut icon" href="https://zupdpwnloewdkjqsymdm.supabase.co/storage/v1/object/public/uploads/communities/7/logos/511f4996-5748-4f1f-b74c-5d5c33f7124c.png">
 
-<link rel="stylesheet" href="{{ url_for('static', filename='your_communitys.css') }}?v=2">
+<link rel="stylesheet" href="{{ url_for('static', filename='your_communitys.css') }}?v=3">
 <style>
 
 :root {
@@ -593,7 +593,7 @@
   {% endif %}
 
 
-<div class="topbar" style="align-items: center; width: 100%; min-width: 0;">
+<div class="topbar">
 
   <div class="bar-quest-container" onclick="toggleSidebar()" style="flex: 0 0 auto;">
     <div class="bar-quest-init bar-top-init"></div>
@@ -628,7 +628,7 @@
 
       <svg id="is_verified_upper" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="15" height="15" class="chat-for-svg" style="flex: 0 0 auto; {% if not community.is_paid %}display: none;{% endif %}">
         <defs>
-          <mask id="verified-mask">
+          <mask>
             <rect width="24" height="24" fill="white"/>
             <path
               d="M9 12L11 14L15 10"
@@ -7379,9 +7379,9 @@ async function loadMainSettingsSection(path, push = true, previewMode = false, n
 
 
 
-    __CURRENT_SCRIPT__ = "/static/p_quest.js?v=8";
+    __CURRENT_SCRIPT__ = "/static/p_quest.js?v=4";
 
-    await loadScript("/static/p_quest.js?v=8");
+    await loadScript("/static/p_quest.js?v=4");
 
     if (window.PQUESTModule) {
       window.PQUESTModule.init();

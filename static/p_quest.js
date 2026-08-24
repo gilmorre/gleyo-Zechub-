@@ -3975,7 +3975,7 @@ else if (task.type === "puzzle") {
 
     const requireTwitterMatch = !!task.config?.require_twitter_match;
 
-    const questUUID = task.quest_uuid || "";
+    const questUUID = task.config?.subquest_quest_uuid || null;
 
 
     const inviteLink = `${window.location.origin}/${communitySlug}/invite/${inviteCode}`;
@@ -3993,7 +3993,7 @@ else if (task.type === "puzzle") {
         <div class="text-small-invite">
           Complete 
           <a class="subquest-named"
-            href="/${communitySlug}/quest/${questUUID}/${subquestUUID}">
+            href="/${communitySlug}/quest/${questUUID}/${subquestUUID}" target="_blank">
             ${subquestName}
             <svg xmlns="http://www.w3.org/2000/svg" 
                 width="13" height="13" 

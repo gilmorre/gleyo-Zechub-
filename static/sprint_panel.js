@@ -726,7 +726,17 @@
       }
     }
 
-    // Rewards
+    const titleInput = document.getElementById("title");
+    const previewTitle = document.getElementById("previewTitle");
+
+    if (titleInput && previewTitle) {
+      previewTitle.textContent = titleInput.value.trim() || "Title";
+
+      titleInput.addEventListener("input", () => {
+        previewTitle.textContent = titleInput.value.trim() || "Title";
+      });
+    }
+
     const rewardInput = document.getElementById("rewards");
     const previewReward = document.getElementById("previewReward");
 

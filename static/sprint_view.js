@@ -106,7 +106,10 @@ async function loadLeaderboardSprint() {
 
     list.innerHTML = "";
 
-    users.forEach(user => {
+    const endZone = parseInt(data.end_zone, 10);
+    const showZone = !isNaN(endZone) && endZone > 0 && users.length > endZone;
+
+    users.forEach((user, index) => {
 
       const li = document.createElement("li");
       li.className = "participant-item";
@@ -128,6 +131,24 @@ async function loadLeaderboardSprint() {
       `;
 
       list.appendChild(li);
+
+      // 🏆 append divider right after the last reward-zone user, same pass
+      if (showZone && index === endZone - 1) {
+        const divider = document.createElement("li");
+        divider.className = "reward-zone-divider";
+        divider.innerHTML = `
+          <span class="reward-zone-line"></span>
+          <span class="reward-zone-label">
+            <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" fill="currentColor" width="13" height="13" viewBox="0 0 15 15" style="enable-background:new 0 0 15 15;" xml:space="preserve">
+            <path d="M6.5,5v2H0V5H6.5z M8.5,5v2H15V5H8.5z M1,8v4.5C1,13.3284,1.6716,14,2.5,14h4V8H1z M8.5,8v6h4c0.8284,0,1.5-0.6716,1.5-1.5  V8H8.5z M10.5,0c-1.4033-0.0444-2.6497,0.8904-3,2.25C7.1497,0.8904,5.9033-0.0444,4.5,0c-1.0709-0.0337-1.9663,0.8072-2,1.8781  C2.4987,1.9187,2.4987,1.9594,2.5,2C2.3443,2.9427,2.9822,3.8331,3.9249,3.9888C4.0853,4.0153,4.2486,4.0191,4.41,4h6.13  c0.9548,0.1497,1.8503-0.5029,2-1.4577c0.0282-0.1797,0.0282-0.3626,0-0.5423c0.0002-1.1046-0.895-2.0002-1.9996-2.0004  C10.5269-0.0004,10.5135-0.0003,10.5,0z M4.5,3c-0.506,0.0463-0.9537-0.3264-1-0.8323C3.4949,2.1119,3.4949,2.0558,3.5,2  C3.4537,1.494,3.8264,1.0463,4.3323,1C4.3881,0.9949,4.4442,0.9949,4.5,1c1.1046,0,2,0.8954,2,2H4.5z M10.5,3h-2  c0-1.1046,0.8954-2,2-2c0.5523,0,1,0.4477,1,1c0.0463,0.506-0.3264,0.9537-0.8323,1C10.6119,3.0051,10.5558,3.0051,10.5,3z"/>
+            </svg>
+            End of reward zone
+          </span>
+          <span class="reward-zone-line"></span>
+        `;
+        list.appendChild(divider);
+      }
+
       const avatar = li.querySelector(".participant-avatar");
       const name = li.querySelector(".participant-name");
 
@@ -177,14 +198,15 @@ async function loadLeaderboardSprint() {
       rankNumber.textContent = `${currentUser.rank}.`;
 
       const hasImage = currentUser.image && currentUser.image.trim() !== "";
-      const bg = getColor(currentUserId || 3);
+      const bg = getColor(currentUser.user_id);
       const textColor = getTextColor(bg);
-
       rankAvatar.innerHTML = hasImage
         ? `<img src="${currentUser.image}" alt="${currentUser.username}" class="rank-avatar">`
         : `
-          <div class="rank-init"
-              style="background:${bg}; color:${textColor}; font-weight:500;">
+          <div class="rank-avatar rank-init"
+              style="width:100%;height:100%;border-radius:50%;
+                    display:flex;align-items:center;justify-content:center;
+                    background:${bg}; color:${textColor}; font-weight:500;">
             ${currentUser.username[0].toUpperCase()}
           </div>
         `;
@@ -206,7 +228,6 @@ async function loadLeaderboardSprint() {
   }
 
 }
-
   
   const panel = document.getElementById('announcementPanel');
   const overlay = document.getElementById('mobileOverlay');
@@ -605,8 +626,17 @@ function renderUserActivity(data, isMobile, position) {
 
       <!-- USER -->
       <div class="mobile-user-header">
-        <img class="mobile-avatar"
-            src="${data.image || 'https://i.pravatar.cc/80'}">
+        ${
+          data.image && data.image.trim() !== ""
+            ? `<img class="mobile-avatar" src="${data.image}" alt="${data.username}">`
+            : `<div class="mobile-avatar mobile-avatar-fallback"
+                    style="display:flex;align-items:center;justify-content:center;
+                          background:${getColor(data.user_id)};
+                          color:${getTextColor(getColor(data.user_id))};
+                          font-weight:500;">
+                ${data.username[0].toUpperCase()}
+              </div>`
+        }
 
         <div class="mobile-user-meta">
           <div class="mobile-username">${data.username}</div>

@@ -176,7 +176,7 @@ async function loadLeaderboard() {
       rankNumber.textContent = `${currentUser.rank}.`;
 
       const hasImage = currentUser.image && currentUser.image.trim() !== "";
-      const bg = getColor(currentUserId || 3);
+      const bg = getColor(currentUser.user_id);
       const textColor = getTextColor(bg);
 
       rankAvatar.innerHTML = hasImage
@@ -1373,8 +1373,17 @@ function renderUserActivity(data, isMobile, position) {
 
       <!-- USER -->
       <div class="mobile-user-header">
-        <img class="mobile-avatar"
-            src="${data.image || 'https://i.pravatar.cc/80'}">
+        ${
+          data.image && data.image.trim() !== ""
+            ? `<img class="mobile-avatar" src="${data.image}" alt="${data.username}">`
+            : `<div class="mobile-avatar mobile-avatar-fallback"
+                    style="display:flex;align-items:center;justify-content:center;
+                          background:${getColor(data.user_id ?? data.username.charCodeAt(0))};
+                          color:${getTextColor(getColor(data.user_id ?? data.username.charCodeAt(0)))};
+                          font-weight:500;">
+                ${data.username[0].toUpperCase()}
+              </div>`
+        }
 
         <div class="mobile-user-meta">
           <div class="mobile-username">${data.username}</div>

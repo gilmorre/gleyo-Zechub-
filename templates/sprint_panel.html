@@ -215,30 +215,31 @@
             </div>
           </div>
 
-          <fieldset class="reward-option">
-            <legend>
-              Reward Distribution
-              <span class="status-badge">{{ payment_status }}</span>
-            </legend>
+          {% if sprint.distribution == "pay_to_creator" %}
+            <fieldset class="reward-option">
+              <legend>
+                Reward Distribution
+                <span class="status-badge">{{ payment_status }}</span>
+              </legend>
 
-            <div class="distribution-row">
-              <strong class="paid-label">Distribution by Gleyo</strong>
-            </div>
-          </fieldset>
+              <div class="distribution-row">
+                <strong class="paid-label">Distribution by Gleyo</strong>
+              </div>
+            </fieldset>
 
-          <fieldset class="reward-option">
-            <legend>Reward Distribution</legend>
+          {% elif sprint.distribution == "self_distribute" %}
+            <fieldset class="reward-option">
+              <legend>Reward Distribution</legend>
 
-            <div class="distribution-row">
-              <strong class="self-label">Self distribution</strong>
-            </div>
+              <div class="distribution-row">
+                <strong class="self-label">Self distribution</strong>
+              </div>
 
-            <div id="distributionOutput">
-              Rewards will be distributed manually by the sprint owner.
-            </div>
-          </fieldset>
-
-
+              <div id="distributionOutput">
+                Rewards will be distributed manually by the sprint owner.
+              </div>
+            </fieldset>
+          {% endif %}
 
 
 

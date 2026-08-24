@@ -7607,11 +7607,11 @@ def api_alltime_leaderboard(community_slug):
 
     leaderboard = (
         db.session.query(
-            Users.id,
+            Users.id.label("user_id"),
             Users.username,
             Users.profile_pic,
             CommunityUserXP.xp,
-            CommunityUserXP.id,
+            CommunityUserXP.id.label("xp_row_id"),
             latest_activity_subq.c.last_xp_at
         )
         .join(Users, Users.id == CommunityUserXP.user_id)
@@ -7629,7 +7629,7 @@ def api_alltime_leaderboard(community_slug):
     leaderboard_data = []
     for index, user in enumerate(leaderboard, start=1):
         leaderboard_data.append({
-            "user_id":  user.id,
+            "user_id":  user.user_id,
             "username": user.username,
             "image":    user.profile_pic,
             "xp":       user.xp,
@@ -7680,6 +7680,7 @@ def api_alltime_leaderboard(community_slug):
             )
 
             current_user_data = {
+                "user_id":  current_user.id,
                 "username": current_user.username,
                 "image":    current_user.profile_pic,
                 "xp":       full_rank.xp,
@@ -7690,6 +7691,8 @@ def api_alltime_leaderboard(community_slug):
         "leaderboard":  leaderboard_data,
         "current_user": current_user_data
     })
+
+
 @app.route('/api/<community_slug>/leaderboard/<sprint_uuid>')
 def api_sprint_leaderboard(community_slug, sprint_uuid):
 
@@ -7718,11 +7721,11 @@ def api_sprint_leaderboard(community_slug, sprint_uuid):
 
     leaderboard = (
         db.session.query(
-            Users.id,
+            Users.id.label("user_id"),
             Users.username,
             Users.profile_pic,
             SprintUserXP.xp,
-            SprintUserXP.id,
+            SprintUserXP.id.label("xp_row_id"),
             latest_activity_subq.c.last_xp_at
         )
         .join(Users, Users.id == SprintUserXP.user_id)
@@ -7740,7 +7743,7 @@ def api_sprint_leaderboard(community_slug, sprint_uuid):
     leaderboard_data = []
     for index, user in enumerate(leaderboard, start=1):
         leaderboard_data.append({
-            "user_id":  user.id,
+            "user_id":  user.user_id,
             "username": user.username,
             "image":    user.profile_pic,
             "xp":       user.xp or 0,
@@ -7790,6 +7793,7 @@ def api_sprint_leaderboard(community_slug, sprint_uuid):
             )
 
             current_user_data = {
+                "user_id":  current_user.id,
                 "username": current_user.username,
                 "image":    current_user.profile_pic,
                 "xp":       current_user_entry.xp or 0,
@@ -7798,7 +7802,8 @@ def api_sprint_leaderboard(community_slug, sprint_uuid):
 
     return jsonify({
         "leaderboard":  leaderboard_data,
-        "current_user": current_user_data
+        "current_user": current_user_data,
+        "end_zone": sprint.end_zone
     })
 
 
@@ -7883,6 +7888,7 @@ def user_recent_activity(community_slug, username):
         })
 
     return jsonify({
+        "user_id": user.id, 
         "username": user.username,
         "image": user.profile_pic,
         "is_current_user": user.id == current_user.id,

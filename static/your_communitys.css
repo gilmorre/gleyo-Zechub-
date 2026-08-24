@@ -2005,14 +2005,7 @@ body.sidebar-open .bar-quest-container svg {
   transform: translateY(-2px);
 }
 
-.participant-avatar, .participant-name {
-  cursor: pointer;
-}
 
-.participant-avatar:hover {
-  outline: 1px solid #4285f4;
-  outline-offset: 3px;
-}
 
 
 .participant-avatar {
@@ -2027,15 +2020,7 @@ body.sidebar-open .bar-quest-container svg {
   position: relative;
 }
 
-.participant-name:hover::after{
-  content: "";
-  position: absolute;
-  left: 0;
-  bottom: -3px;
-  width: 100%;
-  height: 1px;
-  background: #4285f4;
-}
+
 
 .welcome-right img {
   width: 180px;
@@ -7771,6 +7756,7 @@ border-top-color: var(--text-main) !important;
 
 .mobile-avatar{
   width:40px;
+  object-fit: cover;
   height:40px;
   border-radius:50%;
 }

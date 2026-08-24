@@ -7407,10 +7407,10 @@ async function loadMainSettingsSection(path, push = true, previewMode = false, n
   /* ---------------- LEADERBOARD ---------------- */
 
   if (finalPath.includes("/leaderboard/")) {
-      __CURRENT_SCRIPT__ = "/static/sprint_view.js";
+      __CURRENT_SCRIPT__ = "/static/sprint_view.js?v=1";
 
 
-    await loadScript("/static/sprint_view.js");
+    await loadScript("/static/sprint_view.js?v=1");
 
     if (window.SprintViewinit) {
       window.SprintViewinit.init();
@@ -7420,9 +7420,9 @@ async function loadMainSettingsSection(path, push = true, previewMode = false, n
     DeclearedSprintSwitch();
 
   } else if (finalPath.includes("/leaderboard")) {
-    __CURRENT_SCRIPT__ = "/static/leaderboard.js?v=9";
+    __CURRENT_SCRIPT__ = "/static/leaderboard.js?v=3";
 
-    await loadScript("/static/leaderboard.js?v=9");
+    await loadScript("/static/leaderboard.js?v=3");
 
     if (window.LeaderboardModule) {
       window.LeaderboardModule.init();
@@ -7451,9 +7451,9 @@ async function loadMainSettingsSection(path, push = true, previewMode = false, n
 
 
   if (finalPath.includes("/sprint/edit/")) {
-    __CURRENT_SCRIPT__ = "/static/sprint_panel.js";
+    __CURRENT_SCRIPT__ = "/static/sprint_panel.js?v=1";
 
-    await loadScript("/static/sprint_panel.js");
+    await loadScript("/static/sprint_panel.js?v=1");
     if (window.SprintPanelsEdit) {
       window.SprintPanelsEdit.init();
     }

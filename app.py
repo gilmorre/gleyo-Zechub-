@@ -23129,7 +23129,6 @@ def sprint_panel(community_slug, sprint_uuid):
     # Fetch sprint by UUID only (no fallback!)
     sprint = Sprint.query.filter_by(
         uuid=sprint_uuid,
-        created_by_id=user_id,
         community_id=community.id
     ).first()
 

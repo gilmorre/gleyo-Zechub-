@@ -1896,12 +1896,6 @@ body.sidebar-open .bar-quest-container svg {
     width: 100%;   /* Full width on phone */
   }
  
-.brand {
-  display: flex;
-  align-items: center;
-}
-
-
 
 .Name-class{
   white-space: nowrap;

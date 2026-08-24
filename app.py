@@ -7315,6 +7315,60 @@ def inject_helpers():
 
 
 
+BLOG_POSTS = [
+    {
+        "slug": "growing-your-first-100-members",
+        "title": "Growing your first 100 members",
+        "date": "Aug 12, 2026",
+        "read_time": "4 min read",
+        "excerpt": "The first 100 members of any community set the tone for everything after. Here's how to get them without spending on ads.",
+        "body_html": """
+            <p>Every community starts the same way: zero members, zero momentum, and a blank invite link.</p>
+            <h2>Start with referral loops</h2>
+            <p>Instead of broadcasting to strangers, give your first members a reason to invite people they already know.</p>
+        """,
+    },
+    {
+        "slug": "shielded-rewards-explained",
+        "title": "Shielded ZEC rewards, explained",
+        "date": "Aug 3, 2026",
+        "read_time": "6 min read",
+        "excerpt": "What 'shielded' actually means for your community's reward payouts, and why it matters.",
+        "body_html": """
+            <p>Shielded transactions on Zcash keep the amount, sender, and receiver private by default.</p>
+            <h2>Why this matters for quests</h2>
+            <p>Rewarding members without exposing their wallet activity keeps participation safe and dignified.</p>
+        """,
+    },
+]
+
+
+@app.route('/blog')
+def blog():
+    if request.headers.get("X-Partial"):
+        return render_template("blog_content.html", posts=BLOG_POSTS)
+
+    return render_template(
+        "blog.html",
+        posts=BLOG_POSTS,
+        content_template="blog_content.html",
+    )
+
+
+@app.route('/blog/<string:slug>')
+def blog_post(slug):
+    post = next((p for p in BLOG_POSTS if p["slug"] == slug), None)
+    if not post:
+        abort(404)
+
+    if request.headers.get("X-Partial"):
+        return render_template("blog_post_content.html", post=post)
+
+    return render_template(
+        "blog_post.html" if False else "blog.html",  # reuse the same shell
+        post=post,
+        content_template="blog_post_content.html",
+    )
 
 @app.route('/<community_slug>/quest/admin')
 @login_required
@@ -31773,4 +31827,4 @@ if __name__ == "__main__":
     )
     scheduler.start()
 
-    socketio.run(app, host="0.0.0.0", port=8000)    
+    socketio.run(app, host="0.0.0.0", port=8000, debug=True)    

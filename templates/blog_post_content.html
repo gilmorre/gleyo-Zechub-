@@ -1,0 +1,19 @@
+<div class="blog-page-inner" data-page="blog-post">
+
+  <div class="post-meta post-meta-center">
+    <span>{{ post.date }}</span>
+    <span class="dot"></span>
+    <span>{{ post.read_time }}</span>
+  </div>
+
+  <h1 class="post-title">{{ post.title }}</h1>
+
+  <div class="post-body">
+    {{ post.body_html|safe }}
+  </div>
+
+  <div class="go-back">
+    <a href="/blog" class="js-blog-link" data-slug="__blog_index__">← Back to blog</a>
+  </div>
+
+</div>

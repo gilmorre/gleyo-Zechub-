@@ -4,6 +4,24 @@ let hideTimeout = null;
 let isHoveringTrigger = false;
 let isHoveringModal = false;
 
+// ── pagination state ──────────────────────────────────
+const INITIAL_LIMIT = 30;
+const PAGE_SIZE = 15;
+const SCROLL_THRESHOLD = 250; // px from bottom before triggering next load
+
+let currentOffset = 0;
+let hasMore = true;
+let isLoadingMore = false;
+let scrollContainer = null;
+let rewardDividerInserted = false; // 🔒 must survive across page fetches — only reset on full reload
+
+// ── tie-badge tracking ──────────────────────────────────
+// ties can span across pages (e.g. last row of page 1 and first row of
+// page 2 have equal xp), so all of this has to be module-level, not
+// local to one render call — same reasoning as rewardDividerInserted above.
+let lastRankedUser = null;   // { xp } of the most recently rendered row
+let lastRankedRowEl = null;  // the <li> for that row
+let tieGroupStartRowEl = null; // the <li> that already got the badge for the CURRENT streak of ties
 
 
 function getColor(id) {
@@ -57,6 +75,235 @@ function getTextColor(bgColor) {
   }
 }
 
+function makeSkeletonRows(count) {
+  return Array.from({ length: count }).map(() => `
+    <li class="lb-s-row">
+      <div class="lb-s-rank shimmer"></div>
+      <div class="lb-s-avatar shimmer"></div>
+      <div class="lb-s-name shimmer" style="width: ${getRandomWidth()}px;"></div>
+      <div class="lb-s-xp shimmer"></div>
+    </li>
+  `).join("");
+}
+
+function appendSkeletonRows(list, count) {
+  const wrap = document.createElement("div");
+  wrap.className = "lb-skeleton-batch";
+  wrap.innerHTML = makeSkeletonRows(count);
+  // move the <li> children directly into the list, keep the wrapper
+  // out of the DOM tree so it doesn't break <ul> semantics
+  const rows = Array.from(wrap.children);
+  rows.forEach(row => list.appendChild(row));
+  return rows; // so caller can remove exactly these once real data arrives
+}
+
+const starsvg = `<svg viewBox="0 0 24 24" width="14" height="14" style="margin-right: 5px; flex-shrink:0;" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" fill="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M9.15316 5.40838C10.4198 3.13613 11.0531 2 12 2C12.9469 2 13.5802 3.13612 14.8468 5.40837L15.1745 5.99623C15.5345 6.64193 15.7144 6.96479 15.9951 7.17781C16.2757 7.39083 16.6251 7.4699 17.3241 7.62805L17.9605 7.77203C20.4201 8.32856 21.65 8.60682 21.9426 9.54773C22.2352 10.4886 21.3968 11.4691 19.7199 13.4299L19.2861 13.9372C18.8096 14.4944 18.5713 14.773 18.4641 15.1177C18.357 15.4624 18.393 15.8341 18.465 16.5776L18.5306 17.2544C18.7841 19.8706 18.9109 21.1787 18.1449 21.7602C17.3788 22.3417 16.2273 21.8115 13.9243 20.7512L13.3285 20.4768C12.6741 20.1755 12.3469 20.0248 12 20.0248C11.6531 20.0248 11.3259 20.1755 10.6715 20.4768L10.0757 20.7512C7.77268 21.8115 6.62118 22.3417 5.85515 21.7602C5.08912 21.1787 5.21588 19.8706 5.4694 17.2544L5.53498 16.5776C5.60703 15.8341 5.64305 15.4624 5.53586 15.1177C5.42868 14.773 5.19043 14.4944 4.71392 13.9372L4.2801 13.4299C2.60325 11.4691 1.76482 10.4886 2.05742 9.54773C2.35002 8.60682 3.57986 8.32856 6.03954 7.77203L6.67589 7.62805C7.37485 7.4699 7.72433 7.39083 8.00494 7.17781C8.28555 6.96479 8.46553 6.64194 8.82547 5.99623L9.15316 5.40838Z" />
+</svg>`;
+
+// pill badge — placed on the FIRST (higher-ranked) row of a tied-xp
+// streak, since that's the user who reached this xp amount first and
+// therefore wins the tiebreak against everyone else in the group.
+function makeTieBadge(xp) {
+  const badge = document.createElement("span");
+  badge.className = "tie-first-badge";
+  badge.style.cssText = `
+    display:inline-flex;align-items:center;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid #e5e7eb19;
+    padding:3px 10px;
+    border-radius:999px;
+    font-size:11.5px;
+    font-weight:550;
+    color:#c9ccd6;
+    white-space:nowrap;
+  `;
+  badge.innerHTML = `${starsvg}First to ${xp.toLocaleString()}XP`;
+  return badge;
+}
+
+function renderUserRow(user, endZoneReached) {
+  const li = document.createElement("li");
+  li.className = "participant-item";
+
+  const hasImage = user.image && user.image.trim() !== "";
+  const bg = getColor(user.user_id);
+  const textColor = getTextColor(bg);
+  li.innerHTML = `
+      ${
+        hasImage
+          ? `<img src="${user.image}" class="participant-avatar" alt="${user.username}">`
+          : `<div class="participant-avatar" style="background:${bg}; color:${textColor}; font-weight: 500;">${user.username[0].toUpperCase()}</div>`
+      }
+
+    <div class="participant-info">
+      <span class="participant-name">${user.username}</span>
+      <span class="participant-xp">${user.xp.toLocaleString()} XP</span>
+    </div>
+  `;
+
+  if (window.innerWidth > 767) {
+
+    const delay = 300;
+
+    function handleEnter(e) {
+      isHoveringTrigger = true;
+
+      clearTimeout(hoverTimeout);
+
+      const position = {
+        x: e.clientX,
+        y: e.clientY
+      };
+
+      hoverTimeout = setTimeout(() => {
+        showUserActivity(user.username, position);
+      }, delay);
+    }
+
+    function handleLeave() {
+      isHoveringTrigger = false;
+      clearTimeout(hoverTimeout);
+      scheduleHide();
+    }
+
+    li.addEventListener("mouseenter", handleEnter);
+    li.addEventListener("mouseleave", handleLeave);
+
+  } else {
+
+    li.addEventListener("click", () => {
+      showUserActivity(user.username);
+    });
+
+  }
+
+  // ── tie detection against the immediately-preceding rendered row ──
+  // (works across page boundaries since lastRankedUser/lastRankedRowEl
+  // are module-level, not reset per page fetch)
+  if (lastRankedUser && lastRankedUser.xp === user.xp) {
+    if (!tieGroupStartRowEl) {
+      // this is the FIRST time we've noticed this streak of ties —
+      // badge goes on the PREVIOUS row (the top of the tied group),
+      // not this one
+      const prevInfo = lastRankedRowEl.querySelector(".participant-info");
+      const prevXpEl = lastRankedRowEl.querySelector(".participant-xp");
+      if (prevInfo && prevXpEl && !lastRankedRowEl.dataset.tieBadgeAdded) {
+        prevInfo.insertBefore(makeTieBadge(lastRankedUser.xp), prevXpEl);
+        lastRankedRowEl.dataset.tieBadgeAdded = "1";
+      }
+      tieGroupStartRowEl = lastRankedRowEl;
+    }
+    // else: already badged the top of this group — later tied rows get nothing
+  } else {
+    // xp changed — any tie streak that was running has ended
+    tieGroupStartRowEl = null;
+  }
+
+  lastRankedUser = user;
+  lastRankedRowEl = li;
+
+  return li;
+}
+
+function makeRewardZoneDivider() {
+  const divider = document.createElement("li");
+  divider.className = "reward-zone-divider";
+  divider.innerHTML = `
+    <span class="reward-zone-line"></span>
+    <span class="reward-zone-label">
+      <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" fill="currentColor" width="13" height="13" viewBox="0 0 15 15" style="enable-background:new 0 0 15 15;" xml:space="preserve">
+      <path d="M6.5,5v2H0V5H6.5z M8.5,5v2H15V5H8.5z M1,8v4.5C1,13.3284,1.6716,14,2.5,14h4V8H1z M8.5,8v6h4c0.8284,0,1.5-0.6716,1.5-1.5  V8H8.5z M10.5,0c-1.4033-0.0444-2.6497,0.8904-3,2.25C7.1497,0.8904,5.9033-0.0444,4.5,0c-1.0709-0.0337-1.9663,0.8072-2,1.8781  C2.4987,1.9187,2.4987,1.9594,2.5,2C2.3443,2.9427,2.9822,3.8331,3.9249,3.9888C4.0853,4.0153,4.2486,4.0191,4.41,4h6.13  c0.9548,0.1497,1.8503-0.5029,2-1.4577c0.0282-0.1797,0.0282-0.3626,0-0.5423c0.0002-1.1046-0.895-2.0002-1.9996-2.0004  C10.5269-0.0004,10.5135-0.0003,10.5,0z M4.5,3c-0.506,0.0463-0.9537-0.3264-1-0.8323C3.4949,2.1119,3.4949,2.0558,3.5,2  C3.4537,1.494,3.8264,1.0463,4.3323,1C4.3881,0.9949,4.4442,0.9949,4.5,1c1.1046,0,2,0.8954,2,2H4.5z M10.5,3h-2  c0-1.1046,0.8954-2,2-2c0.5523,0,1,0.4477,1,1c0.0463,0.506-0.3264,0.9537-0.8323,1C10.6119,3.0051,10.5558,3.0051,10.5,3z"/>
+      </svg>
+      End of reward zone
+    </span>
+    <span class="reward-zone-line"></span>
+  `;
+  return divider;
+}
+
+// renders a page of users into the list, appending (not replacing).
+// `endZone` uses each user's absolute `rank` (from the backend) rather
+// than a local loop index, so the divider still lands in the right
+// place regardless of which page it falls on.
+//
+// 🔥 rewardDividerInserted is a MODULE-LEVEL flag, not local to this call —
+// this function runs once per page fetch (initial load + every scroll load),
+// so a locally-scoped flag would reset every time and re-insert the divider
+// on every subsequent page. It only resets in loadLeaderboardSprint() on a
+// full reload.
+function appendUsersToList(list, users, endZone) {
+  const showZone = !isNaN(endZone) && endZone > 0;
+
+  users.forEach((user) => {
+    if (showZone && !rewardDividerInserted && user.rank > endZone) {
+      list.appendChild(makeRewardZoneDivider());
+      rewardDividerInserted = true;
+    }
+    list.appendChild(renderUserRow(user));
+  });
+}
+
+function getScrollContainer() {
+  if (scrollContainer) return scrollContainer;
+  // this is the element with the calc()'d height / overflow set
+  // elsewhere in the app (see updateInfoBottomHeight)
+  scrollContainer = document.querySelector(".info-bottom") || window;
+  return scrollContainer;
+}
+
+function onScrollCheck() {
+  if (isLoadingMore || !hasMore) return;
+
+  const el = getScrollContainer();
+  let scrollBottomGap;
+
+  if (el === window) {
+    scrollBottomGap =
+      document.documentElement.scrollHeight -
+      (window.scrollY + window.innerHeight);
+  } else {
+    scrollBottomGap = el.scrollHeight - (el.scrollTop + el.clientHeight);
+  }
+
+  if (scrollBottomGap < SCROLL_THRESHOLD) {
+    loadMoreParticipants();
+  }
+}
+
+async function loadMoreParticipants() {
+  if (isLoadingMore || !hasMore) return;
+  isLoadingMore = true;
+
+  const list = document.querySelector(".participants-list");
+  const pathParts = window.location.pathname.split("/");
+  const sprintId = pathParts[pathParts.length - 1];
+
+  const skeletonRows = appendSkeletonRows(list, PAGE_SIZE);
+
+  try {
+    const res = await fetch(
+      `/api/${communitySlug}/leaderboard/${sprintId}?offset=${currentOffset}&limit=${PAGE_SIZE}`
+    );
+    const data = await res.json();
+
+    skeletonRows.forEach(row => row.remove());
+
+    const users = data.leaderboard || [];
+    appendUsersToList(list, users, parseInt(data.end_zone, 10));
+
+    currentOffset = data.next_offset;
+    hasMore = !!data.has_more;
+
+  } catch (err) {
+    console.error("Failed to load more participants:", err);
+    skeletonRows.forEach(row => row.remove());
+    // allow retry on next scroll rather than permanently giving up
+  } finally {
+    isLoadingMore = false;
+  }
+}
+
 async function loadLeaderboardSprint() {
 
   const list = document.querySelector(".participants-list");
@@ -68,21 +315,25 @@ async function loadLeaderboardSprint() {
   const rankAvatar = document.querySelector(".rank-avatar");
   const rankUsername = document.querySelector(".rank-username");
   const rankXp = document.querySelector(".rank-xp");
-  const skeletonRows = Array.from({ length: 4 }).map(() => `
-    <div class="lb-s-row">
-      <div class="lb-s-rank shimmer"></div>
-      <div class="lb-s-avatar shimmer"></div>
-      <div class="lb-s-name shimmer" style="width: ${getRandomWidth()}px;"></div>
-      <div class="lb-s-xp shimmer"></div>
-    </div>
-  `).join("");
 
-  list.innerHTML = skeletonRows;
+  // reset pagination + tie-tracking state on (re)load
+  currentOffset = 0;
+  hasMore = true;
+  isLoadingMore = false;
+  rewardDividerInserted = false;
+  lastRankedUser = null;
+  lastRankedRowEl = null;
+  tieGroupStartRowEl = null;
+
+  list.innerHTML = makeSkeletonRows(4);
+
   const pathParts = window.location.pathname.split("/");
   const sprintId = pathParts[pathParts.length - 1];
   try {
 
-    const res = await fetch(`/api/${communitySlug}/leaderboard/${sprintId}`);
+    const res = await fetch(
+      `/api/${communitySlug}/leaderboard/${sprintId}?offset=0&limit=${INITIAL_LIMIT}`
+    );
     const data = await res.json();
 
 
@@ -106,90 +357,15 @@ async function loadLeaderboardSprint() {
 
     list.innerHTML = "";
 
-    const endZone = parseInt(data.end_zone, 10);
-    const showZone = !isNaN(endZone) && endZone > 0 && users.length > endZone;
+    appendUsersToList(list, users, parseInt(data.end_zone, 10));
 
-    users.forEach((user, index) => {
+    currentOffset = data.next_offset;
+    hasMore = !!data.has_more;
 
-      const li = document.createElement("li");
-      li.className = "participant-item";
-
-      const hasImage = user.image && user.image.trim() !== "";
-      const bg = getColor(user.user_id);
-      const textColor = getTextColor(bg);
-      li.innerHTML = `
-          ${
-            hasImage
-              ? `<img src="${user.image}" class="participant-avatar" alt="${user.username}">`
-              : `<div class="participant-avatar" style="background:${bg}; color:${textColor}; font-weight: 500;">${user.username[0].toUpperCase()}</div>`
-          }
-
-        <div class="participant-info">
-          <span class="participant-name">${user.username}</span>
-          <span class="participant-xp">${user.xp.toLocaleString()} XP</span>
-        </div>
-      `;
-
-      list.appendChild(li);
-
-      // 🏆 append divider right after the last reward-zone user, same pass
-      if (showZone && index === endZone - 1) {
-        const divider = document.createElement("li");
-        divider.className = "reward-zone-divider";
-        divider.innerHTML = `
-          <span class="reward-zone-line"></span>
-          <span class="reward-zone-label">
-            <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" fill="currentColor" width="13" height="13" viewBox="0 0 15 15" style="enable-background:new 0 0 15 15;" xml:space="preserve">
-            <path d="M6.5,5v2H0V5H6.5z M8.5,5v2H15V5H8.5z M1,8v4.5C1,13.3284,1.6716,14,2.5,14h4V8H1z M8.5,8v6h4c0.8284,0,1.5-0.6716,1.5-1.5  V8H8.5z M10.5,0c-1.4033-0.0444-2.6497,0.8904-3,2.25C7.1497,0.8904,5.9033-0.0444,4.5,0c-1.0709-0.0337-1.9663,0.8072-2,1.8781  C2.4987,1.9187,2.4987,1.9594,2.5,2C2.3443,2.9427,2.9822,3.8331,3.9249,3.9888C4.0853,4.0153,4.2486,4.0191,4.41,4h6.13  c0.9548,0.1497,1.8503-0.5029,2-1.4577c0.0282-0.1797,0.0282-0.3626,0-0.5423c0.0002-1.1046-0.895-2.0002-1.9996-2.0004  C10.5269-0.0004,10.5135-0.0003,10.5,0z M4.5,3c-0.506,0.0463-0.9537-0.3264-1-0.8323C3.4949,2.1119,3.4949,2.0558,3.5,2  C3.4537,1.494,3.8264,1.0463,4.3323,1C4.3881,0.9949,4.4442,0.9949,4.5,1c1.1046,0,2,0.8954,2,2H4.5z M10.5,3h-2  c0-1.1046,0.8954-2,2-2c0.5523,0,1,0.4477,1,1c0.0463,0.506-0.3264,0.9537-0.8323,1C10.6119,3.0051,10.5558,3.0051,10.5,3z"/>
-            </svg>
-            End of reward zone
-          </span>
-          <span class="reward-zone-line"></span>
-        `;
-        list.appendChild(divider);
-      }
-
-      const avatar = li.querySelector(".participant-avatar");
-      const name = li.querySelector(".participant-name");
-
-      if (window.innerWidth > 767) {
-
-        const delay = 300;
-
-        function handleEnter(e) {
-          isHoveringTrigger = true;
-
-          clearTimeout(hoverTimeout);
-
-          const position = {
-            x: e.clientX,
-            y: e.clientY
-          };
-
-          hoverTimeout = setTimeout(() => {
-            showUserActivity(user.username, position);
-          }, delay);
-        }
-
-        function handleLeave() {
-          isHoveringTrigger = false;
-          clearTimeout(hoverTimeout);
-          scheduleHide();
-        }
-
-        li.addEventListener("mouseenter", handleEnter);
-        li.addEventListener("mouseleave", handleLeave);
-
-      } else {
-
-        li.addEventListener("click", () => {
-          showUserActivity(user.username);
-        });
-
-      }
-
-
-    });
+    // wire up infinite scroll once, against whichever container actually scrolls
+    const container = getScrollContainer();
+    container.removeEventListener("scroll", onScrollCheck);
+    container.addEventListener("scroll", onScrollCheck, { passive: true });
 
     if (currentUser) {
 
@@ -766,13 +942,6 @@ function hideActivity(){
 }
 
 
-
-
-
-
-function hideActivity(){
-  modal.classList.add("hidden");
-}
   loadLeaderboardSprint();
 
   window.SprintViewinit = {

@@ -7595,6 +7595,17 @@ def api_alltime_leaderboard(community_slug):
 
     community = Community.query.filter_by(slug=community_slug).first_or_404()
 
+    try:
+        offset = max(0, int(request.args.get('offset', 0)))
+    except (TypeError, ValueError):
+        offset = 0
+
+    try:
+        limit = int(request.args.get('limit', 30))
+    except (TypeError, ValueError):
+        limit = 30
+    limit = max(1, min(limit, 50))  # sane cap so nobody can request 10,000 rows
+
     # earliest COMPLETION timestamp per user, scoped to THIS community
     latest_activity_subq = (
         db.session.query(
@@ -7612,7 +7623,7 @@ def api_alltime_leaderboard(community_slug):
         .subquery()
     )
 
-    leaderboard = (
+    leaderboard_query = (
         db.session.query(
             Users.id.label("user_id"),
             Users.username,
@@ -7629,12 +7640,16 @@ def api_alltime_leaderboard(community_slug):
             latest_activity_subq.c.last_xp_at.asc().nullslast(),
             CommunityUserXP.id.asc()
         )
-        .limit(30)
-        .all()
     )
 
+    # 🔥 fetch one extra row — tells us if there's a next page
+    # without needing a separate COUNT(*) query
+    rows = leaderboard_query.offset(offset).limit(limit + 1).all()
+    has_more = len(rows) > limit
+    rows = rows[:limit]
+
     leaderboard_data = []
-    for index, user in enumerate(leaderboard, start=1):
+    for index, user in enumerate(rows, start=offset + 1):
         leaderboard_data.append({
             "user_id":  user.user_id,
             "username": user.username,
@@ -7645,7 +7660,9 @@ def api_alltime_leaderboard(community_slug):
 
     current_user_data = None
 
-    if current_user.is_authenticated:
+    # only compute this on the first page — it's not part of the
+    # paginated list, no need to redo it on every scroll-load
+    if offset == 0 and current_user.is_authenticated:
         full_rank = (
             db.session.query(CommunityUserXP)
             .filter_by(community_id=community.id, user_id=current_user.id)
@@ -7696,7 +7713,9 @@ def api_alltime_leaderboard(community_slug):
 
     return jsonify({
         "leaderboard":  leaderboard_data,
-        "current_user": current_user_data
+        "current_user": current_user_data,
+        "has_more":     has_more,
+        "next_offset":  offset + len(leaderboard_data)
     })
 
 
@@ -7710,6 +7729,17 @@ def api_sprint_leaderboard(community_slug, sprint_uuid):
     sprint = Sprint.query.filter_by(uuid=sprint_uuid, community_id=community.id).first()
     if not sprint:
         return jsonify({"error": "Sprint not found"}), 404
+
+    try:
+        offset = max(0, int(request.args.get('offset', 0)))
+    except (TypeError, ValueError):
+        offset = 0
+
+    try:
+        limit = int(request.args.get('limit', 30))
+    except (TypeError, ValueError):
+        limit = 30
+    limit = max(1, min(limit, 50))
 
     latest_activity_subq = (
         db.session.query(
@@ -7726,7 +7756,7 @@ def api_sprint_leaderboard(community_slug, sprint_uuid):
         .subquery()
     )
 
-    leaderboard = (
+    leaderboard_query = (
         db.session.query(
             Users.id.label("user_id"),
             Users.username,
@@ -7743,12 +7773,14 @@ def api_sprint_leaderboard(community_slug, sprint_uuid):
             latest_activity_subq.c.last_xp_at.asc().nullslast(),
             SprintUserXP.id.asc()
         )
-        .limit(30)
-        .all()
     )
 
+    rows = leaderboard_query.offset(offset).limit(limit + 1).all()
+    has_more = len(rows) > limit
+    rows = rows[:limit]
+
     leaderboard_data = []
-    for index, user in enumerate(leaderboard, start=1):
+    for index, user in enumerate(rows, start=offset + 1):
         leaderboard_data.append({
             "user_id":  user.user_id,
             "username": user.username,
@@ -7759,7 +7791,7 @@ def api_sprint_leaderboard(community_slug, sprint_uuid):
 
     current_user_data = None
 
-    if current_user.is_authenticated:
+    if offset == 0 and current_user.is_authenticated:
         current_user_entry = (
             db.session.query(SprintUserXP)
             .filter_by(sprint_id=sprint.id, user_id=current_user.id)
@@ -7810,10 +7842,12 @@ def api_sprint_leaderboard(community_slug, sprint_uuid):
     return jsonify({
         "leaderboard":  leaderboard_data,
         "current_user": current_user_data,
-        "end_zone": sprint.end_zone
+        "end_zone":     sprint.end_zone,
+        "has_more":     has_more,
+        "next_offset":  offset + len(leaderboard_data)
     })
 
-
+    
 @app.route("/api/<community_slug>/user/<username>/activity")
 @login_required
 def user_recent_activity(community_slug, username):
@@ -11270,7 +11304,63 @@ def _create_zec_auth_session(wallet_name=None, user_provided_address=None):
 
     return auth_session
 
+@app.route('/api/wallet/zec/connect', methods=['POST'])
+@login_required
+@csrf.exempt
+def connect_zec_wallet():
+    data = request.get_json() or {}
+    address = (data.get('address') or '').strip()
+    wallet_name = data.get('wallet')
 
+    if not address:
+        return jsonify({'success': False, 'error': 'Address required'}), 400
+
+    if not is_valid_shielded_zec(address):
+        return jsonify({'success': False, 'error': 'Invalid shielded address'}), 400
+
+    existing = ZecWallet.query.filter_by(address=address, is_active=True).first()
+    if existing and existing.user_id != current_user.id:
+        return jsonify({
+            'success': False,
+            'error': 'This address is already connected to another account'
+        }), 409
+
+    current_wallet = ZecWallet.query.filter_by(
+        user_id=current_user.id, is_active=True
+    ).first()
+    if current_wallet and current_wallet.address != address:
+        current_wallet.is_active = False
+        current_wallet.disconnected_at = datetime.utcnow()
+
+    wallet = ZecWallet.query.filter_by(
+        address=address, user_id=current_user.id
+    ).first()
+
+    if not wallet:
+        wallet = ZecWallet(
+            user_id=current_user.id,
+            address=address,
+            wallet_name=wallet_name,
+            verified=False,
+            is_active=True
+        )
+        db.session.add(wallet)
+    else:
+        wallet.wallet_name = wallet_name
+        wallet.is_active = True
+        wallet.disconnected_at = None
+
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'wallet': {
+            'address': wallet.address,
+            'wallet_name': wallet.wallet_name,
+            'verified': wallet.verified
+        }
+    })
+    
 
 @app.route("/api/zec/session", methods=["POST"])
 @login_required

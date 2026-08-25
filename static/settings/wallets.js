@@ -24,7 +24,7 @@ async function loadZecModal(btn) {
     btn.style.pointerEvents = "none";
     btn.innerHTML = IsloadingInit;
     try {
-      await loadAuth("/static/z-cash.js");
+      await loadAuth("/static/z-cash.js?v=1");
       __zecLoaded = true;
     } catch (err) {
       console.error("Failed loading ZEC modal:", err);

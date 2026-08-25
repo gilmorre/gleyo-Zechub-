@@ -529,10 +529,16 @@
   border-radius: 12px;
 }
 
+.participant-item {
+  padding-left: 48px !important; /* a little extra breathing room */
+}
+
 .participant-item::before {
   content: counter(rank) ".";
   position: absolute;
-  left: 14px;
+  left: 6px;
+  width: 32px;        /* fixed box */
+  text-align: right;  /* number hugs the right edge of the box */
   font-size: 0.85rem;
   font-weight: 650;
   color: var(--text-main);

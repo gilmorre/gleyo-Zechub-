@@ -1,68 +1,10 @@
 (function () {
 
-const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-let _qrLibLoaded = false;
+const CONNECT_ENDPOINT = '/api/wallet/zec/connect';
+const WALLET_GUIDE_URL = 'https://gleyo.app/wallet-guide';
 
-const SESSION_ENDPOINT = '/api/zec/session';
-const POLL_ENDPOINT = '/api/zec/poll';
-
-const WALLETS = [
-  {
-    key: 'ZODL',
-    name: 'ZODL',
-    desc: 'iOS & Android',
-    tag: 'RECOMMENDED',
-    bg: '#0d0d1a',
-    icon: `<img src="https://play-lh.googleusercontent.com/0tPoGDUdDKVQ-T4bpx9vo4X72827KtZySJdVmbbyaGu6CMG9v_7RgRTocvPHJAxdGuH3tLB07RPEd5eVUkUR=w480-h960" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:0">`
-  },
-  {
-    key: 'zkool',
-    name: 'Zkool',
-    tag: null,
-    desc: 'Multi-account privacy wallet',
-    bg: '#1a0e00',
-    icon: `<img src="https://xpcqiovfesvllsljxhac.supabase.co/storage/v1/object/public/uploads/zkool.png" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:0">`
-  },
-  {
-    key: 'zingo',
-    name: 'Zingo!',
-    desc: 'Open-source · iOS & Android',
-    tag: null,
-    bg: '#0a0a0a',
-    icon: `<img src="https://global.discourse-cdn.com/zcash/original/3X/6/6/66c4ea553cb3b8347d8b4781a2ab0bd657f0fa6e.png" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:0">`
-  }
-];
-
-function buildZecUri(addr, memoBase64) {
-  return `zcash:${addr}?amount=0.00001&memo=${memoBase64}`;
-}
-
-let _currentSessionId = null;
-let _statusClearTimer = null;
-let _countdownTimer = null;
-let _checkCycleInterval = null;
-let _checkPhaseEndTime = null;
-let _activeSessionId = null;
 let _userAddress = null;
-let _activeWallet = null;
-
-const CHECK_ACTIVE = 10;
-const CHECK_COOLDOWN = 30;
-
-
-function loadQRLib() {
-  return new Promise((resolve, reject) => {
-    if (_qrLibLoaded || window.QRCodeStyling) {
-      _qrLibLoaded = true;
-      return resolve();
-    }
-    const s = document.createElement('script');
-    s.src = 'https://unpkg.com/qr-code-styling/lib/qr-code-styling.js';
-    s.onload = () => { _qrLibLoaded = true; resolve(); };
-    s.onerror = () => reject(new Error('Failed to load QR library'));
-    document.head.appendChild(s);
-  });
-}
+let _walletName = 'Zodl'; // 🔒 Zodl-only for now — see note at bottom of file
 
 function inject() {
   if (document.getElementById('zec-modal-overlay')) return;
@@ -197,75 +139,7 @@ function inject() {
     flex-direction: column;
     align-items: center;
   }
-  .zec-list {
-    padding: 0 12px 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-  }
-  .zec-item {
-    display: flex;
-    align-items: center;
-    gap: 13px;
-    padding: 12px;
-    border-radius: 14px;
-    border: 1px solid transparent;
-    cursor: pointer;
-    transition: background .12s, border-color .12s, transform .1s;
-  }
-  .zec-item:hover {
-    background: #2a2a449c;
-    border-color: #2f2f4a;
-  }
-  .zec-item:active { transform: scale(.98); }
-  .zec-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-    flex-shrink: 0;
-    overflow: hidden;
-    border: 1px solid #2f2f4a;
-    padding: 0;
-  }
-  .zec-icon img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-    border-radius: 0;
-  }
-  .zec-info { flex: 1; }
-  .zec-name {
-    font-size: 13px;
-    font-weight: 600;
-    color: #eeeef5;
-    margin-bottom: 2px;
-    font-family: 'DM Sans', sans-serif;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .zec-desc {
-    font-size: 11.5px;
-    color: #8888aa;
-    font-family: 'DM Sans', sans-serif;
-  }
-  .zec-tag {
-    font-size: 9px;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-weight: 600;
-    background: rgba(244,183,40,.15);
-    color: #f4b728;
-    border: 1px solid rgba(244,183,40,.25);
-    letter-spacing: .03em;
-  }
-  .zec-arrow {
-    color: #5a5a78;
-    font-size: 16px;
-    flex-shrink: 0;
-  }
-  .zec-addr-wrap { padding: 0 14px 14px; }
+  .zec-addr-wrap { padding: 0 14px 6px; }
   .zec-addr-label {
     font-size: 11px;
     font-weight: 600;
@@ -309,11 +183,22 @@ function inject() {
     min-height: 14px;
     font-family: 'DM Sans', sans-serif;
   }
+  .zec-guide-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11.5px;
+    color: #F4B728;
+    text-decoration: none;
+    margin: 8px 0 4px;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .zec-guide-link:hover { text-decoration: underline; }
   .zec-note {
     display: flex;
     align-items: flex-start;
     gap: 7px;
-    margin: 0 14px 18px;
+    margin: 14px 14px 18px;
     padding: 10px 12px;
     background: rgba(244,183,40,.05);
     border: 1px solid rgba(244,183,40,.15);
@@ -328,14 +213,35 @@ function inject() {
     margin-top: 1px;
     color: #c89a20;
   }
+  .zec-connect-submit {
+    display: block;
+    width: calc(100% - 28px);
+    margin: 4px 14px 20px;
+    padding: 13px;
+    border-radius: 13px;
+    border: none;
+    background: linear-gradient(135deg, #F4B728, #c9890a);
+    color: #0a0500;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: opacity .2s, transform .1s;
+  }
+  .zec-connect-submit:hover:not(:disabled) { opacity: .9; }
+  .zec-connect-submit:active:not(:disabled) { transform: scale(.98); }
+  .zec-connect-submit:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+  }
   .zec-conn-wrap {
     position: relative;
-    width: 88px;
-    height: 88px;
+    width: 72px;
+    height: 72px;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 22px;
+    margin: 12px 0 20px;
   }
   @keyframes zring { to { transform: rotate(360deg); } }
   .zec-ring {
@@ -347,17 +253,6 @@ function inject() {
     border-right-color: rgba(244,183,40,.3);
     animation: zring 1.1s linear infinite;
   }
-  .zec-ring::after {
-    content: "";
-    position: absolute;
-    top: 1px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: #F4B728;
-  }
   .zec-ring-outer {
     position: absolute;
     inset: -8px;
@@ -367,32 +262,8 @@ function inject() {
     border-left-color: rgba(244,183,40,.28);
     animation: zring 1.9s linear infinite reverse;
   }
-  .zec-logo-bg {
-    width: 64px;
-    height: 64px;
-    border-radius: 16px;
-    border: 1px solid #2f2f4aec;
-    overflow: hidden;
-    z-index: 1;
-    position: relative;
-    padding: 0;
-  }
-  .zec-logo-bg img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-    border-radius: 0;
-  }
-  .zec-conn-name {
-    font-size: 15px;
-    font-weight: 700;
-    color: #eeeef5;
-    margin-bottom: 6px;
-    font-family: 'DM Sans', sans-serif;
-  }
   .zec-conn-status {
-    font-size: 12px;
+    font-size: 12.5px;
     color: #8888aa;
     max-width: 240px;
     line-height: 1.6;
@@ -411,67 +282,6 @@ function inject() {
     padding: 0;
   }
   .zec-cancel:hover { color: #8888aa; }
-  .zec-deeplink-btn {
-    display: none;
-    width: calc(100% - 40px);
-    margin: 0 20px 12px;
-    padding: 13px;
-    border-radius: 13px;
-    border: none;
-    background: linear-gradient(135deg, #F4B728, #c9890a);
-    color: #0a0500;
-    font-size: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    font-family: 'DM Sans', sans-serif;
-    transition: opacity .2s;
-  }
-  .zec-deeplink-btn:hover { opacity: .88; }
-  .zec-check-btn {
-    display: block;
-    width: calc(100% - 40px);
-    margin: 0 20px 8px;
-    padding: 13px;
-    border-radius: 13px;
-    border: 1px solid rgba(46,204,113,.32);
-    background: rgba(46,204,113,.13);
-    color: #2ecc71;
-    font-size: 13.5px;
-    font-weight: 600;
-    font-family: 'DM Sans', sans-serif;
-    cursor: pointer;
-    transition: background .2s, border-color .2s, transform .1s;
-  }
-  .zec-check-btn:hover:not(:disabled) {
-    background: rgba(46,204,113,.2);
-    border-color: rgba(46,204,113,.45);
-    transform: translateY(-1px);
-  }
-  .zec-check-btn:active:not(:disabled) { transform: scale(.98); }
-  .zec-check-btn:disabled {
-    background: rgba(255,255,255,.04);
-    border-color: rgba(255,255,255,.07);
-    color: rgba(255,255,255,.22);
-    cursor: not-allowed;
-  }
-  .zec-check-hint {
-    text-align: center;
-    font-size: 11px;
-    color: rgba(255,255,255,.28);
-    margin: 0 20px 10px;
-    min-height: 16px;
-    font-family: 'DM Sans', sans-serif;
-  }
-  .zec-check-status {
-    text-align: center;
-    font-size: 12px;
-    margin: 0 20px 14px;
-    min-height: 18px;
-    font-family: 'DM Sans', sans-serif;
-  }
-  .zec-check-status.is-checking { color: #F4B728; }
-  .zec-check-status.is-error { color: #fca5a5; }
-  .zec-check-status.is-idle { color: #8888aa; }
   .zec-done-wrap {
     padding: 48px 24px 40px;
     display: flex;
@@ -504,7 +314,7 @@ function inject() {
 <div id="zec-sheet">
   <div class="zec-handle"></div>
 
-  <!-- LIST VIEW -->
+  <!-- INPUT VIEW -->
   <div id="zec-view-list" class="zec-view zec-active">
     <div class="zec-err" id="zec-err-bar"></div>
     <div class="zec-head">
@@ -525,13 +335,17 @@ function inject() {
       />
       <div class="zec-addr-err" id="zec-addr-err"></div>
       <div class="zec-addr-ok" id="zec-addr-ok"></div>
+      <a class="zec-guide-link" href="${WALLET_GUIDE_URL}" target="_blank" rel="noopener">
+        Don't have a wallet? Get one with Zodl →
+      </a>
     </div>
 
-    <div class="zec-list" id="zec-wallet-list"></div>
     <div class="zec-note">
       <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="currentColor" stroke-width="1.1"/><path d="M6 4v3M6 7.5v.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
-      Paste your wallet address above, pick your wallet, then send 0.00001 ZEC with the memo code shown. Expires in 15 min.
+      Paste your shielded (u1...) address above. This is where your ZEC rewards will be sent.
     </div>
+
+    <button class="zec-connect-submit" id="zec-connect-submit-btn">Connect</button>
   </div>
 
   <!-- CONNECTING VIEW -->
@@ -539,54 +353,9 @@ function inject() {
     <div class="zec-conn-wrap">
       <div class="zec-ring-outer"></div>
       <div class="zec-ring"></div>
-      <div class="zec-logo-bg" id="zec-logo-bg"></div>
     </div>
-    <div class="zec-conn-name" id="zec-conn-name">Zkool</div>
     <div class="zec-conn-status" id="zec-conn-status">Validating address…</div>
     <button class="zec-cancel" id="zec-cancel-btn">Cancel</button>
-  </div>
-
-  <!-- PAYMENT VIEW -->
-  <div id="zec-view-pay" class="zec-view" style="padding-top:20px;padding-bottom:8px">
-    <div class="zec-head" style="margin-bottom:14px">
-      <h2 id="zec-pay-title">Send with Zkool</h2>
-      <button class="zec-close" id="zec-pay-close-btn">&#215;</button>
-    </div>
-
-    <div style="display:flex;flex-direction:column;align-items:center;padding:0 20px 4px">
-      <p style="font-size:12px;color:#5a5a78;margin:0 0 10px;align-self:flex-start">
-        Scan QR code with your Zcash wallet
-      </p>
-      <div style="background:#fff;border-radius:14px;padding:10px;border:1px solid #2f2f4a;line-height:0;display:inline-block">
-        <div id="zec-qr-container" style="width:200px;height:200px;display:block"></div>
-      </div>
-      <div style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:11.5px;color:#5a5a78">
-        <span>Expires in</span>
-        <span id="zec-pay-expires" style="font-weight:600;color:#F4B728;font-variant-numeric:tabular-nums">15:00</span>
-      </div>
-    </div>
-
-    <div style="margin:12px 20px;background:#111122;border:1px solid #2f2f4a;border-radius:12px;padding:11px 14px">
-      <div style="font-size:10px;color:#5a5a78;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;font-family:'DM Sans',sans-serif">Memo code</div>
-      <div id="zec-memo-display" style="font-family:'Courier New',monospace;font-size:15px;font-weight:700;color:#F4B728;letter-spacing:.1em"></div>
-      <div style="font-size:10.5px;color:#5a5a78;margin-top:3px;font-family:'DM Sans',sans-serif">Paste this exactly into your wallet memo field</div>
-    </div>
-
-    <div style="display:flex;align-items:center;gap:10px;margin:0 20px 12px">
-      <div style="flex:1;height:1px;background:#2f2f4a"></div>
-      <span style="font-size:11px;color:#5a5a78;letter-spacing:.08em">OR</span>
-      <div style="flex:1;height:1px;background:#2f2f4a"></div>
-    </div>
-
-    <button class="zec-deeplink-btn" id="zec-deeplink-btn"></button>
-
-    <div class="zec-check-status is-idle" id="zec-check-status">After sending, click below to verify.</div>
-    <button class="zec-check-btn" id="zec-check-paid-btn">I've Paid — Verify</button>
-    <div class="zec-check-hint" id="zec-check-hint"></div>
-
-    <div style="text-align:center;padding:10px 0 24px">
-      <button class="zec-cancel" id="zec-pay-cancel-btn">Cancel</button>
-    </div>
   </div>
 
   <!-- DONE VIEW -->
@@ -594,52 +363,24 @@ function inject() {
     <div class="zec-done-wrap">
       <div class="zec-done-icon">⚡</div>
       <div class="zec-done-title">Wallet Connected!</div>
-      <div class="zec-done-sub" id="zec-done-sub">Wallet verified and connected.</div>
+      <div class="zec-done-sub" id="zec-done-sub">Wallet connected successfully.</div>
     </div>
   </div>
 
 </div>`;
 
   document.body.appendChild(overlay);
-  buildList();
   bindEvents();
-}
-
-function buildList() {
-  const container = document.getElementById('zec-wallet-list');
-  container.innerHTML = '';
-  WALLETS.forEach(w => {
-    const item = document.createElement('div');
-    item.className = 'zec-item';
-    item.setAttribute('data-wallet', w.key);
-    const tagHtml = w.tag ? `<span class="zec-tag">${w.tag}</span>` : '';
-    item.innerHTML = `
-      <div class="zec-icon" style="background:${w.bg}">${w.icon}</div>
-      <div class="zec-info">
-        <div class="zec-name">${w.name}${tagHtml}</div>
-        <div class="zec-desc">${w.desc}</div>
-      </div>
-      <span class="zec-arrow">›</span>`;
-    item.addEventListener('click', () => startAuth(w));
-    container.appendChild(item);
-  });
-}
-
-function setCheckStatus(msg, type) {
-  const el = document.getElementById('zec-check-status');
-  if (!el) return;
-  el.textContent = msg;
-  el.className = `zec-check-status is-${type}`;
 }
 
 function bindEvents() {
   document.getElementById('zec-close-btn').addEventListener('click', closeZecModal);
   document.getElementById('zec-cancel-btn').addEventListener('click', closeZecModal);
-  document.getElementById('zec-pay-close-btn').addEventListener('click', closeZecModal);
-  document.getElementById('zec-pay-cancel-btn').addEventListener('click', closeZecModal);
-  document.getElementById('zec-modal-overlay').addEventListener('click', function(e) {
+  document.getElementById('zec-modal-overlay').addEventListener('click', function (e) {
     if (e.target === this) closeZecModal();
   });
+
+  document.getElementById('zec-connect-submit-btn').addEventListener('click', submitConnect);
 
   let _addrDebounce = null;
   document.addEventListener('input', (e) => {
@@ -703,71 +444,7 @@ function bindEvents() {
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeZecModal(); });
 }
 
-
-// ── Check cycle ──────────────────────────────────────
-
-function startCheckCycle(sessionId) {
-  _activeSessionId = sessionId;
-  clearInterval(_checkCycleInterval);
-  _enterCheckActive();
-}
-
-function _enterCheckActive() {
-  const btn = document.getElementById('zec-check-paid-btn');
-  const hint = document.getElementById('zec-check-hint');
-  if (!btn) return;
-
-  // Clear any existing interval FIRST — prevents overlapping intervals
-  clearInterval(_checkCycleInterval);
-  _checkCycleInterval = null;
-
-  btn.disabled = false;
-  btn.textContent = "I've Paid — Verify";
-  _checkPhaseEndTime = Date.now() + CHECK_ACTIVE * 1000;
-
-  _checkCycleInterval = setInterval(() => {
-    const remaining = Math.ceil((_checkPhaseEndTime - Date.now()) / 1000);
-    if (remaining <= 0) {
-      _enterCheckCooldown();
-      return;
-    }
-    if (hint) hint.textContent = `Click within ${remaining}s`;
-  }, 250);
-}
-
-function _enterCheckCooldown() {
-  const btn = document.getElementById('zec-check-paid-btn');
-  const hint = document.getElementById('zec-check-hint');
-  if (!btn) return;
-
-  // Clear any existing interval FIRST — prevents overlapping intervals
-  clearInterval(_checkCycleInterval);
-  _checkCycleInterval = null;
-
-  btn.disabled = true;
-  _checkPhaseEndTime = Date.now() + CHECK_COOLDOWN * 1000;
-
-  _checkCycleInterval = setInterval(() => {
-    const remaining = Math.ceil((_checkPhaseEndTime - Date.now()) / 1000);
-    if (remaining <= 0) {
-      _enterCheckActive();
-      return;
-    }
-    btn.textContent = `Available in ${remaining}s`;
-    if (hint) hint.textContent = '';
-  }, 250);
-}
-
-function stopCheckCycle() {
-  clearInterval(_checkCycleInterval);
-  _checkCycleInterval = null;
-}
-
-
-// ── Auth flow ────────────────────────────────────────
-
-async function startAuth(w) {
-  _activeWallet = w;
+async function submitConnect() {
   const addrInput = document.getElementById('zec-user-address');
   const addrErr = document.getElementById('zec-addr-err');
   const userAddress = addrInput ? addrInput.value.trim() : '';
@@ -784,218 +461,70 @@ async function startAuth(w) {
     return;
   }
 
-  document.getElementById('zec-logo-bg').innerHTML = w.icon;
-  document.getElementById('zec-logo-bg').style.background = w.bg;
-  document.getElementById('zec-conn-name').textContent = w.name;
-  document.getElementById('zec-conn-status').textContent = 'Validating address…';
+  document.getElementById('zec-conn-status').textContent = 'Validating and connecting…';
   showView('zec-view-connecting');
 
   try {
     const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
-    const validateRes = await fetch('/api/wallet/zec/validate-address', {
+    const res = await fetch(CONNECT_ENDPOINT, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
-      body: JSON.stringify({ address: userAddress })
+      body: JSON.stringify({ address: userAddress, wallet: _walletName })
     });
-    const validateData = await validateRes.json();
+    const data = await res.json();
 
-    if (!validateData.valid) {
+    if (!res.ok || !data.success) {
       showView('zec-view-list');
-      if (addrErr) addrErr.textContent = validateData.error || 'Invalid address';
+      if (addrErr) addrErr.textContent = data.error || 'Could not connect wallet.';
       return;
     }
 
-    document.getElementById('zec-conn-status').textContent = 'Creating session…';
-
-    const [res] = await Promise.all([
-      fetch(SESSION_ENDPOINT, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
-        body: JSON.stringify({ wallet: w.key, address: userAddress })
-      }),
-      loadQRLib()
-    ]);
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Failed to create session');
-
-    _userAddress = userAddress;
-    _currentSessionId = data.session_id;
-    showPayView(data, w);
-    startCountdown(data.expires_in || 900);
-    startCheckCycle(data.session_id);
+    _userAddress = data.wallet.address;
+    onConnected(data.wallet);
 
   } catch (err) {
     showView('zec-view-list');
-    showErr(err.message || 'Could not start session. Try again.');
+    showErr('Network error. Please try again.');
   }
 }
-
-function showPayView(data, w) {
-  document.getElementById('zec-pay-title').textContent = `Send with ${w.name}`;
-
-  const addr = data.address;
-  const code = data.code;
-  const memoBase64 = btoa(code).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-  const zecUri = buildZecUri(addr, memoBase64);
-
-  const memoDisplay = document.getElementById('zec-memo-display');
-  if (memoDisplay) memoDisplay.textContent = code;
-
-  const qrContainer = document.getElementById('zec-qr-container');
-  qrContainer.innerHTML = '';
-
-  const qr = new QRCodeStyling({
-    width: 200,
-    height: 200,
-    type: "svg",
-    data: zecUri,
-    image: _walletImg(w),
-    qrOptions: { errorCorrectionLevel: "H" },
-    dotsOptions: { color: "#000000", type: "rounded" },
-    backgroundOptions: { color: "#ffffff" },
-    cornersSquareOptions: { type: "extra-rounded" },
-    cornersDotOptions: { type: "square" },
-    imageOptions: { crossOrigin: "anonymous", margin: 10, imageSize: 0.14 }
-  });
-  qr.append(qrContainer);
-
-  const dlBtn = document.getElementById('zec-deeplink-btn');
-  dlBtn.innerHTML = `<span>Open in ${w.name}</span>`;
-  dlBtn.style.display = 'flex';
-  dlBtn.style.alignItems = 'center';
-  dlBtn.style.justifyContent = 'center';
-  dlBtn.style.gap = '8px';
-  dlBtn.onclick = () => { window.location.href = zecUri; };
-
-  setCheckStatus('After sending, click below to verify.', 'idle');
-
-  const checkBtn = document.getElementById('zec-check-paid-btn');
-
-  checkBtn.onclick = async () => {
-    if (checkBtn.disabled || !_activeSessionId) return;
-
-    clearTimeout(_statusClearTimer);
-    setCheckStatus('Syncing wallet and checking…', 'checking');
-    checkBtn.disabled = true;
-
-    const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-
-    try {
-      const res = await fetch(`${POLL_ENDPOINT}/${_activeSessionId}`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'X-CSRFToken': csrf }
-      });
-      const result = await res.json();
-
-      if (result.status === 'confirmed') {
-        stopCheckCycle();
-        clearInterval(_countdownTimer);
-        onConfirmed();
-      } else if (result.status === 'expired') {
-        stopCheckCycle();
-        clearInterval(_countdownTimer);
-        showView('zec-view-list');
-        showErr('Session expired. Please try again.');
-      } else {
-        const msg = result.error || 'Payment not detected yet. Try again shortly.';
-        setCheckStatus(msg, 'error');
-        _statusClearTimer = setTimeout(() => setCheckStatus('After sending, click below to verify.', 'idle'), 8000);
-        _enterCheckCooldown();
-      }
-    } catch (err) {
-      console.error('Check error:', err);
-      setCheckStatus('Error checking payment.', 'error');
-      _statusClearTimer = setTimeout(() => setCheckStatus('After sending, click below to verify.', 'idle'), 8000);
-      _enterCheckCooldown();
-    }
-  };
-
-  showView('zec-view-pay');
-
-  const sheet = document.getElementById('zec-sheet');
-  if (sheet) sheet.scrollTop = 0;
-}
-
-function _walletImg(w) {
-  const m = w.icon.match(/src="([^"]+)"/);
-  return m ? m[1] : '';
-}
-
-
-// ── Countdown ────────────────────────────────────────
-
-function startCountdown(seconds) {
-  clearInterval(_countdownTimer);
-  let remaining = seconds;
-  const el = document.getElementById('zec-pay-expires');
-  function tick() {
-    const m = Math.floor(remaining / 60).toString().padStart(2, '0');
-    const s = (remaining % 60).toString().padStart(2, '0');
-    if (el) el.textContent = `${m}:${s}`;
-    if (remaining <= 0) {
-      clearInterval(_countdownTimer);
-      if (el) el.textContent = 'Expired';
-      stopCheckCycle();
-      setCheckStatus('Session expired.', 'error');
-    }
-    remaining--;
-  }
-  tick();
-  _countdownTimer = setInterval(tick, 1000);
-}
-
 
 // ── Confirmed — update UI in place ───────────────────
 
-function onConfirmed() {
-  const address = _userAddress;
-  const walletName = _activeWallet ? _activeWallet.name : '';
-
-  // Show done view briefly, then update the page UI
-  document.getElementById('zec-done-sub').textContent = 'Wallet verified and connected.';
+function onConnected(wallet) {
+  document.getElementById('zec-done-sub').textContent = 'Wallet connected successfully.';
   showView('zec-view-done');
 
   setTimeout(() => {
     closeZecModal();
 
-    // Flip card states
     const stateNc = document.getElementById('zec-state-nc');
     const stateC  = document.getElementById('zec-state-c');
     if (stateNc) stateNc.classList.remove('active');
     if (stateC)  stateC.classList.add('active');
 
-    // Populate connected card fields
     const walletLbl = document.getElementById('zec-wallet-lbl');
-    if (walletLbl) walletLbl.textContent = walletName || '—';
+    if (walletLbl) walletLbl.textContent = wallet.wallet_name || '—';
 
     const addrEl = document.getElementById('zec-addr');
-    if (addrEl && address) {
-      addrEl.textContent = `${address.slice(0, 8)}…${address.slice(-6)}`;
+    if (addrEl && wallet.address) {
+      addrEl.textContent = `${wallet.address.slice(0, 8)}…${wallet.address.slice(-6)}`;
     }
 
+    // 🔥 no proof-of-ownership step anymore — reflect that honestly in the UI
     const sigStatus = document.getElementById('zec-sig-status');
     if (sigStatus) {
-      sigStatus.style.color = 'var(--green)';
-      sigStatus.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="16" viewBox="-5 -10 110 135" fill="currentColor" stroke="currentColor" style="position:relative;top:2px">
-          <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-        </svg>
-        Verified`;
+      sigStatus.style.color = 'var(--muted)';
+      sigStatus.innerHTML = 'Not verified';
     }
 
-    // Fire event for any other listeners
     window.dispatchEvent(new CustomEvent('zecWalletConnected', {
-      detail: { address, walletName }
+      detail: { address: wallet.address, walletName: wallet.wallet_name }
     }));
 
-  }, 1800);
+  }, 1400);
 }
-
 
 // ── Helpers ──────────────────────────────────────────
 
@@ -1017,13 +546,15 @@ function openZecModal() {
   inject();
   document.getElementById('zec-err-bar').classList.remove('zec-err-show');
   showView('zec-view-list');
+  const input = document.getElementById('zec-user-address');
+  if (input) { input.value = ''; }
+  document.getElementById('zec-addr-err').textContent = '';
+  document.getElementById('zec-addr-ok').textContent = '';
   document.getElementById('zec-modal-overlay').classList.add('zec-open');
   document.documentElement.style.overflow = 'hidden';
 }
 
 function closeZecModal() {
-  stopCheckCycle();
-  clearInterval(_countdownTimer);
   const overlay = document.getElementById('zec-modal-overlay');
   if (!overlay) return;
   overlay.classList.remove('zec-open');
@@ -1034,3 +565,12 @@ window.openZecModal = openZecModal;
 window.closeZecModal = closeZecModal;
 
 })();
+
+/*
+NOTE — Zodl-only for now (per partnership discussion):
+_walletName is hardcoded above instead of shown as a picker, since the
+wallet-selection list (ZODL / Zkool / Zingo) is no longer needed while
+you're only onboarding people through Zodl. If that changes later (multi-wallet
+support), swap _walletName back to a UI picker and pass whichever the user
+selects instead of the hardcoded default.
+*/

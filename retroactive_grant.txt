@@ -1,0 +1,110 @@
+# Gleyo, Coinholder Retroactive Grant Application (Q3 2026)
+
+## Terms and Conditions
+(All boxes checked, standard agreement to grant terms, KYC if >$50k, COI disclosure, completed-work-only understanding, CONTRIBUTING.md commitment, librustzcash contribution guidelines, USD-valued/ZEC-disbursed acknowledgment)
+
+## Application Owners
+@gilmorre
+
+## Organization or Individual Name
+
+## Additional Team Members
+
+## How did you learn about the Lockbox: Coinholder Retroactive Grants Program?
+Through LOWO (LEONINE DAO / Nozy Wallet), an active ecosystem collaborator, who pointed me to this round after seeing Gleyo's production usage of Nozy.
+
+---
+
+## Project Overview
+
+**Requested Grant Amount (USD):** $9,081.20
+
+**Category:** Infrastructure / Community Tooling
+
+**Project Summary**
+Gleyo is a Zcash-native community growth platform that enables any online community to reward contributors directly in shielded ZEC, making Zcash onboarding a natural outcome of community participation rather than a prerequisite.
+
+**Project Description**
+Gleyo lets project owners fund a community wallet with ZEC (or USDT/USDC, auto-converted to ZEC via NEAR Intents/Defuse Protocol), create quests with XP and/or ZEC rewards, and review member submissions, while giving owners real retention analytics (7d/30d/90d active members, dropoff percentage, growth signals) instead of the vanity social metrics offered by platforms like Zealy.
+
+The core design decision that separates Gleyo from every other quest platform is who it's built for: not the Zcash-native user, but the newcomer. Community members can earn ZEC without ever connecting a wallet upfront, removing the single biggest barrier to entry for newcomers unfamiliar with Zcash or shielded transactions. This means a person's first experience with Zcash can be "I completed a task and received private money," rather than "I need to learn what a shielded transaction is before I can participate." That is a fundamentally different, and lower, on-ramp than anything else currently serving the ecosystem.
+
+Since launching during ZecHub Hackathon 2026 (July 14, 2026), Gleyo has grown to 38 weekly active users in closed beta, processed real mainnet ZEC deposits and withdrawals, redesigned its withdrawal architecture into a queued system to safely support concurrent multi-community activity, shipped multi-token (USDT/USDC) funding following a suggestion from ZecHub PR reviewer @squirrel, and successfully verified full end-to-end compatibility with the July 28, 2026 Ironwood network upgrade across both direct shielded-wallet deposits and stablecoin-to-ZEC swap deposits.
+
+**Technical Approach**
+Gleyo's production infrastructure is intentionally split across multiple services to isolate responsibilities and reduce risk. Cloudflare fronts the application, providing DNS, TLS termination, caching, and DDoS protection before traffic reaches the Flask backend running on AWS EC2. The application uses Flask with SQLAlchemy, PostgreSQL on AWS RDS for persistent data, Redis as the server-side session store (with automatic filesystem fallback if unavailable), and Supabase for object storage.
+
+All shielded ZEC functionality is isolated from the application tier. The Flask backend communicates with the Nozy Wallet API (developed by LEONINE DAO), which runs on a separate Contabo VPS alongside a self-hosted Zebra full node. This separation keeps wallet infrastructure independent from the web application while providing direct access to the Zcash network without relying on third-party lightwalletd services.
+
+Wallet authentication uses a shielded micro-transaction containing a session code in the memo field, while deposits, balance synchronization, and withdrawals are handled entirely through Nozy. Withdrawals are routed exclusively to Unified (u1) addresses through Nozy's transaction API.
+
+Security is layered throughout the deployment. The Nozy API is not publicly exposed to the internet; UFW firewall rules restrict access exclusively to Gleyo's EC2 instance, with authenticated API requests providing an additional security layer. Nozy communicates with Zebra over RPC for balance synchronization, deposit verification, and shielded transaction broadcasting, while Zebra maintains its own peer-to-peer connection to the Zcash mainnet. External integrations, including GitHub, Discord, Telegram, YouTube, email delivery (Resend/SMTP), and NEAR Intents (Defuse Protocol) for USDT/USDC-to-ZEC funding, operate as independent outbound services, ensuring failures in third-party providers do not interrupt Gleyo's core platform.
+
+During Ironwood migration testing (July 28, 2026 network upgrade), this dependency on Nozy surfaced a production-breaking Axum routing incompatibility. I diagnosed and fixed the issue, merging the fix upstream to LEONINE-DAO/Nozy-wallet (PR #180), restoring Ironwood pool deposit compatibility for Gleyo and every other project depending on Nozy's API layer.
+
+Separately, in the course of operating Gleyo's withdrawal pipeline, I diagnosed a pending-transaction reconciliation issue in Nozy where certain withdrawal attempts would surface as failed on the client side despite the underlying transaction later confirming, caused by a balance/state sync gap between Nozy and Gleyo's polling logic. I traced this to its root cause and worked with the Nozy team on a fix, improving reconciliation reliability for Gleyo and any other project consuming Nozy's transaction status API.
+
+Beyond Nozy, testing and building Gleyo has surfaced real issues on other Zcash ecosystem projects as well. While testing Dizzy, I reported a validation bug where Orchard-only Unified Addresses were incorrectly rejected as invalid despite passing correct Bech32/Bech32m checksum validation; the dismad team confirmed and worked with the developer on a fix. While testing LiveZEC (zec.live), a private ZEC donations platform for streamers, I reported two UX issues: an account-deletion 2FA requirement that lacked explanatory context, and a "Set up your Viewing Key" modal that kept re-triggering on page navigation; both were addressed by the LiveZEC team following the reports.
+
+**Note on Nozy-related contributions:** This application is entirely separate from the retroactive grant application already submitted by LEONINE DAO/Nozy Wallet for their own work. The Nozy PR #180 and reconciliation fix referenced above are unpaid contributions I made to Nozy specifically because Gleyo depends on its API, and are cited here only as evidence of technical skill and ecosystem impact. My requested compensation covers hours spent building Gleyo itself; it does not claim any hours tied to Nozy's own development, and there is no overlap between this request and Nozy's separately submitted application.
+
+**Time Period of Work Completion**
+November 2025 – August 2026. Platform has been live and operating on Zcash mainnet since July 14, 2026; all work described in this application reflects development and contributions completed as of the submission date.
+
+---
+
+## Budget & Funding
+
+**Total Budget (USD):** $9,081.20
+
+**Budget Breakdown**
+- Compensation: $9,000. Justification: ~9 months of solo full-stack development, infrastructure management, and ecosystem contributions (Nozy PR #180, Nozy reconciliation fix, Dizzy and LiveZEC bug reports), averaging ~23 hours/week over ~39 weeks (900 hours), priced at $10/hour, well below typical freelance blockchain development rates ($50–150+/hour), reflecting a deliberate choice to keep this ask modest and grounded in actual time invested rather than to extract maximum value from a retroactive claim.
+- Infrastructure/Hosting: $81.20. Justification: Contabo VPS (Zebra + Nozy) hosting, $16.80/month, covering June through September 2026 (4 months, including the upcoming September renewal) = $67.20, plus domain registration ($14). All other infrastructure (Cloudflare, Supabase, Resend, AWS EC2/RDS) currently runs on free tiers with no cost incurred to date.
+- Services/Contractors: $0
+- Technology/Software: $0. All third-party services used to date (Supabase, Resend, Cloudflare, AWS) remain within free tier limits with no costs incurred.
+- Other: $0
+- **Total: $9,081.20**
+
+**Previous Funding:** None
+
+**Other Funding Sources**
+None received to date. Separately preparing a Zcash Community Grants (ZCG) milestone-based application for future work (security audit, infrastructure redundancy), this retroactive request covers only work already completed and is independent of that forward-looking application.
+
+---
+
+## Impact & Evidence
+
+**Usage & Technical Impact**
+- 38 weekly active users processing real mainnet ZEC deposits, quest rewards, and shielded withdrawals in closed beta, not a testnet demo.
+- 33 mainnet transactions processed to date (deposits and withdrawals) between June 28 and August 3, 2026, spanning both sides of the July 28 Ironwood network upgrade; 21 confirmed on-chain, remainder attributable to a Nozy-side pending-transaction reconciliation gap (diagnosed and fixed, see below), not lost or unrecoverable funds.
+- Merged upstream fix to Nozy Wallet (PR #180) resolving an Ironwood-migration-breaking Axum routing incompatibility, restoring Ironwood pool deposit compatibility for Gleyo and other Nozy-dependent projects.
+- Diagnosed and helped resolve a Nozy pending-transaction reconciliation issue (balance/state sync gap between Nozy and client polling logic causing some confirmed withdrawals to surface as failed), improving reliability for all builders on Nozy's API.
+- Reported a Unified Address validation bug in Dizzy where Orchard-only addresses were incorrectly rejected despite valid checksums; confirmed and fixed by the Dizzy team following the report.
+- Reported two UX issues on LiveZEC (zec.live) during beta testing (a persistently re-triggering wallet setup modal, and unclear account-deletion 2FA messaging); both fixed by the LiveZEC team following the reports.
+- Full end-to-end ZEC flow live and verifiable on mainnet: deposit → quest reward → shielded withdrawal, confirmed within ~3 minutes per transaction.
+- Externally tested during ZecHub Hackathon 2026 judging by dismad, an active ZecHub and Zcash ecosystem contributor, who ran Gleyo's full local setup process on a fresh environment and surfaced real, previously undocumented setup requirements (a required Supabase storage bucket, a Python version incompatibility, and a dependency fix later merged upstream to Nozy itself); this feedback directly improved Gleyo's SETUP.md and was later independently re-verified end-to-end on a clean Linux environment.
+
+**Ecosystem Adoption Signals**
+- Zcash Nigeria actively testing Gleyo.
+- Paul Brigner (ZCG) independently discovered and tested the platform, evaluating it for a PGPZ test community.
+- ZecForge members have tested Gleyo directly, connecting wallets and completing shielded withdrawals, with further discussions underway to expand usage for their ambassador program and Heat Index tracking.
+
+**Path to Self-Sufficiency**
+Gleyo operates a Free and Pro tier model. Zcash-native projects, communities, and creators remain free on Gleyo permanently, including premium collaboration features such as community analytics and engagement insights, ensuring no Zcash builder is ever gated behind a paywall to grow their community. Revenue is instead generated by offering the Pro tier to communities and projects outside the Zcash ecosystem who want the same quest, retention-analytics, and ZEC-reward tooling for their own communities, with initial Pro tier pricing planned in the $60–100/month range, notably below comparable platforms such as Zealy ($250–500/month), positioning Gleyo as the more accessible option for external adoption. This mirrors the sustainability model already outlined in Gleyo's parallel ZCG application: monetizing external demand to fund ongoing development and infrastructure costs, rather than relying on continued grant funding or monetizing the Zcash community itself. As Gleyo's user base grows beyond closed beta, this Pro-tier revenue is intended to make the platform increasingly self-sustaining.
+
+**Proof of completion**
+- Repository/Commit: [Gleyo GitHub](https://github.com/gilmorre/gleyo-Zechub-), full source, README, setup docs
+- Repository/Commit: [Nozy Wallet PR #180](https://github.com/LEONINE-DAO/Nozy-wallet/pull/180), merged upstream fix
+- Deployment/Release: [gleyo.app](https://gleyo.app), live production application on Zcash mainnet
+- Publication: ZecHub Hackathon 2026 submission, [PR #1874](https://github.com/ZecHub/zechub/pull/1874)
+- Publication: [Zcash Community Forum, Gleyo hackathon announcement](https://forum.zcashcommunity.com/t/introducing-gleyo-a-zec-native-quest-community-growth-platform-zechub-hackathon-3-0/56672), public community engagement and feedback thread, including confirmation from Elzz that ZecForge members were early testers
+- Other Evidence: [LOWO's own Zcash Community Forum post](https://forum.zcashcommunity.com/t/lowo-life-as-a-zec-member/51453/27), independent third-party account describing my contribution to testing Nozy Wallet
+- Other Evidence: Demo video, https://www.youtube.com/watch?v=Har9yk9Ep04, full walkthrough of Gleyo including wallet verification, community funding, quest creation, task verification, reward crediting, community chat, retention analytics, and shielded withdrawals via Nozy on Zcash mainnet (published July 14, 2026, as part of the ZecHub Hackathon 2026 submission)
+
+**Conflict of Interest Disclosure**
+I collaborate closely with LOWO (LEONINE DAO / Nozy Wallet) as a dependency and integration partner, Gleyo relies on Nozy's API for all shielded ZEC functionality, and I've contributed bug reports and an upstream PR to that project. No financial or ownership interest in LEONINE DAO or Nozy Wallet exists beyond this technical dependency and collaborative relationship.
+
+---
+
+## Zcash Community Forums Post Requirement
+Confirmed, will post a link to this GitHub issue on the Zcash Community Forum (Retroactive Grants category) immediately after submission.

@@ -2498,13 +2498,13 @@ function renderSocialConnects(socials_to_show = {}, can_view_info = false) {
   const activePlatforms = platforms.filter(p => socials_to_show[p]);
   if (!activePlatforms.length) return "";
 
-  const links = {
-    twitter: "/twitter/login",
-    discord: "/discord/connect",
-    youtube: "/youtube/login",
+const links = {
+    twitter: "{{ url_for('twitter.twitter_login', next=request.path) }}",
+    discord: "{{ url_for('discord.discord_connect', next=request.path) }}",
+    youtube: "{{ url_for('youtube.youtube_login', next=request.path) }}",
     github: "{{ url_for('github_bp.github_login', next=url_for('account_settings_linked_accounts')) }}",
-    telegram: "https://oauth.telegram.org/auth?bot_id=7686743241&origin=YOURDOMAIN&return_to=YOURDOMAIN/telegram/callback"
-  };
+    telegram: "https://oauth.telegram.org/auth?bot_id=7686743241&origin={{ request.url_root }}&return_to={{ request.url_root }}telegram/callback"
+};
 
   const labels = {
     twitter: "Connect Twitter",

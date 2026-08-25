@@ -7590,17 +7590,20 @@ def api_get_quests(community_slug):
         "community_id": community.id,
         "quests": data
     })
-
 @app.route('/api/<community_slug>/leaderboard')
 def api_alltime_leaderboard(community_slug):
 
     community = Community.query.filter_by(slug=community_slug).first_or_404()
 
-    # earliest COMPLETION timestamp per user, scoped to THIS community
+    # LATEST (not earliest) COMPLETION timestamp per user, scoped to THIS community.
+    # This is the timestamp that actually reflects "when did this user reach
+    # their current XP total" — using MIN() here was the bug, since it grabbed
+    # each user's very FIRST ever completion instead of their most recent one,
+    # unfairly favoring early starters over fast finishers in tie-breaks.
     latest_activity_subq = (
         db.session.query(
             SubquestCompletion.user_id.label('user_id'),
-            func.min(SubquestCompletion.completed_at).label('last_xp_at')
+            func.max(SubquestCompletion.completed_at).label('last_xp_at')
         )
         .join(Subquest, SubquestCompletion.subquest_id == Subquest.id)
         .join(Quest, Subquest.quest_id == Quest.id)
@@ -7655,7 +7658,7 @@ def api_alltime_leaderboard(community_slug):
 
         if full_rank:
             my_last_xp_at = (
-                db.session.query(func.min(SubquestCompletion.completed_at))
+                db.session.query(func.max(SubquestCompletion.completed_at))
                 .join(Subquest, SubquestCompletion.subquest_id == Subquest.id)
                 .join(Quest, Subquest.quest_id == Quest.id)
                 .filter(
@@ -7715,7 +7718,7 @@ def api_sprint_leaderboard(community_slug, sprint_uuid):
     latest_activity_subq = (
         db.session.query(
             SubquestCompletion.user_id.label('user_id'),
-            func.min(SubquestCompletion.completed_at).label('last_xp_at')
+            func.max(SubquestCompletion.completed_at).label('last_xp_at')
         )
         .join(Subquest, SubquestCompletion.subquest_id == Subquest.id)
         .filter(
@@ -7769,7 +7772,7 @@ def api_sprint_leaderboard(community_slug, sprint_uuid):
 
         if current_user_entry:
             my_last_xp_at = (
-                db.session.query(func.min(SubquestCompletion.completed_at))
+                db.session.query(func.max(SubquestCompletion.completed_at))
                 .join(Subquest, SubquestCompletion.subquest_id == Subquest.id)
                 .filter(
                     Subquest.sprint_id == sprint.id,
@@ -7813,7 +7816,6 @@ def api_sprint_leaderboard(community_slug, sprint_uuid):
         "current_user": current_user_data,
         "end_zone": sprint.end_zone
     })
-
 
 @app.route("/api/<community_slug>/user/<username>/activity")
 @login_required

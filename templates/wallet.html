@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Get a Zcash Wallet — Gleyo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Lora:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-app: #0b0b12;
+  --bg-surface: #222236;
+  --bg-surface-raised: #1b1b28;
+  --border: #2f2f4a;
+  --border-soft: #23233350;
+  --border-bright: rgba(255,255,255,0.13);
+  --text-main: #e5e7eb;
+  --text-muted: #9797a8;
+  --text-faint: #66667a;
+  --accent-color: #6366f1;
+  --accent-glow: #6366f130;
+  --mint: #4effcd;
+  --warn: #ff8a65;
+  --warn-bg: #ff8a6514;
+  --warn-border: #ff8a652a;
+  --radius: 18px;
+  --nav-h: 62px;
+}
+
+* {
+  box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(140, 140, 170, 0.35) transparent;
+}
+
+::selection { background: #4effcd29; color: var(--text-main); }
+::-moz-selection { background: #4effcd29; color: var(--text-main); }
+
+html, body {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  background: radial-gradient(circle at 20% 10%, #151528 0%, #0b0b12 60%);
+  color: var(--text-main);
+  height: 100%;
+  overflow: hidden; /* body itself never scrolls */
+}
+
+.main-container {
+  height: 100%;
+  overflow-y: auto;   /* this is the element that actually scrolls */
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- NAV (desktop: plain sticky bar) ---------- */
+
+.nav-shell { display: contents; }
+.nav-fade { display: none; }
+
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 32px;
+  background: #0b0b12cc;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border-soft);
+  flex-shrink: 0;
+}
+
+.nav-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--text-main);
+  transition: opacity 0.2s ease;
+}
+.nav-left:hover { opacity: 0.85; }
+
+.nav-left img {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  display: block;
+}
+
+.nav-left .logo {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-weight: 700;
+  font-size: 16.5px;
+  letter-spacing: -0.01em;
+}
+
+.nav-right a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.nav-right a:hover { color: var(--mint); }
+.nav-right svg { flex-shrink: 0; }
+
+/* ---------- NAV (mobile: floating blurred pill, matches landing page) ---------- */
+
+@media (max-width: 768px) {
+  .nav-shell {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: calc(var(--nav-h) + 22px);
+    z-index: 999;
+    pointer-events: none; /* taps pass through the empty scrim area */
+  }
+
+  .nav-fade {
+    display: block;
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to bottom,
+      rgba(11,11,18,0.65) 0%,
+      rgba(11,11,18,0.35) 55%,
+      rgba(11,11,18,0) 100%
+    );
+    -webkit-backdrop-filter: saturate(1.4) blur(6px);
+    backdrop-filter: saturate(1.4) blur(6px);
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      rgba(0,0,0,1) 0%,
+      rgba(0,0,0,0.6) 55%,
+      rgba(0,0,0,0) 100%
+    );
+    mask-image: linear-gradient(
+      to bottom,
+      rgba(0,0,0,1) 0%,
+      rgba(0,0,0,0.6) 55%,
+      rgba(0,0,0,0) 100%
+    );
+    pointer-events: none;
+  }
+
+  .nav {
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    width: auto;
+    height: var(--nav-h);
+    border-radius: 40px;
+    padding: 0 20px;
+    pointer-events: auto; /* pill itself is clickable */
+    z-index: 2;
+
+    background: rgba(255, 255, 255, 0.08) !important;
+    -webkit-backdrop-filter: blur(18px) saturate(1.8);
+    backdrop-filter: blur(18px) saturate(1.8);
+    border: none;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+  }
+
+  .nav::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1.5px;
+    background: linear-gradient(
+      to top,
+      rgba(120, 160, 255, 0.65) 0%,
+      rgba(120, 160, 255, 0.15) 45%,
+      rgba(255, 255, 255, 0.15) 100%
+    );
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  /* room at the top so content starts below the now-fixed floating pill */
+  .page { padding-top: calc(var(--nav-h) + 34px) !important; }
+}
+
+/* ---------- PAGE ---------- */
+
+.page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 64px 32px 120px;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mint);
+  background: #4effcd14;
+  border: 1px solid #4effcd2a;
+  padding: 6px 12px;
+  border-radius: 999px;
+  margin-bottom: 24px;
+}
+
+.eyebrow::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--mint);
+  box-shadow: 0 0 8px 1px var(--mint);
+}
+
+h1 {
+  margin: 0 0 14px;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: clamp(30px, 5vw, 42px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+
+.dek {
+  color: var(--text-muted);
+  font-size: 16px;
+  line-height: 1.7;
+  max-width: 54ch;
+  margin: 0 0 32px;
+}
+
+.platform-note {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 21px;
+  padding: 19px 16px;
+  font-size: 13.5px;
+  color: var(--text-muted);
+  margin-bottom: 56px;
+  font-family: 'JetBrains Mono', monospace;
+  line-height: 1.6;
+}
+
+.platform-note svg { flex-shrink: 0; margin-top: 2px; color: var(--accent-color); }
+
+/* ---------- STEPS ---------- */
+
+.steps { display: flex; flex-direction: column; }
+
+.step {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  gap: 18px;
+  padding: 36px 0;
+  border-top: 1px solid var(--border-soft);
+}
+
+.step:first-child { border-top: none; padding-top: 0; }
+.step:last-child { padding-bottom: 0; }
+
+.step-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: var(--text-faint);
+  padding-top: 3px;
+}
+
+.step.is-critical .step-num { color: var(--warn); }
+
+.step-body h2 {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0 0 8px;
+  color: var(--text-main);
+}
+
+.step-body p {
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: var(--text-muted);
+  margin: 0 0 16px;
+  max-width: 56ch;
+}
+
+.step-body p:last-of-type { margin-bottom: 16px; }
+.step-body strong { color: var(--text-main); font-weight: 500; }
+
+/* store buttons */
+
+.store-links {
+  display: flex;
+  gap: 10px;
+  margin: 0 0 18px;
+  flex-wrap: wrap;
+}
+
+.store-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 14px;
+  border-radius: 10px;
+  background: var(--bg-surface-raised);
+  border: 1px solid var(--border);
+  color: var(--text-main);
+  text-decoration: none;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 13.5px;
+  font-weight: 600;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.store-btn:hover {
+  border-color: var(--accent-color);
+  transform: translateY(-1px);
+}
+
+/* media — actual fixed-size phone-screen frame, not full-bleed */
+
+.media {
+  width: 180px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  box-shadow: 0 8px 24px -8px #00000060;
+}
+
+.media img,
+.media video {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
+.media img { cursor: zoom-in; transition: filter 0.2s ease; }
+.media img:hover { filter: brightness(1.06); }
+
+.media.wide { width: 100%; max-width: 320px; }
+
+.caption {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--text-faint);
+  margin-top: 8px;
+  max-width: 180px;
+}
+
+.caption.wide { max-width: 320px; }
+
+.media-row {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.media-col { display: flex; flex-direction: column; }
+
+/* ---------- VIDEO BLOCK (matches docs page UX) ---------- */
+
+.video-block {
+  background: linear-gradient(135deg, #1a1a2e, #16162a);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  margin: 4px 0 16px;
+  width: 100%;
+  max-width: 56ch;
+}
+
+.video-wrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #0d0d1a;
+}
+
+.video-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: linear-gradient(160deg, #12122a 0%, #0e0e1e 100%);
+  cursor: pointer;
+  transition: opacity 0.5s ease;
+  z-index: 2;
+}
+.video-placeholder.hidden { opacity: 0; pointer-events: none; }
+
+.play-btn-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+}
+.play-btn {
+  width: 54px;
+  height: 54px;
+  background: var(--accent-color);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 30px rgba(99, 102, 241, 0.4);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+  z-index: 1;
+}
+.video-placeholder:hover .play-btn {
+  transform: scale(1.08);
+  box-shadow: 0 0 44px rgba(99, 102, 241, 0.6);
+}
+
+.ring {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2.5px solid var(--accent-color);
+  opacity: 0;
+  transform: scale(1);
+  pointer-events: none;
+}
+.ring.animate { animation: ringPulse 0.7s ease-out infinite; }
+@keyframes ringPulse {
+  0%   { opacity: 0.9; transform: scale(1); }
+  100% { opacity: 0;   transform: scale(1.8); }
+}
+
+.video-label {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  padding: 0 20px;
+  text-align: center;
+}
+
+.video-embed {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+  opacity: 0;
+  transition: opacity 0.4s ease 0.1s;
+  z-index: 1;
+  background: #000;
+}
+.video-embed.visible { opacity: 1; }
+
+.video-error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 20px;
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12.5px;
+  z-index: 3;
+}
+
+.video-caption {
+  padding: 12px 16px;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 12.5px;
+  color: var(--text-faint);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.video-caption::before {
+  content: "";
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  background: url("data:image/svg+xml,%3Csvg viewBox='9 3640 10 15' xmlns='http://www.w3.org/2000/svg' fill='%236366f1'%3E%3Cpath d='M18.074,3650.7335 L12.308,3654.6315 C10.903,3655.5815 9,3654.5835 9,3652.8985 L9,3645.1015 C9,3643.4155 10.903,3642.4185 12.308,3643.3685 L18.074,3647.2665 C19.306,3648.0995 19.306,3649.9005 18.074,3650.7335'/%3E%3C/svg%3E") no-repeat center;
+  background-size: contain;
+  position: relative;
+  top: -1px;
+}
+
+/* callout */
+
+.callout {
+  display: flex;
+  gap: 12px;
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-border);
+  border-radius: 21px;
+  padding: 16px 18px;
+  margin-top: 20px;
+  max-width: 56ch;
+}
+
+.callout svg { flex-shrink: 0; margin-top: 2px; color: var(--warn); }
+
+.callout strong {
+  display: block;
+  color: var(--warn);
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 14px;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.callout ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: #d9c2b5;
+}
+
+.callout li { margin-bottom: 4px; }
+.callout li:last-child { margin-bottom: 0; }
+
+/* footer */
+
+.done {
+  margin-top: 48px;
+  padding: 26px;
+  border-radius: var(--radius);
+  background: #4effcd0c;
+  border: 1px solid #4effcd2a;
+  text-align: center;
+}
+
+.done h3 {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  margin: 0 0 8px;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--mint);
+}
+
+.done p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+a.inline-link {
+  color: var(--mint);
+  text-decoration: none;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.92em;
+  border-bottom: 1px solid #4effcd40;
+}
+
+a.inline-link:hover { border-color: var(--mint); }
+
+/* ---------- LIGHTBOX ---------- */
+
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(6, 6, 12, 0.9);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s ease;
+}
+.lightbox-overlay.active { opacity: 1; pointer-events: auto; }
+
+.lightbox-overlay img {
+  max-width: 90vw;
+  max-height: 88vh;
+  border-radius: 14px;
+  box-shadow: 0 24px 70px -12px #000000a0;
+  cursor: zoom-out;
+  transform: scale(0.96);
+  transition: transform 0.22s ease;
+  border: 1px solid var(--border);
+}
+.lightbox-overlay.active img { transform: scale(1); }
+
+.lightbox-caption {
+  position: absolute;
+  bottom: 28px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.lightbox-close {
+  position: absolute;
+  top: 22px;
+  right: 28px;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg-surface-raised);
+  color: var(--text-main);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+.lightbox-close:hover { border-color: var(--accent-color); transform: scale(1.05); }
+
+@media (max-width: 560px) {
+  .page { padding-left: 20px; padding-right: 20px; padding-bottom: 80px; }
+  .step { grid-template-columns: 26px 1fr; gap: 12px; padding: 28px 0; }
+  .step-num { font-size: 12px; }
+  .media { width: 150px; }
+  .media.wide { max-width: 260px; }
+  .caption { max-width: 150px; }
+  .caption.wide { max-width: 260px; }
+  .video-block { max-width: 100%; }
+  .lightbox-close { top: 14px; right: 14px; }
+}
+</style>
+</head>
+<body>
+
+<div class="main-container">
+
+    <div class="nav-shell">
+      <div class="nav-fade"></div>
+      <div class="nav">
+        <a class="nav-left" href="https://gleyo.app/">
+          <img src="https://zupdpwnloewdkjqsymdm.supabase.co/storage/v1/object/public/uploads/communities/7/logos/511f4996-5748-4f1f-b74c-5d5c33f7124c.png" loading="lazy" decoding="async" width="26" height="26" draggable="false" alt="Gleyo logo">
+          <div class="logo">Gleyo</div>
+        </a>
+        <div class="nav-right">
+          <a href="https://gleyo.app/chat/gleyo">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+            Need help?
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="page">
+
+    <h1>Get a Zcash wallet</h1>
+    <p class="dek">Rewards from Gleyo are sent in ZEC. Zodl is a shielded Zcash wallet — here's how to install it and get set up in a few minutes.</p>
+
+    <div class="platform-note">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        <span>Screens below are shown on iPhone. Zodl looks the same on Android — only the system bar at the top and share menu look a little different.</span>
+    </div>
+
+    <div class="steps">
+
+        <!-- STEP 1 — DOWNLOAD -->
+        <div class="step">
+        <div class="step-num">01</div>
+        <div class="step-body">
+            <h2>Download Zodl</h2>
+            <p>Search for <strong>Zodl</strong> on the App Store or Google Play, or use the buttons below.</p>
+
+            <div class="store-links">
+            <a class="store-btn" href="https://apps.apple.com/us/app/zodl-zcash-wallet/id1672392439" target="_blank" rel="noopener">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.14 7.31c1.36.07 2.31.75 3.11.8.94-.19 1.85-.88 3.32-.85 1.71.13 3.03.85 3.89 2.28-3.28 1.98-2.53 6.36.62 7.58-.6 1.51-1.36 2.99-3.03 4.16zM12.03 7.25c-.14-2.23 1.66-4.1 3.74-4.25.29 2.36-2.08 4.42-3.74 4.25z"/></svg>
+                App Store
+            </a>
+            <a class="store-btn" href="https://play.google.com/store/search?q=zodl&c=apps" target="_blank" rel="noopener">
+                <svg fill="currentColor" width="15" height="15" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+                    <g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"><title>ionicons-v5_logos</title><path d="M48,59.49v393a4.33,4.33,0,0,0,7.37,3.07L260,256,55.37,56.42A4.33,4.33,0,0,0,48,59.49Z"></path><path d="M345.8,174,89.22,32.64l-.16-.09c-4.42-2.4-8.62,3.58-5,7.06L285.19,231.93Z"></path><path d="M84.08,472.39c-3.64,3.48.56,9.46,5,7.06l.16-.09L345.8,338l-60.61-57.95Z"></path><path d="M449.38,231l-71.65-39.46L310.36,256l67.37,64.43L449.38,281C468.87,270.23,468.87,241.77,449.38,231Z"></path></g>
+                </svg>
+                Google Play
+            </a>
+            </div>
+
+            <div class="media">
+            <img src="https://xpcqiovfesvllsljxhac.supabase.co/storage/v1/object/public/uploads/zodl_onappstor.png" alt="Zodl wallet listing on the App Store" loading="lazy">
+            </div>
+            <p class="caption">Zodl on the App Store.</p>
+        </div>
+        </div>
+
+        <!-- STEP 2 — CREATE WALLET -->
+        <div class="step">
+        <div class="step-num">02</div>
+        <div class="step-body">
+            <h2>Create your wallet</h2>
+            <p>The first time you open Zodl, you'll be asked to create a new wallet. Tap through to generate one — this only takes a few seconds.</p>
+
+            <div class="media">
+            <img src="https://xpcqiovfesvllsljxhac.supabase.co/storage/v1/object/public/uploads/when_you_enter_zodl-for-the-first-time.png" alt="Zodl app's first screen when opened for the first time" loading="lazy">
+            </div>
+            <p class="caption">First screen on open.</p>
+        </div>
+        </div>
+
+        <!-- STEP 3 — BACK UP SEED PHRASE -->
+        <div class="step is-critical">
+        <div class="step-num">03</div>
+        <div class="step-body">
+            <h2>Back up your recovery phrase</h2>
+            <p>This is the most important step. Your recovery phrase (also called a seed phrase) is the <strong>only</strong> way to restore your wallet if you lose your phone — so don't skip it.</p>
+
+            <p>Tap the <strong>menu icon</strong> in the top right → <strong>More</strong> → <strong>Advanced Settings</strong> → <strong>Recovery Phrase</strong>. You may be asked to confirm your PIN first.</p>
+
+            <!-- Video block: same placeholder/ring/play-btn UX as the docs page -->
+            <div class="video-block">
+            <div class="video-wrapper">
+                <div class="video-placeholder" data-videosrc="https://xpcqiovfesvllsljxhac.supabase.co/storage/v1/object/public/uploads/RPReplay_Final1787612774.mp4" id="vp-seedphrase">
+                <div class="play-btn-wrap">
+                    <div class="ring" id="ring-seedphrase"></div>
+                    <div class="play-btn">
+                    <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 122.88 122.88" style="width:30px;height:30px;" xml:space="preserve"><g><path fill="#ffffff" d="M84.32,65.41c3.31-2.13,3.3-4.51,0-6.4L50.13,39.36c-2.7-1.69-5.51-0.7-5.43,2.82l0.11,39.7c0.23,3.82,2.41,4.86,5.62,3.1L84.32,65.41z"/></g></svg>
+                    </div>
+                </div>
+                <div class="video-label">Watch: Finding and backing up your recovery phrase</div>
+                </div>
+            </div>
+            <div class="video-caption">Recovery phrase walkthrough</div>
+            </div>
+
+            <div class="callout">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <div>
+                <strong>Keep this phrase safe</strong>
+                <ul>
+                <li>Write it on paper, in order — never a screenshot, photo, or notes app.</li>
+                <li>Store it somewhere private, away from your phone.</li>
+                <li>Never share it with anyone — not Zodl, not Gleyo, no exceptions.</li>
+                <li>Anyone with these words can access your funds. There's no recovery if it's lost or leaked.</li>
+                </ul>
+            </div>
+            </div>
+        </div>
+        </div>
+
+        <!-- STEP 4 — SHIELDED ADDRESS -->
+        <div class="step">
+        <div class="step-num">04</div>
+        <div class="step-body">
+            <h2>Copy your shielded address</h2>
+            <p>Once your wallet's set up, head to the receive screen and copy your <strong>shielded address</strong> — this is what you'll add to Gleyo so rewards can be sent to you.</p>
+
+            <div class="media-row">
+            <div class="media-col">
+                <div class="media">
+                <img src="https://xpcqiovfesvllsljxhac.supabase.co/storage/v1/object/public/uploads/copying_your_shielded_address.png" alt="Copying a shielded Zcash address in Zodl" loading="lazy">
+                </div>
+                <p class="caption">Tap the copy icon.</p>
+            </div>
+            <div class="media-col">
+                <div class="media">
+                <img src="https://xpcqiovfesvllsljxhac.supabase.co/storage/v1/object/public/uploads/afrer-creating-acct.jpeg" alt="Zodl wallet home screen after account creation" loading="lazy">
+                </div>
+                <p class="caption">Home screen after setup.</p>
+            </div>
+            </div>
+        </div>
+        </div>
+
+    </div>
+
+    <div class="done">
+        <h3>You're all set</h3>
+        <p>Paste your shielded address into your Gleyo profile, and rewards will be sent there directly.</p>
+    </div>
+
+    </div>
+
+    <!-- ── LIGHTBOX MODAL ── -->
+    <div class="lightbox-overlay" id="lightbox">
+    <button class="lightbox-close" id="lightboxClose" aria-label="Close">&times;</button>
+    <img src="" alt="">
+    <div class="lightbox-caption" id="lightboxCaption"></div>
+    </div>
+
+</div>
+
+<script>
+/* ── LAZY VIDEO PLAYER (docs-page UX, fixed so it actually plays) ── */
+function activateVideo(placeholder, videoSrc) {
+  const wrapper = placeholder.parentElement;
+  const ringEl  = placeholder.querySelector('.ring');
+  ringEl.classList.add('animate');
+
+  if (!videoSrc) {
+    placeholder.classList.add('hidden');
+    return;
+  }
+
+  const embed = document.createElement('video');
+  embed.src = videoSrc;
+  embed.controls = true;
+  embed.playsInline = true;   // avoids forced fullscreen / silent failure on iOS
+  embed.muted = true;         // required for autoplay to be allowed at all
+  embed.preload = 'auto';
+  embed.classList.add('video-embed');
+  wrapper.appendChild(embed);
+
+  function reveal() {
+    placeholder.classList.add('hidden');
+    ringEl.classList.remove('animate');
+    requestAnimationFrame(() => requestAnimationFrame(() => embed.classList.add('visible')));
+  }
+
+  function showFallback(message) {
+    reveal();
+    embed.style.display = 'none';
+    const err = document.createElement('div');
+    err.className = 'video-error';
+    err.innerHTML = `${message} — <a class="inline-link" href="${videoSrc}" target="_blank" style="margin-left:4px;">open it directly</a>`;
+    wrapper.appendChild(err);
+  }
+
+  embed.addEventListener('loadeddata', () => {
+    if (embed.videoWidth === 0 || embed.videoHeight === 0) {
+      showFallback("This video's format isn't supported by your browser");
+      return;
+    }
+    reveal();
+    embed.play().catch(() => { });
+  }, { once: true });
+
+  embed.addEventListener('error', () => {
+    showFallback("Video couldn't load");
+  }, { once: true });
+}
+
+document.querySelectorAll('.video-placeholder').forEach(vp => {
+  vp.addEventListener('click', function handler() {
+    this.removeEventListener('click', handler);
+    activateVideo(this, this.dataset.videosrc || null);
+  });
+});
+
+/* ── IMAGE LIGHTBOX ── */
+(function () {
+  const overlay = document.getElementById('lightbox');
+  const overlayImg = overlay.querySelector('img');
+  const caption = document.getElementById('lightboxCaption');
+  const closeBtn = document.getElementById('lightboxClose');
+
+  function open(src, alt) {
+    overlayImg.src = src;
+    overlayImg.alt = alt || '';
+    caption.textContent = alt || '';
+    overlay.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+  function close() {
+    overlay.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  document.querySelectorAll('.media img').forEach(img => {
+    img.addEventListener('click', () => open(img.src, img.alt));
+  });
+
+  overlay.addEventListener('click', (e) => { if (e.target !== overlayImg) close(); });
+  closeBtn.addEventListener('click', close);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+})();
+</script>
+
+</body>
+</html>

@@ -2251,6 +2251,12 @@ def landing_page():
 
     return render_template("landing_page.html", user_id=user_id)
 
+
+@app.route('/wallet-guide')
+def wallet_guide():
+    return render_template('wallet.html')
+
+
 @login_manager.user_loader
 def load_user(user_id):
     return db.session.get(Users, int(user_id))

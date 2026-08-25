@@ -2499,12 +2499,12 @@ function bindSocialConnectNext() {
     const btn = e.target.closest(".js-social-connect-btn");
     if (!btn) return;
 
-    // Telegram's widget flow doesn't take an arbitrary `next` param the same way
+    // Telegram's widget flow doesn't take `next` the same way
     if (btn.dataset.platform === "telegram") return;
 
     e.preventDefault();
 
-    // ✅ this is always accurate — pushSubquestURL/updateURL keep it in sync
+    // ✅ always accurate — pushSubquestURL/updateURL keep this in sync
     const currentPath = window.location.pathname;
 
     const url = new URL(btn.href, window.location.origin);
@@ -2517,24 +2517,26 @@ function bindSocialConnectNext() {
 function renderSocialConnects(socials_to_show = {}, can_view_info = false) {
   if (!socials_to_show) return "";
 
-  const platforms = ["twitter", "discord", "youtube", "telegram", "github"];
+  const platforms = ["twitter", "discord", "youtube", "telegram", "github", "tiktok"];
   const activePlatforms = platforms.filter(p => socials_to_show[p]);
   if (!activePlatforms.length) return "";
 
-  // ⚠️ NO `next` baked in here anymore — appended dynamically on click
+  // ⚠️ real paths, no Jinja — `next` is appended client-side on click
   const links = {
-    twitter: "{{ url_for('twitter.twitter_login') }}",
-    discord: "{{ url_for('discord.discord_connect') }}",
-    youtube: "{{ url_for('youtube.youtube_login') }}",
-    github: "{{ url_for('github_bp.github_login') }}",
-    telegram: "https://oauth.telegram.org/auth?bot_id=7686743241&origin={{ request.url_root }}&return_to={{ request.url_root }}telegram/callback"
+    twitter:  "/twitter-login",
+    discord:  "/discord/connect",
+    youtube:  "/youtube/login",
+    github:   "/github/login",
+    tiktok:   "/tiktok/login",
+    telegram: `https://oauth.telegram.org/auth?bot_id=7686743241&origin=${window.location.origin}&return_to=${window.location.origin}/telegram/callback`
   };
 
   const labels = {
-    twitter: "Connect Twitter",
-    discord: "Connect Discord",
-    youtube: "Connect YouTube",
-    github: "Link Github",
+    twitter:  "Connect Twitter",
+    discord:  "Connect Discord",
+    youtube:  "Connect YouTube",
+    github:   "Link Github",
+    tiktok:   "Connect TikTok",
     telegram: "Connect Telegram"
   };
 

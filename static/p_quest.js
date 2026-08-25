@@ -5,6 +5,7 @@ async function LetsitQuestUp() {
   controller?.abort();
   controller = new AbortController();
   bindShowInviteDelegate();
+  bindSocialConnectNext(); 
 
   document.addEventListener("click", async (e) => {
     const claimBtn = e.target.closest("#claim-task");
@@ -2489,22 +2490,45 @@ function initSocialTooltips(communitySlug) {
    INLINE STYLE PARSER
 ========================= */
 
+
+function bindSocialConnectNext() {
+  if (window.__SOCIAL_CONNECT_NEXT_BOUND__) return;
+  window.__SOCIAL_CONNECT_NEXT_BOUND__ = true;
+
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest(".js-social-connect-btn");
+    if (!btn) return;
+
+    // Telegram's widget flow doesn't take an arbitrary `next` param the same way
+    if (btn.dataset.platform === "telegram") return;
+
+    e.preventDefault();
+
+    // ✅ this is always accurate — pushSubquestURL/updateURL keep it in sync
+    const currentPath = window.location.pathname;
+
+    const url = new URL(btn.href, window.location.origin);
+    url.searchParams.set("next", currentPath);
+
+    window.location.href = url.toString();
+  }, true);
+}
+
 function renderSocialConnects(socials_to_show = {}, can_view_info = false) {
   if (!socials_to_show) return "";
 
   const platforms = ["twitter", "discord", "youtube", "telegram", "github"];
-
-  // only active ones
   const activePlatforms = platforms.filter(p => socials_to_show[p]);
   if (!activePlatforms.length) return "";
 
-const links = {
-    twitter: "{{ url_for('twitter.twitter_login', next=request.path) }}",
-    discord: "{{ url_for('discord.discord_connect', next=request.path) }}",
-    youtube: "{{ url_for('youtube.youtube_login', next=request.path) }}",
-    github: "{{ url_for('github_bp.github_login', next=url_for('account_settings_linked_accounts')) }}",
+  // ⚠️ NO `next` baked in here anymore — appended dynamically on click
+  const links = {
+    twitter: "{{ url_for('twitter.twitter_login') }}",
+    discord: "{{ url_for('discord.discord_connect') }}",
+    youtube: "{{ url_for('youtube.youtube_login') }}",
+    github: "{{ url_for('github_bp.github_login') }}",
     telegram: "https://oauth.telegram.org/auth?bot_id=7686743241&origin={{ request.url_root }}&return_to={{ request.url_root }}telegram/callback"
-};
+  };
 
   const labels = {
     twitter: "Connect Twitter",
@@ -2523,7 +2547,6 @@ const links = {
 
         return `
           <div class="connect-card">
-
             ${
               can_view_info
                 ? `
@@ -2535,13 +2558,13 @@ const links = {
                 : ""
             }
 
-            <a href="${links[platform]}" 
-               class="connect-btn ${platform}" 
+            <a href="${links[platform]}"
+               class="connect-btn js-social-connect-btn ${platform}"
+               data-platform="${platform}"
                style="${color ? `--platform-color:${color};` : ""}">
               ${icon}
               ${labels[platform]}
             </a>
-
           </div>
         `;
       }).join("")}

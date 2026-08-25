@@ -7595,17 +7595,6 @@ def api_alltime_leaderboard(community_slug):
 
     community = Community.query.filter_by(slug=community_slug).first_or_404()
 
-    try:
-        offset = max(0, int(request.args.get('offset', 0)))
-    except (TypeError, ValueError):
-        offset = 0
-
-    try:
-        limit = int(request.args.get('limit', 30))
-    except (TypeError, ValueError):
-        limit = 30
-    limit = max(1, min(limit, 50))  # sane cap so nobody can request 10,000 rows
-
     # earliest COMPLETION timestamp per user, scoped to THIS community
     latest_activity_subq = (
         db.session.query(
@@ -7623,7 +7612,7 @@ def api_alltime_leaderboard(community_slug):
         .subquery()
     )
 
-    leaderboard_query = (
+    leaderboard = (
         db.session.query(
             Users.id.label("user_id"),
             Users.username,
@@ -7640,16 +7629,12 @@ def api_alltime_leaderboard(community_slug):
             latest_activity_subq.c.last_xp_at.asc().nullslast(),
             CommunityUserXP.id.asc()
         )
+        .limit(30)
+        .all()
     )
 
-    # 🔥 fetch one extra row — tells us if there's a next page
-    # without needing a separate COUNT(*) query
-    rows = leaderboard_query.offset(offset).limit(limit + 1).all()
-    has_more = len(rows) > limit
-    rows = rows[:limit]
-
     leaderboard_data = []
-    for index, user in enumerate(rows, start=offset + 1):
+    for index, user in enumerate(leaderboard, start=1):
         leaderboard_data.append({
             "user_id":  user.user_id,
             "username": user.username,
@@ -7660,9 +7645,7 @@ def api_alltime_leaderboard(community_slug):
 
     current_user_data = None
 
-    # only compute this on the first page — it's not part of the
-    # paginated list, no need to redo it on every scroll-load
-    if offset == 0 and current_user.is_authenticated:
+    if current_user.is_authenticated:
         full_rank = (
             db.session.query(CommunityUserXP)
             .filter_by(community_id=community.id, user_id=current_user.id)
@@ -7713,9 +7696,7 @@ def api_alltime_leaderboard(community_slug):
 
     return jsonify({
         "leaderboard":  leaderboard_data,
-        "current_user": current_user_data,
-        "has_more":     has_more,
-        "next_offset":  offset + len(leaderboard_data)
+        "current_user": current_user_data
     })
 
 
@@ -7729,17 +7710,6 @@ def api_sprint_leaderboard(community_slug, sprint_uuid):
     sprint = Sprint.query.filter_by(uuid=sprint_uuid, community_id=community.id).first()
     if not sprint:
         return jsonify({"error": "Sprint not found"}), 404
-
-    try:
-        offset = max(0, int(request.args.get('offset', 0)))
-    except (TypeError, ValueError):
-        offset = 0
-
-    try:
-        limit = int(request.args.get('limit', 30))
-    except (TypeError, ValueError):
-        limit = 30
-    limit = max(1, min(limit, 50))
 
     latest_activity_subq = (
         db.session.query(
@@ -7756,7 +7726,7 @@ def api_sprint_leaderboard(community_slug, sprint_uuid):
         .subquery()
     )
 
-    leaderboard_query = (
+    leaderboard = (
         db.session.query(
             Users.id.label("user_id"),
             Users.username,
@@ -7773,14 +7743,12 @@ def api_sprint_leaderboard(community_slug, sprint_uuid):
             latest_activity_subq.c.last_xp_at.asc().nullslast(),
             SprintUserXP.id.asc()
         )
+        .limit(30)
+        .all()
     )
 
-    rows = leaderboard_query.offset(offset).limit(limit + 1).all()
-    has_more = len(rows) > limit
-    rows = rows[:limit]
-
     leaderboard_data = []
-    for index, user in enumerate(rows, start=offset + 1):
+    for index, user in enumerate(leaderboard, start=1):
         leaderboard_data.append({
             "user_id":  user.user_id,
             "username": user.username,
@@ -7791,7 +7759,7 @@ def api_sprint_leaderboard(community_slug, sprint_uuid):
 
     current_user_data = None
 
-    if offset == 0 and current_user.is_authenticated:
+    if current_user.is_authenticated:
         current_user_entry = (
             db.session.query(SprintUserXP)
             .filter_by(sprint_id=sprint.id, user_id=current_user.id)
@@ -7842,12 +7810,10 @@ def api_sprint_leaderboard(community_slug, sprint_uuid):
     return jsonify({
         "leaderboard":  leaderboard_data,
         "current_user": current_user_data,
-        "end_zone":     sprint.end_zone,
-        "has_more":     has_more,
-        "next_offset":  offset + len(leaderboard_data)
+        "end_zone": sprint.end_zone
     })
 
-    
+
 @app.route("/api/<community_slug>/user/<username>/activity")
 @login_required
 def user_recent_activity(community_slug, username):
@@ -22443,9 +22409,6 @@ def verify_payment(community_slug, payment_id):
         traceback.print_exc()
         return jsonify({'error': f'Server error: {str(e)}', 'status': 'pending'}), 200
 
-
-        
-        
 @app.route('/<community_slug>/leaderboard')
 @community_not_deleted()
 def leaderboard(community_slug):
@@ -22460,6 +22423,18 @@ def leaderboard(community_slug):
     private_ctx = get_private_access_context(user_id, community, came_from_invite=False)
 
     banned = check_banned(user_id, community.id) if user_id else False
+
+    # 🔒 NEW — resolve the user's role in this community
+    user_role = None
+    if user_id:
+        role_entry = CommunityUserRole.query.filter_by(
+            user_id=user_id,
+            community_id=community.id
+        ).first()
+        user_role = role_entry.role if role_entry else None
+
+    # only admin/editor can create or manage sprints
+    can_manage_sprints = user_role in ('admin', 'editor')
 
     sprint = (
         Sprint.query
@@ -22488,6 +22463,11 @@ def leaderboard(community_slug):
         flash("❌ You cannot create a new sprint while one is upcoming or live.", "error")
         return redirect(url_for("leaderboard", community_slug=community_slug))
 
+    # 🔒 NEW — server-side guard: block the create-sprint deep link entirely for non-managers
+    if request.args.get("open") == "sprint" and not can_manage_sprints:
+        flash("❌ You don't have permission to create a sprint.", "error")
+        return redirect(url_for("leaderboard", community_slug=community_slug))
+
     total_xp = get_total_xp(user_id, community.id) if user_id else 0
     level_data = get_level(total_xp)
 
@@ -22501,6 +22481,19 @@ def leaderboard(community_slug):
 
     latest_sprint = get_latest_valid_sprint(community.id)
 
+    all_sprints = (
+        Sprint.query
+        .filter_by(community_id=community.id)
+        .order_by(Sprint.start_date.desc())
+        .all()
+    )
+
+    for s in all_sprints:
+        if isinstance(s.start_date, str):
+            s.start_date = datetime.fromisoformat(s.start_date)
+        if isinstance(s.end_date, str):
+            s.end_date = datetime.fromisoformat(s.end_date)
+
     if request.headers.get("X-Partial"):
         return render_template(
             "leaderboard.html",
@@ -22508,11 +22501,12 @@ def leaderboard(community_slug):
             community=community,
             is_premium=community.is_paid,
             current_time=now,
-            sprints=[sprint] if sprint else [],
+            sprints=all_sprints,
             sprint=sprint,
             latest_sprint=latest_sprint,
             sprint_status=sprint_status,
-            private_locked=private_ctx["private_locked"],   # 🔒 NEW
+            private_locked=private_ctx["private_locked"],
+            can_manage_sprints=can_manage_sprints,   # 🔒 NEW
         )
 
     return render_template(
@@ -22526,7 +22520,7 @@ def leaderboard(community_slug):
         sprint=sprint,
         community_tuples=user_communities,
         latest_sprint=latest_sprint,
-        sprints=[sprint] if sprint else [],
+        sprints=all_sprints,
         sprint_status=sprint_status,
         is_premium=community.is_paid,
         community_name=community.name,
@@ -22535,9 +22529,10 @@ def leaderboard(community_slug):
         community_discord=community_discord,
         created_by_id=user_id,
         community_slug=community_slug,
-        private_locked=private_ctx["private_locked"],   # 🔒 NEW
+        private_locked=private_ctx["private_locked"],
+        can_manage_sprints=can_manage_sprints,   # 🔒 NEW
     )
-    
+
 
 @app.route("/<community_slug>/sprints/create", methods=["POST"])
 @login_required

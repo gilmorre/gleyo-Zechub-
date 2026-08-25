@@ -1134,8 +1134,6 @@ body.no-scroll {
   pointer-events: none;
 }
 </style>
-
-
 {# --- CREATE STATE HOLDERS --- #}
 {% set ns = namespace(live=None, upcoming=None) %}
 
@@ -1152,11 +1150,10 @@ body.no-scroll {
 
 <div class="main-wrapper{% if community.is_paid %} badged{% else%}{%endif%}">
 
-
     {% if ns.live or ns.upcoming %}
       <div class="switch-between-sprints-wrap"
           data-latest-sprint="{{ (ns.live or ns.upcoming).uuid }}">
-        
+
         <div class="switch-between-sprints">
           <div class="switch-pill"></div>
 
@@ -1176,11 +1173,9 @@ body.no-scroll {
     <div class="info-card">
       <div class="info-top">
 
-
         <div class="info-content">
           <div class="contain-container" style="margin: 0;">
             <h1 id="previewTitle" class="sprint-title">All Time</h1>
-
           </div>
 
           <div class="participants-meta">
@@ -1189,8 +1184,6 @@ body.no-scroll {
                 <path d="M12 3C9.51472 3 7.5 5.01472 7.5 7.5C7.5 9.98528 9.51472 12 12 12C14.4853 12 16.5 9.98528 16.5 7.5C16.5 5.01472 14.4853 3 12 3Z"/>
                 <path d="M16.5 13.5L7.5 13.5C6.46774 13.5 5.48769 13.9465 4.89696 14.6693C4.27533 15.43 4.10333 16.4973 4.77316 17.4874C6.21072 19.6122 8.97039 21 12 21C15.0296 21 17.7893 19.6122 19.2268 17.4874C19.8967 16.4973 19.7247 15.43 19.103 14.6693C18.5123 13.9465 17.5323 13.5 16.5 13.5Z"/>
               </svg>
-
-
             </span>
 
             <span class="participants-count">
@@ -1198,24 +1191,17 @@ body.no-scroll {
             </span>
           </div>
 
-
           <div class="top-rank-row">
             <div class="top-rank-left">
               <span class="rank-number"></span>
-
               <div class="rank-avatar"></div>
-
               <span class="rank-username"></span>
             </div>
-
             <span class="rank-xp"></span>
           </div>
 
-
-
         </div>
       </div>
-
 
       <div class="info-bottom-wrapper" style="margin: 0; padding: 0;">
       <div class="info-bottom">
@@ -1232,7 +1218,6 @@ body.no-scroll {
                 <span class="participant-xp"></span>
               </div>
             </li>
-
             <li class="participant-item">
               <img class="participant-avatar" src="https://i.pravatar.cc/40?img=32" alt="Daniel">
               <div class="participant-info">
@@ -1240,7 +1225,6 @@ body.no-scroll {
                 <span class="participant-xp">1,105 XP</span>
               </div>
             </li>
-
             <li class="participant-item">
               <img class="participant-avatar" src="https://i.pravatar.cc/40?img=45" alt="Fatima">
               <div class="participant-info">
@@ -1248,7 +1232,6 @@ body.no-scroll {
                 <span class="participant-xp">980 XP</span>
               </div>
             </li>
-
             <li class="participant-item">
               <img class="participant-avatar" src="https://i.pravatar.cc/40?img=18" alt="Michael">
               <div class="participant-info">
@@ -1256,7 +1239,6 @@ body.no-scroll {
                 <span class="participant-xp">860 XP</span>
               </div>
             </li>
-
             <li class="participant-item">
               <img class="participant-avatar" src="https://i.pravatar.cc/40?img=27" alt="Zainab">
               <div class="participant-info">
@@ -1264,7 +1246,6 @@ body.no-scroll {
                 <span class="participant-xp">745 XP</span>
               </div>
             </li>
-
             <li class="participant-item">
               <img class="participant-avatar" src="https://i.pravatar.cc/40?img=53" alt="Chris">
               <div class="participant-info">
@@ -1279,8 +1260,6 @@ body.no-scroll {
     </div>
   </div>
 
-  
-
 <div class="right-panel" id="rightPanel">
   <div id="rightPanelContent" class="right-panel-grid">
 
@@ -1289,9 +1268,44 @@ body.no-scroll {
     ======================================= -->
     <div class="right-section main-sprint-state">
 
-      {% if not sprints %}
+      {% if ns.live %}
 
-        <!-- NO SPRINTS -->
+        <!-- LIVE — visible to everyone -->
+        <div class="cta-card live">
+          <div>
+            Sprint is Live
+          </div>
+          <p>{{ ns.live.title }} is in progress now!</p>
+          <a href="/{{ community.slug }}/leaderboard/{{ ns.live.uuid }}" class="divers"
+              data-path="/{{ community.slug }}/leaderboard/{{ ns.live.uuid }}"
+              onclick="event.preventDefault(); loadMainSettingsSection(this.dataset.path)"
+          >
+            View Sprint
+          </a>
+        </div>
+
+      {% elif ns.upcoming %}
+
+        <!-- STARTS SOON — visible to everyone -->
+        <div class="cta-card sooner">
+          <div>
+            Sprint Starts Soon
+          </div>
+          <p>
+            {{ ns.upcoming.title }} will begin on
+            {{ ns.upcoming.start_date.strftime('%b %d, %Y') }}
+          </p>
+          <a href="/{{ community.slug }}/leaderboard/{{ ns.upcoming.uuid }}" class="divers"
+            data-path="/{{ community.slug }}/leaderboard/{{ ns.upcoming.uuid }}"
+            onclick="event.preventDefault(); loadMainSettingsSection(this.dataset.path)"
+          >
+            View Sprint
+          </a>
+        </div>
+
+      {% elif can_manage_sprints %}
+
+        <!-- NO ACTIVE SPRINT — admin/editor only sees the create CTA -->
         <div class="cta-card">
           <h3>✨ Plan a Sprint</h3>
           <p>Mobilize your community and build momentum together.</p>
@@ -1300,72 +1314,20 @@ body.no-scroll {
 
       {% else %}
 
-
-
-        {% if ns.live %}
-
-          <!-- LIVE -->
-        <div class="cta-card live">
-          <div>
- 
-            Sprint is Live
-          </div>
-
-          <p>{{ ns.live.title }} is in progress now!</p>
-
-          <a href="/{{ community.slug }}/leaderboard/{{ ns.live.uuid }}" class="divers"
-              data-path="/{{ community.slug }}/leaderboard/{{ ns.live.uuid }}"
-              onclick="event.preventDefault(); loadMainSettingsSection(this.dataset.path)"          
-          >
-            View Sprint
-          </a>
+        <!-- NO ACTIVE SPRINT — everyone else gets a passive, non-clickable message -->
+        <div class="cta-card idle">
+          <h3>No sprint yet</h3>
+          <p>Check back soon — this community hasn't started a sprint.</p>
         </div>
-
-
-
-        {% elif ns.upcoming %}
-
-          <!-- STARTS SOON -->
-          <div class="cta-card sooner">
-            <div>
-
-              Sprint Starts Soon
-            </div>
-
-            <p>
-              {{ ns.upcoming.title }} will begin on
-              {{ ns.upcoming.start_date.strftime('%b %d, %Y') }}
-            </p>
-
-            <a href="/{{ community.slug }}/leaderboard/{{ ns.upcoming.uuid }}" class="divers"
-              data-path="/{{ community.slug }}/leaderboard/{{ ns.upcoming.uuid }}"
-              onclick="event.preventDefault(); loadMainSettingsSection(this.dataset.path)"   
-            >
-              View Sprint
-            </a>
-          </div>
-
-
-        {% else %}
-
-          <!-- SPRINTS EXIST BUT NONE ACTIVE -->
-          <div class="cta-card">
-            <div>✨ Plan a Sprint</div>
-            <p>Mobilize your community and build momentum together.</p>
-            <div class="divers" onclick="createSprint()">Start Planning</div>
-          </div>
-
-        {% endif %}
 
       {% endif %}
 
     </div>
 
-
     <!-- ======================================
-         PAST SPRINTS (OWN SECTION)
+         PAST SPRINTS (OWN SECTION) — viewing results stays open to everyone
     ======================================= -->
-    {% if sprints|length >= 2  %}
+    {% if sprints|length >= 2 %}
     <div class="right-section past-sprints">
 
       {% for sprint in sprints %}
@@ -1385,10 +1347,10 @@ body.no-scroll {
       {% endfor %}
 
     </div>
-      {% endif %}
+    {% endif %}
 
   </div>
-  
+
 </div>
 
 <div id="activity-modal" class="activity-modal hidden">

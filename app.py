@@ -19205,7 +19205,6 @@ def get_invite_info(community_slug):
     })
 
 @app.route("/<community_slug>/invite/<invitation_code>")
-@login_required
 def handle_invite(community_slug, invitation_code):
     community = Community.query.filter_by(slug=community_slug).first_or_404()
 

@@ -384,6 +384,7 @@ ALLOWED_ROUTES = {
     "login",
     "logoutinner",
     "zec_login_session",
+    "wallet_guide",
     "zec_login_poll",
     "sitemap",
     "telegram_webhook",
@@ -2256,7 +2257,7 @@ def landing_page():
 def wallet_guide():
     return render_template('wallet.html')
 
-
+    
 @login_manager.user_loader
 def load_user(user_id):
     return db.session.get(Users, int(user_id))
@@ -31855,4 +31856,4 @@ if __name__ == "__main__":
     )
     scheduler.start()
 
-    socketio.run(app, host="0.0.0.0", port=8000)    
+    socketio.run(app, host="0.0.0.0", port=8000, debug=True)    

@@ -392,6 +392,7 @@ ALLOWED_ROUTES = {
     "gleyo_base",
     "create_account",
     "validate_zec_address",
+    "handle_invite".
     "claim_subquest",
     "static",
     "landing_page",

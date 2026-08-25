@@ -148,19 +148,20 @@
 
         <div class="topper-init" >
           <h1 class="side-h1" style="color: var(--text-main); text-shadow: var(--text-main); font-size: 15px;">{{ sprint.title }}</h1>
-
-          <div class="tooltip-wrapper" id="edit-button-wrapper"
-              data-sprint-end="{{ sprint.end_date.isoformat() }}Z"
-              data-has-ended="{{ 'true' if sprint_has_ended else 'false' }}">
-            <a 
-              href="/{{ community.slug }}/sprint/edit/{{ sprint.uuid }}"  
-              data-path="/{{ community.slug }}/sprint/edit/{{ sprint.uuid }}"
-              onclick="event.preventDefault(); loadMainSettingsSection(this.dataset.path, event)"
-              class="edit-icon-btn" aria-label="Edit Sprint">
-                <svg class="svg-icon" style="width: 1em; height: 1em;vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg"><path d="M810.666667 298.666667l-362.666667 362.666666-85.333333-85.333333L725.333333 213.333333l85.333334 85.333334z m-387.669334 277.333333l25.002667 24.96L750.336 298.666667 725.333333 273.664 422.997333 576z" fill="#FFFFFF" /><path d="M448 661.333333c-48.512 9.685333-106.581333 26.88-100.394667-10.069333L362.666667 576l85.333333 85.333333zM812.8 145.621333c45.866667 3.413333 85.888 63.445333 53.12 97.877334l-33.92 33.92-85.333333-85.418667c20.992-21.077333 33.536-47.146667 66.133333-46.378667z" fill="#FFFFFF" /><path d="M859.434667 534.186667c14.848 5.418667 14.848 13.312 15.232 20.48v149.461333c-1.28 99.413333-85.162667 188.032-187.221334 191.829333-129.536 1.578667-261.12 11.946667-388.224-0.938666-91.093333-9.258667-168.704-90.154667-172.330666-186.026667-1.621333-129.706667 0-259.413333 0-389.12C128 220.586667 211.968 131.84 314.026667 128.042667c26.88-0.298667 56.234667 0 83.498666 0 62.72 0 92.928-3.413333 92.928 21.76 0.042667 10.922667-8.96 20.138667-21.162666 20.906666H347.136c-29.482667-0.085333-54.058667-0.128-78.634667 8.704-56.576 20.224-96.682667 76.245333-98.944 136.874667a15575.296 15575.296 0 0 0 0 391.594667c2.901333 76.586667 68.437333 142.506667 145.408 145.408 123.776 1.536 247.637333 1.536 371.413334 0 76.544-2.858667 142.677333-68.608 145.578666-145.578667 0.64-51.029333 0-102.016 0-153.045333 0.853333-14.208 7.552-25.173333 27.477334-20.48z" fill="#FFFFFF" />
-                </svg>
-            </a>
-          </div>
+          {% if can_manage_sprints %}
+            <div class="tooltip-wrapper" id="edit-button-wrapper"
+                data-sprint-end="{{ sprint.end_date.isoformat() }}Z"
+                data-has-ended="{{ 'true' if sprint_has_ended else 'false' }}">
+              <a 
+                href="/{{ community.slug }}/sprint/edit/{{ sprint.uuid }}"  
+                data-path="/{{ community.slug }}/sprint/edit/{{ sprint.uuid }}"
+                onclick="event.preventDefault(); loadMainSettingsSection(this.dataset.path, event)"
+                class="edit-icon-btn" aria-label="Edit Sprint">
+                  <svg class="svg-icon" style="width: 1em; height: 1em;vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg"><path d="M810.666667 298.666667l-362.666667 362.666666-85.333333-85.333333L725.333333 213.333333l85.333334 85.333334z m-387.669334 277.333333l25.002667 24.96L750.336 298.666667 725.333333 273.664 422.997333 576z" fill="#FFFFFF" /><path d="M448 661.333333c-48.512 9.685333-106.581333 26.88-100.394667-10.069333L362.666667 576l85.333333 85.333333zM812.8 145.621333c45.866667 3.413333 85.888 63.445333 53.12 97.877334l-33.92 33.92-85.333333-85.418667c20.992-21.077333 33.536-47.146667 66.133333-46.378667z" fill="#FFFFFF" /><path d="M859.434667 534.186667c14.848 5.418667 14.848 13.312 15.232 20.48v149.461333c-1.28 99.413333-85.162667 188.032-187.221334 191.829333-129.536 1.578667-261.12 11.946667-388.224-0.938666-91.093333-9.258667-168.704-90.154667-172.330666-186.026667-1.621333-129.706667 0-259.413333 0-389.12C128 220.586667 211.968 131.84 314.026667 128.042667c26.88-0.298667 56.234667 0 83.498666 0 62.72 0 92.928-3.413333 92.928 21.76 0.042667 10.922667-8.96 20.138667-21.162666 20.906666H347.136c-29.482667-0.085333-54.058667-0.128-78.634667 8.704-56.576 20.224-96.682667 76.245333-98.944 136.874667a15575.296 15575.296 0 0 0 0 391.594667c2.901333 76.586667 68.437333 142.506667 145.408 145.408 123.776 1.536 247.637333 1.536 371.413334 0 76.544-2.858667 142.677333-68.608 145.578666-145.578667 0.64-51.029333 0-102.016 0-153.045333 0.853333-14.208 7.552-25.173333 27.477334-20.48z" fill="#FFFFFF" />
+                  </svg>
+              </a>
+            </div>
+          {% endif %}
         </div>
         <p class="announcement-status" style="color: var(--text-main); font-size: 14px !important;" data-start="{{ sprint.start_date.isoformat() }}Z" data-end="{{ sprint.end_date.isoformat() }}Z" id="announcementStatus"></p>
         </div>

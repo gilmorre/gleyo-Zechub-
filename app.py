@@ -21958,10 +21958,14 @@ def sprint_view(community_slug, sprint_uuid):
     if not sprint:
         return "No sprint found for this community", 404
 
+    # 🔒 NEW — resolve the user's role in this community
     user_role_entry = CommunityUserRole.query.filter_by(
         user_id=user_id,
         community_id=community.id
     ).first() if user_id else None
+
+    user_role = user_role_entry.role if user_role_entry else None
+    can_manage_sprints = user_role in ('admin', 'editor')   # 🔒 NEW
 
     banned = check_banned(user_id, community.id) if user_id else False
 
@@ -22003,7 +22007,8 @@ def sprint_view(community_slug, sprint_uuid):
             community=community,
             sprint=sprint,
             sprint_has_ended=sprint_has_ended,
-            private_locked=private_ctx["private_locked"],   # 🔒 NEW
+            private_locked=private_ctx["private_locked"],
+            can_manage_sprints=can_manage_sprints,   # 🔒 NEW
         )
 
     total_xp = get_total_xp(user_id, community.id) if user_id else 0
@@ -22024,9 +22029,11 @@ def sprint_view(community_slug, sprint_uuid):
         community_discord=community_discord,
         current_community=current_community,
         sprint=sprint,
-        private_locked=private_ctx["private_locked"],   # 🔒 NEW
+        private_locked=private_ctx["private_locked"],
+        can_manage_sprints=can_manage_sprints,   # 🔒 NEW
     )
 
+    
 @app.route('/<community_slug>/pay')
 @login_required
 @community_not_deleted()

@@ -4,6 +4,17 @@ let hideTimeout = null;
 let isHoveringTrigger = false;
 let isHoveringModal = false;
 
+// ── pagination state ──────────────────────────────────
+// Same pattern as the sprint leaderboard module — module-level so it
+// survives across multiple loadMoreParticipants() calls triggered by scroll.
+const INITIAL_LIMIT = 30;
+const PAGE_SIZE = 15;
+const SCROLL_THRESHOLD = 250; // px from bottom before triggering next load
+
+let currentOffset = 0;
+let hasMore = true;
+let isLoadingMore = false;
+let scrollContainer = null;
 
 
 function getColor(id) {
@@ -56,6 +67,153 @@ function scheduleHide() {
   }, 150);
 }
 
+function makeSkeletonRows(count) {
+  return Array.from({ length: count }).map(() => `
+    <li class="lb-s-row">
+      <div class="lb-s-rank shimmer"></div>
+      <div class="lb-s-avatar shimmer"></div>
+      <div class="lb-s-name shimmer" style="width: ${getRandomWidth()}px;"></div>
+      <div class="lb-s-xp shimmer"></div>
+    </li>
+  `).join("");
+}
+
+function appendSkeletonRows(list, count) {
+  const wrap = document.createElement("div");
+  wrap.className = "lb-skeleton-batch";
+  wrap.innerHTML = makeSkeletonRows(count);
+  // move the <li> children directly into the list, keep the wrapper
+  // out of the DOM tree so it doesn't break <ul> semantics
+  const rows = Array.from(wrap.children);
+  rows.forEach(row => list.appendChild(row));
+  return rows; // so caller can remove exactly these once real data arrives
+}
+
+// renders a single participant row and wires up the hover/click
+// activity-preview behaviour. Extracted out of the old inline
+// forEach so both the initial load and loadMoreParticipants can
+// reuse it without duplicating the row markup / listeners.
+function renderUserRow(user) {
+  const li = document.createElement("li");
+  li.className = "participant-item";
+
+  const hasImage = user.image && user.image.trim() !== "";
+  const bg = getColor(user.user_id);
+  const textColor = getTextColor(bg);
+  li.innerHTML = `
+      ${
+        hasImage
+          ? `<img src="${user.image}" class="participant-avatar" alt="${user.username}">`
+          : `<div class="participant-avatar" style="background:${bg}; color:${textColor}; font-weight: 500;">${user.username[0].toUpperCase()}</div>`
+      }
+
+    <div class="participant-info">
+      <span class="participant-name">${user.username}</span>
+      <span class="participant-xp">${user.xp.toLocaleString()} XP</span>
+    </div>
+  `;
+
+  if (window.innerWidth > 767) {
+
+    const delay = 300;
+
+    function handleEnter(e) {
+      isHoveringTrigger = true;
+
+      clearTimeout(hoverTimeout);
+
+      const position = {
+        x: e.clientX,
+        y: e.clientY
+      };
+
+      hoverTimeout = setTimeout(() => {
+        showUserActivity(user.username, position);
+      }, delay);
+    }
+
+    function handleLeave() {
+      isHoveringTrigger = false;
+      clearTimeout(hoverTimeout);
+      scheduleHide();
+    }
+
+    li.addEventListener("mouseenter", handleEnter);
+    li.addEventListener("mouseleave", handleLeave);
+
+  } else {
+
+    li.addEventListener("click", () => {
+      showUserActivity(user.username);
+    });
+
+  }
+
+  return li;
+}
+
+function appendUsersToList(list, users) {
+  users.forEach((user) => {
+    list.appendChild(renderUserRow(user));
+  });
+}
+
+function getScrollContainer() {
+  if (scrollContainer) return scrollContainer;
+  // this is the element with the calc()'d height / overflow set
+  // elsewhere in the app (see updateInfoBottomHeight)
+  scrollContainer = document.querySelector(".info-bottom") || window;
+  return scrollContainer;
+}
+
+function onScrollCheck() {
+  if (isLoadingMore || !hasMore) return;
+
+  const el = getScrollContainer();
+  let scrollBottomGap;
+
+  if (el === window) {
+    scrollBottomGap =
+      document.documentElement.scrollHeight -
+      (window.scrollY + window.innerHeight);
+  } else {
+    scrollBottomGap = el.scrollHeight - (el.scrollTop + el.clientHeight);
+  }
+
+  if (scrollBottomGap < SCROLL_THRESHOLD) {
+    loadMoreParticipants();
+  }
+}
+
+async function loadMoreParticipants() {
+  if (isLoadingMore || !hasMore) return;
+  isLoadingMore = true;
+
+  const list = document.querySelector(".participants-list");
+  const skeletonRows = appendSkeletonRows(list, PAGE_SIZE);
+
+  try {
+    const res = await fetch(
+      `/api/${communitySlug}/leaderboard?offset=${currentOffset}&limit=${PAGE_SIZE}`
+    );
+    const data = await res.json();
+
+    skeletonRows.forEach(row => row.remove());
+
+    const users = data.leaderboard || [];
+    appendUsersToList(list, users);
+
+    currentOffset = data.next_offset;
+    hasMore = !!data.has_more;
+
+  } catch (err) {
+    console.error("Failed to load more participants:", err);
+    skeletonRows.forEach(row => row.remove());
+    // allow retry on next scroll rather than permanently giving up
+  } finally {
+    isLoadingMore = false;
+  }
+}
 
 
 async function loadLeaderboard() {
@@ -69,28 +227,29 @@ async function loadLeaderboard() {
   const rankAvatar = document.querySelector(".rank-avatar");
   const rankUsername = document.querySelector(".rank-username");
   const rankXp = document.querySelector(".rank-xp");
-  const skeletonRows = Array.from({ length: 4 }).map(() => `
-    <div class="lb-s-row">
-      <div class="lb-s-rank shimmer"></div>
-      <div class="lb-s-avatar shimmer"></div>
-      <div class="lb-s-name shimmer" style="width: ${getRandomWidth()}px;"></div>
-      <div class="lb-s-xp shimmer"></div>
-    </div>
-  `).join("");
 
-  list.innerHTML = skeletonRows;
+  // reset pagination state on (re)load
+  currentOffset = 0;
+  hasMore = true;
+  isLoadingMore = false;
+
+  list.innerHTML = makeSkeletonRows(4);
 
   try {
 
-    const res = await fetch(`/api/${communitySlug}/leaderboard`);
+    const res = await fetch(`/api/${communitySlug}/leaderboard?offset=0&limit=${INITIAL_LIMIT}`);
     const data = await res.json();
 
     const users = data.leaderboard;
     const currentUser = data.current_user;
     const participantsCount = document.querySelector(".participants-count");
 
+    // ✅ use the backend's true total, not the length of just this page —
+    // users.length caps out at whatever limit was requested (30), so it
+    // was never the real participant count once a community grew past that.
     if (participantsCount) {
-      participantsCount.textContent = `${users.length} participants`;
+      const totalCount = typeof data.total_count === "number" ? data.total_count : users.length;
+      participantsCount.textContent = `${totalCount} participants`;
     }
     // EMPTY LEADERBOARD
     if (!users || users.length === 0) {
@@ -105,69 +264,15 @@ async function loadLeaderboard() {
 
     list.innerHTML = "";
 
-    users.forEach(user => {
+    appendUsersToList(list, users);
 
-      const li = document.createElement("li");
-      li.className = "participant-item";
+    currentOffset = data.next_offset;
+    hasMore = !!data.has_more;
 
-      const hasImage = user.image && user.image.trim() !== "";
-      const bg = getColor(user.user_id);
-      const textColor = getTextColor(bg);
-      li.innerHTML = `
-          ${
-            hasImage
-              ? `<img src="${user.image}" class="participant-avatar" alt="${user.username}">`
-              : `<div class="participant-avatar" style="background:${bg}; color:${textColor}; font-weight: 500;">${user.username[0].toUpperCase()}</div>`
-          }
-
-        <div class="participant-info">
-          <span class="participant-name">${user.username}</span>
-          <span class="participant-xp">${user.xp.toLocaleString()} XP</span>
-        </div>
-      `;
-
-      list.appendChild(li);
-      const avatar = li.querySelector(".participant-avatar");
-      const name = li.querySelector(".participant-name");
-
-    
-      if (window.innerWidth > 767) {
-
-        const delay = 300;
-
-        function handleEnter(e) {
-          isHoveringTrigger = true;
-
-          clearTimeout(hoverTimeout);
-
-          const position = {
-            x: e.clientX,
-            y: e.clientY
-          };
-
-          hoverTimeout = setTimeout(() => {
-            showUserActivity(user.username, position);
-          }, delay);
-        }
-
-        function handleLeave() {
-          isHoveringTrigger = false;
-          clearTimeout(hoverTimeout);
-          scheduleHide();
-        }
-
-        li.addEventListener("mouseenter", handleEnter);
-        li.addEventListener("mouseleave", handleLeave);
-
-      } else {
-
-        li.addEventListener("click", () => {
-          showUserActivity(user.username);
-        });
-
-      }
-
-    });
+    // wire up infinite scroll once, against whichever container actually scrolls
+    const container = getScrollContainer();
+    container.removeEventListener("scroll", onScrollCheck);
+    container.addEventListener("scroll", onScrollCheck, { passive: true });
 
     if (currentUser) {
 
@@ -1534,5 +1639,3 @@ function checkOpenSprintFromURL() {
   };
 
 })();
-
-

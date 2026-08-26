@@ -7420,9 +7420,9 @@ async function loadMainSettingsSection(path, push = true, previewMode = false, n
     DeclearedSprintSwitch();
 
   } else if (finalPath.includes("/leaderboard")) {
-    __CURRENT_SCRIPT__ = "/static/leaderboard.js?v=3";
+    __CURRENT_SCRIPT__ = "/static/leaderboard.js?v=4";
 
-    await loadScript("/static/leaderboard.js?v=3");
+    await loadScript("/static/leaderboard.js?v=4");
 
     if (window.LeaderboardModule) {
       window.LeaderboardModule.init();

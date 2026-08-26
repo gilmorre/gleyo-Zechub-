@@ -1,4 +1,5 @@
 import re
+import time
 import logging
 import requests
 from urllib.parse import urlparse
@@ -149,120 +150,136 @@ def get_x_user_by_username(username):
     return data.get("data")
 
 
-def user_follows_account(user_twitter_id, target_user_id, max_pages=_MAX_LOOKUP_PAGES):
-    """Still uses app-only auth — this endpoint accepts it for your app tier."""
+# ============================================================
+# Shared engagement cache
+# ============================================================
+# The old approach checked "did THIS user like/follow/repost X" fresh,
+# per user, per claim — even though hundreds of users are all checking
+# the SAME quest target. That means cost scaled with claim attempts,
+# not with number of quests, and burned through API credit fast.
+#
+# The fix: for a given target (tweet or account), fetch the full set of
+# "who liked / who reposted / who follows" ONCE, cache it for a short
+# window, and answer every subsequent claim against that target from
+# the cached set — no API call at all.
+#
+# Trade-off: this is a single, possibly-multi-page fetch per target per
+# cache window, capped at _MAX_LOOKUP_PAGES pages (up to ~1,000 IDs for
+# likes/reposts at 100/page, or ~10,000 for follows at 1000/page). For a
+# quest tweet/account far bigger than that, some genuine likers/
+# followers/reposters past the cap won't be found — bump
+# _MAX_LOOKUP_PAGES if your quest targets are unusually large.
+_ENGAGEMENT_CACHE = {}
+_ENGAGEMENT_CACHE_TTL = 180  # seconds — how long a target's cached set is reused
+
+
+def _cache_get_ids(kind, target_id):
+    entry = _ENGAGEMENT_CACHE.get((kind, target_id))
+    if not entry:
+        return None
+    ids, expires_at = entry
+    if time.time() > expires_at:
+        _ENGAGEMENT_CACHE.pop((kind, target_id), None)
+        return None
+    return ids
+
+
+def _cache_set_ids(kind, target_id, ids):
+    _ENGAGEMENT_CACHE[(kind, target_id)] = (ids, time.time() + _ENGAGEMENT_CACHE_TTL)
+
+
+def _fetch_id_set(path, access_token=None, max_pages=_MAX_LOOKUP_PAGES, max_results=100):
+    """Paginate an X 'list of users' endpoint ONCE and return the full
+    set of user IDs seen. Shared by follows/likes/reposts."""
+    ids = set()
     pagination_token = None
 
     for _ in range(max_pages):
-        params = {
-            "max_results": 1000,
-        }
-
+        params = {"max_results": max_results}
         if pagination_token:
             params["pagination_token"] = pagination_token
 
-        data = x_get(
-            f"/users/{user_twitter_id}/following",
-            params=params
-        )
+        data = x_get(path, params=params, access_token=access_token)
 
-        for followed_user in data.get("data", []):
-            if str(followed_user["id"]) == str(target_user_id):
-                return True
+        for x_user in data.get("data", []):
+            ids.add(str(x_user["id"]))
 
         meta = data.get("meta", {})
         pagination_token = meta.get("next_token")
-
         if not pagination_token:
             break
 
-    return False
+    return ids
+
+
+def user_follows_account(user_twitter_id, target_user_id, max_pages=_MAX_LOOKUP_PAGES):
+    """Check whether user_twitter_id follows target_user_id.
+
+    Fetches target_user_id's FOLLOWERS list once (cached), instead of
+    pulling the claiming user's entire following list on every claim —
+    the old approach could mean paginating up to 10,000 accounts per
+    single claim. Still app-only auth; this endpoint accepts it for
+    your app tier.
+    """
+    follower_ids = _cache_get_ids("followers", target_user_id)
+
+    if follower_ids is None:
+        follower_ids = _fetch_id_set(
+            f"/users/{target_user_id}/followers",
+            max_pages=max_pages,
+            max_results=1000,
+        )
+        _cache_set_ids("followers", target_user_id, follower_ids)
+
+    return str(user_twitter_id) in follower_ids
 
 
 def user_liked_tweet(
     user_twitter_id,
     tweet_id,
     access_token=None,
-    max_pages=1,    
+    max_pages=_MAX_LOOKUP_PAGES,
 ):
-    """Check whether a specific X user has liked a specific tweet."""
+    """Check whether a specific X user has liked a specific tweet.
 
-    pagination_token = None
+    Fetches the tweet's LIKING USERS once per cache window (shared by
+    every claimer checking the same tweet), instead of pulling each
+    claiming user's own liked-tweets history on every claim.
+    """
+    liker_ids = _cache_get_ids("likes", tweet_id)
 
-    logger.info("========== USER LIKES DEBUG ==========")
-    logger.info("Target X user ID: %s", user_twitter_id)
-    logger.info("Target tweet ID: %s", tweet_id)
-    logger.info("Using OAuth token: %s", bool(access_token))
-    logger.info("======================================")
-
-    for _ in range(max_pages):
-
-        params = {
-            "max_results": 100,
-        }
-
-        if pagination_token:
-            params["pagination_token"] = pagination_token
-
-        data = x_get(
-            f"/users/{user_twitter_id}/liked_tweets",
-            params=params,
+    if liker_ids is None:
+        liker_ids = _fetch_id_set(
+            f"/tweets/{tweet_id}/liking_users",
             access_token=access_token,
+            max_pages=max_pages,
         )
+        _cache_set_ids("likes", tweet_id, liker_ids)
 
-        for liked_tweet in data.get("data", []):
-            if str(liked_tweet.get("id")) == str(tweet_id):
-                logger.info(
-                    "✅ LIKE MATCH FOUND: user %s liked tweet %s",
-                    user_twitter_id,
-                    tweet_id,
-                )
-                return True
-
-        meta = data.get("meta", {})
-        pagination_token = meta.get("next_token")
-
-        if not pagination_token:
-            break
+    matched = str(user_twitter_id) in liker_ids
 
     logger.info(
-        "❌ LIKE MATCH NOT FOUND (checked %s page(s)): user %s vs tweet %s",
-        max_pages,
-        user_twitter_id,
-        tweet_id,
+        "Like check (cached, %d likers known): user %s vs tweet %s -> %s",
+        len(liker_ids), user_twitter_id, tweet_id, matched,
     )
 
-    return False
+    return matched
+
 
 def user_reposted_tweet(user_twitter_id, tweet_id, access_token=None, max_pages=_MAX_LOOKUP_PAGES):
-    """Requires user-context auth — X rejects Application-Only here."""
-    pagination_token = None
+    """Requires user-context auth — X rejects Application-Only here.
+    Backed by the same shared per-tweet cache as likes."""
+    reposter_ids = _cache_get_ids("reposts", tweet_id)
 
-    for _ in range(max_pages):
-        params = {
-            "max_results": 100,
-        }
-
-        if pagination_token:
-            params["pagination_token"] = pagination_token
-
-        data = x_get(
+    if reposter_ids is None:
+        reposter_ids = _fetch_id_set(
             f"/tweets/{tweet_id}/retweeted_by",
-            params=params,
             access_token=access_token,
+            max_pages=max_pages,
         )
+        _cache_set_ids("reposts", tweet_id, reposter_ids)
 
-        for x_user in data.get("data", []):
-            if str(x_user["id"]) == str(user_twitter_id):
-                return True
-
-        meta = data.get("meta", {})
-        pagination_token = meta.get("next_token")
-
-        if not pagination_token:
-            break
-
-    return False
+    return str(user_twitter_id) in reposter_ids
 
 
 def get_tweet(tweet_id, access_token=None):

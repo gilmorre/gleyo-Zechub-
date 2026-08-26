@@ -7595,6 +7595,28 @@ def api_alltime_leaderboard(community_slug):
 
     community = Community.query.filter_by(slug=community_slug).first_or_404()
 
+    # ── pagination params ──────────────────────────────────
+    # offset/limit now actually come from the request instead of being
+    # hardcoded. Defaults keep first-page behaviour identical to before
+    # (offset=0, limit=30) for any old client that doesn't pass them.
+    offset = request.args.get('offset', 0, type=int)
+    limit = request.args.get('limit', 30, type=int)
+
+    if offset < 0:
+        offset = 0
+    if limit <= 0:
+        limit = 30
+    limit = min(limit, 100)  # sane upper bound so nobody can ask for 100000 rows
+
+    # ── TRUE total participant count for this community ──────
+    # This is what the frontend should show as "N participants",
+    # NOT len(leaderboard_data) — that only ever reflects the current page.
+    total_count = (
+        db.session.query(CommunityUserXP)
+        .filter(CommunityUserXP.community_id == community.id)
+        .count()
+    )
+
     # LATEST (not earliest) COMPLETION timestamp per user, scoped to THIS community.
     # This is the timestamp that actually reflects "when did this user reach
     # their current XP total" — using MIN() here was the bug, since it grabbed
@@ -7633,12 +7655,13 @@ def api_alltime_leaderboard(community_slug):
             latest_activity_subq.c.last_xp_at.asc().nullslast(),
             CommunityUserXP.id.asc()
         )
-        .limit(30)
+        .offset(offset)
+        .limit(limit)
         .all()
     )
 
     leaderboard_data = []
-    for index, user in enumerate(leaderboard, start=1):
+    for index, user in enumerate(leaderboard, start=offset + 1):
         leaderboard_data.append({
             "user_id":  user.user_id,
             "username": user.username,
@@ -7698,9 +7721,15 @@ def api_alltime_leaderboard(community_slug):
                 "rank":     higher_count + 1
             }
 
+    next_offset = offset + len(leaderboard_data)
+    has_more = next_offset < total_count
+
     return jsonify({
-        "leaderboard":  leaderboard_data,
-        "current_user": current_user_data
+        "leaderboard":   leaderboard_data,
+        "current_user":  current_user_data,
+        "total_count":   total_count,
+        "next_offset":   next_offset,
+        "has_more":      has_more
     })
 
 
@@ -7714,6 +7743,23 @@ def api_sprint_leaderboard(community_slug, sprint_uuid):
     sprint = Sprint.query.filter_by(uuid=sprint_uuid, community_id=community.id).first()
     if not sprint:
         return jsonify({"error": "Sprint not found"}), 404
+
+    # ── pagination params ──────────────────────────────────
+    offset = request.args.get('offset', 0, type=int)
+    limit = request.args.get('limit', 30, type=int)
+
+    if offset < 0:
+        offset = 0
+    if limit <= 0:
+        limit = 30
+    limit = min(limit, 100)
+
+    # ── TRUE total participant count for this sprint ─────────
+    total_count = (
+        db.session.query(SprintUserXP)
+        .filter(SprintUserXP.sprint_id == sprint.id)
+        .count()
+    )
 
     latest_activity_subq = (
         db.session.query(
@@ -7747,12 +7793,13 @@ def api_sprint_leaderboard(community_slug, sprint_uuid):
             latest_activity_subq.c.last_xp_at.asc().nullslast(),
             SprintUserXP.id.asc()
         )
-        .limit(30)
+        .offset(offset)
+        .limit(limit)
         .all()
     )
 
     leaderboard_data = []
-    for index, user in enumerate(leaderboard, start=1):
+    for index, user in enumerate(leaderboard, start=offset + 1):
         leaderboard_data.append({
             "user_id":  user.user_id,
             "username": user.username,
@@ -7811,12 +7858,18 @@ def api_sprint_leaderboard(community_slug, sprint_uuid):
                 "rank":     higher_count + 1
             }
 
-    return jsonify({
-        "leaderboard":  leaderboard_data,
-        "current_user": current_user_data,
-        "end_zone": sprint.end_zone
-    })
+    next_offset = offset + len(leaderboard_data)
+    has_more = next_offset < total_count
 
+    return jsonify({
+        "leaderboard":   leaderboard_data,
+        "current_user":  current_user_data,
+        "end_zone":      sprint.end_zone,
+        "total_count":   total_count,
+        "next_offset":   next_offset,
+        "has_more":      has_more
+    })
+    
 @app.route("/api/<community_slug>/user/<username>/activity")
 @login_required
 def user_recent_activity(community_slug, username):

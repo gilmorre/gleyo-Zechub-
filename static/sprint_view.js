@@ -341,8 +341,12 @@ async function loadLeaderboardSprint() {
     const currentUser = data.current_user;
     const participantsCount = document.querySelector(".participants-count");
 
+    // ✅ use the backend's true total, not the length of just this page —
+    // users.length only ever reflects the first INITIAL_LIMIT rows, so it
+    // was never the real participant count once a sprint grew past 30.
     if (participantsCount) {
-      participantsCount.textContent = `${users.length} participants`;
+      const totalCount = typeof data.total_count === "number" ? data.total_count : users.length;
+      participantsCount.textContent = `${totalCount} participants`;
     }
     // EMPTY LEADERBOARD
     if (!users || users.length === 0) {

@@ -42,10 +42,7 @@ def _get_all_invite_logs(community_id):
     return logs
 
 
-@invite_progress_bp.route(
-    "/api/<community_slug>/quest/<quest_uuid>/<subquest_uuid>/invite-progress/<int:task_id>",
-    methods=["GET"],
-)
+
 @invite_progress_bp.route(
     "/api/<community_slug>/quest/<quest_uuid>/<subquest_uuid>/invite-progress/<int:task_id>",
     methods=["GET"],

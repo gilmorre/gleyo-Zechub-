@@ -4423,3 +4423,342 @@ background-color: var(--bg-app);
   width: 100%;
   margin-top: 10px;
 }
+
+
+
+.chv-vote-glass .chv-vote-project-name { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+
+.chv-balance-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; font-size: 13px; }
+.chv-balance-label { opacity: .6; }
+.chv-balance-value.chv-err { color: #ef4444; }
+
+.chv-amount-row { margin-top: 14px; }
+.chv-amount-label { display: block; font-size: 12px; opacity: .65; margin-bottom: 6px; }
+.chv-amount-input-wrap {
+  display: flex; align-items: center; gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 12px; padding: 10px 12px;
+  background: var(--bg-surface, rgba(255,255,255,0.03));
+}
+.chv-amount-input-wrap input {
+  flex: 1; min-width: 0; background: transparent; border: none; outline: none;
+  color: var(--text-main, #eeeef5); font-size: 14px;
+}
+.chv-amount-input-wrap input::-webkit-outer-spin-button,
+.chv-amount-input-wrap input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.chv-amount-unit { font-size: 12px; font-weight: 700; color: #F3B724; flex-shrink: 0; }
+.chv-amount-hint { font-size: 11px; opacity: .55; margin-top: 6px; }
+.chv-amount-error { color: #ef4444; font-size: 12px; margin-top: 6px; display: none; }
+
+.chv-vote-glass .chv-sk-row { height: 42px; }
+
+.chv-sk { background: rgba(255,255,255,0.08); border-radius: 6px; animation: chv-pulse 1.2s ease-in-out infinite; }
+.chv-sk-line { height: 12px; margin-bottom: 10px; }
+.chv-sk-row { height: 36px; margin-top: 8px; }
+@keyframes chv-pulse { 0%,100% { opacity: .5; } 50% { opacity: 1; } }
+
+
+
+.chv-card-root {
+  color: #F3B724;
+}
+
+.chv-wrapper .chv-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chv-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chv-meta-item {
+  font-size: 12px;
+  font-weight: 600;
+  color: #F3B724;
+  background: rgba(243, 183, 36, 0.12);
+  border: 1px solid rgba(243, 183, 36, 0.35);
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.chv-projects-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 260px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.chv-empty {
+  font-size: 13px;
+  color: var(--text-muted);
+  opacity: 0.7;
+  text-align: center;
+  padding: 12px 0;
+  margin: 0;
+}
+
+/* preview radio rows (voter-facing style, reused in editor preview) */
+.chv-preview-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 0.9px solid var(--border);
+  background: var(--bg-surface);
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease;
+}
+
+.chv-preview-option:hover {
+  border-color: rgba(243, 183, 36, 0.4);
+  background: rgba(243, 183, 36, 0.05);
+}
+
+.chv-preview-option input[type="radio"] {
+  margin-top: 3px;
+  accent-color: #F3B724;
+}
+
+.chv-preview-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.chv-preview-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main, #eeeef5);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chv-preview-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  opacity: 0.8;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;  
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.chv-preview-option input[type="radio"] {
+  margin-top: 3px;
+  accent-color: #F3B724;
+}
+
+.chv-preview-option input[type="radio"]:checked {
+  accent-color: #F3B724;
+}
+
+
+.chv-preview-option .radio-ui {
+  border-color: var(--border);
+}
+
+.chv-preview-option input[type="radio"]:checked + .radio-ui {
+  border-color: #F3B724;
+  background-color: #F3B724;
+}
+
+.chv-preview-option input[type="radio"]:checked + .radio-ui::after {
+  background-color: #fff;
+}
+
+.chv-preview-option:has(input[type="radio"]:checked) {
+  border-color: #F3B724;
+  background: rgba(243, 183, 36, 0.08);
+}
+
+/* ============================
+   COIN HOLDER VOTE — POPUP EDITOR
+   ============================ */
+
+.coin-holder-popup .bottom-coin-holder-vote {
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  gap: 4px;
+}
+
+.bottom-coin-holder-vote input[type="number"],
+.bottom-coin-holder-vote input[type="text"] {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 0.95px solid var(--border-main-ui-snap);
+  background: var(--bg-surface-in-active);
+  color: var(--text-main);
+  font-size: 0.9rem;
+  font-weight: 500;
+  opacity: 0.95;
+  outline: none;
+  transition: 0.25s ease;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02);
+}
+
+
+.bottom-coin-holder-vote input[type="number"]::placeholder,
+.bottom-coin-holder-vote input[type="text"]::placeholder {
+  color: var(--text-muted-svg);
+}
+
+.chv-project-desc {
+  width: 100%;
+  min-height: 110px;
+  resize: vertical;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--border-main-ui-snap);
+  background: var(--bg-surface-in-active);
+  color: var(--text-main) !important;
+  font-size: 0.9rem;
+  opacity: 0.95;
+  line-height: 1.5;
+  outline: none;
+
+  transition: 0.25s ease;
+}
+
+.bottom-coin-holder-vote input[type="number"]:focus,
+.bottom-coin-holder-vote input[type="text"]:focus, .chv-project-desc:focus {
+  border-color: var(--accent-color);
+
+}
+
+.bottom-coin-holder-vote input::placeholder, .chv-project-desc::placeholder {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+.chv-address-error {
+  color: var(--red, #ff5c5c);
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+/* ---- Projects editor list ---- */
+
+.chv-projects-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.chv-project-block {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(236, 236, 241, 0.03);
+  padding: 12px 16px; 
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+}
+
+.chv-project-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.chv-project-index {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .03em;
+  color: #F3B724;
+  background: rgba(243, 183, 36, 0.12);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.chv-remove-project {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 8px;
+  transition: color .15s ease, background .15s ease;
+}
+
+.chv-remove-project:hover {
+  color: var(--red, #ff5c5c);
+  background: rgba(255, 92, 92, 0.08);
+}
+
+.chv-remove-project svg {
+  width: 15px;
+  height: 15px;
+}
+
+.chv-project-name {
+  width: 100%;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 9px 11px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main, #eeeef5);
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color .15s ease;
+}
+
+.chv-project-name:focus {
+  border-color: #F3B724;
+}
+
+
+
+.chv-project-desc::placeholder,
+.chv-project-name::placeholder {
+  color: var(--text-muted);
+  opacity: 0.55;
+}
+
+.chv-project-desc:focus {
+  border-color: #F3B724;
+}
+
+/* ---- Add project button (reuses .add-option shape but on-brand color) ---- */
+
+.js-chv-add-project {
+  background: rgba(243, 183, 36, 0.1);
+  border: 1px dashed rgba(243, 183, 36, 0.5);
+  color: #F3B724;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 13px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  text-align: center;
+  transition: background .15s ease, border-color .15s ease;
+}
+
+.js-chv-add-project:hover {
+  background: rgba(243, 183, 36, 0.18);
+  border-color: #F3B724;
+} 

@@ -1,6 +1,8 @@
 (function () {
 let controller = null;
 let __INVITE_USAGE__ = null;
+let taskPickerBound = false;
+
 
 let selectedSprint = null;
 function getUuidsFromUrl() {
@@ -17,7 +19,90 @@ window.__SPRINT_DATA__ =  {
   name: ""
 }
 
+  function parseDisplayDate(str) {
+    // "03 Feb 00:00 2026"
+    const parts = str.split(" ");
+    if (parts.length !== 4) return null;
 
+    const [day, mon, time, year] = parts;
+    const [hh, mm] = time.split(":");
+
+    const months = {
+      Jan:0, Feb:1, Mar:2, Apr:3, May:4, Jun:5,
+      Jul:6, Aug:7, Sep:8, Oct:9, Nov:10, Dec:11
+    };
+
+    if (!(mon in months)) return null;
+
+    return new Date(
+      Number(year),
+      months[mon],
+      Number(day),
+      Number(hh),
+      Number(mm),
+      0,
+      0
+    );
+  }
+
+function formatDisplayDate(date) {
+  const months = [
+    "Jan","Feb","Mar","Apr","May","Jun",
+    "Jul","Aug","Sep","Oct","Nov","Dec"
+  ];
+
+  let hours = date.getHours();
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+
+  return `${String(date.getDate()).padStart(2, "0")} ${
+    months[date.getMonth()]
+  } ${hours}:${minutes} ${date.getFullYear()}`;
+}
+
+  function convertHumanDateToUTCHuman(dateStr) {
+  // expects: "04 Feb 02:00 2026"
+  if (!dateStr) return null;
+
+  const parsed = parseDisplayDate(dateStr); // your existing parser
+  if (!parsed || isNaN(parsed.getTime())) return null;
+
+  // ---- UTC values ----
+  let year  = parsed.getUTCFullYear();
+  let monthIndex = parsed.getUTCMonth();
+  let day   = parsed.getUTCDate();
+  let hour  = parsed.getUTCHours();
+  let min   = parsed.getUTCMinutes();
+
+  // ---- snap minutes to 00 or 30 ----
+  if (min < 15) {
+    min = 0;
+  } else if (min < 45) {
+    min = 30;
+  } else {
+    min = 0;
+    hour += 1; // carry hour
+  }
+
+  // ---- handle hour overflow ----
+  if (hour >= 24) {
+    hour = 0;
+    const d = new Date(Date.UTC(year, monthIndex, day));
+    d.setUTCDate(d.getUTCDate() + 1);
+    year = d.getUTCFullYear();
+    monthIndex = d.getUTCMonth();
+    day = d.getUTCDate();
+  }
+
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const month  = months[monthIndex];
+
+  const dd = String(day).padStart(2, "0");
+  const hh = String(hour).padStart(2, "0");
+  const mm = String(min).padStart(2, "0");
+
+  // ✅ same human format, UTC time, snapped
+  return `${dd} ${month} ${hh}:${mm} ${year}`;
+  }
 
 const TELEGRAM_BOT_MODAL_KEY = "gleyo_telegram_bot_notice_shown";
 
@@ -54,6 +139,60 @@ async function copyInviteLink(btn) {
   }
 }
 
+ 
+function bindTaskPickerOnce() {
+  if (taskPickerBound) return;
+  taskPickerBound = true;
+
+  document.querySelectorAll(".task-item").forEach(item => {
+    item.addEventListener("click", () => {
+
+      const type = item.getAttribute("data-file");
+      if (!type) return;
+
+      const container = document.getElementById("uniqueItems");
+      if (!container) return;
+
+      const mappedType = mapActionToTaskType(type);
+
+      /* ===== EXCLUSIVITY CHECK ===== */
+      const existingTypes = [...container.children].map(
+        el => el.dataset.type || el.dataset.platform
+      );
+      const hasCoinHolder = existingTypes.includes("coin_holder_vote");
+      const addingCoinHolder = mappedType === "coin_holder_vote";
+
+      if (hasCoinHolder && !addingCoinHolder) {
+        showExclusiveTaskModal("coin_active");
+        return;
+      }
+      if (!hasCoinHolder && addingCoinHolder && existingTypes.length > 0) {
+        showExclusiveTaskModal("others_active");
+        return;
+      }
+      /* ============================== */
+
+      const task = {
+        type: mappedType,
+        config: {}
+      };
+
+      const html = renderTask(task);
+      if (!html) return;
+
+      if (mappedType === "telegram") showTelegramBotModal();
+
+      container.insertAdjacentHTML("beforeend", html);
+      document.querySelectorAll(".gh-tooltip-wrap").forEach(el => {
+        const box = el.querySelector(".gh-tooltip-box");
+        if (box) box.textContent = el.dataset.tip || "";
+      });
+
+      updateCounter?.();
+      if (typeof popup !== "undefined") popup.style.display = "none";
+    });
+  });
+}
 
 function refreshAllInviteCounters() {
   const usage = __INVITE_USAGE__ || { used: 0, limit: 30, breakdown: {} };
@@ -224,45 +363,6 @@ function restoreSelectedSprint() {
     }
   }
 
-  function parseDisplayDate(str) {
-    // "03 Feb 00:00 2026"
-    const parts = str.split(" ");
-    if (parts.length !== 4) return null;
-
-    const [day, mon, time, year] = parts;
-    const [hh, mm] = time.split(":");
-
-    const months = {
-      Jan:0, Feb:1, Mar:2, Apr:3, May:4, Jun:5,
-      Jul:6, Aug:7, Sep:8, Oct:9, Nov:10, Dec:11
-    };
-
-    if (!(mon in months)) return null;
-
-    return new Date(
-      Number(year),
-      months[mon],
-      Number(day),
-      Number(hh),
-      Number(mm),
-      0,
-      0
-    );
-  }
-
-function formatDisplayDate(date) {
-  const months = [
-    "Jan","Feb","Mar","Apr","May","Jun",
-    "Jul","Aug","Sep","Oct","Nov","Dec"
-  ];
-
-  let hours = date.getHours();
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-
-  return `${String(date.getDate()).padStart(2, "0")} ${
-    months[date.getMonth()]
-  } ${hours}:${minutes} ${date.getFullYear()}`;
-}
 
 window.addEventListener("calendar:select", (e) => {
   if (!activeCalendarTarget) return;
@@ -4550,6 +4650,7 @@ function hookTaskInteractions(root = document){
   hookInviteTasks(root);
   hookPuzzleTasks(root);
   LetsInitQuestBuildup();
+  hookCoinHolderVoteTasks(root);
   UndoingStacksArial();
   callingTriggerArialAsp();
   CalledIsmobMobile();
@@ -5148,9 +5249,7 @@ function hookPollTasks(root = document){
 }
 
 
-function hookPopupControls(root){
-
-  /* ===== CHEVRON ===== */
+function hookPopupControls(root){ 
   root.addEventListener("click", e => {
     const btn = e.target.closest(".js-copy-link");
     if (!btn) return;
@@ -5160,11 +5259,18 @@ function hookPopupControls(root){
 
     const isOpen = popup.classList.contains("is-open");
 
+    // close any other open popups (class + body)
     root.querySelectorAll(".popup-container.is-open").forEach(p => {
-      if (p !== popup) p.classList.remove("is-open");
+      if (p !== popup) {
+        p.classList.remove("is-open");
+        const otherBody = [...p.children].find(c => c.className.startsWith("bottom-"));
+        if (otherBody) otherBody.style.display = "none";
+      }
     });
 
-    popup.classList.toggle("is-open", !isOpen);
+    popup.classList.toggle("is-open", !isOpen); 
+    const body = [...popup.children].find(c => c.className.startsWith("bottom-"));
+    if (body) body.style.display = isOpen ? "none" : "";
   });
 
   /* ===== DELETE ===== */
@@ -6763,8 +6869,222 @@ function syncTwitterCardFace(wrapper){
       scheduledStart: wrapper.dataset.twSpaceScheduled || ""
     });
   }
+} 
+
+function showExclusiveTaskModal(reason) {
+  const id = "coinHolderExclusiveModal";
+  let modal = document.getElementById(id);
+  if (modal) { modal.classList.add("show"); return; }
+
+  modal = document.createElement("div");
+  modal.className = "modal-backdrop";
+  modal.id = id;
+
+  const msg = reason === "coin_active"
+    ? "This quest already has a Coin Holder Vote task. Remove it before adding a different task — Coin Holder Vote can't be combined with anything else."
+    : "This quest already has other tasks. Remove them first — a Coin Holder Vote task must be the only task on the quest.";
+
+  modal.innerHTML = `
+    <div class="modal-glass">
+      <h3 style="font-size:16px">Task type not allowed</h3>
+      <p>${msg}</p>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+  requestAnimationFrame(() => modal.classList.add("show"));
+
+  const hide = (e) => {
+    if (e.target === modal) {
+      modal.classList.remove("show");
+      setTimeout(() => modal.remove(), 200);
+      document.removeEventListener("click", hide);
+    }
+  };
+  document.addEventListener("click", hide);
 }
 
+
+async function validateZecAddress(input, wrapper) {
+  if (!input || !wrapper) return;
+
+  const value = input.value.trim();
+  const errorEl = wrapper.querySelector(".chv-address-error");
+  const spinnerEl = wrapper.querySelector(".chv-address-spinner");
+
+  if (!value) {
+    input.dataset.valid = "false";
+    if (spinnerEl) spinnerEl.style.display = "none";
+    if (errorEl) errorEl.style.display = "none";
+    validateForm();
+    return;
+  }
+
+  input.dataset.valid = "pending";
+  if (spinnerEl) {
+    spinnerEl.textContent = "Validating shielded address…";
+    spinnerEl.style.display = "inline-block";
+  }
+  if (errorEl) errorEl.style.display = "none";
+  validateForm();
+
+  try {
+    const res = await fetch("/api/wallet/zec/validate-address", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ address: value }),
+    });
+    const data = await res.json();
+
+    if (data.valid) {
+      input.dataset.valid = "true";
+      if (errorEl) errorEl.style.display = "none";
+    } else {
+      input.dataset.valid = "false";
+      if (errorEl) {
+        errorEl.textContent = "Invalid shielded address";
+        errorEl.style.display = "block";
+      }
+    }
+  } catch (err) {
+    console.error("ZEC address validation failed:", err);
+    input.dataset.valid = "false";
+    if (errorEl) {
+      errorEl.textContent = "Invalid shielded address";
+      errorEl.style.display = "block";
+    }
+  } finally {
+    if (spinnerEl) spinnerEl.style.display = "none";
+    validateForm();
+  }
+}
+
+function hookCoinHolderVoteTasks(root = document) {
+
+  // validate any address already loaded on the task (existing/edit mode)
+  root.querySelectorAll(".coin-holder-vote-task .js-chv-payout-address").forEach(input => {
+    if (input.value.trim()) {
+      validateZecAddress(input, input.closest(".coin-holder-vote-task"));
+    }
+  });
+
+  let addressValidateTimer = null;
+
+  // debounced validation as the user types
+  root.addEventListener("input", e => {
+    const input = e.target.closest(".js-chv-payout-address");
+    if (!input) return;
+
+    const wrapper = input.closest(".coin-holder-vote-task");
+    if (!wrapper) return;
+
+    input.dataset.valid = "false"; // invalidate immediately, re-check after debounce
+    clearTimeout(addressValidateTimer);
+    addressValidateTimer = setTimeout(() => {
+      validateZecAddress(input, wrapper);
+    }, 400);
+  });
+
+  // paste → validate right away (don't wait for debounce)
+  root.addEventListener("paste", e => {
+    const input = e.target.closest(".js-chv-payout-address");
+    if (!input) return;
+
+    setTimeout(() => {
+      const wrapper = input.closest(".coin-holder-vote-task");
+      if (!wrapper) return;
+      clearTimeout(addressValidateTimer);
+      validateZecAddress(input, wrapper);
+    }, 0);  
+  });
+
+  root.addEventListener("click", e => {
+    const btn = e.target.closest(".js-chv-add-project");
+    if (!btn) return;
+
+    const wrapper = btn.closest(".coin-holder-vote-task");
+    const editor = wrapper.querySelector(".js-chv-projects");
+    const index = editor.children.length;
+
+    const block = document.createElement("div");
+    block.className = "chv-project-block";
+    block.innerHTML = `
+      <div class="chv-project-header">
+        <span class="chv-project-index">#${index+1}</span>
+        <button class="chv-remove-project" title="Remove project">${DeleteSVGQ}</button>
+      </div>
+      <input type="text" class="chv-project-name" placeholder="Project name" />
+      <textarea class="chv-project-desc" placeholder="Project description..."></textarea>
+    `;
+
+    editor.appendChild(block);
+    syncCoinHolderPreview(wrapper);
+    validateForm();
+  });
+
+  root.addEventListener("click", e => {
+    const btn = e.target.closest(".chv-remove-project");
+    if (!btn) return;
+
+    const wrapper = btn.closest(".coin-holder-vote-task");
+    btn.closest(".chv-project-block").remove();
+
+    reindexCoinHolderProjects(wrapper);
+    syncCoinHolderPreview(wrapper);
+    validateForm();
+  });
+
+  root.addEventListener("input", e => {
+    const wrapper = e.target.closest(".coin-holder-vote-task");
+    if (!wrapper) return;
+
+    if (e.target.matches(
+      ".chv-project-name, .chv-project-desc, .js-chv-zec-per-vote, .js-chv-payout-address"
+    )) {
+      syncCoinHolderPreview(wrapper);
+      validateForm();
+    }
+  });
+}
+
+function reindexCoinHolderProjects(wrapper) {
+  wrapper.querySelectorAll(".chv-project-block").forEach((block, i) => {
+    const label = block.querySelector(".chv-project-index");
+    if (label) label.textContent = `#${i+1}`;
+  });
+}
+
+function syncCoinHolderPreview(wrapper) {
+  const previewBox = wrapper.querySelector(".chv-projects-preview");
+  if (!previewBox) return;
+
+  const zecEl = wrapper.querySelector(".js-chv-zec-per-vote");
+  const metaEl = wrapper.querySelector(".chv-meta-item");
+  if (metaEl) metaEl.textContent = `${zecEl?.value || "0"} ZEC / vote`;
+
+  const blocks = [...wrapper.querySelectorAll(".chv-project-block")];
+  const taskId = wrapper.dataset.taskId;
+
+  if (!blocks.length) {
+    previewBox.innerHTML = `<p class="chv-empty">No projects added yet</p>`;
+    return;
+  }
+
+  previewBox.innerHTML = blocks.map((block, i) => {
+    const name = block.querySelector(".chv-project-name")?.value.trim() || `Project ${i+1}`;
+    const desc = block.querySelector(".chv-project-desc")?.value.trim() || "";
+    return `
+      <label class="custom-radio chv-preview-option">
+        <input type="radio" name="chv-${taskId}" value="${i}" data-task-id="${taskId}" />
+        <span class="radio-ui"></span>
+        <div class="chv-preview-text">
+          <div class="chv-preview-name">${escapeHTMLFunc(name)}</div>
+          <div class="chv-preview-desc">${escapeHTMLFunc(desc)}</div>
+        </div>
+      </label>
+    `;
+  }).join("");
+}
 
 function renderTask(task){
   if(!task || !task.type) return "";
@@ -7455,8 +7775,8 @@ function renderTask(task){
         <!-- Title -->
         <input 
           class="js-title-input"
-          style="color: aliceblue;"
           type="text"
+          style="margin-bottom: 10px; color: var(--text-main)"
           placeholder="Enter title..."
           value="${task.config?.title || ""}"
         />
@@ -7498,6 +7818,112 @@ function renderTask(task){
   `;
   }
 
+  else if (task.type === "coin_holder_vote") {
+
+    const zecPerVote = task.config?.zecPerVote || "";
+    const payoutAddress = task.config?.payoutAddress || "";
+    const projects = task.config?.projects || [];
+
+    const projectListHTML = (projects.length ? projects : [{name:"",description:""}])
+      .map((p, i) => `
+        <div class="chv-project-block">
+          <div class="chv-project-header">
+            <span class="chv-project-index">#${i+1}</span>
+            <button class="chv-remove-project" title="Remove project">${DeleteSVGQ}</button>
+          </div>
+          <input type="text" class="chv-project-name" placeholder="Project name"
+                value="${escapeHTMLFunc(p.name || "")}" />
+          <textarea class="chv-project-desc" placeholder="Project description...">${escapeHTMLFunc(p.description || "")}</textarea>
+        </div>
+      `).join("");
+
+    const previewHTML = projects.map((p, i) => `
+      <label class="custom-radio chv-preview-option">
+        <input type="radio" name="chv-${task.id}" value="${i}" data-task-id="${task.id}" />
+        <span class="radio-ui"></span>
+        <div class="chv-preview-text">
+          <div class="chv-preview-name">${escapeHTMLFunc(p.name || `Project ${i+1}`)}</div>
+          <div class="chv-preview-desc">${escapeHTMLFunc(p.description || "")}</div>
+        </div>
+      </label>
+    `).join("");
+
+    return `
+    <div class="container-all-contain-yinit coin-holder-vote-task"
+        data-type="coin_holder_vote"
+        data-task-id="${task.id}"
+        style="color:#F3B724">
+
+      <div class="card-container-quest coin-holder-vote chv-card-root">
+
+        <div class="badge-quest">
+          <span class="badge-icon-quest">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18"  xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" x="0px" y="0px" viewBox="0 0 24 30" style="enable-background:new 0 0 24 24;" fill=""xml:space="preserve"><g><g><path d="M23.697,3.04l-7-3c-0.205-0.088-0.446-0.028-0.587,0.147l-2,2.5c-0.095,0.118-0.131,0.272-0.098,0.42    c0.031,0.141,0.123,0.257,0.248,0.326L7.978,5.789C7.451,5.987,7,6.362,6.711,6.844l-2.076,3.46    c-0.442,0.737-0.477,1.636-0.092,2.404L4.689,13H2.5C2.224,13,2,13.224,2,13.5V23H0.5C0.224,23,0,23.224,0,23.5S0.224,24,0.5,24    h17c0.276,0,0.5-0.224,0.5-0.5S17.776,23,17.5,23H16v-7c0-0.038-0.014-0.071-0.021-0.106c0.938-0.635,2.01-1.615,2.945-3.129    c1.589-2.57,2.482-4.639,2.849-5.57l0.056,0.028c0.214,0.107,0.443,0.16,0.672,0.16c0.273,0,0.545-0.075,0.787-0.226    C23.734,6.882,24,6.405,24,5.881V3.499C24,3.299,23.881,3.119,23.697,3.04z M15,23H3v-9h2.507c0.012,0,0.024,0.001,0.037,0h3.964    c-0.451,0.274-1.005,0.619-1.706,1.065c-0.533,0.339-0.898,0.865-1.028,1.483c-0.131,0.618-0.01,1.249,0.343,1.777    c0.447,0.673,1.184,1.039,1.938,1.039c0.408,0,0.822-0.108,1.197-0.331l3.436-2.061c0.197-0.048,0.68-0.187,1.312-0.502V23z     M8.362,11.737c0.765-0.328,1.788-0.922,2.307-1.527c0.399,0.234,1.027,0.535,1.812,0.689c-0.558,0.691-1.118,1.531-1.355,2.126    C11.085,13.014,11.045,13,11,13H8.946C8.84,12.503,8.595,12.064,8.362,11.737z M18.076,12.239    c-1.972,3.19-4.646,3.767-4.672,3.772c-0.056,0.012-0.111,0.033-0.16,0.062L9.74,18.175c-0.61,0.367-1.396,0.19-1.792-0.404    c-0.2-0.301-0.269-0.661-0.195-1.014c0.075-0.352,0.283-0.653,0.587-0.846c2.687-1.711,3.172-1.899,3.162-1.91    c0.277,0,0.499-0.2,0.499-0.476c0.051-0.313,0.962-1.777,1.855-2.67c0.143-0.143,0.186-0.358,0.108-0.545    c-0.077-0.187-0.26-0.309-0.462-0.309c-1.556,0-2.676-0.881-2.687-0.89c-0.15-0.119-0.351-0.175-0.525-0.091    c-0.174,0.083-0.28,0.227-0.28,0.419C9.833,9.868,7.914,10.953,7.5,11c-0.206,0-0.389,0.125-0.464,0.317    c-0.075,0.192-0.025,0.41,0.126,0.55c0.006,0.006,0.53,0.504,0.744,1.133H5.808l-0.369-0.74c-0.231-0.461-0.211-1,0.055-1.442    l2.076-3.46c0.174-0.29,0.444-0.514,0.76-0.633l7.142-2.678l5.403,2.701C20.544,7.593,19.661,9.674,18.076,12.239z M23,5.883    c0,0.252-0.166,0.381-0.237,0.425s-0.262,0.134-0.486,0.022l-7-3.5l1.376-1.719L23,3.831V5.883z"/></g></g><text x="0" y="39" fill="currentColor" font-size="5px" font-weight="bold" font-family="'Helvetica Neue', Helvetica, Arial-Unicode, Arial, Sans-serif">
+            </svg>          
+          </span>
+          <span style="color: #000">Coin Holder Vote</span>
+        </div>
+
+        <div class="card-wrapper-quest chv-wrapper">
+          <div class="card-quest chv-card">
+
+            <div class="chv-meta-row">
+              <span class="chv-meta-item">${zecPerVote || "0"} ZEC / vote</span>
+            </div>
+
+            <div class="chv-projects-preview">
+              ${previewHTML || `<p class="chv-empty">No projects added yet</p>`}
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <div class="popup-container coin-holder-popup is-open" role="dialog" aria-label="Coin Holder Vote">
+        <div class="popup-header">
+          <div class="telicon" style="background-color:#F3B724">
+            <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" x="0px" y="0px" viewBox="0 0 24 30" style="enable-background:new 0 0 24 24;" xml:space="preserve"><g><g><path d="M23.697,3.04l-7-3c-0.205-0.088-0.446-0.028-0.587,0.147l-2,2.5c-0.095,0.118-0.131,0.272-0.098,0.42    c0.031,0.141,0.123,0.257,0.248,0.326L7.978,5.789C7.451,5.987,7,6.362,6.711,6.844l-2.076,3.46    c-0.442,0.737-0.477,1.636-0.092,2.404L4.689,13H2.5C2.224,13,2,13.224,2,13.5V23H0.5C0.224,23,0,23.224,0,23.5S0.224,24,0.5,24    h17c0.276,0,0.5-0.224,0.5-0.5S17.776,23,17.5,23H16v-7c0-0.038-0.014-0.071-0.021-0.106c0.938-0.635,2.01-1.615,2.945-3.129    c1.589-2.57,2.482-4.639,2.849-5.57l0.056,0.028c0.214,0.107,0.443,0.16,0.672,0.16c0.273,0,0.545-0.075,0.787-0.226    C23.734,6.882,24,6.405,24,5.881V3.499C24,3.299,23.881,3.119,23.697,3.04z M15,23H3v-9h2.507c0.012,0,0.024,0.001,0.037,0h3.964    c-0.451,0.274-1.005,0.619-1.706,1.065c-0.533,0.339-0.898,0.865-1.028,1.483c-0.131,0.618-0.01,1.249,0.343,1.777    c0.447,0.673,1.184,1.039,1.938,1.039c0.408,0,0.822-0.108,1.197-0.331l3.436-2.061c0.197-0.048,0.68-0.187,1.312-0.502V23z     M8.362,11.737c0.765-0.328,1.788-0.922,2.307-1.527c0.399,0.234,1.027,0.535,1.812,0.689c-0.558,0.691-1.118,1.531-1.355,2.126    C11.085,13.014,11.045,13,11,13H8.946C8.84,12.503,8.595,12.064,8.362,11.737z M18.076,12.239    c-1.972,3.19-4.646,3.767-4.672,3.772c-0.056,0.012-0.111,0.033-0.16,0.062L9.74,18.175c-0.61,0.367-1.396,0.19-1.792-0.404    c-0.2-0.301-0.269-0.661-0.195-1.014c0.075-0.352,0.283-0.653,0.587-0.846c2.687-1.711,3.172-1.899,3.162-1.91    c0.277,0,0.499-0.2,0.499-0.476c0.051-0.313,0.962-1.777,1.855-2.67c0.143-0.143,0.186-0.358,0.108-0.545    c-0.077-0.187-0.26-0.309-0.462-0.309c-1.556,0-2.676-0.881-2.687-0.89c-0.15-0.119-0.351-0.175-0.525-0.091    c-0.174,0.083-0.28,0.227-0.28,0.419C9.833,9.868,7.914,10.953,7.5,11c-0.206,0-0.389,0.125-0.464,0.317    c-0.075,0.192-0.025,0.41,0.126,0.55c0.006,0.006,0.53,0.504,0.744,1.133H5.808l-0.369-0.74c-0.231-0.461-0.211-1,0.055-1.442    l2.076-3.46c0.174-0.29,0.444-0.514,0.76-0.633l7.142-2.678l5.403,2.701C20.544,7.593,19.661,9.674,18.076,12.239z M23,5.883    c0,0.252-0.166,0.381-0.237,0.425s-0.262,0.134-0.486,0.022l-7-3.5l1.376-1.719L23,3.831V5.883z"/></g></g><text x="0" y="39" fill="currentColor" font-size="5px" font-weight="bold" font-family="'Helvetica Neue', Helvetica, Arial-Unicode, Arial, Sans-serif">
+            </svg>
+          </div>
+          <div class="title">Coin Holder Vote</div>
+          <div class="liner"></div>
+          <div class="popup-actions">
+            <button class="js-copy-link" title="close">${ChevronSVGQ}</button>
+            <button class="js-delete-link" title="delete">${DeleteSVGQ}</button>
+          </div>
+        </div>
+
+        <div class="bottom-coin-holder-vote">
+          <div class="liners"></div>
+
+          <label class="labeltesting">ZEC per vote</label>
+          <input type="number" class="js-chv-zec-per-vote"
+                step="0.00001" min="0" placeholder="0.00001"
+                value="${zecPerVote}" />
+
+          <label class="labeltesting" style="margin-top:14px;">Payout receiving address</label>
+          <input type="text" class="js-chv-payout-address"
+                placeholder="Zcash address that receives vote funds"
+                value="${escapeHTMLFunc(payoutAddress)}" />
+          <span class="chv-address-spinner" style="display:none;font-size:12px;opacity:.7;"></span>
+          <div class="error-message chv-address-error" style="display:none;"></div>
+
+          <label class="labeltesting" style="margin-top:18px;">Projects</label>
+          <div class="chv-projects-editor js-chv-projects">
+            ${projectListHTML}
+          </div>
+
+          <button class="add-option js-chv-add-project" style="margin-top: 12px !important">
+            <svg viewBox="0 0 24 24" width="15.5" height="15.5" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M4 12H20M12 4V20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> </g>
+            </svg>
+          Add option
+          </button>
+        </div>
+      </div>
+
+    </div>
+    `;
+  }
 
   else if(task.type === "visit-link"){
     return renderVisitLinkTask(task);
@@ -7635,7 +8061,11 @@ function renderTask(task){
             }).join("")}
           </div>
 
-          <button class="add-option js-add-option">+ Add option</button>
+          <button class="add-option js-add-option" style="display: flex; align-items: center; gap: 5px; justify-content: center">
+            <svg viewBox="0 0 24 24" width="15.5" height="15.5" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M4 12H20M12 4V20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> </g>
+            </svg>
+           Add option
+           </button>
         </div>
 
         <!-- SETTINGS -->
@@ -8078,8 +8508,10 @@ function renderTask(task){
 
             </div>
 
-            <button class="add-option" style="margin-top: 20px !important;">
-              + Add option
+            <button class="add-option" style="margin-top: 20px !important; display: flex; align-items: center; gap: 5px; justify-content: center">
+            <svg viewBox="0 0 24 24" width="15.5" height="15.5" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M4 12H20M12 4V20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> </g>
+            </svg>
+           Add option
             </button>
 
           </div>
@@ -8926,7 +9358,18 @@ function collectTasks() {
         config.track_invites = wrapper.querySelector('.js-track-invites')?.checked || false;
       }
     }
+    else if (type === "coin_holder_vote") {
+      config.zecPerVote = wrapper.querySelector('.js-chv-zec-per-vote')?.value || "";
+      config.payoutAddress = wrapper.querySelector('.js-chv-payout-address')?.value || "";
 
+      const projects = [];
+      wrapper.querySelectorAll('.chv-project-block').forEach(block => {
+        const name = block.querySelector('.chv-project-name')?.value.trim() || "";
+        const description = block.querySelector('.chv-project-desc')?.value.trim() || "";
+        if (name || description) projects.push({ name, description });
+      });
+      config.projects = projects;
+    }
     /* ============================
        PUZZLE
        ============================ */
@@ -9338,6 +9781,7 @@ function mapActionToTaskType(type) {
     case "tiktok": return "tiktok";
     case "twitter": return "twitter";
     case "youtube": return "youtube";    
+    case "coin_holder_vote": return "coin_holder_vote";
     case "stars": return "Optionscale(star)";
     case "ratings": return "Optionscale(numbers)";
     case "rankingup": return "discord";
@@ -9356,10 +9800,48 @@ function mapActionToTaskType(type) {
 }
  
 
+function showCoinHolderPreviewBlockedModal() {
+  const id = "coinHolderPreviewBlockedModal";
+  let modal = document.getElementById(id);
+  if (modal) { modal.classList.add("show"); return; }
+
+  modal = document.createElement("div");
+  modal.className = "modal-backdrop";
+  modal.id = id;
+
+  modal.innerHTML = `
+    <div class="modal-glass">
+      <h3 style="font-size:16px">Preview not available</h3>
+      <p>Coin Holder Vote tasks can't be previewed — publish the quest to see it live.</p>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+  requestAnimationFrame(() => modal.classList.add("show"));
+
+  const hide = (e) => {
+    if (e.target === modal) {
+      modal.classList.remove("show");
+      setTimeout(() => modal.remove(), 200);
+      document.removeEventListener("click", hide);
+    }
+  };
+  document.addEventListener("click", hide);
+}
+
+
 async function previewSubquest() {
   const btn = document.getElementById('previewBtn');
   const text = document.getElementById('previewBtnText');
   const spinner = document.getElementById('previewSpinner');
+
+  const hasCoinHolderVote = [...document.querySelectorAll('.container-all-contain-yinit')]
+    .some(w => (w.dataset.type || w.dataset.platform) === "coin_holder_vote");
+
+  if (hasCoinHolderVote) {
+    showCoinHolderPreviewBlockedModal();
+    return;
+  }
 
   showPreviewModal(getPreviewSkeleton(), true);
 
@@ -9545,44 +10027,7 @@ function LetsInitQuestBuildup() {
     });
   });
 
-  document.querySelectorAll(".task-item").forEach(item => {
-  item.addEventListener("click", () => {
-
-    const type = item.getAttribute("data-file");
-    if (!type) return;
-
-    const container = document.getElementById("uniqueItems");
-    if (!container) return;
-
-    // create EMPTY task
-
-    const task = {
-      type: mapActionToTaskType(type), 
-      config: {}                     
-    };
-
-
-    const html = renderTask(task);
-    if (!html) return;
-    const mappedType = mapActionToTaskType(type);
-    if (mappedType === "telegram") {
-      showTelegramBotModal();
-    }
-
-    // inject at bottom
-    container.insertAdjacentHTML("beforeend", html);
-    document.querySelectorAll(".gh-tooltip-wrap").forEach(el => {
-      const tooltipBox = el.querySelector(".gh-tooltip-box");
-
-      if (!tooltipBox) return;
-
-      tooltipBox.textContent = el.dataset.tip || "";
-    });
-    
-    updateCounter?.();
-    if (typeof popup !== "undefined") popup.style.display = "none";
-  });
-  });
+  bindTaskPickerOnce();
 
   // Popup controls
   taskList.addEventListener('click', () => {
@@ -9602,50 +10047,7 @@ function LetsInitQuestBuildup() {
     }
   });
 
-  function convertHumanDateToUTCHuman(dateStr) {
-  // expects: "04 Feb 02:00 2026"
-  if (!dateStr) return null;
 
-  const parsed = parseDisplayDate(dateStr); // your existing parser
-  if (!parsed || isNaN(parsed.getTime())) return null;
-
-  // ---- UTC values ----
-  let year  = parsed.getUTCFullYear();
-  let monthIndex = parsed.getUTCMonth();
-  let day   = parsed.getUTCDate();
-  let hour  = parsed.getUTCHours();
-  let min   = parsed.getUTCMinutes();
-
-  // ---- snap minutes to 00 or 30 ----
-  if (min < 15) {
-    min = 0;
-  } else if (min < 45) {
-    min = 30;
-  } else {
-    min = 0;
-    hour += 1; // carry hour
-  }
-
-  // ---- handle hour overflow ----
-  if (hour >= 24) {
-    hour = 0;
-    const d = new Date(Date.UTC(year, monthIndex, day));
-    d.setUTCDate(d.getUTCDate() + 1);
-    year = d.getUTCFullYear();
-    monthIndex = d.getUTCMonth();
-    day = d.getUTCDate();
-  }
-
-  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  const month  = months[monthIndex];
-
-  const dd = String(day).padStart(2, "0");
-  const hh = String(hour).padStart(2, "0");
-  const mm = String(min).padStart(2, "0");
-
-  // ✅ same human format, UTC time, snapped
-  return `${dd} ${month} ${hh}:${mm} ${year}`;
-  }
   document.getElementById("addTaskBtn").addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -9717,6 +10119,17 @@ function validateForm() {
       }
     };
 
+    if (type === "coin_holder_vote") {
+      const zec = task.querySelector(".js-chv-zec-per-vote")?.value;
+      const addrInput = task.querySelector(".js-chv-payout-address");
+      const addr = addrInput?.value.trim();
+
+      if (!zec || parseFloat(zec) <= 0 || !addr) {
+        fail("ZEC amount and payout address required", ".chv-address-error");
+      } else if (addrInput.dataset.valid !== "true") {
+        fail("Invalid shielded address", ".chv-address-error");
+      }
+    }
     /* =========================
        1. SOCIAL TASKS
     ========================= */

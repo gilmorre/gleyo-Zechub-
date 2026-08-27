@@ -208,26 +208,33 @@ class UserTransaction(db.Model):
     __tablename__ = "user_transactions"
 
     id = db.Column(db.Integer, primary_key=True)
-
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
 
     type = db.Column(db.String(10))  # 'in', 'out', 'fee'
     amount = db.Column(Numeric(18, 6), nullable=False)
-
     token = db.Column(db.String(10), default="ZEC")
 
-    status = db.Column(db.String(20), default="pending")  
+    status = db.Column(db.String(20), default="pending")
     tx_hash = db.Column(db.String(128))
     block_number = db.Column(db.String(50))
 
     from_address = db.Column(db.String(512))
-    to_address = db.Column(db.String(512))
+    to_address = db.Column(db.String(512))     # reused as the deposit address for pending deposits
 
-    remark = db.Column(db.String(255))  
+    remark = db.Column(db.String(255))
 
     community_id = db.Column(db.Integer, db.ForeignKey("communities.id"), nullable=True)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # ── NEW: deposit lifecycle fields ──
+    network = db.Column(db.String(20), nullable=True)          # 'Polygon' / 'BSC' / 'Base' / 'Zcash'
+    expires_at = db.Column(db.DateTime, nullable=True)
+    paid_at = db.Column(db.DateTime, nullable=True)
+
+    balance_before = db.Column(Numeric(18, 8), nullable=True)  # Nozy ZEC snapshot, native-ZEC deposits only
+    swap_status = db.Column(db.String(20), nullable=True)      # 'locked' / 'completed' / 'failed' etc, EVM deposits only
+    swap_zec_amount = db.Column(Numeric(18, 8), nullable=True) # ZEC estimate → final, EVM deposits only
 
     user = db.relationship("Users", backref="transactions")
 

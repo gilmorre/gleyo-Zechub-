@@ -181,6 +181,10 @@ from backend.communities.community_models import (
     EarlyAccessApplication, ProWaitlist, SprintUserXP, CommunityUserXP,
     CommunityInviteUsage, ReviewNotification, InboxNotification,
 )
+from backend.utils.user_deposit_service import (
+    create_zec_deposit, create_evm_deposit,
+    verify_user_zec_deposit, verify_user_evm_deposit,
+)
 from backend.communities.CommunityUserRole_models import (
     CommunityUserRole, CommunityUserExtraRole, CommunityExtraRole,
     CommunityRoleStyle, CommunityMembershipEvent,
@@ -16706,7 +16710,17 @@ def get_subquest(community_slug, subquest_uuid):
     })
 
 
+@app.route("/api/wallet/zec/balance", methods=["GET"])
+@csrf.exempt
+@login_required
+def get_wallet_zec_balance():
+    user_balance = UserBalance.query.filter_by(user_id=current_user.id).first()
 
+    balance = user_balance.balance if user_balance else Decimal("0")
+
+    return jsonify({
+        "balance": f"{balance:.4f}"
+    }), 200
 
 
 PLATFORM_ICONS = {
@@ -16728,6 +16742,13 @@ PLATFORM_ICONS = {
         "color": "#24292e"
     },
 
+"coin_holder_vote": { 
+    "icon": """
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"  xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" x="0px" y="0px" viewBox="0 0 24 30" style="enable-background:new 0 0 24 24;" fill=""xml:space="preserve"><g><g><path d="M23.697,3.04l-7-3c-0.205-0.088-0.446-0.028-0.587,0.147l-2,2.5c-0.095,0.118-0.131,0.272-0.098,0.42    c0.031,0.141,0.123,0.257,0.248,0.326L7.978,5.789C7.451,5.987,7,6.362,6.711,6.844l-2.076,3.46    c-0.442,0.737-0.477,1.636-0.092,2.404L4.689,13H2.5C2.224,13,2,13.224,2,13.5V23H0.5C0.224,23,0,23.224,0,23.5S0.224,24,0.5,24    h17c0.276,0,0.5-0.224,0.5-0.5S17.776,23,17.5,23H16v-7c0-0.038-0.014-0.071-0.021-0.106c0.938-0.635,2.01-1.615,2.945-3.129    c1.589-2.57,2.482-4.639,2.849-5.57l0.056,0.028c0.214,0.107,0.443,0.16,0.672,0.16c0.273,0,0.545-0.075,0.787-0.226    C23.734,6.882,24,6.405,24,5.881V3.499C24,3.299,23.881,3.119,23.697,3.04z M15,23H3v-9h2.507c0.012,0,0.024,0.001,0.037,0h3.964    c-0.451,0.274-1.005,0.619-1.706,1.065c-0.533,0.339-0.898,0.865-1.028,1.483c-0.131,0.618-0.01,1.249,0.343,1.777    c0.447,0.673,1.184,1.039,1.938,1.039c0.408,0,0.822-0.108,1.197-0.331l3.436-2.061c0.197-0.048,0.68-0.187,1.312-0.502V23z     M8.362,11.737c0.765-0.328,1.788-0.922,2.307-1.527c0.399,0.234,1.027,0.535,1.812,0.689c-0.558,0.691-1.118,1.531-1.355,2.126    C11.085,13.014,11.045,13,11,13H8.946C8.84,12.503,8.595,12.064,8.362,11.737z M18.076,12.239    c-1.972,3.19-4.646,3.767-4.672,3.772c-0.056,0.012-0.111,0.033-0.16,0.062L9.74,18.175c-0.61,0.367-1.396,0.19-1.792-0.404    c-0.2-0.301-0.269-0.661-0.195-1.014c0.075-0.352,0.283-0.653,0.587-0.846c2.687-1.711,3.172-1.899,3.162-1.91    c0.277,0,0.499-0.2,0.499-0.476c0.051-0.313,0.962-1.777,1.855-2.67c0.143-0.143,0.186-0.358,0.108-0.545    c-0.077-0.187-0.26-0.309-0.462-0.309c-1.556,0-2.676-0.881-2.687-0.89c-0.15-0.119-0.351-0.175-0.525-0.091    c-0.174,0.083-0.28,0.227-0.28,0.419C9.833,9.868,7.914,10.953,7.5,11c-0.206,0-0.389,0.125-0.464,0.317    c-0.075,0.192-0.025,0.41,0.126,0.55c0.006,0.006,0.53,0.504,0.744,1.133H5.808l-0.369-0.74c-0.231-0.461-0.211-1,0.055-1.442    l2.076-3.46c0.174-0.29,0.444-0.514,0.76-0.633l7.142-2.678l5.403,2.701C20.544,7.593,19.661,9.674,18.076,12.239z M23,5.883    c0,0.252-0.166,0.381-0.237,0.425s-0.262,0.134-0.486,0.022l-7-3.5l1.376-1.719L23,3.831V5.883z"/></g></g><text x="0" y="39" fill="currentColor" font-size="5px" font-weight="bold" font-family="'Helvetica Neue', Helvetica, Arial-Unicode, Arial, Sans-serif">
+      </svg> 
+        """,
+        "color": "#F3B724"
+    },
 "file-upload": {
         "icon": """
         <svg viewBox="0 0 24 24" fill="none" width="16" height="16" xmlns="http://www.w3.org/2000/svg">
@@ -22470,6 +22491,100 @@ def verify_payment(community_slug, payment_id):
     except Exception as e:
         traceback.print_exc()
         return jsonify({'error': f'Server error: {str(e)}', 'status': 'pending'}), 200
+
+
+@app.route('/api/wallet/zec/deposit/create', methods=['POST'])
+@login_required
+def create_deposit():
+    data = request.get_json(force=True) or {}
+    token = (data.get('token') or '').upper()
+    network = data.get('network')
+    amount = data.get('amount')
+    refund_address = data.get('refund_address')
+
+    if token not in ('ZEC', 'USDT', 'USDC'):
+        return jsonify({'error': 'Unsupported token'}), 400
+    try:
+        amount = float(amount)
+    except (TypeError, ValueError):
+        return jsonify({'error': 'Invalid amount'}), 400
+    if amount <= 0:
+        return jsonify({'error': 'Invalid amount'}), 400
+    if token != 'ZEC' and not refund_address:
+        return jsonify({'error': 'Refund address required'}), 400
+
+    existing = UserTransaction.query.filter_by(
+        user_id=current_user.id, type='in', status='pending'
+    ).order_by(UserTransaction.created_at.desc()).first()
+    if existing and existing.expires_at and existing.expires_at > datetime.utcnow():
+        return jsonify({
+            'error': 'You have a pending deposit already',
+            'payment_id': existing.id,
+            'token': existing.token,
+            'network': existing.network,
+            'amount': float(existing.amount),
+            'address': existing.to_address,
+            'expires_at': int(existing.expires_at.timestamp()),
+            'server_time': int(datetime.utcnow().timestamp()),
+        }), 409
+
+    try:
+        if token == 'ZEC':
+            tx = create_zec_deposit(current_user.id, amount)
+        else:
+            if not network:
+                return jsonify({'error': 'Network required'}), 400
+
+            # Same lookup save_payment does before calling create_near_intent_deposit —
+            # TOKENS is whatever config dict your save_payment route already imports.
+            token_info = TOKENS.get(network, {}).get(token)
+            if not token_info:
+                return jsonify({'error': 'Unsupported token/network'}), 400
+
+            tx = create_evm_deposit(
+                current_user.id, token, network, amount, refund_address,
+                token_contract=token_info["address"],
+                token_decimals=token_info["decimals"],
+            )
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+    return jsonify({
+        'id': tx.id,
+        'address': tx.to_address,
+        'amount': float(tx.swap_zec_amount) if tx.swap_zec_amount else float(tx.amount),
+        'created_at': int(tx.created_at.timestamp()),
+        'server_time': int(datetime.utcnow().timestamp()),
+        'expires_at': int(tx.expires_at.timestamp()),
+    })
+
+
+
+@app.route('/api/wallet/zec/deposit/verify/<int:deposit_id>', methods=['POST'])
+@login_required
+def verify_deposit(deposit_id):
+    tx = UserTransaction.query.filter_by(id=deposit_id, user_id=current_user.id).first()
+    if not tx:
+        return jsonify({'error': 'Not found'}), 404
+
+    if tx.expires_at and tx.expires_at < datetime.utcnow() and tx.status == 'pending':
+        tx.status = 'expired'
+        db.session.commit()
+
+    if tx.status == 'expired':
+        return jsonify({'status': 'expired'})
+    if tx.status == 'confirmed':
+        return jsonify({'status': 'paid'})
+    if tx.status == 'failed':
+        return jsonify({'status': 'failed'})
+
+    if tx.token == 'ZEC' and tx.network == 'Zcash':
+        result = verify_user_zec_deposit(tx)
+    else:
+        result = verify_user_evm_deposit(tx)
+
+    return jsonify(result)
+
 
 @app.route('/<community_slug>/leaderboard')
 @community_not_deleted()
@@ -31953,23 +32068,37 @@ def poll_pending_evm_payments():
     with app.app_context():
         cutoff = datetime.utcnow() - timedelta(minutes=30)
 
-        pending = Payment.query.filter(
+        pending_payments = Payment.query.filter(
             Payment.status == 'pending',
             Payment.token != 'ZEC',
             Payment.created_at > cutoff
         ).all()
 
-        if not pending:
+        pending_user_tx = UserTransaction.query.filter(
+            UserTransaction.status == 'pending',
+            UserTransaction.token != 'ZEC',
+            UserTransaction.created_at > cutoff
+        ).all()
+
+        if not pending_payments and not pending_user_tx:
             print("💤 No pending EVM payments — poller going idle")
             scheduler.pause_job('evm_poll_job')
             return
 
-        print(f"🔄 Polling {len(pending)} pending EVM payment(s)")
-        for payment in pending:
+        print(f"🔄 Polling {len(pending_payments)} community + {len(pending_user_tx)} user EVM payment(s)")
+
+        for payment in pending_payments:
             try:
-                verify_evm_payment(payment, called_from_background=True)   
+                verify_evm_payment(payment, called_from_background=True)
             except Exception as e:
                 print(f"⚠️ Background verify failed for payment {payment.id}: {e}")
+                db.session.rollback()
+
+        for tx in pending_user_tx:
+            try:
+                verify_user_evm_deposit(tx)
+            except Exception as e:
+                print(f"⚠️ Background verify failed for user tx {tx.id}: {e}")
                 db.session.rollback()
 
 

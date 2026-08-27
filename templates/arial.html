@@ -3618,6 +3618,315 @@ input {
 .cta-quest.space{
   display:flex; align-items:center; justify-content:center; gap:6px;
 }
+
+
+/* ============================
+   COIN HOLDER VOTE — CARD FACE
+   ============================ */
+
+.chv-card-root {
+  color: #F3B724;
+}
+
+.chv-wrapper .chv-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chv-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chv-meta-item {
+  font-size: 12px;
+  font-weight: 600;
+  color: #F3B724;
+  background: rgba(243, 183, 36, 0.12);
+  border: 1px solid rgba(243, 183, 36, 0.35);
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.chv-projects-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 260px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.chv-empty {
+  font-size: 13px;
+  color: var(--text-muted);
+  opacity: 0.7;
+  text-align: center;
+  padding: 12px 0;
+  margin: 0;
+}
+
+/* preview radio rows (voter-facing style, reused in editor preview) */
+.chv-preview-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 0.9px solid var(--border);
+  background: var(--bg-surface);
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease;
+}
+
+.chv-preview-option:hover {
+  border-color: rgba(243, 183, 36, 0.4);
+  background: rgba(243, 183, 36, 0.05);
+}
+
+.chv-preview-option input[type="radio"] {
+  margin-top: 3px;
+  accent-color: #F3B724;
+}
+
+.chv-preview-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.chv-preview-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main, #eeeef5);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chv-preview-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  opacity: 0.8;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;  
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.chv-preview-option input[type="radio"] {
+  margin-top: 3px;
+  accent-color: #F3B724;
+}
+
+.chv-preview-option input[type="radio"]:checked {
+  accent-color: #F3B724;
+}
+
+
+.chv-preview-option .radio-ui {
+  border-color: var(--border);
+}
+
+.chv-preview-option input[type="radio"]:checked + .radio-ui {
+  border-color: #F3B724;
+  background-color: #F3B724;
+}
+
+.chv-preview-option input[type="radio"]:checked + .radio-ui::after {
+  background-color: #fff;
+}
+
+.chv-preview-option:has(input[type="radio"]:checked) {
+  border-color: #F3B724;
+  background: rgba(243, 183, 36, 0.08);
+}
+
+/* ============================
+   COIN HOLDER VOTE — POPUP EDITOR
+   ============================ */
+
+.coin-holder-popup .bottom-coin-holder-vote {
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  gap: 4px;
+}
+
+.bottom-coin-holder-vote input[type="number"],
+.bottom-coin-holder-vote input[type="text"] {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 0.95px solid var(--border-main-ui-snap);
+  background: var(--bg-surface-in-active);
+  color: var(--text-main);
+  font-size: 0.9rem;
+  font-weight: 500;
+  opacity: 0.95;
+  outline: none;
+  transition: 0.25s ease;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02);
+}
+
+
+.bottom-coin-holder-vote input[type="number"]::placeholder,
+.bottom-coin-holder-vote input[type="text"]::placeholder {
+  color: var(--text-muted-svg);
+}
+
+.chv-project-desc {
+  width: 100%;
+  min-height: 110px;
+  resize: vertical;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--border-main-ui-snap);
+  background: var(--bg-surface-in-active);
+  color: var(--text-main) !important;
+  font-size: 0.9rem;
+  opacity: 0.95;
+  line-height: 1.5;
+  outline: none;
+
+  transition: 0.25s ease;
+}
+
+.bottom-coin-holder-vote input[type="number"]:focus,
+.bottom-coin-holder-vote input[type="text"]:focus, .chv-project-desc:focus {
+  border-color: var(--accent-color);
+
+}
+
+.bottom-coin-holder-vote input::placeholder, .chv-project-desc::placeholder {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+.chv-address-error {
+  color: var(--red, #ff5c5c);
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+/* ---- Projects editor list ---- */
+
+.chv-projects-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.chv-project-block {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(236, 236, 241, 0.03);
+  padding: 12px 16px; 
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+}
+
+.chv-project-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.chv-project-index {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .03em;
+  color: #F3B724;
+  background: rgba(243, 183, 36, 0.12);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.chv-remove-project {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 8px;
+  transition: color .15s ease, background .15s ease;
+}
+
+.chv-remove-project:hover {
+  color: var(--red, #ff5c5c);
+  background: rgba(255, 92, 92, 0.08);
+}
+
+.chv-remove-project svg {
+  width: 15px;
+  height: 15px;
+}
+
+.chv-project-name {
+  width: 100%;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 9px 11px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main, #eeeef5);
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color .15s ease;
+}
+
+.chv-project-name:focus {
+  border-color: #F3B724;
+}
+
+
+
+.chv-project-desc::placeholder,
+.chv-project-name::placeholder {
+  color: var(--text-muted);
+  opacity: 0.55;
+}
+
+.chv-project-desc:focus {
+  border-color: #F3B724;
+}
+
+/* ---- Add project button (reuses .add-option shape but on-brand color) ---- */
+
+.js-chv-add-project {
+  background: rgba(243, 183, 36, 0.1);
+  border: 1px dashed rgba(243, 183, 36, 0.5);
+  color: #F3B724;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 13px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  text-align: center;
+  transition: background .15s ease, border-color .15s ease;
+}
+
+.js-chv-add-project:hover {
+  background: rgba(243, 183, 36, 0.18);
+  border-color: #F3B724;
+} 
 </style>
 
 
@@ -4696,7 +5005,16 @@ input {
               <path d="M9.15316 5.40838C10.4198 3.13613 11.0531 2 12 2C12.9469 2 13.5802 3.13612 14.8468 5.40837L15.1745 5.99623C15.5345 6.64193 15.7144 6.96479 15.9951 7.17781C16.2757 7.39083 16.6251 7.4699 17.3241 7.62805L17.9605 7.77203C20.4201 8.32856 21.65 8.60682 21.9426 9.54773C22.2352 10.4886 21.3968 11.4691 19.7199 13.4299L19.2861 13.9372C18.8096 14.4944 18.5713 14.773 18.4641 15.1177C18.357 15.4624 18.393 15.8341 18.465 16.5776L18.5306 17.2544C18.7841 19.8706 18.9109 21.1787 18.1449 21.7602C17.3788 22.3417 16.2273 21.8115 13.9243 20.7512L13.3285 20.4768C12.6741 20.1755 12.3469 20.0248 12 20.0248C11.6531 20.0248 11.3259 20.1755 10.6715 20.4768L10.0757 20.7512C7.77268 21.8115 6.62118 22.3417 5.85515 21.7602C5.08912 21.1787 5.21588 19.8706 5.4694 17.2544L5.53498 16.5776C5.60703 15.8341 5.64305 15.4624 5.53586 15.1177C5.42868 14.773 5.19043 14.4944 4.71392 13.9372L4.2801 13.4299C2.60325 11.4691 1.76482 10.4886 2.05742 9.54773C2.35002 8.60682 3.57986 8.32856 6.03954 7.77203L6.67589 7.62805C7.37485 7.4699 7.72433 7.39083 8.00494 7.17781C8.28555 6.96479 8.46553 6.64194 8.82547 5.99623L9.15316 5.40838Z" />
             </svg>
           </span><div class="task-text"><div class="task-title">Opinion Scale</div><div class="task-desc">Rate on an opinion scale</div></div></div>
-          
+          <div data-file="coin_holder_vote" class="task-item">
+            <span class="icon" style="background-color:#F3B724;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23"  xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" x="0px" y="0px" viewBox="0 0 24 30" style="enable-background:new 0 0 24 24;" fill=""xml:space="preserve"><g><g><path d="M23.697,3.04l-7-3c-0.205-0.088-0.446-0.028-0.587,0.147l-2,2.5c-0.095,0.118-0.131,0.272-0.098,0.42    c0.031,0.141,0.123,0.257,0.248,0.326L7.978,5.789C7.451,5.987,7,6.362,6.711,6.844l-2.076,3.46    c-0.442,0.737-0.477,1.636-0.092,2.404L4.689,13H2.5C2.224,13,2,13.224,2,13.5V23H0.5C0.224,23,0,23.224,0,23.5S0.224,24,0.5,24    h17c0.276,0,0.5-0.224,0.5-0.5S17.776,23,17.5,23H16v-7c0-0.038-0.014-0.071-0.021-0.106c0.938-0.635,2.01-1.615,2.945-3.129    c1.589-2.57,2.482-4.639,2.849-5.57l0.056,0.028c0.214,0.107,0.443,0.16,0.672,0.16c0.273,0,0.545-0.075,0.787-0.226    C23.734,6.882,24,6.405,24,5.881V3.499C24,3.299,23.881,3.119,23.697,3.04z M15,23H3v-9h2.507c0.012,0,0.024,0.001,0.037,0h3.964    c-0.451,0.274-1.005,0.619-1.706,1.065c-0.533,0.339-0.898,0.865-1.028,1.483c-0.131,0.618-0.01,1.249,0.343,1.777    c0.447,0.673,1.184,1.039,1.938,1.039c0.408,0,0.822-0.108,1.197-0.331l3.436-2.061c0.197-0.048,0.68-0.187,1.312-0.502V23z     M8.362,11.737c0.765-0.328,1.788-0.922,2.307-1.527c0.399,0.234,1.027,0.535,1.812,0.689c-0.558,0.691-1.118,1.531-1.355,2.126    C11.085,13.014,11.045,13,11,13H8.946C8.84,12.503,8.595,12.064,8.362,11.737z M18.076,12.239    c-1.972,3.19-4.646,3.767-4.672,3.772c-0.056,0.012-0.111,0.033-0.16,0.062L9.74,18.175c-0.61,0.367-1.396,0.19-1.792-0.404    c-0.2-0.301-0.269-0.661-0.195-1.014c0.075-0.352,0.283-0.653,0.587-0.846c2.687-1.711,3.172-1.899,3.162-1.91    c0.277,0,0.499-0.2,0.499-0.476c0.051-0.313,0.962-1.777,1.855-2.67c0.143-0.143,0.186-0.358,0.108-0.545    c-0.077-0.187-0.26-0.309-0.462-0.309c-1.556,0-2.676-0.881-2.687-0.89c-0.15-0.119-0.351-0.175-0.525-0.091    c-0.174,0.083-0.28,0.227-0.28,0.419C9.833,9.868,7.914,10.953,7.5,11c-0.206,0-0.389,0.125-0.464,0.317    c-0.075,0.192-0.025,0.41,0.126,0.55c0.006,0.006,0.53,0.504,0.744,1.133H5.808l-0.369-0.74c-0.231-0.461-0.211-1,0.055-1.442    l2.076-3.46c0.174-0.29,0.444-0.514,0.76-0.633l7.142-2.678l5.403,2.701C20.544,7.593,19.661,9.674,18.076,12.239z M23,5.883    c0,0.252-0.166,0.381-0.237,0.425s-0.262,0.134-0.486,0.022l-7-3.5l1.376-1.719L23,3.831V5.883z"/></g></g><text x="0" y="39" fill="currentColor" font-size="5px" font-weight="bold" font-family="'Helvetica Neue', Helvetica, Arial-Unicode, Arial, Sans-serif">
+              </svg> 
+            </span>
+            <div class="task-text">
+              <div class="task-title">Coin Holder Vote</div>
+              <div class="task-desc">Holders spend ZEC to vote for a project</div>
+            </div>
+          </div>          
         </div>
       </div>
     </div>

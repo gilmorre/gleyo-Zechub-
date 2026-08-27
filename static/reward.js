@@ -1,5 +1,5 @@
-(function () {
-
+(function () { 
+let qrLibPromise = null;
 let ZEC_PRICE_USD = 460;
 const ZEC_NET_FEE  = 0.001;   
 const ZEC_PLATFORM = 0.03;
@@ -38,6 +38,21 @@ function fmtLocalDate(isoStr) {
   const d = new Date(isoStr);
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) +
     ' · ' + d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+}
+function ensureQrLib() {
+  if (typeof QRCodeStyling !== 'undefined') return Promise.resolve();
+  if (qrLibPromise) return qrLibPromise;
+
+  qrLibPromise = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src   = 'https://unpkg.com/qr-code-styling/lib/qr-code-styling.js';
+    s.async = true;
+    s.onload  = () => resolve();
+    s.onerror = () => { qrLibPromise = null; reject(new Error('QR lib failed to load')); };
+    document.head.appendChild(s);
+  });
+
+  return qrLibPromise;
 }
 
 updateWithdrawButton();
@@ -772,11 +787,413 @@ document.addEventListener('keydown', e => {
   }
 });
 
+
+// ══════════════════════════ DEPOSIT MODAL ══════════════════════════
+const depTokenSelect   = document.getElementById('depTokenSelect');
+const depTokenLabelEl  = document.getElementById('depTokenLabel');
+const depTokenOptions  = document.getElementById('depTokenOptions');
+const depNetworkSelect = document.getElementById('depNetworkSelect');
+const depNetworkLabelEl= document.getElementById('depNetworkLabel');
+const depNetworkOptions= document.getElementById('depNetworkOptions');
+
+let selectedDepToken = null, selectedDepNetwork = null, selectedDepNetworkLabel = null;
+let currentDepositId = null, depCheckInterval = null, depPhaseEnd = null, depTimerInterval = null;
+
+const DEP_ACTIVE = 10, DEP_COOLDOWN = 30, DEP_SWAP_RECHECK = 20;
+
+const DEP_NETWORKS_BY_TOKEN = {
+  USDT: [{ value:'Polygon', label:'Polygon' }, { value:'BSC', label:'BNB Smart Chain (BSC)' }],
+  USDC: [{ value:'Base', label:'Base' }, { value:'Polygon', label:'Polygon' }, { value:'BSC', label:'BNB Smart Chain (BSC)' }],
+  ZEC:  [{ value:'Zcash', label:'Zcash' }]
+};
+
+function depFormatZec(n){ return Number(n).toLocaleString(undefined,{minimumFractionDigits:4,maximumFractionDigits:4}); }
+function depConvertToZec(amount, token){ return token === 'ZEC' ? amount : (ZEC_PRICE_USD ? amount / ZEC_PRICE_USD : null); }
+function truncateAddrRP(addr, front=10, back=8){
+  if (!addr) return '';
+  return addr.length <= front+back+3 ? addr : addr.slice(0,front) + '…' + addr.slice(-back);
+}
+
+function depCloseAllSelects(){
+  depTokenSelect?.classList.remove('open'); depTokenOptions?.classList.remove('open');
+  depNetworkSelect?.classList.remove('open'); depNetworkOptions?.classList.remove('open');
+}
+
+depTokenSelect?.addEventListener('click', () => {
+  const willOpen = !depTokenOptions.classList.contains('open');
+  depCloseAllSelects();
+  if (willOpen) { depTokenSelect.classList.add('open'); depTokenOptions.classList.add('open'); }
+});
+depTokenOptions?.querySelectorAll('.rp-option').forEach(opt => {
+  opt.addEventListener('click', e => {
+    e.stopPropagation();
+    selectDepToken(opt.dataset.value, opt.textContent.trim());
+    depCloseAllSelects();
+  });
+});
+depNetworkSelect?.addEventListener('click', () => {
+  if (depNetworkSelect.classList.contains('disabled')) {
+    if (!selectedDepToken) showToast('Select a token first', 'error');
+    return;
+  }
+  const willOpen = !depNetworkOptions.classList.contains('open');
+  depCloseAllSelects();
+  if (willOpen) { depNetworkSelect.classList.add('open'); depNetworkOptions.classList.add('open'); }
+});
+document.addEventListener('click', e => {
+  if (depTokenSelect && !depTokenSelect.contains(e.target) && !depTokenOptions.contains(e.target) &&
+      depNetworkSelect && !depNetworkSelect.contains(e.target) && !depNetworkOptions.contains(e.target)) {
+    depCloseAllSelects();
+  }
+});
+document.getElementById('depAmountIn')?.addEventListener('input', () => {
+  clearTimeout(window.__depConvDebounce);
+  window.__depConvDebounce = setTimeout(depUpdateConversion, 250);
+});
+
+function selectDepToken(value, label){
+  selectedDepToken = value;
+  depTokenLabelEl.textContent = label;
+  depTokenOptions.querySelectorAll('.rp-option').forEach(o => o.classList.toggle('active', o.dataset.value === value));
+
+  selectedDepNetwork = null; selectedDepNetworkLabel = null;
+  buildDepNetworkOptions(value);
+
+  document.getElementById('depAmountBadge').textContent = value;
+  document.getElementById('depAmountLabel').textContent = `Amount (${value})`;
+
+  const refundGroup = document.getElementById('depRefundGroup');
+  const noteIn = document.getElementById('depNoteIn');
+
+  if (value === 'ZEC') {
+    refundGroup.style.display = 'none';
+    noteIn.value = '';
+    const only = DEP_NETWORKS_BY_TOKEN.ZEC[0];
+    selectDepNetwork(only.value, only.label);
+    document.getElementById('depConvertPreview').textContent = '';
+  } else {
+    refundGroup.style.display = '';
+    depNetworkSelect.classList.remove('disabled');
+    depNetworkLabelEl.textContent = 'Select network';
+    depUpdateConversion();
+  }
+}
+
+function buildDepNetworkOptions(token){
+  const list = DEP_NETWORKS_BY_TOKEN[token] || [];
+  depNetworkOptions.innerHTML = '';
+  list.forEach(net => {
+    const div = document.createElement('div');
+    div.className = 'rp-option';
+    div.dataset.value = net.value;
+    div.textContent = net.label;
+    div.addEventListener('click', e => {
+      e.stopPropagation();
+      selectDepNetwork(net.value, net.label);
+      depCloseAllSelects();
+    });
+    depNetworkOptions.appendChild(div);
+  });
+}
+
+function selectDepNetwork(value, label){
+  selectedDepNetwork = value;
+  selectedDepNetworkLabel = label;
+  depNetworkLabelEl.textContent = label;
+  depNetworkOptions.querySelectorAll('.rp-option').forEach(o => o.classList.toggle('active', o.dataset.value === value));
+}
+
+function depUpdateConversion(){
+  const preview = document.getElementById('depConvertPreview');
+  if (!preview) return;
+  if (!selectedDepToken || selectedDepToken === 'ZEC') { preview.textContent = ''; return; }
+  const amt = parseFloat(document.getElementById('depAmountIn')?.value);
+  if (!amt || amt <= 0) { preview.textContent = ''; return; }
+  if (!ZEC_PRICE_USD) { preview.textContent = 'Fetching rate…'; return; }
+  const zec = depConvertToZec(amt, selectedDepToken);
+  preview.innerHTML = `≈ <strong style="color:var(--p-light)">${depFormatZec(zec)} ZEC</strong> at current rate`;
+}
+
+function openDeposit(){
+  const r = id => document.getElementById(id);
+  r('dep1').style.display = ''; r('dep2').style.display = 'none';
+  selectedDepToken = null; selectedDepNetwork = null; selectedDepNetworkLabel = null;
+  r('depTokenLabel').textContent = 'Select token';
+  depTokenOptions.querySelectorAll('.rp-option').forEach(o => o.classList.remove('active'));
+  r('depNetworkLabel').textContent = 'Select token first';
+  r('depNetworkSelect').classList.add('disabled');
+  r('depNetworkOptions').innerHTML = '';
+  r('depAmountIn').value = ''; r('depNoteIn').value = '';
+  r('depConvertPreview').textContent = '';
+  r('depRefundGroup').style.display = 'none';
+  r('depAmountBadge').textContent = 'TOKEN';
+  r('depAmountLabel').textContent = 'Amount';
+  r('depStatus').innerHTML = ''; r('depTimer').textContent = '';
+  currentDepositId = null;
+  stopDepCheckCycle();
+  clearInterval(depTimerInterval);
+  r('depOv').classList.add('open');
+}
+
+function closeDeposit(){
+  document.getElementById('depOv').classList.remove('open');
+  clearInterval(depCheckInterval);
+  clearInterval(depTimerInterval);
+}
+
+function enterDepositView(payload){
+  currentDepositId = payload.id;
+
+  const networkLabel =
+    DEP_NETWORKS_BY_TOKEN[payload.token]?.find(n => n.value === payload.network)?.label
+    || payload.network;
+
+  showDepositView(
+    payload.amount,
+    payload.address,
+    payload.token,
+    networkLabel,
+    payload.originAmount ?? payload.amount,
+    payload.network
+  );
+
+  const expiresAt  = payload.expires_at ?? (Math.floor(Date.now() / 1000) + 1800);
+  const serverTime = payload.server_time ?? Math.floor(Date.now() / 1000);
+  startDepTimer(Math.max(5, expiresAt - serverTime));
+  startDepCheckCycle();
+}
+
+async function generateDeposit(){
+  const btn = document.getElementById('depGenerateBtn');
+  const btnContent = document.getElementById('depGenerateBtnContent');
+  const rawAmount = parseFloat(document.getElementById('depAmountIn')?.value);
+  const refundAddr = document.getElementById('depNoteIn')?.value?.trim() || '';
+
+  if (!selectedDepToken) { showToast('Please select a token.', 'error'); return; }
+  if (!selectedDepNetwork) { showToast('Please select a network.', 'error'); return; }
+  if (!rawAmount || rawAmount <= 0) { showToast(`Please enter a valid ${selectedDepToken} amount.`, 'error'); return; }
+  if (selectedDepToken !== 'ZEC' && !refundAddr) { showToast('Please enter your refundable wallet address.', 'error'); return; }
+
+  let zecAmount = rawAmount;
+  if (selectedDepToken !== 'ZEC') {
+    if (!ZEC_PRICE_USD) { showToast('Unable to fetch conversion rate right now.', 'error'); return; }
+    zecAmount = Math.round(depConvertToZec(rawAmount, selectedDepToken) * 10000) / 10000;
+  }
+
+  btn.disabled = true;
+  btnContent.innerHTML = `<span class="spinner"></span> Generating…`;
+
+  try {
+    // TODO(backend): implement this endpoint — mirrors pay.js's save_payment
+    // but scoped to the logged-in user's rewards deposit flow.
+    // Expected JSON: { id, address, amount (ZEC), created_at, server_time, expires_at }
+    const res = await fetch('/api/wallet/zec/deposit/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+      body: JSON.stringify({
+        token: selectedDepToken,
+        network: selectedDepNetwork,
+        amount: rawAmount,
+        refund_address: selectedDepToken !== 'ZEC' ? refundAddr : undefined
+      })
+    });
+    const data = await res.json();
+    if (res.status === 409 && data.payment_id) {
+      enterDepositView({
+        id: data.payment_id,
+        address: data.address,
+        amount: data.amount,
+        token: data.token,
+        network: data.network,
+        expires_at: data.expires_at,
+        server_time: data.server_time,
+      });
+      showToast('You already have a deposit in progress — showing it now', 'success');
+      return;
+    }
+    if (!res.ok) throw data;
+    currentDepositId = data.id;
+    showDepositView(data.amount ?? zecAmount, data.address, selectedDepToken, selectedDepNetworkLabel, rawAmount, selectedDepNetwork);
+
+    const expiresAt  = data.expires_at ?? (Math.floor(Date.now()/1000) + 1800);
+    const serverTime = data.server_time ?? Math.floor(Date.now()/1000);
+    startDepTimer(Math.max(5, expiresAt - serverTime));
+    startDepCheckCycle();
+  } catch (err) {
+    showToast(`❌ ${err?.error || err?.message || 'Unable to generate deposit'}`, 'error');
+  } finally {
+    btn.disabled = false;
+    btnContent.innerHTML = 'Generate Deposit';
+  }
+}
+
+function showDepositView(zecAmount, address, originToken, originNetworkLabel, originAmount, originNetworkValue){
+  document.getElementById('dep1').style.display = 'none';
+  document.getElementById('dep2').style.display = '';
+
+  const displayToken  = originToken || 'ZEC';
+  const displayAmount = displayToken === 'ZEC' ? zecAmount : originAmount;
+
+  document.getElementById('depAmtValue').innerHTML =
+    (displayToken === 'ZEC' ? depFormatZec(zecAmount) : Number(displayAmount).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:4}))
+    + ' <em>' + displayToken + '</em>';
+
+  const addrEl = document.getElementById('depAddrShort');
+  addrEl.textContent = truncateAddrRP(address);
+  addrEl.dataset.full = address;
+  document.getElementById('depNetworkVal').textContent = originNetworkLabel || selectedDepNetworkLabel || '—';
+
+  const instr = document.getElementById('depInstruction');
+  instr.innerHTML = displayToken === 'ZEC'
+    ? `Use your <b>ZEC</b> wallet on <b>Zcash</b> to send funds. Sending other assets may result in loss of funds.`
+    : `Use your <b>${displayToken}</b> on <b>${originNetworkLabel}</b> wallet to deposit funds. This settles as <b>${depFormatZec(zecAmount)} ZEC</b> on Zcash.`;
+
+  renderDepQR(address, zecAmount, displayToken);
+}
+
+function renderDepQR(address, zecAmount, token){
+  const container = document.getElementById('depQrcode');
+  if (!container) return;
+  container.innerHTML = '';
+  if (typeof QRCodeStyling === 'undefined') return;
+  const qrData = token === 'ZEC' ? `zcash:${address}?amount=${zecAmount}` : address;
+  new QRCodeStyling({
+    width: 148, height: 148, type: 'svg', data: qrData,
+    qrOptions: { errorCorrectionLevel: 'H' },
+    dotsOptions: { color: '#000000', type: 'rounded' },
+    backgroundOptions: { color: '#d9d8d8' },
+    cornersSquareOptions: { type: 'extra-rounded' },
+    cornersDotOptions: { type: 'dot' }
+  }).append(container);
+}
+
+function copyDepositAddress(){
+  const addr = document.getElementById('depAddrShort')?.dataset?.full || '';
+  if (!addr) { showToast('No address to copy.', 'error'); return; }
+  const fallback = () => {
+    const ta = document.createElement('textarea');
+    ta.value = addr; ta.style.cssText = 'position:fixed;opacity:0;left:-9999px';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    try { document.execCommand('copy'); } catch (_) {}
+    document.body.removeChild(ta);
+  };
+  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(addr).catch(fallback);
+  else fallback();
+  showToast('Address copied', 'success');
+}
+
+function shareDeposit(){
+  const addr = document.getElementById('depAddrShort')?.dataset?.full || '';
+  if (!addr) { showToast('Generate a deposit first.', 'error'); return; }
+  const text = `Deposit address:\n${addr}\n\n${document.getElementById('depInstruction')?.textContent || ''}`;
+  if (navigator.share) navigator.share({ text }).catch(() => {});
+  else copyDepositAddress();
+}
+
+function enterDepActive(){
+  clearInterval(depCheckInterval);
+  const btn = document.getElementById('depCheckBtn');
+  const cd  = document.getElementById('depCheckCooldown');
+  btn.disabled = false; btn.textContent = "I've sent the funds";
+  depPhaseEnd = Date.now() + DEP_ACTIVE * 1000;
+  depCheckInterval = setInterval(() => {
+    const remaining = Math.ceil((depPhaseEnd - Date.now()) / 1000);
+    if (remaining <= 0) { enterDepCooldown(); return; }
+    cd.textContent = `Click within ${remaining}s`;
+  }, 250);
+}
+
+function enterDepCooldown(){
+  clearInterval(depCheckInterval);
+  const btn = document.getElementById('depCheckBtn');
+  const cd  = document.getElementById('depCheckCooldown');
+  btn.disabled = true;
+  depPhaseEnd = Date.now() + DEP_COOLDOWN * 1000;
+  depCheckInterval = setInterval(() => {
+    const remaining = Math.ceil((depPhaseEnd - Date.now()) / 1000);
+    if (remaining <= 0) { enterDepActive(); return; }
+    btn.textContent = `Checking available in ${remaining}s`;
+    cd.textContent = '';
+  }, 250);
+}
+
+function stopDepCheckCycle(){
+  clearInterval(depCheckInterval);
+  const btn = document.getElementById('depCheckBtn');
+  if (btn) btn.disabled = true;
+  const cd = document.getElementById('depCheckCooldown');
+  if (cd) cd.textContent = '';
+}
+
+function startDepCheckCycle(){ enterDepActive(); }
+
+function startDepTimer(secondsRemaining){
+  clearInterval(depTimerInterval);
+  const expirationTime = Date.now() + secondsRemaining * 1000;
+  const timerEl = document.getElementById('depTimer');
+  depTimerInterval = setInterval(() => {
+    const remaining = Math.floor((expirationTime - Date.now()) / 1000);
+    if (remaining <= 0) {
+      clearInterval(depTimerInterval);
+      stopDepCheckCycle();
+      timerEl.textContent = '❌ Deposit expired';
+      setTimeout(closeDeposit, 1500);
+      return;
+    }
+    const m = Math.floor(remaining / 60).toString().padStart(2, '0');
+    const s = (remaining % 60).toString().padStart(2, '0');
+    timerEl.textContent = `⏳ Time left: ${m}:${s}`;
+  }, 1000);
+}
+
+function checkDepositPayment(){
+  const btn = document.getElementById('depCheckBtn');
+  if (btn.disabled || !currentDepositId) return;
+  const statusEl = document.getElementById('depStatus');
+  btn.disabled = true;
+  statusEl.innerHTML = `<span class="payment-waiting" style="color:var(--p-light)"><span class="spinner"></span> Checking payment...</span>`;
+
+  // TODO(backend): implement — mirrors pay.js's /<slug>/verify_payment/<id>.
+  // Expected JSON: { status: 'paid'|'pending'|'expired', stage?, new_balance? }
+  fetch(`/api/wallet/zec/deposit/verify/${currentDepositId}`, { method: 'POST', headers: { 'X-CSRFToken': csrfToken } })
+    .then(res => res.json())
+    .then(data => {
+      if (data.status === 'paid') {
+        stopDepCheckCycle();
+        clearInterval(depTimerInterval);
+        statusEl.innerHTML = `<span class="pop-status" style="color:var(--green)"><span class="check-circle">✔️</span> Deposit received!</span>`;
+        if (typeof confetti === 'function') confetti({ particleCount: 200, spread: 100, origin: { y: .6 } });
+        if (data.new_balance != null) setBalanceDisplay(data.new_balance);
+        setTimeout(() => { closeDeposit(); loadTransactions(); }, 2000);
+      } else if (data.status === 'expired') {
+        stopDepCheckCycle(); clearInterval(depTimerInterval);
+        statusEl.innerHTML = '❌ Deposit expired';
+        setTimeout(closeDeposit, 2000);
+      } else if (data.stage === 'swapping') {
+        statusEl.innerHTML = `<span class="payment-waiting" style="color:var(--p-light)"><span class="spinner"></span> Swapping — this will confirm automatically...</span>`;
+        clearInterval(depCheckInterval);
+        depPhaseEnd = Date.now() + DEP_SWAP_RECHECK * 1000;
+        depCheckInterval = setInterval(() => {
+          const remaining = Math.ceil((depPhaseEnd - Date.now()) / 1000);
+          if (remaining <= 0) { clearInterval(depCheckInterval); checkDepositPayment(); }
+        }, 250);
+      } else {
+        statusEl.innerHTML = '❌ Payment not detected yet. Try again shortly.';
+        enterDepCooldown();
+      }
+    })
+    .catch(() => { statusEl.innerHTML = '❌ Error checking payment.'; enterDepCooldown(); });
+}
 setupOTPInputs();
 
 Object.assign(window, {
   doCopy, bgClose, openWithdraw, revealID, setMax, calcFee,
   toW2, toW1, doSend, closeW, closeTFA, goToSettings, openAll, openTxFromAPI,
+  openDeposit, closeDeposit, generateDeposit, copyDepositAddress, shareDeposit, checkDepositPayment,
+});
+
+ensureQrLib().catch(() => {
+  console.warn('QR lib failed to preload, will retry on modal open');
 });
 
 window.ReviewModule = { init: loadTransactions };

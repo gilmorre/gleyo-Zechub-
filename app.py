@@ -10573,6 +10573,8 @@ def remove_xp_everywhere(completion):
 
 
 
+import traceback
+
 @app.route('/api/subquest_review/<int:completion_id>/<int:review_id>', methods=['POST'])
 @login_required
 def review_subquest(completion_id, review_id):
@@ -10586,22 +10588,27 @@ def review_subquest(completion_id, review_id):
     if task_review.subquest_completion_id != completion.id:
         return jsonify({"success": False, "error": "Mismatch"}), 400
 
-    result = process_single_review(
-        completion,
-        task_review,
-        status,
-        current_user.id,
-        comment=data.get("comment"),
-        star=data.get("star", False),
-        free_xp=data.get("free_xp", 0),
-        flag=data.get("flag", False)
-    )
-
-    db.session.commit()
+    try:
+        result = process_single_review(
+            completion,
+            task_review,
+            status,
+            current_user.id,
+            comment=data.get("comment"),
+            star=data.get("star", False),
+            free_xp=data.get("free_xp", 0),
+            flag=data.get("flag", False)
+        )
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        app.logger.error(
+            "review_subquest failed | completion_id=%s review_id=%s status=%s\n%s",
+            completion_id, review_id, status, traceback.format_exc()
+        )
+        return jsonify({"success": False, "error": "Internal error while processing review"}), 500
 
     return jsonify(result)
-
-
 
 
 @app.route('/api/subquest_review_bulk', methods=['POST'])
@@ -10623,32 +10630,38 @@ def review_subquest_bulk():
         SubquestCompletion.id.in_(completion_ids)
     ).all()
 
-    for completion in completions:
+    try:
+        for completion in completions:
 
-        task_review = TaskReview.query.filter_by(
-            subquest_completion_id=completion.id
-        ).first()
+            task_review = TaskReview.query.filter_by(
+                subquest_completion_id=completion.id
+            ).first()
 
-        if not task_review:
-            continue
+            if not task_review:
+                continue
 
-        result = process_single_review(
-            completion,
-            task_review,
-            status,
-            reviewer_id
+            result = process_single_review(
+                completion,
+                task_review,
+                status,
+                reviewer_id
+            )
+
+            results.append(result)
+
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        app.logger.error(
+            "review_subquest_bulk failed | completion_ids=%s status=%s\n%s",
+            completion_ids, status, traceback.format_exc()
         )
-
-        results.append(result)
-
-    db.session.commit()
+        return jsonify({"success": False, "error": "Internal error while processing bulk review"}), 500
 
     return jsonify({
         "success": True,
         "updated": results
     })
-
-
 
 
 def process_single_review(completion, task_review, status, reviewer_id,

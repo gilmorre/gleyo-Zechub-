@@ -25,7 +25,6 @@ class CommunityTwitter(db.Model):
     # When this event happened
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # --- Link to Community ---
     community = db.relationship(
         "Community",
         back_populates="twitter_account",

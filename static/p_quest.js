@@ -3279,39 +3279,61 @@ function chvSkeletonHTML(){
   `;
 }
 
+
 function chvVoteBodyHTML({ projectName, zecPerVote, balance, balanceError }){
   const balanceText = balanceError
     ? "Couldn't load balance"
     : `${balance.toFixed(4)} ZEC available`;
-
-  const insufficient = !balanceError && balance < zecPerVote;
-
+ 
   return `
     <div class="chv-vote-project-name">${escapeHtmlChv(projectName)}</div>
-
+ 
     <div class="chv-vote-info-row">
       <span class="chv-vote-label">Your balance</span>
       <span class="chv-vote-value ${balanceError ? "chv-err" : ""}">${balanceText}</span>
     </div>
-
+ 
     <div class="chv-vote-info-row">
       <span class="chv-vote-label">Minimum to vote</span>
       <span class="chv-vote-value">${zecPerVote} ZEC</span>
     </div>
-
-    ${insufficient ? `<div class="chv-vote-warning">Not enough ZEC to vote for this project</div>` : ""}
-
-    <label class="chv-vote-checkbox-wrap ${insufficient ? "chv-disabled" : ""}">
-      <input type="checkbox" class="chv-vote-checkbox-input" ${insufficient ? "disabled" : ""}>
-      <span class="chv-vote-checkbox-circle"></span>
-      <span class="chv-vote-checkbox-text">Confirm vote for ${escapeHtmlChv(projectName)}</span>
-    </label>
+ 
+    <div class="chv-vote-amount-wrap">
+      <label class="chv-vote-amount-label" for="chv-vote-amount-input">Vote amount</label>
+      <div class="chv-vote-amount-input-row">
+        <input
+          type="number"
+          id="chv-vote-amount-input"
+          class="chv-vote-amount-input"
+          placeholder="${zecPerVote}"
+          min="${zecPerVote}"
+          step="0.0001"
+          inputmode="decimal"
+          autocomplete="off"
+        />
+        <span class="chv-vote-amount-suffix">ZEC</span>
+      </div>
+    </div>
+ 
+    <div class="chv-vote-amount-error" style="display:none;"></div>
+ 
+    <button type="button" class="chv-vote-deposit-btn">
+      Deposit ZEC
+    </button>
   `;
 }
-
+ 
+ 
+/* ---------------------------------------------------------
+   3) openCoinHolderVoteModal() — wires up live validation:
+      - amount must be a number > 0
+      - amount must be >= zecPerVote (the minimum)
+      - amount must be <= balance, else show insufficient-funds
+        message + a "Deposit ZEC" CTA
+--------------------------------------------------------- */
 async function openCoinHolderVoteModal({ card, zecPerVote, projectIndex, projectName }){
   destroyCoinHolderVoteModal();
-
+ 
   const overlay = document.createElement("div");
   overlay.className = "chv-vote-overlay";
   overlay.innerHTML = `
@@ -3332,25 +3354,25 @@ async function openCoinHolderVoteModal({ card, zecPerVote, projectIndex, project
       </div>
     </div>
   `;
-
+ 
   document.body.appendChild(overlay);
   requestAnimationFrame(() => overlay.classList.add("show"));
-
+ 
   const close = () => {
     overlay.classList.remove("show");
     setTimeout(() => overlay.remove(), 200);
   };
-
+ 
   overlay.querySelector(".chv-vote-close").addEventListener("click", close);
   overlay.querySelector(".chv-vote-cancel").addEventListener("click", close);
   overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
-
+ 
   const body = overlay.querySelector(".chv-vote-body");
   const selectBtn = overlay.querySelector(".chv-vote-select");
-
+ 
   let balance = null;
   let balanceError = false;
-
+ 
   try {
     const res = await fetch(`/api/wallet/zec/balance`, { credentials: "include" });
     if (!res.ok) throw new Error("balance fetch failed");
@@ -3360,35 +3382,110 @@ async function openCoinHolderVoteModal({ card, zecPerVote, projectIndex, project
     console.error("ZEC balance fetch failed:", err);
     balanceError = true;
   }
-
+ 
   if (!document.body.contains(overlay)) return; // closed while loading
-
+ 
   body.innerHTML = chvVoteBodyHTML({ projectName, zecPerVote, balance, balanceError });
-
-  const canAffordVote = !balanceError && balance !== null && balance >= zecPerVote;
-  const checkboxWrap = body.querySelector(".chv-vote-checkbox-wrap");
-  const checkboxInput = body.querySelector(".chv-vote-checkbox-input");
-
-  checkboxWrap?.addEventListener("click", () => {
-    if (!canAffordVote) return;
-
-    const nowChecked = !checkboxInput.checked;
-    checkboxInput.checked = nowChecked;
-    checkboxWrap.classList.toggle("checked", nowChecked);
-    selectBtn.disabled = !nowChecked;
-    selectBtn.classList.toggle("chv-lit", nowChecked);
+ 
+  const amountInput = body.querySelector(".chv-vote-amount-input");
+  const amountRow    = body.querySelector(".chv-vote-amount-input-row");
+  const amountError  = body.querySelector(".chv-vote-amount-error");
+  const depositBtn   = body.querySelector(".chv-vote-deposit-btn");
+ 
+  function clearAmountState(){
+    amountRow.classList.remove("chv-input-error");
+    amountInput.classList.remove("chv-input-error");
+    amountError.style.display = "none";
+    amountError.textContent = "";
+    depositBtn.style.display = "none";
+    selectBtn.disabled = true;
+    selectBtn.classList.remove("chv-lit");
+  }
+ 
+  function showAmountError(msg, { withDeposit = false } = {}){
+    amountRow.classList.add("chv-input-error");
+    amountInput.classList.add("chv-input-error");
+    amountError.textContent = msg;
+    amountError.style.display = "block";
+    depositBtn.style.display = withDeposit ? "inline-flex" : "none";
+    selectBtn.disabled = true;
+    selectBtn.classList.remove("chv-lit");
+  }
+ 
+  function validateAmount(){
+    const raw = amountInput.value.trim();
+    const amount = parseFloat(raw);
+ 
+    clearAmountState();
+ 
+    if (!raw || isNaN(amount) || amount <= 0) {
+      return; // no error shown yet, just keep Select disabled
+    }
+ 
+    if (amount < zecPerVote) {
+      showAmountError(`Minimum vote is ${zecPerVote} ZEC`);
+      return;
+    }
+ 
+    if (balanceError) {
+      // can't verify balance — block to be safe rather than let an
+      // unaffordable vote through
+      showAmountError("Couldn't verify your balance. Please try again.");
+      return;
+    }
+ 
+    if (amount > balance) {
+      showAmountError(
+        "Insufficient ZEC balance for this amount. Please deposit more ZEC to continue.",
+        { withDeposit: true }
+      );
+      return;
+    }
+ 
+    // ✅ valid amount
+    selectBtn.disabled = false;
+    selectBtn.classList.add("chv-lit");
+  }
+ 
+  amountInput.addEventListener("input", validateAmount);
+ 
+  depositBtn.addEventListener("click", () => {
+    close();
+    if (typeof window.openDepositModal === "function") {
+      window.openDepositModal();
+    } else {
+      window.location.href = "/wallet";
+    }
   });
-
+ 
   selectBtn.addEventListener("click", () => {
     if (selectBtn.disabled) return;
-
-    const hidden = card.querySelector(".chv-selected-project-index");
-    if (hidden) hidden.value = projectIndex;
-
-    card.querySelectorAll(".chv-project-item").forEach(el => el.classList.remove("chv-selected"));
-    card.querySelector(`.chv-project-item[data-project-index="${projectIndex}"]`)
-      ?.classList.add("chv-selected");
-
+ 
+    const amount = parseFloat(amountInput.value);
+    if (isNaN(amount) || amount < zecPerVote) return; // guard, shouldn't happen
+    if (!balanceError && amount > balance) return;      // guard, shouldn't happen
+ 
+    const hiddenProject = card.querySelector(".chv-selected-project-index");
+    if (hiddenProject) hiddenProject.value = projectIndex;
+ 
+    const hiddenAmount = card.querySelector(".chv-selected-vote-amount");
+    if (hiddenAmount) hiddenAmount.value = amount;
+ 
+    card.querySelectorAll(".chv-project-item").forEach(el => {
+      el.classList.remove("chv-selected");
+      const amtLabel = el.querySelector(".chv-project-vote-amount");
+      if (amtLabel) amtLabel.textContent = "";
+    });
+ 
+    const selectedItem = card.querySelector(
+      `.chv-project-item[data-project-index="${projectIndex}"]`
+    );
+    if (selectedItem) {
+      selectedItem.classList.add("chv-selected");
+      const amtLabel = selectedItem.querySelector(".chv-project-vote-amount");
+      if (amtLabel) amtLabel.textContent = `Voting ${amount} ZEC`;
+    }
+ 
     const voteBtn = document.querySelector("#claim-task");
     if (voteBtn) {
       voteBtn.classList.add("enabled");
@@ -3396,10 +3493,11 @@ async function openCoinHolderVoteModal({ card, zecPerVote, projectIndex, project
       voteBtn.removeAttribute("disabled");
       voteBtn.style.cursor = "pointer";
     }
-
+ 
     close();
   });
 }
+
 
 
 function renderTask(task){
@@ -3475,30 +3573,30 @@ function renderTask(task){
 </div>`;
   }
 else if (task.type === "coin_holder_vote") {
-
-  const zecPerVote = task.config?.zecPerVote || "0";
+ 
+  const zecPerVote = task.config?.zecPerVote || "0"; // ← this is now the MINIMUM per vote
   const projects = task.config?.projects || [];
-
+ 
   return `
 <div class="card-container-quest coin-holder-vote"
      data-type="coin_holder_vote"
      data-task-id="${task.id}"
      data-zec-per-vote="${zecPerVote}"
      style="color:#F3B724">
-
+ 
   <div class="badge-quest">
     <span class="badge-icon-quest">${PLATFORM_ICONS["coin_holder_vote"]?.icon || ""}</span>
     <span>Coin Holder Vote</span>
   </div>
-
+ 
   <div class="card-wrapper-quest">
     <div class="card-quest">
       <div class="content-quest chv-live-root">
-
+ 
         <div class="chv-meta-row">
-          <span class="chv-meta-item">${zecPerVote} ZEC / vote</span>
+          <span class="chv-meta-item">Min ${zecPerVote} ZEC / vote</span>
         </div>
-
+ 
         <div class="chv-projects-list">
           ${projects.map((p, i) => `
             <button type="button" class="chv-project-item"
@@ -3506,20 +3604,23 @@ else if (task.type === "coin_holder_vote") {
                     data-project-name="${escapeHtmlChv(p.name || '')}">
               <span class="chv-project-name">${escapeHtmlChv(p.name || `Project ${i+1}`)}</span>
               ${p.description ? `<span class="chv-project-desc">${escapeHtmlChv(p.description)}</span>` : ""}
+              <span class="chv-project-vote-amount"></span>
               <span class="chv-project-check"></span>
             </button>
           `).join("")}
         </div>
-
+ 
         <input type="hidden" class="chv-selected-project-index" value="">
+        <input type="hidden" class="chv-selected-vote-amount" value="">
         <p style="display:none" class="coin_holder_vote-error"></p>
-
+ 
       </div>
     </div>
   </div>
-
+ 
 </div>`;
 }
+
   /* ============================
      DISCORD
      ============================ */
@@ -4688,7 +4789,6 @@ function renderClaimSection(subquest, ui, socials_to_show, tasks = []) {
       <div class="cool-display claim-ppqq" style="display: none">
         Try again in:
         <span class="cooldown-retry">3s</span>
-      </div>
 
       ${!completed ? `
         ${
@@ -5910,6 +6010,22 @@ async function handleClaim(subquestId, claimBtn){
       };
     });
 
+    const coinHolderVoteAnswers = {};
+    
+    document.querySelectorAll('.card-container-quest.coin-holder-vote').forEach(card => {
+      const taskId = card.dataset.taskId;
+      if (!taskId) return;
+    
+      const projectIndex = card.querySelector(".chv-selected-project-index")?.value ?? "";
+      const voteAmount    = card.querySelector(".chv-selected-vote-amount")?.value ?? "";
+    
+      if (projectIndex === "" || voteAmount === "") return;
+    
+      coinHolderVoteAnswers[taskId] = {
+        project_index: projectIndex,
+        amount: voteAmount
+      };
+    });
 
     const subquestId = claimBtn.dataset.subquestId;
 
@@ -5925,6 +6041,7 @@ async function handleClaim(subquestId, claimBtn){
     formData.append("puzzle_answers", JSON.stringify(puzzleAnswers)); 
     formData.append("visit_link_answers", JSON.stringify(visitLinkAnswers));
     formData.append("twitter_reply_answers", JSON.stringify(twitterReplyAnswers));
+    formData.append("coin_holder_vote_answers", JSON.stringify(coinHolderVoteAnswers));
 
 
 

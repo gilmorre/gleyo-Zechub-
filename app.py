@@ -137,7 +137,7 @@ from backend.notifications.notifications import increment_review_notification
 from backend.utils.scheduler import check_and_update_invite_status
 from backend.quests.check_analytics import generate_all_insights
 from backend.quests.invite_validation import invited_user_is_valid
-from backend.utils.upload_service import upload_async, send_push_notification_async, send_discord_message_async
+from backend.utils.upload_service import upload_async, send_push_notification_async, send_discord_message_async, send_quest_emails_async
 import backend.utils.ai_init as ai_init
 
 # ─────────────────────────────────────────────────────────────
@@ -191,7 +191,7 @@ from backend.communities.CommunityUserRole_models import (
 )
 from backend.quests.quest_models import Quest
 from backend.quests.sub_quest_models import Subquest, SubquestRun
-from backend.quests.task_models import Task, PreviewTaskState
+from backend.quests.task_models import Task, PreviewTaskState, CoinHolderVoteTally, CoinHolderVote
 from backend.quests.task_histr import TaskAttemptHistory
 from backend.quests.task_complete import TaskCompletion
 from backend.quests.subquest_completion import SubquestCompletion
@@ -217,6 +217,7 @@ from backend.notifications.BugReport import BugReport
 # ─────────────────────────────────────────────────────────────
 from backend.auth.usertwitter import UserTwitter, TwitterMentionInvite
 from backend.auth.usertelegram import UserTelegram
+
 from backend.auth.userdiscord import UserDiscord
 from backend.auth.useryoutube import UserYouTube
 from backend.auth.usertiktok import UserTikTok
@@ -10573,8 +10574,6 @@ def remove_xp_everywhere(completion):
 
 
 
-import traceback
-
 @app.route('/api/subquest_review/<int:completion_id>/<int:review_id>', methods=['POST'])
 @login_required
 def review_subquest(completion_id, review_id):
@@ -10588,27 +10587,22 @@ def review_subquest(completion_id, review_id):
     if task_review.subquest_completion_id != completion.id:
         return jsonify({"success": False, "error": "Mismatch"}), 400
 
-    try:
-        result = process_single_review(
-            completion,
-            task_review,
-            status,
-            current_user.id,
-            comment=data.get("comment"),
-            star=data.get("star", False),
-            free_xp=data.get("free_xp", 0),
-            flag=data.get("flag", False)
-        )
-        db.session.commit()
-    except Exception:
-        db.session.rollback()
-        app.logger.error(
-            "review_subquest failed | completion_id=%s review_id=%s status=%s\n%s",
-            completion_id, review_id, status, traceback.format_exc()
-        )
-        return jsonify({"success": False, "error": "Internal error while processing review"}), 500
+    result = process_single_review(
+        completion,
+        task_review,
+        status,
+        current_user.id,
+        comment=data.get("comment"),
+        star=data.get("star", False),
+        free_xp=data.get("free_xp", 0),
+        flag=data.get("flag", False)
+    )
+
+    db.session.commit()
 
     return jsonify(result)
+
+
 
 
 @app.route('/api/subquest_review_bulk', methods=['POST'])
@@ -10630,38 +10624,32 @@ def review_subquest_bulk():
         SubquestCompletion.id.in_(completion_ids)
     ).all()
 
-    try:
-        for completion in completions:
+    for completion in completions:
 
-            task_review = TaskReview.query.filter_by(
-                subquest_completion_id=completion.id
-            ).first()
+        task_review = TaskReview.query.filter_by(
+            subquest_completion_id=completion.id
+        ).first()
 
-            if not task_review:
-                continue
+        if not task_review:
+            continue
 
-            result = process_single_review(
-                completion,
-                task_review,
-                status,
-                reviewer_id
-            )
-
-            results.append(result)
-
-        db.session.commit()
-    except Exception:
-        db.session.rollback()
-        app.logger.error(
-            "review_subquest_bulk failed | completion_ids=%s status=%s\n%s",
-            completion_ids, status, traceback.format_exc()
+        result = process_single_review(
+            completion,
+            task_review,
+            status,
+            reviewer_id
         )
-        return jsonify({"success": False, "error": "Internal error while processing bulk review"}), 500
+
+        results.append(result)
+
+    db.session.commit()
 
     return jsonify({
         "success": True,
         "updated": results
     })
+
+
 
 
 def process_single_review(completion, task_review, status, reviewer_id,
@@ -15523,18 +15511,69 @@ def humanize_from_10k(n):
 
 
 
+def get_coin_holder_vote_result(task):
+    """
+    task: a Task with type == 'coin_holder_vote'
+    Returns None if no votes yet, otherwise a dict describing the
+    leading project + computed stats for display.
+    """
+    config = task.config or {}
+    try:
+        zec_per_vote = Decimal(str(config.get("zecPerVote", "0")))
+    except Exception:
+        zec_per_vote = Decimal("0")
 
+    tallies = (
+        CoinHolderVoteTally.query
+        .filter_by(task_id=task.id)
+        .order_by(
+            CoinHolderVoteTally.total_amount.desc(),
+            CoinHolderVoteTally.vote_count.desc(),
+        )
+        .all()
+    )
+
+    if not tallies:
+        return None
+
+    winner = tallies[0]
+
+    if zec_per_vote > 0:
+        computed_votes = (winner.total_amount / zec_per_vote)
+    else:
+        computed_votes = Decimal("0")
+
+    total_zec_all = sum((t.total_amount or Decimal("0")) for t in tallies)
+
+    return {
+        "project_name": winner.project_name,
+        "project_index": winner.project_index,
+        "total_zec": winner.total_amount,
+        "vote_count": winner.vote_count,         
+        "computed_votes": computed_votes,       
+        "zec_per_vote": zec_per_vote,
+        "share_pct": (
+            round(float(winner.total_amount / total_zec_all) * 100, 2)
+            if total_zec_all > 0 else 0.0
+        ),
+        "all_projects": [
+            {
+                "project_name": t.project_name,
+                "total_zec": t.total_amount,
+                "vote_count": t.vote_count,
+                "computed_votes": (t.total_amount / zec_per_vote) if zec_per_vote > 0 else Decimal("0"),
+            }
+            for t in tallies
+        ],
+    }
 
 
 @app.route('/<community_slug>/result/<string:subquest_uuid>')
 @login_required
 def result_html(community_slug, subquest_uuid):
     community = Community.query.filter_by(slug=community_slug).first_or_404()
-
-    # ✅ Get the subquest
     subquest = Subquest.query.filter_by(uuid=subquest_uuid).first_or_404()
 
-    # ✅ Get stats
     stats = get_subquest_attempt_stats(subquest.id)
 
     if stats["total_attempts"] > 0:
@@ -15544,7 +15583,6 @@ def result_html(community_slug, subquest_uuid):
         success_rate = 0.0
         has_submissions = False
 
-    # ✅ Color band logic
     if not has_submissions:
         success_band = "none"
     elif success_rate <= 20:
@@ -15556,23 +15594,26 @@ def result_html(community_slug, subquest_uuid):
     else:
         success_band = "high"
 
+    vote_task = next(
+        (t for t in subquest.tasks if t.type == "coin_holder_vote"), None
+    )
+    vote_result = get_coin_holder_vote_result(vote_task) if vote_task else None
+
     return render_template(
         "result.html",
         community=community,
         community_slug=community_slug,
         subquest=subquest,
-
         total_attempts_raw=stats["total_attempts"],
         total_success_raw=stats["total_success"],
-
         total_attempts_human=humanize_from_10k(stats["total_attempts"]),
         total_success_human=humanize_from_10k(stats["total_success"]),
-
         success_rate=round(success_rate, 2),
         has_submissions=has_submissions,
-        success_band=success_band
+        success_band=success_band,
+        vote_task=vote_task,
+        vote_result=vote_result,
     )
-
 
  
 @app.route("/api/quest-progress/<int:quest_id>")
@@ -16304,7 +16345,8 @@ def publish_subquest(community_slug):
                 },
                 room=f"community_{community.id}"
             )
-
+            send_quest_emails_async(community, quest, subquest)
+            
             if community.discord_guild:
                 setting = DiscordNotificationSetting.query.filter_by(
                     guild_id=community.discord_guild.id,
@@ -21104,6 +21146,7 @@ def claim_subquest(subquest_id):
     poll_other_answers  = parse_json_field("poll_other_answers")
     puzzle_answers      = parse_json_field("puzzle_answers") 
     visit_link_answers  = parse_json_field("visit_link_answers")
+    coin_holder_vote_answers = parse_json_field("coin_holder_vote_answers")
 
 
 
@@ -21371,6 +21414,114 @@ def claim_subquest(subquest_id):
                 failed_inputs[task.id] = {"partnership": "not joined or banned"}
 
 
+        elif task.type == "coin_holder_vote":
+
+            payload = coin_holder_vote_answers.get(str(task.id)) or {}
+
+            projects = (task.config or {}).get("projects") or []
+            try:
+                min_vote = Decimal(str((task.config or {}).get("zecPerVote", "0")))
+            except Exception:
+                min_vote = Decimal("0")
+
+            raw_project_index = payload.get("project_index")
+            raw_amount = payload.get("amount")
+
+            try:
+                project_index = int(raw_project_index)
+            except (TypeError, ValueError):
+                project_index = None
+
+            try:
+                vote_amount = Decimal(str(raw_amount))
+            except Exception:
+                vote_amount = None
+
+            is_valid = False
+
+            if project_index is None or project_index < 0 or project_index >= len(projects):
+                errors[task.id] = "Select a project to vote for."
+                failed_inputs[task.id] = {"coin_holder_vote": "invalid_project"}
+
+            elif vote_amount is None or vote_amount <= 0:
+                errors[task.id] = "Enter a vote amount."
+                failed_inputs[task.id] = {"coin_holder_vote": "invalid_amount"}
+
+            elif vote_amount < min_vote:
+                errors[task.id] = f"Minimum vote is {min_vote} ZEC."
+                failed_inputs[task.id] = {"coin_holder_vote": "below_minimum"}
+
+            else:
+                project = projects[project_index]
+                project_name = project.get("name", f"Project {project_index + 1}")
+
+                user_bal = UserBalance.query.filter_by(user_id=user.id).with_for_update().first()
+                current_balance = (user_bal.balance if user_bal else None) or Decimal("0")
+
+                if not user_bal or vote_amount > current_balance:
+                    errors[task.id] = (
+                        "Insufficient ZEC balance for this vote. "
+                        "Please deposit more ZEC to continue."
+                    )
+                    failed_inputs[task.id] = {"coin_holder_vote": "insufficient_balance"}
+
+                else:
+                    user_bal.balance = current_balance - vote_amount
+                    user_bal.updated_at = datetime.utcnow()
+
+                    db.session.add(UserTransaction(
+                        user_id=user.id,
+                        type="out",
+                        amount=vote_amount,
+                        token="ZEC",
+                        status="confirmed",
+                        community_id=subquest.quest.community_id,
+                        remark=f"Coin holder vote · {subquest.name} · {project_name} · completion:{subquest_completion.id}",
+                    ))
+
+                    db.session.add(CoinHolderVote(
+                        community_id=subquest.quest.community_id,
+                        subquest_id=subquest.id,
+                        task_id=task.id,
+                        user_id=user.id,
+                        project_index=project_index,
+                        project_name=project_name,
+                        amount=vote_amount,
+                        token="ZEC",
+                        subquest_completion_id=subquest_completion.id,
+                    ))
+
+                    tally = (
+                        CoinHolderVoteTally.query
+                        .filter_by(task_id=task.id, project_index=project_index)
+                        .with_for_update()
+                        .first()
+                    )
+
+                    if not tally:
+                        tally = CoinHolderVoteTally(
+                            community_id=subquest.quest.community_id,
+                            task_id=task.id,
+                            project_index=project_index,
+                            project_name=project_name,
+                            vote_count=0,
+                            total_amount=Decimal("0"),
+                        )
+                        db.session.add(tally)
+                        db.session.flush()
+
+                    tally.vote_count = (tally.vote_count or 0) + 1
+                    tally.total_amount = (tally.total_amount or Decimal("0")) + vote_amount
+                    tally.updated_at = datetime.utcnow()
+
+                    print(f"🗳️ Recorded vote: user {user.id} → '{project_name}' ({vote_amount} ZEC)")
+
+                    is_valid = True
+                    cleaned_input["coin_holder_vote"] = {
+                        "project_index": project_index,
+                        "project_name": project_name,
+                        "amount": str(vote_amount),
+                    }
 
 
         # inside for task in tasks loop
@@ -21543,7 +21694,7 @@ def claim_subquest(subquest_id):
         # --- Store attempt history ---
         instant_success_types = [
             "discord", "youtube", "quiz", "twitter", "partnership_quest", "partnership","Visit link","p.o.h", "github",
-            "invite", "poll", "Optionscale(numbers)", "Optionscale(star)", "puzzle"
+            "invite", "poll", "Optionscale(numbers)", "Optionscale(star)", "coin_holder_vote", "puzzle"
         ]
 
         if not is_valid:
@@ -31956,6 +32107,140 @@ class TwitterMentionInviteAdmin(BaseAdmin):
     can_view_details = True
     
 
+
+class CoinHolderVoteAdmin(BaseAdmin):
+
+    can_create = True
+    can_edit = True
+    can_delete = True
+
+    column_list = (
+        "id",
+        "community",
+        "subquest_id",
+        "task_id",
+        "user",
+        "project_index",
+        "project_name",
+        "amount",
+        "token",
+        "subquest_completion_id",
+        "created_at",
+    )
+
+    column_filters = (
+        "community",
+        "token",
+        "project_name",
+        "created_at",
+    )
+
+    column_searchable_list = (
+        "project_name",
+        "user.username",
+        "user.email",
+        "community.name",
+    )
+
+    column_default_sort = ("created_at", True)
+
+    form_columns = (
+        "community",
+        "subquest_id",
+        "task_id",
+        "user",
+        "project_index",
+        "project_name",
+        "amount",
+        "token",
+        "subquest_completion_id",
+    )
+
+    form_ajax_refs = {
+        "user": {
+            "fields": ("username", "email"),
+        },
+        "community": {
+            "fields": ("name",),
+        },
+    }
+
+    column_labels = {
+        "id": "ID",
+        "community": "Community",
+        "subquest_id": "Subquest ID",
+        "task_id": "Task ID",
+        "user": "Voter",
+        "project_index": "Project Index",
+        "project_name": "Project",
+        "amount": "Amount",
+        "token": "Token",
+        "subquest_completion_id": "Completion ID",
+        "created_at": "Voted At",
+    }
+
+    can_view_details = True
+
+
+class CoinHolderVoteTallyAdmin(BaseAdmin):
+
+    can_create = True
+    can_edit = True
+    can_delete = True
+
+    column_list = (
+        "id",
+        "community",
+        "task_id",
+        "project_index",
+        "project_name",
+        "vote_count",
+        "total_amount",
+        "updated_at",
+    )
+
+    column_filters = (
+        "community",
+        "project_name",
+        "updated_at",
+    )
+
+    column_searchable_list = (
+        "project_name",
+        "community.name",
+    )
+
+    column_default_sort = ("total_amount", True)
+
+    form_columns = (
+        "community",
+        "task_id",
+        "project_index",
+        "project_name",
+        "vote_count",
+        "total_amount",
+    )
+
+    form_ajax_refs = {
+        "community": {
+            "fields": ("name",),
+        },
+    }
+
+    column_labels = {
+        "id": "ID",
+        "community": "Community",
+        "task_id": "Task ID",
+        "project_index": "Project Index",
+        "project_name": "Project",
+        "vote_count": "Votes",
+        "total_amount": "Total ZEC",
+        "updated_at": "Last Updated",
+    }
+
+    can_view_details = True
+
+
 admin.add_view(UserAdmin(Users, db.session))
 admin.add_view(UserTwoFactorAdmin(UserTwoFactor, db.session))
 admin.add_view(UserSessionAdmin(UserSession, db.session))
@@ -31998,6 +32283,8 @@ admin.add_view(SubquestConditionAdmin(SubquestCondition, db.session))
 admin.add_view(UserConditionStatusAdmin(UserConditionStatus, db.session))
 admin.add_view(TaskReviewAdmin(TaskReview, db.session))
 admin.add_view(TaskReviewHistoryAdmin(TaskReviewHistory, db.session))
+admin.add_view(CoinHolderVoteAdmin(CoinHolderVote, db.session))
+admin.add_view(CoinHolderVoteTallyAdmin(CoinHolderVoteTally, db.session))
 admin.add_view(SubquestRewardAdmin(SubquestReward, db.session))
 admin.add_view(ResetTrackerAdmin(ResetTracker, db.session))
 admin.add_view(TaskAdmin(Task, db.session))

@@ -170,32 +170,66 @@
 </style>
 
 <div style="display: flex; flex-direction: column; width: 100%;">
-  <div class="stats-table">
 
-    <!-- Submissions (plain text) -->
-    <div class="stat-row">
-      <span class="stat-label">Submissions</span>
-      <span class="stat-value plain">{{ total_attempts_raw|default(0) }}</span>
+  {% if vote_task %}
+    {% if vote_result %}
+      <div class="stats-table">
+        <div class="stat-row">
+          <span class="stat-label">Leading project</span>
+          <span class="stat-value plain">{{ vote_result.project_name }}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Total ZEC voted</span>
+          <span class="stat-value plain">{{ vote_result.total_zec }} ZEC</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Votes ({{ vote_result.zec_per_vote }} ZEC/vote)</span>
+          <span class="stat-value plain">{{ vote_result.computed_votes }}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Voters</span>
+          <span class="stat-value plain">{{ vote_result.vote_count }}</span>
+        </div>
+        <div class="stat-row success-rate-row rate-high">
+          <span class="stat-label">Share of total</span>
+          <span class="stat-value rate-badge">{{ vote_result.share_pct }}%</span>
+        </div>
+      </div>
+    {% else %}
+      <div class="stats-table">
+        <div class="hushby" style="margin-top:0;">
+          No votes cast yet.<br>
+          <span class="entry">Results will appear here</span>
+        </div>
+      </div>
+    {% endif %}
+
+  {% else %}
+    <div class="stats-table">
+
+      <div class="stat-row">
+        <span class="stat-label">Submissions</span>
+        <span class="stat-value plain">{{ total_attempts_raw|default(0) }}</span>
+      </div>
+
+      <div class="stat-row">
+        <span class="stat-label">Success</span>
+        <span class="stat-value plain">{{ total_success_raw|default(0) }}</span>
+      </div>
+
+      <div class="stat-row success-rate-row {{ 'rate-' ~ success_band if has_submissions else 'rate-none' }}">
+        <span class="stat-label">Success rate</span>
+        <span class="stat-value rate-badge">
+          {{ success_rate|default(0) }}%
+        </span>
+      </div>
+
     </div>
 
-    <!-- Success (plain text) -->
-    <div class="stat-row">
-      <span class="stat-label">Success</span>
-      <span class="stat-value plain">{{ total_success_raw|default(0) }}</span>
+    <div class="hushby">
+      No one has completed this quest yet.<br>
+      <span class="entry">Results will appear here</span>
     </div>
+  {% endif %}
 
-    <!-- Success Rate (ONLY BADGE COLORED) -->
-    <div class="stat-row success-rate-row {{ 'rate-' ~ success_band if has_submissions else 'rate-none' }}">
-      <span class="stat-label">Success rate</span>
-      <span class="stat-value rate-badge">
-        {{ success_rate|default(0) }}%
-      </span>
-    </div>
-
-  </div>
-
-  <div class="hushby">
-    No one has completed this quest yet.<br>
-    <span class="entry">Results will appear here</span>
-  </div>
 </div>

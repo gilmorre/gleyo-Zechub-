@@ -10,7 +10,7 @@ class Sprint(db.Model):
     start_date = db.Column(db.DateTime)   
     end_date = db.Column(db.DateTime)
     description = db.Column(db.Text)
-    rewards = db.Column(db.String(100))
+    rewards = db.Column(db.Text)         
     end_zone = db.Column(db.String(50))
     color = db.Column(db.String(20))
     distribution = db.Column(db.String(100))
@@ -22,3 +22,5 @@ class Sprint(db.Model):
 
     def __repr__(self):
         return f"<Sprint {self.title}>"
+
+

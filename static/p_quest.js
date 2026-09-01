@@ -4802,6 +4802,7 @@ function renderClaimSection(subquest, ui, socials_to_show, tasks = []) {
       <div class="cool-display claim-ppqq" style="display: none">
         Try again in:
         <span class="cooldown-retry">3s</span>
+      </div>
 
       ${!completed ? `
         ${

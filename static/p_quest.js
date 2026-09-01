@@ -3147,14 +3147,27 @@ function formatSpaceDateTime(iso){
   return `${dateStr} · ${timeStr}`;
 }
 
+const SPACE_GRACE_PERIOD_MS = 60 * 60 * 1000; 
+
 function getSpaceState(isLive, scheduledIso){
   if(isLive) return "live";
   if(!scheduledIso) return "ended";
+
   const d = new Date(scheduledIso);
   if(isNaN(d)) return "ended";
-  return d.getTime() > Date.now() ? "upcoming" : "ended";
-}
 
+  const scheduledTime = d.getTime();
+  const now = Date.now();
+
+  // still in the future → upcoming
+  if(scheduledTime > now) return "upcoming";
+
+  // scheduled time has passed, but still inside the grace window →
+  // treat it as live instead of immediately calling it ended
+  if(now - scheduledTime < SPACE_GRACE_PERIOD_MS) return "live";
+
+  return "ended";
+}
 function spaceCtaMeta(state){
   if(state === "live") {
     return { label: "Join Space Now", bg: "#1d9bf0", icon: SpaceSVGQ, disabled: false };

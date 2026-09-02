@@ -17759,7 +17759,7 @@ def subquest_content(community_slug, quest_uuid, subquest_uuid):
 def utcnow():
     return datetime.now(timezone.utc)
 
-@app.route('/apiinit/<community_slug>/quest/<string:quest_uuid>/<string:subquest_uuid>')
+@app.route('/api/qdata/<community_slug>/quest/<string:quest_uuid>/<string:subquest_uuid>')
 def quester_view(community_slug, quest_uuid, subquest_uuid):
     user    = current_user if current_user.is_authenticated else None
     user_id = int(user.id) if user else None

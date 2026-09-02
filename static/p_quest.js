@@ -5276,6 +5276,7 @@ async function routeToSubquest(box){
 
     let stateUI = "";
 
+    /* ===== PENDING ===== */
     if (isPending) {
       stateUI = renderQuestStateUI({
         img: "https://zupdpwnloewdkjqsymdm.supabase.co/storage/v1/object/public/uploads/5/channels/21/191680b9-5075-4765-80dd-1982f28297bf.png",
@@ -5283,6 +5284,8 @@ async function routeToSubquest(box){
         showNext 
       });
     }
+
+    /* ===== COMPLETED ===== */
     else if (isCompleted) {
       stateUI = renderQuestStateUI({
         img: "https://zupdpwnloewdkjqsymdm.supabase.co/storage/v1/object/public/uploads/5/channels/21/7509f516-d6bd-4ac1-927f-816a3e3ececa.png",
@@ -5290,6 +5293,8 @@ async function routeToSubquest(box){
         showNext 
       });
     }
+
+    /* ===== NO RETRY ===== */
     else if (isNoRetry) {
       stateUI = renderQuestStateUI({
         img: "https://zupdpwnloewdkjqsymdm.supabase.co/storage/v1/object/public/uploads/5/channels/21/f227963b-ff82-4ea7-acaf-954ef84e5701.png",
@@ -5297,6 +5302,8 @@ async function routeToSubquest(box){
         showNext: false
       });
     }
+
+    /* ===== LOCKED ===== */
     else if (isLocked) {
       stateUI = renderQuestStateUI({
         img: "https://zupdpwnloewdkjqsymdm.supabase.co/storage/v1/object/public/uploads/5/channels/21/f227963b-ff82-4ea7-acaf-954ef84e5701.png",
@@ -5308,23 +5315,30 @@ async function routeToSubquest(box){
     container.innerHTML = "";
     container.innerHTML = stateUI;
 
+    // ⬆️ scroll content container back to top
     const scrollTargetState = document.querySelector(".quest-complete.quest-content") || document.querySelector(".quest-content");
     if (scrollTargetState) scrollTargetState.scrollTop = 0;
 
     window.__ACTIVE_SUBQUEST__ = { questUUID, subUUID };
 
-    return;
+    return; // ⛔ stop API fetch, but UI is rendered
   }
 
+  /* =========================
+     🚫 SAME ROUTE GUARD
+  ========================= */
   if(
     window.__ACTIVE_SUBQUEST__ &&
     window.__ACTIVE_SUBQUEST__.questUUID === questUUID &&
     window.__ACTIVE_SUBQUEST__.subUUID === subUUID
   ){
     console.log("⛔ Same subquest → no refetch");
-    return;
+    return; // 🔥 STOP HERE
   }
 
+  /* =========================
+     🚫 FETCH LOCK
+  ========================= */
   if(window.__FETCH_LOCK__){
     console.log("⛔ Fetch in progress → blocked");
     return;
@@ -5332,111 +5346,15 @@ async function routeToSubquest(box){
 
   window.__FETCH_LOCK__ = true;
 
+  /* =========================
+     ACTIVE STATE
+  ========================= */
   document.querySelectorAll(".preview-box.active")
     .forEach(b => b.classList.remove("active"));
 
   box.classList.add("active");
 
   container.classList.remove("quest-hidden");
-  layout.classList.add("quest-open");
-
-  if(!container || !layout) {
-    window.__FETCH_LOCK__ = false;
-    return;
-  }
-
-  try{
-    // 🔥 RENAMED — "apiinit" was matching ad-blocker / crypto-scam
-    // filter-list rules for some users (ERR_BLOCKED_BY_CLIENT).
-    // "/qdata/" is neutral vocabulary, same route logic server-side.
-    const res = await fetch(`/qdata/${communitySlug}/quest/${questUUID}/${subUUID}`);
-
-    let data;
-    try {
-      data = await res.json();
-    } catch (parseErr) {
-      // response came back but wasn't JSON (e.g. an HTML error page)
-      container.innerHTML = `<div class="quest-error">Something went wrong loading this quest. Please try again.</div>`;
-      window.__FETCH_LOCK__ = false;
-      return;
-    }
-
-    if(!res.ok){
-      container.innerHTML = `<div class="quest-error">Failed to load quest</div>`;
-      window.__FETCH_LOCK__ = false;
-      return;
-    }
-
-    container.innerHTML = renderQuestComplete(data);
-
-    let scrollTarget;
-    if (window.innerWidth <= 767) {
-      scrollTarget = document.querySelector(".quest-complete.quest-content");
-    } else {
-      scrollTarget = document.querySelector(".quest-content");
-    }
-    if (scrollTarget) scrollTarget.scrollTop = 0;
-
-    initSocialTooltips(communitySlug);
-
-    const cooldownUntilRaw = data.subquest.cooldown_until || null;
-    const cooldownUntilDate = parseUtc(cooldownUntilRaw);
-
-    if (
-      cooldownUntilDate &&
-      cooldownUntilDate.getTime() > Date.now()
-    ) {
-      updateActivePreviewBoxState("cooldown", {
-        cooldown_until: cooldownUntilDate.toISOString()
-      });
-      updateClaimButtonCooldown(cooldownUntilDate);
-      initCooldownTimers();
-    }
-
-    initRewardModals(data.rewards);
-    initSubquestTasks();
-    hookCoinHolderVoteTasks(document);
-
-    const inviteTask = document.querySelector(".card-container-quest.invite-task");
-    if(inviteTask){
-      const taskId = inviteTask.dataset.taskId;
-      const overlay = createInviteOverlay(communitySlug, taskId);
-      initInviteModal(overlay);
-      hookInviteTaskProgress(container);
-    }
-
-    window.__ACTIVE_SUBQUEST__ = { questUUID, subUUID };
-    window.__UI_STATE__ = data.ui_state || {};
-
-    renderMobileModuleStrip();
-    syncMobileModuleActive();
-    initPreviewKeyboardNav();
-    initArrowNavigation();
-
-  }catch(err){
-    console.error(err);
-
-    // fetch() only throws TypeError for network-level failures:
-    // offline, DNS failure, CORS, OR an ad-blocker/privacy-extension
-    // veto (ERR_BLOCKED_BY_CLIENT). We can't tell those apart from
-    // JS, so give the user the most actionable message.
-    if (err instanceof TypeError) {
-      container.innerHTML = `
-        <div class="quest-error">
-          Couldn't load this quest - this can happen if an ad-blocker
-          or privacy extension (uBlock Origin, Brave Shields, AdGuard, etc.)
-          is blocking the request. Try disabling it for this site
-          and refreshing the page.
-        </div>
-      `;
-    } else {
-      container.innerHTML = `<div class="quest-error">Network error</div>`;
-    }
-
-  }finally{
-    window.__FETCH_LOCK__ = false;
-  }
-}
 
 
 

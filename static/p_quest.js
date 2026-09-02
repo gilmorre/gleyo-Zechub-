@@ -5355,6 +5355,108 @@ async function routeToSubquest(box){
   box.classList.add("active");
 
   container.classList.remove("quest-hidden");
+  layout.classList.add("quest-open");
+
+  if(!container || !layout) {
+    window.__FETCH_LOCK__ = false;
+    return;
+  }
+
+  try{
+    // 🔥 renamed from "/apiinit/" → "/api/qdata/"
+    // ("apiinit" was matching ad-blocker / crypto-scam filter-list rules
+    //  and causing ERR_BLOCKED_BY_CLIENT for some users)
+    const res = await fetch(`/api/qdata/${communitySlug}/quest/${questUUID}/${subUUID}`);
+    const data = await res.json();
+
+    if(!res.ok){
+      container.innerHTML = `<div class="quest-error">Failed to load quest</div>`;
+      window.__FETCH_LOCK__ = false;
+      return;
+    }
+    let stateUI = "";
+
+    container.innerHTML = renderQuestComplete(data);
+
+    let scrollTarget;
+    if (window.innerWidth <= 767) {
+      scrollTarget = document.querySelector(".quest-complete.quest-content");
+    } else {
+      scrollTarget = document.querySelector(".quest-content");
+    }
+    if (scrollTarget) scrollTarget.scrollTop = 0;
+
+    initSocialTooltips(communitySlug);
+
+    /* backend source of truth */
+    const cooldownUntilRaw = data.subquest.cooldown_until || null;
+    const cooldownUntilDate = parseUtc(cooldownUntilRaw);
+
+    /* if cooldown exists and is future (UTC-safe) */
+    if (
+      cooldownUntilDate &&
+      cooldownUntilDate.getTime() > Date.now()
+    ) {
+      // ✅ STATE
+      updateActivePreviewBoxState("cooldown", {
+        cooldown_until: cooldownUntilDate.toISOString()
+      });
+
+      // ✅ UI
+      updateClaimButtonCooldown(cooldownUntilDate);
+
+      // ✅ TIMER ENGINE
+      initCooldownTimers();
+    }
+
+    initRewardModals(data.rewards);
+
+    initSubquestTasks();
+    hookCoinHolderVoteTasks(document);
+
+    const inviteTask = document.querySelector(".card-container-quest.invite-task");
+
+    if(inviteTask){
+      const taskId = inviteTask.dataset.taskId;
+      const overlay = createInviteOverlay(communitySlug, taskId);
+      initInviteModal(overlay);
+
+      hookInviteTaskProgress(container);
+    }
+
+    /* 🔥 save active route */
+    window.__ACTIVE_SUBQUEST__ = { questUUID, subUUID };
+    window.__UI_STATE__ = data.ui_state || {};
+
+    renderMobileModuleStrip();
+    syncMobileModuleActive();
+    /* 🔥 rebind grid AFTER render */
+    initPreviewKeyboardNav();
+    initArrowNavigation();
+
+  }catch(err){
+    console.error(err);
+
+    // fetch() only throws TypeError for network-level failures:
+    // offline, DNS failure, CORS, or an ad-blocker/privacy-extension
+    // veto (ERR_BLOCKED_BY_CLIENT). We can't tell those apart from
+    // JS, so give the user the most actionable message.
+    if (err instanceof TypeError) {
+      container.innerHTML = `
+        <div class="quest-error">
+          Couldn't load this quest — an ad-blocker or privacy extension
+          (uBlock Origin, Brave Shields, AdGuard, etc.) may be blocking
+          it. Try disabling it for this site and refreshing the page.
+        </div>
+      `;
+    } else {
+      container.innerHTML = `<div class="quest-error">Network error</div>`;
+    }
+
+  }finally{
+    window.__FETCH_LOCK__ = false;  // 🔓 unlock
+  }
+}
 
 
 

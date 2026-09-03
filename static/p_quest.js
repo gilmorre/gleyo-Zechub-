@@ -67,6 +67,116 @@ function detectSprintMode(){
   return "all";
 }
 
+const calendarSvg = `
+  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none"
+      stroke="currentColor" stroke-width="2"
+      stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="4" width="18" height="17" rx="4" ry="4"/>
+    <line x1="7.25" y1="2.5" x2="7.25" y2="5.5" />
+    <line x1="15.25" y1="2.5" x2="15.25" y2="5.5" />
+    <line x1="6" y1="9" x2="18" y2="9" />
+    <circle cx="8" cy="13" r="0.4" fill="currentColor"/>
+    <circle cx="12" cy="13" r="0.4" fill="currentColor"/>
+    <circle cx="16" cy="13" r="0.4" fill="currentColor"/>
+    <circle cx="8" cy="16.5" r="0.4" fill="currentColor"/>
+    <circle cx="12" cy="16.5" r="0.4" fill="currentColor"/>
+    <circle cx="16" cy="16.5" r="0.4" fill="currentColor"/>
+  </svg>
+`;
+
+
+function formatQuestDateRange(startIso, endIso, tz){
+  if(!startIso || !endIso) return "";
+
+  const start = parseUtc(startIso);
+  const end   = parseUtc(endIso);
+  if(!start || !end || isNaN(start) || isNaN(end)) return "";
+
+  // fall back to the viewer's browser timezone if none stored
+  const zone = tz || Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  const partsFor = (date) => {
+    const fmt = new Intl.DateTimeFormat("en-GB", {
+      timeZone: zone,
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false
+    });
+    const out = {};
+    fmt.formatToParts(date).forEach(p => { out[p.type] = p.value; });
+    return out; // { day, month, year, hour, minute }
+  };
+
+  const offsetFor = (date) => {
+    try {
+      const offParts = new Intl.DateTimeFormat("en-US", {
+        timeZone: zone,
+        timeZoneName: "shortOffset"
+      }).formatToParts(date);
+      const tzPart = offParts.find(p => p.type === "timeZoneName");
+      return tzPart ? tzPart.value.replace("GMT", "UTC") : "";
+    } catch (err) {
+      return "";
+    }
+  };
+
+  const s = partsFor(start);
+  const e = partsFor(end);
+
+  const sameYear  = s.year === e.year;
+  const sameMonth = sameYear && s.month === e.month;
+
+  // "Sep 15 2026 23:00"
+  const startLabel = `${s.month} ${s.day} ${s.year} ${s.hour}:${s.minute}`;
+
+  let endLabel;
+  if (sameMonth) {
+    endLabel = `${e.month} ${e.day} ${e.hour}:${e.minute}`;
+  } else if (sameYear) {
+    endLabel = `${e.month} ${e.day} ${e.hour}:${e.minute}`;
+  } else {
+    endLabel = `${e.month} ${e.day} ${e.year} ${e.hour}:${e.minute}`;
+  }
+
+  const startOffset = offsetFor(start);
+  const endOffset   = offsetFor(end);
+
+  // DST changed mid-range → show both offsets, otherwise just one
+  let offsetLabel = "";
+  if (startOffset && endOffset) {
+    offsetLabel = startOffset === endOffset
+      ? startOffset
+      : `${startOffset} / ${endOffset}`;
+  } else {
+    offsetLabel = startOffset || endOffset || "";
+  }
+
+  return `${startLabel} - ${endLabel}${offsetLabel ? " " + offsetLabel : ""}`;
+}
+
+function getVoteTimeState(subquest){
+  const now = Date.now();
+
+  if (subquest.vote_start_date) {
+    const start = parseUtc(subquest.vote_start_date);
+    if (start && !isNaN(start) && now < start.getTime()) {
+      return { state: "not_started", until: start };
+    }
+  }
+
+  if (subquest.vote_end_date) {
+    const end = parseUtc(subquest.vote_end_date);
+    if (end && !isNaN(end) && now > end.getTime()) {
+      return { state: "ended", until: end };
+    }
+  }
+
+  return { state: "active", until: null };
+}
+
 window.copyInviteLink = copyInviteLink
 
 async function copyInviteLink(btn) {
@@ -535,6 +645,7 @@ async function loadAllQuests() {
   initQuestFilters();
   initSprintSwipe();
   initPreviewBoxRouting();
+  initVoteCountdownChips();
 
 
 
@@ -594,6 +705,36 @@ async function loadAllQuests() {
       e.stopPropagation();
     }
   });
+}
+
+
+function initVoteCountdownChips(){
+  const chips = document.querySelectorAll(".vote-countdown-chip");
+  if (!chips.length) return;
+
+  function update(){
+    const now = Date.now();
+
+    chips.forEach(chip => {
+      const until = parseUtc(chip.dataset.voteUntil);
+      const valueEl = chip.querySelector(".vote-countdown-value");
+      if (!until || isNaN(until) || !valueEl) return;
+
+      const diff = Math.floor((until.getTime() - now) / 1000);
+
+      if (diff > 0) {
+        valueEl.textContent = formatFullCountdown(diff);
+        return;
+      }
+
+      if (chip.dataset.done === "1") return;
+      chip.dataset.done = "1";
+      valueEl.textContent = chip.dataset.voteLabel === "starts" ? "started" : "ended";
+    });
+  }
+
+  update();
+  setInterval(update, 1000);
 }
 
 
@@ -1578,6 +1719,31 @@ function renderQuest(quest) {
   return root;
 }
 
+
+function renderVoteCountdownChip(subquest){
+  if (!subquest.vote_start_date && !subquest.vote_end_date) return "";
+
+  const voteTime = getVoteTimeState(subquest);
+
+  if (voteTime.state === "active" && subquest.vote_end_date) {
+    return `
+      <span class="vote-countdown-chip" data-vote-until="${subquest.vote_end_date}" data-vote-label="ends">
+        ${cooldownSvg} Ends in <span class="vote-countdown-value">--</span>
+      </span>
+    `;
+  }
+
+  if (voteTime.state === "not_started" && subquest.vote_start_date) {
+    return `
+      <span class="vote-countdown-chip" data-vote-until="${subquest.vote_start_date}" data-vote-label="starts">
+        ${cooldownSvg} Starts in <span class="vote-countdown-value">--</span>
+      </span>
+    `;
+  }
+
+  return "";
+}
+
 function renderSubquest(subquest, questUUID) {
 
   const isLocked = computeLockState(subquest);
@@ -1586,12 +1752,14 @@ function renderSubquest(subquest, questUUID) {
     subquest.is_completed ||
     subquest.is_pending ||
     isLocked ||
+    subquest.is_expired || 
     subquest.no_retry === true;
 
   let classes = ["preview-box"];
   if (subquest.is_completed) classes.push("completed");
   if (subquest.is_pending) classes.push("pending");
   if (isLocked) classes.push("locked");
+  if (subquest.is_expired) classes.push("expired"); 
   if (subquest.no_retry === true) classes.push("try-again");
   if (subquest.cooldown_until) classes.push("try-again");
 
@@ -1623,6 +1791,7 @@ function renderSubquest(subquest, questUUID) {
       <div class="task-icons">
         ${renderTaskIcons(subquest.tasks)}
         ${subquest.recurrence ? renderRecurrence(subquest.recurrence) : ""}
+        ${renderVoteCountdownChip(subquest)}
       </div>
     </div>
 
@@ -1635,13 +1804,38 @@ function renderSubquest(subquest, questUUID) {
 
   return el;
 }
-
+function renderVotingEnded() {
+  return `
+    <div class="lock-main">
+      <div class="lock-scount" style="display:flex; align-items:center; gap:4px;">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none" width="11" height="11"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M12 6v6l4 2M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        <div class="lock-text">Voting Ended</div>
+      </div>
+    </div>
+  `;
+}
 function renderStateBadge(subquest, isLocked) {
   // 🥇 PRIORITY SYSTEM
 
   // 1) Completed overrides everything
   if (subquest.is_completed) {
     return renderCompleted();
+  }
+
+  if (subquest.is_expired) {
+    return renderVotingEnded();
   }
 
   // 2)  (permanent lock)
@@ -2051,7 +2245,24 @@ function formatCooldown(seconds) {
   return `${mo}month${mo > 1 ? "s" : ""}`;
 }
 
+function formatFullCountdown(seconds) {
+  if (seconds <= 0) return "0s";
 
+  const day = 86400, hour = 3600, minute = 60;
+
+  const d = Math.floor(seconds / day);
+  const h = Math.floor((seconds % day) / hour);
+  const m = Math.floor((seconds % hour) / minute);
+  const s = Math.floor(seconds % minute);
+
+  let parts = [];
+  if (d > 0) parts.push(`${d}d`);
+  if (d > 0 || h > 0) parts.push(`${h}h`);
+  parts.push(`${String(m).padStart(2, "0")}m`);
+  parts.push(`${String(s).padStart(2, "0")}s`);
+
+  return parts.join(" ");
+}
 
 function initCooldownTimers() {
   const timers = document.querySelectorAll(".cooldown-retry");
@@ -2069,16 +2280,19 @@ function initCooldownTimers() {
 
       const diff = Math.floor((until - now) / 1000); // seconds
 
+      const isVoteTimer = el.classList.contains("vote-opens-timer");
+
       const timerMain  = el.closest(".timer-main");
       const previewBox = el.closest(".preview-box");
 
       /* =======================
-         ACTIVE COOLDOWN
+         ACTIVE COUNTDOWN
       ======================= */
       if (diff > 0) {
-        el.innerText = formatCooldown(diff);
+        el.innerText = isVoteTimer
+          ? formatFullCountdown(diff)
+          : formatCooldown(diff);
 
-        // preview state
         if (previewBox) {
           previewBox.classList.add("try-again");
         }
@@ -2087,14 +2301,35 @@ function initCooldownTimers() {
       }
 
       /* =======================
-         EXPIRED COOLDOWN
+         EXPIRED
       ======================= */
-
-      // ✅ stop re-processing forever
       if (el.dataset.cooldownDone === "1") return;
       el.dataset.cooldownDone = "1";
 
-      // remove preview timer
+      /* ---- VOTE-OPENS TIMER: unlock live, no refresh needed ---- */
+      if (isVoteTimer) {
+        const wrap = el.closest(".vote-opens-wrap");
+        if (wrap) wrap.remove(); // drop the "Opens in" line entirely
+
+        // unblock the tasks section
+        const tasksList = document.querySelector(".tasks-list.disabled-tasks");
+        if (tasksList) {
+          tasksList.classList.remove("disabled-tasks");
+        }
+
+        // re-enable the claim/vote button if nothing else is blocking it
+        const claimBtn = document.querySelector("#claim-task");
+        if (claimBtn && !claimBtn.classList.contains("disabled-task")) {
+          claimBtn.removeAttribute("disabled");
+          claimBtn.classList.remove("disable");
+          claimBtn.classList.add("enabled");
+          claimBtn.style.cursor = "pointer";
+        }
+
+        return;
+      }
+
+      /* ---- NORMAL SUBQUEST COOLDOWN ---- */
       if (timerMain) {
         timerMain.remove();
       }
@@ -2103,12 +2338,7 @@ function initCooldownTimers() {
         previewBox.classList.remove("try-again");
       }
 
-      /* =======================
-         CLAIM BUTTON RESTORE
-      ======================= */
-
-      // 🔥 scope to THIS timer's subquest UI
-      const claimSection = el.closest(".claim-button") 
+      const claimSection = el.closest(".claim-button")
                         || document.querySelector(".claim-button");
 
       if (!claimSection) return;
@@ -2116,16 +2346,12 @@ function initCooldownTimers() {
       const claimBtn = claimSection.querySelector("#claim-task");
       const coolDisplay = claimSection.querySelector(".cool-display");
 
-      // hide cooldown text
       if (coolDisplay) {
         coolDisplay.style.display = "none";
       }
 
-      // show button but keep disabled
       if (claimBtn) {
         claimBtn.style.display = "flex";
-
-        // disabled ONCE (validation controls later)
         claimBtn.classList.remove("enabled");
         claimBtn.classList.add("disable");
         claimBtn.setAttribute("disabled", "true");
@@ -2718,6 +2944,14 @@ function renderQuestComplete(data){
 
   const socialsBlocked = hasBlockingSocials(socials_to_show);
 
+  // 🔥 new: gate on vote_start_date / vote_end_date
+  const voteTime    = getVoteTimeState(subquest);
+  const timeBlocked = voteTime.state !== "active";
+
+  // 🔥 combined — either reason disables the tasks section
+  const tasksBlocked = socialsBlocked || timeBlocked;
+  const isCoinHolderVoteQuest = tasks.some(t => t.type === "coin_holder_vote");
+
   return `
 <div class="quest-content">
 
@@ -2756,15 +2990,43 @@ function renderQuestComplete(data){
     <div class="span-gap"
          style="display:flex;box-sizing:border-box;gap:12px;flex-wrap:wrap;">
 
-      <span class="span-con">
-        ${cooldownSvg} Cooldown period: ${subquest.cooldown || "None"}
-      </span>
+    ${
+      !isCoinHolderVoteQuest
+        ? `
+          <span class="span-con">
+            ${cooldownSvg} Cooldown period: ${subquest.cooldown || "None"}
+          </span>
+        `
+        : ``
+    }
 
       <span class="span-con">
         ${recurrenceSvg} Recurrence: ${subquest.recurrence || "None"}
       </span>
 
+      ${
+        subquest.vote_start_date && subquest.vote_end_date
+          ? `
+            <span class="span-con">
+              ${calendarSvg} ${formatQuestDateRange(subquest.vote_start_date, subquest.vote_end_date, subquest.user_timezone)}
+            </span>
+          `
+          : ``
+      }
 
+      <!-- 🔥 NEW: show why tasks are locked -->
+      ${
+        voteTime.state === "not_started"
+          ? `
+            <span class="span-con vote-opens-wrap" data-vote-subquest="${subquest.uuid}">
+              ${cooldownSvg} Opens in:
+              <span class="cooldown-retry vote-opens-timer" data-cooldown-until="${voteTime.until.toISOString()}">--</span>
+            </span>
+          `
+          : voteTime.state === "ended"
+            ? `<span class="span-con voting-ended-pill">Voting has ended</span>`
+            : ``
+      }
 
       ${
         subquest.max_claim !== null && subquest.max_claim !== undefined
@@ -2842,8 +3104,8 @@ function renderQuestComplete(data){
         : ""}
 
 
-    <!-- Tasks list -->
-    <div class="tasks-list ${socialsBlocked ? "disabled-tasks" : ""}" style="width: 100%;">
+    <!-- Tasks list — 🔥 now also disabled when the vote window hasn't opened -->
+    <div class="tasks-list ${tasksBlocked ? "disabled-tasks" : ""}" style="width: 100%;">
       ${tasks.map(task => renderTask(task)).join("")}
     </div>
 
@@ -3508,6 +3770,10 @@ async function openCoinHolderVoteModal({ card, zecPerVote, projectIndex, project
     }
  
     close();
+    if (typeof validateAll === "function") {
+      validateAll();
+    }
+
   });
 }
 
@@ -5377,6 +5643,7 @@ async function routeToSubquest(box){
     let stateUI = "";
 
     container.innerHTML = renderQuestComplete(data);
+    initCooldownTimers();
 
     let scrollTarget;
     if (window.innerWidth <= 767) {
@@ -5825,7 +6092,8 @@ async function handleClaim(subquestId, claimBtn){
 
   claimBtn.setAttribute("disabled", "true");
   claimBtn.style.cursor = "wait";
-
+  const isCoinHolderVote = !!document.querySelector('.card-container-quest.coin-holder-vote');
+  const claimLabel = isCoinHolderVote ? "Vote" : "Claim";
   const disableClaimButton = () => {
     claimBtn.classList.remove("enabled");
     claimBtn.classList.add("disable");
@@ -6229,7 +6497,7 @@ async function handleClaim(subquestId, claimBtn){
     console.error(err);
     disableClaimButton();
   } finally {
-    claimBtn.innerHTML = "Claim";
+    claimBtn.innerHTML = claimLabel;
   }
 }
 

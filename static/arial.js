@@ -120,6 +120,80 @@ async function fetchInviteUsage() {
   refreshAllInviteCounters();
 }
 
+function isCoinHolderVoteActive(){
+  return !!document.querySelector(
+    '#uniqueItems .container-all-contain-yinit[data-type="coin_holder_vote"]'
+  );
+}
+
+function restoreSavedVoteDates() {
+  document.querySelectorAll('.chv-start-date-trigger, .chv-end-date-trigger').forEach(wrap => {
+    const utcValue = wrap.dataset.utcValue;
+    if (!utcValue) return;
+
+    const valueText = wrap.querySelector('.valueText');
+    if (valueText) {
+      valueText.textContent = convertUTCHumanToLocalHuman(utcValue);
+    }
+  });
+}
+
+function syncSettingsForCoinHolderVote(){
+  const active = isCoinHolderVoteActive();
+
+  ['condition','sprint','max_claims', 'instant_approval'].forEach(key=>{
+    document.querySelectorAll(`[data-setting="${key}"]`).forEach(el=>{
+      el.style.display = active ? 'none' : '';
+    });
+  });
+
+  document.querySelectorAll('.chv-date-setting').forEach(el=>{
+    el.style.display = active ? 'flex' : 'none';
+  });
+
+  validateForm();
+}
+
+function hookCoinHolderVoteDates(root = document){
+  if (window.__CHV_DATE_HOOK_BOUND__) return;
+  window.__CHV_DATE_HOOK_BOUND__ = true;
+
+  root.addEventListener('click', e => {
+    const trigger = e.target.closest(
+      '.chv-start-date-trigger .selected, .chv-end-date-trigger .selected'
+    );
+    if(!trigger) return;
+
+    const wrap = trigger.closest('.chv-start-date-trigger, .chv-end-date-trigger');
+    const isStart = wrap.classList.contains('chv-start-date-trigger');
+
+    openCustomDatePicker(trigger, (dateObj, formatted) => {
+      trigger.querySelector('.valueText').textContent = formatted;
+
+      // store the UTC-normalized value the same way conditions do
+      const utcFormatted = convertHumanDateToUTCHuman(formatted);
+      wrap.dataset.utcValue = utcFormatted;
+
+      // cross-validate start < end if both are set
+      const startWrap = document.querySelector('.chv-start-date-trigger');
+      const endWrap    = document.querySelector('.chv-end-date-trigger');
+      const startErr = document.querySelector('.chv-date-range-error');
+
+      if (startWrap?.dataset.utcValue && endWrap?.dataset.utcValue) {
+        const s = parseDisplayDate(startWrap.dataset.utcValue);
+        const en = parseDisplayDate(endWrap.dataset.utcValue);
+        if (s && en && en <= s) {
+          if (startErr) startErr.style.display = 'block';
+        } else if (startErr) {
+          startErr.style.display = 'none';
+        }
+      }
+
+      validateForm();
+    });
+  });
+}
+
 async function copyInviteLink(btn) {
   const link = btn.dataset.copyLink;
   if (!link) return;
@@ -189,6 +263,7 @@ function bindTaskPickerOnce() {
       });
 
       updateCounter?.();
+      syncSettingsForCoinHolderVote();
       if (typeof popup !== "undefined") popup.style.display = "none";
     });
   });
@@ -4646,6 +4721,8 @@ function hookTaskInteractions(root = document){
   hookGithubTasks(root);
   hookPollTasks(root);
   hookFileUploadTasks(root);
+  hookCoinHolderVoteDates(document); 
+  restoreSavedVoteDates();  
   hookVisitLinkTasks(root);
   hookInviteTasks(root);
   hookPuzzleTasks(root);
@@ -4655,6 +4732,7 @@ function hookTaskInteractions(root = document){
   callingTriggerArialAsp();
   CalledIsmobMobile();
   Loadotherside();
+  syncSettingsForCoinHolderVote();
 }
 
 
@@ -5287,6 +5365,7 @@ function hookPopupControls(root){
     setTimeout(() => {
       wrapper.remove();
       updateCounter();
+      syncSettingsForCoinHolderVote();
     }, 250);
   });
 
@@ -9729,7 +9808,11 @@ async function buildSubquestPayload() {
 
   const maxClaimInput =
     document.querySelector('.number-input-wrapper input');
+  const startWrap = document.querySelector('.chv-start-date-trigger');
+  const endWrap    = document.querySelector('.chv-end-date-trigger');
 
+  const vote_start_date = startWrap?.dataset.utcValue || null;
+  const vote_end_date    = endWrap?.dataset.utcValue || null;
   let max_claim = null;
   if (maxClaimInput?.value.trim()) {
     const val = parseInt(maxClaimInput.value, 10);
@@ -9759,6 +9842,8 @@ async function buildSubquestPayload() {
     recurrence,
     cooldown,
     max_claim,
+    vote_start_date,  
+    vote_end_date, 
     autovalidation,
     conditions,
     rewards,

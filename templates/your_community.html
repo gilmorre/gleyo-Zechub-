@@ -3982,6 +3982,22 @@ function initSubquestTasks() {
 
     return valid;
   });
+  
+  registerValidator(function(){
+    let valid = true;
+
+    getValidTaskCards('.card-container-quest.coin-holder-vote').forEach(card=>{
+      const projectIndex = card.querySelector(".chv-selected-project-index")?.value ?? "";
+      const voteAmount    = card.querySelector(".chv-selected-vote-amount")?.value ?? "";
+      const amountNum     = parseFloat(voteAmount);
+
+      if(projectIndex === "" || voteAmount === "" || isNaN(amountNum) || amountNum <= 0){
+        valid = false;
+      }
+    });
+
+    return valid;
+  });
 
   registerValidator(function(){
     let valid = true;
@@ -7397,9 +7413,9 @@ async function loadMainSettingsSection(path, push = true, previewMode = false, n
 
   if (finalPath.includes("/quest/admin/")) {
 
-    __CURRENT_SCRIPT__ = "/static/arial.js?v=4";
+    __CURRENT_SCRIPT__ = "/static/arial.js?v=7";
 
-  await loadScript("/static/arial.js?v=4");
+  await loadScript("/static/arial.js?v=7");
 
 
   if (window.AialModule) {
@@ -7440,9 +7456,9 @@ async function loadMainSettingsSection(path, push = true, previewMode = false, n
 
 
 
-    __CURRENT_SCRIPT__ = "/static/p_quest.js?v=4";
+    __CURRENT_SCRIPT__ = "/static/p_quest.js?v=2";
 
-    await loadScript("/static/p_quest.js?v=4");
+    await loadScript("/static/p_quest.js?v=2");
 
     if (window.PQUESTModule) {
       window.PQUESTModule.init();
@@ -7528,9 +7544,9 @@ async function loadMainSettingsSection(path, push = true, previewMode = false, n
   /* ---------------- INBOX ---------------- */
 
   if (finalPath.includes("/inbox")) {
-    __CURRENT_SCRIPT__ = "/static/inbox.js?v=1";
+    __CURRENT_SCRIPT__ = "/static/inbox.js?v=3";
 
-    await loadScript("/static/inbox.js?v=1");
+    await loadScript("/static/inbox.js?v=3");
     if (window.inBoxModule) {
       window.inBoxModule.init();
     }

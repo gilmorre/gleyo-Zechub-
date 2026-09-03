@@ -4,6 +4,16 @@ from sqlalchemy.sql import func
 from datetime import datetime, timedelta
 import random
 
+
+_MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+
+def _format_utc_human(dt):
+    if not dt:
+        return None
+    return f"{dt.day:02d} {_MONTHS[dt.month - 1]} {dt.hour:02d}:{dt.minute:02d} {dt.year}"
+
+
+
 class Subquest(db.Model):
     __tablename__ = "subquest"
 
@@ -36,6 +46,11 @@ class Subquest(db.Model):
     add_to_sprint = db.Column(db.Boolean, nullable=False, default=False)
     has_rewards_before = db.Column(db.Boolean, default=False)
 
+    is_expired = db.Column(db.Boolean, nullable=False, default=False)  
+    expires_at = db.Column(db.DateTime, nullable=True)    
+    vote_start_date = db.Column(db.DateTime, nullable=True)
+    vote_end_date   = db.Column(db.DateTime, nullable=True)
+    user_timezone   = db.Column(db.String(64), nullable=True)
 
     is_draft = db.Column(db.Boolean, nullable=False, default=True)
     image_url = db.Column(db.String(255), nullable=True)
@@ -58,6 +73,13 @@ class Subquest(db.Model):
         cascade="all, delete"
     )
 
+    @property
+    def vote_start_date_display(self):
+        return _format_utc_human(self.vote_start_date)
+
+    @property
+    def vote_end_date_display(self):
+        return _format_utc_human(self.vote_end_date)
 
     @staticmethod
     def generate_public_id():

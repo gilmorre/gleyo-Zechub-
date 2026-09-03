@@ -23,6 +23,29 @@ async function fetchReviewAttempts(taskReviewId) {
   return data;
 }
 
+async function markInboxRead(mode) {
+  try {
+    const res = await fetch(`/api/${communitySlug}/inbox/mark-read`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode })
+    });
+
+    if (!res.ok) throw new Error("Failed to mark read");
+
+    const data = await res.json();
+
+    const inboxEl = document.querySelector(".inbox-init");
+    if (inboxEl) {
+      BadgeManager.set(inboxEl, data.unread_count || 0);
+    }
+
+  } catch (err) {
+    console.error("markInboxRead failed:", err);
+  }
+}
+
+
 let activeTypeFilter = null;
 
 function applyTypeFilter(type) {
@@ -199,6 +222,7 @@ function calledAllInboxforview() {
       .forEach(el => el.classList.remove("active-review-item"));
 
     item.classList.add("active-review-item");
+    markInboxRead("single");
 
     const subquestName = item.querySelector(".review-sub")?.textContent || "Task";
 
@@ -332,7 +356,17 @@ function calledAllInboxforview() {
   });
 
 
+  const markAllInvitesBtn = document.getElementById("mark-all-invites-read");
 
+  markAllInvitesBtn?.addEventListener("click", (e) => {
+    e.stopPropagation(); 
+
+    markInboxRead("all");
+
+    document.querySelectorAll('.review-item[data-type="invite"]').forEach(el => {
+      el.classList.add("read");
+    });
+  });
 
   const trigger = document.getElementById("show-inbox-item-dropdown");
   const questDropdown = document.getElementById("filter-by-quest");

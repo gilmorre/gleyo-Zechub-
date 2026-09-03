@@ -1,6 +1,6 @@
 <title>Inbox</title>
 
-<link rel="stylesheet" href="{{ url_for('static', filename='inbox.css') }}?v=2">
+<link rel="stylesheet" href="{{ url_for('static', filename='inbox.css') }}?v=3">
 
 
 <div class="content-mmpppaaa">
@@ -191,11 +191,35 @@
   <div class="type-panel">
 
     <div class="type-item" data-type="task">
-      Quest Activity
+      <span class="type-item-label">
+        <svg viewBox="0 0 24 24" width="15" height="15" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 11l3 3L22 4"/>
+          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+        </svg>
+        Quest Activity
+      </span>
     </div>
 
     <div class="type-item" data-type="invite">
-      Invite Activity
+      <span class="type-item-label">
+        <svg viewBox="0 0 24 24" width="15" height="15" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M19 8v6M22 11h-6"/>
+        </svg>
+        Invite Activity
+      </span>
+    </div>
+
+    <div class="type-item" data-type="real-all" id="mark-all-invites-read">
+
+      <span   class="mark-all-read-btn">
+        <svg viewBox="0 0 24 24" width="14" height="14" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 6 7 17l-5-5"/>
+          <path d="m22 10-7.5 7.5L13 16"/>
+        </svg>
+        Read all
+      </span>
     </div>
 
   </div>

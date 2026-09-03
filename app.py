@@ -68,6 +68,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_cors import CORS
 from flask_admin import Admin, AdminIndexView
+from apscheduler.schedulers.background import BackgroundScheduler
 from flask_admin.contrib.sqla import ModelView
 from flask_admin.form import rules
 from flask_mail import Message, Mail
@@ -265,6 +266,8 @@ def human_readable_number(n):
     else:
         return str(n)
 
+scheduler = BackgroundScheduler()
+
 
 
 app = Flask(__name__)
@@ -343,10 +346,17 @@ else:
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.path.join(basedir, "project.db")
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
 app.config["WTF_CSRF_HEADERS"] = ["X-CSRFToken", "X-CSRF-Token"]
-
 app.jinja_env.globals.update(human_readable_number=human_readable_number)
+
+# ── APScheduler persistent job store ──────────────────────────
+from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
+
+scheduler.add_jobstore(
+    SQLAlchemyJobStore(url=app.config["SQLALCHEMY_DATABASE_URI"]),
+    'default'
+)
+scheduler.start()
 
 
 
@@ -9671,6 +9681,35 @@ def get_task_review_attempts(task_review_id):
     }), 200
 
 
+@app.route("/api/<slug>/inbox/mark-read", methods=["POST"])
+@login_required
+@csrf.exempt
+def mark_inbox_read(slug):
+
+    community = Community.query.filter_by(slug=slug).first_or_404()
+    user_id = current_user.id
+
+    data = request.get_json(silent=True) or {}
+    mode = data.get("mode")
+
+    inbox = InboxNotification.query.filter_by(
+        user_id=user_id,
+        community_id=community.id
+    ).first()
+
+
+    if not inbox:
+        return jsonify({"unread_count": 0}), 200
+
+    if mode == "all":
+        inbox.unread_count = 0
+    else:
+        inbox.unread_count = max(0, inbox.unread_count - 1)
+
+    db.session.commit()
+
+    return jsonify({"unread_count": inbox.unread_count}), 200
+
 
 @app.route("/api/<slug>/nav-badges")
 @login_required
@@ -15493,35 +15532,39 @@ def subquest_editor_data(community_slug, quest_uuid, subquest_uuid):
         "tasks": task_dicts,
         "conditions": conditions
     })
-
-
 def humanize_from_10k(n):
+    print(f"🔍 [humanize_from_10k] input n={n!r} type={type(n)}")
     n = float(n)
 
     if n < 10_000:
-        return f"{int(n):,}"   # normal comma format
+        result = f"{int(n):,}"
+        print(f"🔍 [humanize_from_10k] <10k → {result}")
+        return result
 
     if n >= 1_000_000_000:
-        return f"{n/1_000_000_000:.1f}B".rstrip("0").rstrip(".")
+        result = f"{n/1_000_000_000:.1f}B".rstrip("0").rstrip(".")
     elif n >= 1_000_000:
-        return f"{n/1_000_000:.1f}M".rstrip("0").rstrip(".")
+        result = f"{n/1_000_000:.1f}M".rstrip("0").rstrip(".")
     elif n >= 1_000:
-        return f"{n/1_000:.1f}K".rstrip("0").rstrip(".")
+        result = f"{n/1_000:.1f}K".rstrip("0").rstrip(".")
 
-
+    print(f"🔍 [humanize_from_10k] scaled → {result}")
+    return result
 
 
 def get_coin_holder_vote_result(task):
-    """
-    task: a Task with type == 'coin_holder_vote'
-    Returns None if no votes yet, otherwise a dict describing the
-    leading project + computed stats for display.
-    """
+    print(f"🔍 [get_coin_holder_vote_result] task={task!r} task_id={getattr(task, 'id', None)}")
+
     config = task.config or {}
+    print(f"🔍 [get_coin_holder_vote_result] config={config}")
+
     try:
         zec_per_vote = Decimal(str(config.get("zecPerVote", "0")))
-    except Exception:
+    except Exception as e:
+        print(f"❌ [get_coin_holder_vote_result] zecPerVote parse failed: {e}")
         zec_per_vote = Decimal("0")
+
+    print(f"🔍 [get_coin_holder_vote_result] zec_per_vote={zec_per_vote}")
 
     tallies = (
         CoinHolderVoteTally.query
@@ -15532,30 +15575,40 @@ def get_coin_holder_vote_result(task):
         )
         .all()
     )
+    print(f"🔍 [get_coin_holder_vote_result] tallies found: {len(tallies)}")
+    for t in tallies:
+        print(f"    ↳ project={t.project_name!r} total_amount={t.total_amount} vote_count={t.vote_count}")
 
     if not tallies:
+        print("⚠️ [get_coin_holder_vote_result] no tallies → returning None")
         return None
 
     winner = tallies[0]
+    print(f"🔍 [get_coin_holder_vote_result] winner={winner.project_name!r} amount={winner.total_amount}")
 
     if zec_per_vote > 0:
         computed_votes = (winner.total_amount / zec_per_vote)
     else:
         computed_votes = Decimal("0")
+    print(f"🔍 [get_coin_holder_vote_result] computed_votes={computed_votes}")
 
     total_zec_all = sum((t.total_amount or Decimal("0")) for t in tallies)
+    print(f"🔍 [get_coin_holder_vote_result] total_zec_all={total_zec_all}")
 
-    return {
+    share_pct = (
+        round(float(winner.total_amount / total_zec_all) * 100, 2)
+        if total_zec_all > 0 else 0.0
+    )
+    print(f"🔍 [get_coin_holder_vote_result] share_pct={share_pct}")
+
+    result = {
         "project_name": winner.project_name,
         "project_index": winner.project_index,
         "total_zec": winner.total_amount,
-        "vote_count": winner.vote_count,         
-        "computed_votes": computed_votes,       
+        "vote_count": winner.vote_count,
+        "computed_votes": computed_votes,
         "zec_per_vote": zec_per_vote,
-        "share_pct": (
-            round(float(winner.total_amount / total_zec_all) * 100, 2)
-            if total_zec_all > 0 else 0.0
-        ),
+        "share_pct": share_pct,
         "all_projects": [
             {
                 "project_name": t.project_name,
@@ -15566,15 +15619,46 @@ def get_coin_holder_vote_result(task):
             for t in tallies
         ],
     }
+    print(f"✅ [get_coin_holder_vote_result] returning result dict with {len(result['all_projects'])} projects")
+    return result
 
+
+import traceback
 
 @app.route('/<community_slug>/result/<string:subquest_uuid>')
 @login_required
 def result_html(community_slug, subquest_uuid):
-    community = Community.query.filter_by(slug=community_slug).first_or_404()
-    subquest = Subquest.query.filter_by(uuid=subquest_uuid).first_or_404()
+    print(f"\n{'='*60}")
+    print(f"🚀 [result_html] HIT — community_slug={community_slug!r} subquest_uuid={subquest_uuid!r}")
+    print(f"{'='*60}")
 
-    stats = get_subquest_attempt_stats(subquest.id)
+    community = Community.query.filter_by(slug=community_slug).first()
+    print(f"🔍 [result_html] community lookup → {community!r}")
+    if not community:
+        print(f"❌ [result_html] 404 — no community with slug={community_slug!r}")
+        abort(404)
+
+    subquest = Subquest.query.filter_by(uuid=subquest_uuid).first()
+    print(f"🔍 [result_html] subquest lookup by uuid → {subquest!r}")
+    if not subquest:
+        print(f"❌ [result_html] 404 — no subquest with uuid={subquest_uuid!r}")
+        near_matches = Subquest.query.filter(
+            Subquest.uuid.like(f"{subquest_uuid[:8]}%")
+        ).all()
+        print(f"🔍 [result_html] near-UUID matches (first 8 chars): {[s.uuid for s in near_matches]}")
+        total_subquests = Subquest.query.count()
+        print(f"🔍 [result_html] total subquest rows in DB: {total_subquests}")
+        abort(404)
+
+    print(f"🔍 [result_html] subquest found: id={subquest.id} name={subquest.name!r} quest_id={subquest.quest_id}")
+
+    try:
+        stats = get_subquest_attempt_stats(subquest.id)
+        print(f"🔍 [result_html] stats={stats}")
+    except Exception as e:
+        print(f"💥 [result_html] EXCEPTION in get_subquest_attempt_stats: {e!r}")
+        traceback.print_exc()
+        raise
 
     if stats["total_attempts"] > 0:
         success_rate = (stats["total_success"] / stats["total_attempts"]) * 100
@@ -15582,6 +15666,7 @@ def result_html(community_slug, subquest_uuid):
     else:
         success_rate = 0.0
         has_submissions = False
+    print(f"🔍 [result_html] success_rate={success_rate} has_submissions={has_submissions}")
 
     if not has_submissions:
         success_band = "none"
@@ -15593,29 +15678,51 @@ def result_html(community_slug, subquest_uuid):
         success_band = "good"
     else:
         success_band = "high"
+    print(f"🔍 [result_html] success_band={success_band}")
 
-    vote_task = next(
-        (t for t in subquest.tasks if t.type == "coin_holder_vote"), None
-    )
-    vote_result = get_coin_holder_vote_result(vote_task) if vote_task else None
+    try:
+        vote_task = next(
+            (t for t in subquest.tasks if t.type == "coin_holder_vote"), None
+        )
+        print(f"🔍 [result_html] vote_task={vote_task!r} (subquest has {len(subquest.tasks)} tasks total: {[t.type for t in subquest.tasks]})")
+    except Exception as e:
+        print(f"💥 [result_html] EXCEPTION resolving vote_task: {e!r}")
+        traceback.print_exc()
+        raise
 
-    return render_template(
-        "result.html",
-        community=community,
-        community_slug=community_slug,
-        subquest=subquest,
-        total_attempts_raw=stats["total_attempts"],
-        total_success_raw=stats["total_success"],
-        total_attempts_human=humanize_from_10k(stats["total_attempts"]),
-        total_success_human=humanize_from_10k(stats["total_success"]),
-        success_rate=round(success_rate, 2),
-        has_submissions=has_submissions,
-        success_band=success_band,
-        vote_task=vote_task,
-        vote_result=vote_result,
-    )
+    try:
+        vote_result = get_coin_holder_vote_result(vote_task) if vote_task else None
+        print(f"🔍 [result_html] vote_result={vote_result}")
+    except Exception as e:
+        print(f"💥 [result_html] EXCEPTION in get_coin_holder_vote_result: {e!r}")
+        traceback.print_exc()
+        raise
 
- 
+    print(f"✅ [result_html] about to render_template('result.html') for subquest {subquest.uuid}")
+
+    try:
+        rendered = render_template(
+            "result.html",
+            community=community,
+            community_slug=community_slug,
+            subquest=subquest,
+            total_attempts_raw=stats["total_attempts"],
+            total_success_raw=stats["total_success"],
+            total_attempts_human=humanize_from_10k(stats["total_attempts"]),
+            total_success_human=humanize_from_10k(stats["total_success"]),
+            success_rate=round(success_rate, 2),
+            has_submissions=has_submissions,
+            success_band=success_band,
+            vote_task=vote_task,
+            vote_result=vote_result,
+        )
+        print(f"✅ [result_html] render_template SUCCEEDED, returning response")
+        return rendered
+    except Exception as e:
+        print(f"💥 [result_html] EXCEPTION during render_template: {e!r}")
+        traceback.print_exc()
+        raise
+    
 @app.route("/api/quest-progress/<int:quest_id>")
 @login_required
 def quest_progress(quest_id):
@@ -15850,6 +15957,16 @@ def resolve_telegram_group(link_or_username):
     chat = resp["result"]
     return chat["id"], chat.get("title"), chat.get("type"), None
 
+def parse_human_utc_date(date_str):
+    """Parses 'DD Mon H:MM YYYY' — hour is NOT zero-padded from the frontend
+    (e.g. '10 Sep 0:00 2026'). %H in strptime accepts 1 or 2 digit hours,
+    so this works for both '0:00' and '14:30' without extra handling."""
+    if not date_str:
+        return None
+    try:
+        return datetime.strptime(date_str.strip(), "%d %b %H:%M %Y")
+    except (ValueError, TypeError):
+        return None
 
 @app.route('/<community_slug>/publish_subquest', methods=['POST'])
 @login_required
@@ -15873,7 +15990,30 @@ def publish_subquest(community_slug):
     streak_enabled = str(
         data.get("streak_enabled", False)
     ).lower() in ["1", "true", "yes", "on"]
+    recurrence = data.get('recurrence', 'None')
+    cooldown = data.get('cooldown', 'None')
 
+    vote_start_date_raw = data.get('vote_start_date')
+    vote_end_date_raw   = data.get('vote_end_date')
+    user_timezone       = (data.get('user_timezone') or 'UTC').strip()
+
+    vote_start_date = parse_human_utc_date(vote_start_date_raw)
+    vote_end_date   = parse_human_utc_date(vote_end_date_raw)
+
+    has_coin_holder_vote = any(t.get("type") == "coin_holder_vote" for t in tasks_data)
+
+    if has_coin_holder_vote:
+        if not vote_start_date or not vote_end_date:
+            return jsonify({
+                'success': False,
+                'error': 'Coin Holder Vote requires both a start and end date.'
+            }), 400
+        if vote_end_date <= vote_start_date:
+            return jsonify({
+                'success': False,
+                'error': 'Vote end date must be after the start date.'
+            }), 400
+        
     invite_total = 0
     has_invite_task = False
 
@@ -16249,8 +16389,22 @@ def publish_subquest(community_slug):
         subquest.streak_enabled = streak_enabled
         subquest.autovalidation = autovalidation
 
+        subquest.vote_start_date = vote_start_date if has_coin_holder_vote else None
+        subquest.vote_end_date   = vote_end_date if has_coin_holder_vote else None
+        subquest.user_timezone   = user_timezone
+        subquest.expires_at = vote_end_date if has_coin_holder_vote else None
+        subquest.is_expired = False
         existing_tasks = {t.id: t for t in subquest.tasks}
-
+        if subquest.expires_at:
+            from backend.jobs.expire_subquests import expire_one_subquest
+            scheduler.add_job(
+                func=expire_one_subquest,
+                trigger="date",
+                run_date=subquest.expires_at,
+                args=[subquest.id],
+                id=f"expire_subquest_{subquest.id}",
+                replace_existing=True,
+            )
         for i, task_data in enumerate(tasks_data):
             if i < len(existing_tasks):
                 t = list(existing_tasks.values())[i]
@@ -18066,8 +18220,12 @@ def quester_view(community_slug, quest_uuid, subquest_uuid):
             "cooldown_until": active_cooldown_until,
             "sprint_id":    subquest.sprint_id,
             "sprint_name":  subquest.sprint_name,
+            "is_expired":   subquest.is_expired, 
             "max_claim":    subquest.max_claim,
-            "claim_count":  subquest.claim_count
+            "claim_count":  subquest.claim_count,
+            "vote_start_date": subquest.vote_start_date.isoformat() if subquest.vote_start_date else None,
+            "vote_end_date":   subquest.vote_end_date.isoformat()   if subquest.vote_end_date   else None,
+            "user_timezone":   subquest.user_timezone
         },
 
         "ui_state": {
@@ -19979,8 +20137,11 @@ def api_quests(community_slug):
                 "recurrence": None if sq.recurrence == "None" else sq.recurrence,
                 "cooldown_until": cooldown_until,
                 "no_retry": no_retry,
+                "is_expired": sq.is_expired, 
                 "is_completed": sq.id in completed_subquests,
                 "is_pending": sq.id in pending_subquests,
+                "vote_start_date": sq.vote_start_date.isoformat() if sq.vote_start_date else None,   
+                "vote_end_date":   sq.vote_end_date.isoformat()   if sq.vote_end_date   else None,  
                 "conditions": parsed_conditions,
                 "is_in_current_sprint": bool(latest_sprint and sq.sprint_id == latest_sprint.id),
                 "sprint_end": (
@@ -29055,36 +29216,42 @@ class AIConversationAdmin(BaseAdmin):
 
 # ------------------------
 # ✅ Subquest Admin View
+# ------------------------ 
 # ------------------------
 class SubquestAdmin(BaseAdmin):
     column_list = (
-        'id', 
-        'public_id',      
-        'uuid', 
-        'name', 
+        'id',
+        'public_id',
+        'uuid',
+        'name',
         'description',
         'locked_zec_zatoshi',
-        'quest_id', 
-        'quest_title', 
+        'quest_id',
+        'quest_title',
         'recurrence',
         'sprint_id',
-        'sprint_name', 
+        'sprint_name',
         'cooldown',
         'max_claim',
         'claim_count',
         'autovalidation',
         'add_to_sprint',
+        'vote_start_date',       
+        'vote_end_date',        
+        'user_timezone',        
+        'is_expired',            
+        'expires_at',            
         'is_draft',
-        'is_archive', 
-        'image_url', 
-        'created_at', 
+        'is_archive',
+        'image_url',
+        'created_at',
         'updated_at',
         'has_rewards_before'
     )
 
     column_labels = {
         'id': 'Subquest ID',
-        'public_id': 'Public ID',   
+        'public_id': 'Public ID',
         'uuid': 'UUID',
         'name': 'Subquest Name',
         'description': 'Description',
@@ -29094,10 +29261,15 @@ class SubquestAdmin(BaseAdmin):
         'cooldown': 'Cooldown',
         'max_claim': 'Max Claim',
         'autovalidation': 'Auto Validation',
-        'claim_count': "Claim Count",
+        'claim_count': 'Claim Count',
         'add_to_sprint': 'Add to Sprint',
-        'is_draft': 'Draft',  
-        'is_archive': 'Archived', 
+        'vote_start_date': 'Vote Start Date',   
+        'vote_end_date': 'Vote End Date',     
+        'user_timezone': 'User Timezone',     
+        'is_expired': 'Expired',             
+        'expires_at': 'Expires At',           
+        'is_draft': 'Draft',
+        'is_archive': 'Archived',
         'image_url': 'Image URL',
         'sprint_id': 'Sprint ID',
         'sprint_name': 'Sprint Name',
@@ -29108,9 +29280,26 @@ class SubquestAdmin(BaseAdmin):
     }
 
     form_columns = (
-        'name', 'description', 'quest_id', 'sprint_id', 'sprint_name',  
-        'recurrence', 'cooldown', 'max_claim', 'autovalidation', 'claim_count',
-        'has_rewards_before', 'add_to_sprint', 'is_draft', 'is_archive', 'image_url'
+        'name',
+        'description',
+        'quest_id',
+        'sprint_id',
+        'sprint_name',
+        'recurrence',
+        'cooldown',
+        'max_claim',
+        'autovalidation',
+        'claim_count',
+        'has_rewards_before',
+        'add_to_sprint',
+        'vote_start_date',      
+        'vote_end_date',      
+        'user_timezone',        
+        'is_expired',            
+        'expires_at',            
+        'is_draft',
+        'is_archive',
+        'image_url'
     )
 
     def _quest_title(view, context, model, name):
@@ -29118,19 +29307,36 @@ class SubquestAdmin(BaseAdmin):
 
     def _sprint_name(view, context, model, name):
         return model.sprint_name if model.sprint_name else '—'
-    
+
     column_formatters = {
         'quest_title': _quest_title,
-        'sprint_name': _sprint_name 
+        'sprint_name': _sprint_name
     }
 
     can_view_details = True
-    column_searchable_list = ('public_id', 'uuid', 'name', 'description', 'sprint_name')
-    column_filters = (
-        'quest_id', 'recurrence', 'cooldown',
-        'max_claim', 'autovalidation', 'add_to_sprint', 'created_at'
+
+    column_searchable_list = (
+        'public_id',
+        'uuid',
+        'name',
+        'description',
+        'sprint_name',
+        'user_timezone',  
     )
 
+    column_filters = (
+        'quest_id',
+        'recurrence',
+        'cooldown',
+        'max_claim',
+        'autovalidation',
+        'add_to_sprint',
+        'vote_start_date', 
+        'vote_end_date',    
+        'is_expired',         
+        'expires_at',        
+        'created_at'
+    )
 
 
 

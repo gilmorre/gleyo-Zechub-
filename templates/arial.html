@@ -4244,10 +4244,62 @@ input {
         </div>
 
 
+        <div class="setting chv-date-setting" data-setting="chv-start-date"
+            style="display:none; align-items:center; justify-content:space-between;">
+          <label style="display: flex; align-items: center;">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" width="14" height="14"
+                stroke="currentColor" stroke-width="2" style="margin-right:5px;"
+                stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="17" rx="4" ry="4"/>
+              <line x1="7.25" y1="2.5" x2="7.25" y2="5.5" />
+              <line x1="15.25" y1="2.5" x2="15.25" y2="5.5" />
+              <line x1="6" y1="9" x2="18" y2="9" />
+            </svg>
+            Vote Start
+          </label>
+
+          <div class="custom-drop chv-start-date-trigger" {% if subquest.vote_start_date_display %}data-utc-value="{{ subquest.vote_start_date_display }}"{% endif %}>
+            <div class="selected">
+              <span class="valueText">{{ subquest.vote_start_date_display or 'Select date' }}</span>
+              <span class="arro">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <polyline points="5 8.5 12 15.5 19 8.5" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="setting chv-date-setting" data-setting="chv-end-date"
+            style="display:none; align-items:center; justify-content:space-between;">
+          <label style="display: flex; align-items: center;">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" width="14" height="14"
+                stroke="currentColor" stroke-width="2" style="margin-right:5px;"
+                stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="17" rx="4" ry="4"/>
+              <line x1="7.25" y1="2.5" x2="7.25" y2="5.5" />
+              <line x1="15.25" y1="2.5" x2="15.25" y2="5.5" />
+              <line x1="6" y1="9" x2="18" y2="9" />
+            </svg>
+            Vote End
+          </label>
+
+          <div class="custom-drop chv-end-date-trigger" {% if subquest.vote_end_date_display %}data-utc-value="{{ subquest.vote_end_date_display }}"{% endif %}>
+            <div class="selected">
+              <span class="valueText">{{ subquest.vote_end_date_display or 'Select date' }}</span>
+              <span class="arro">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <polyline points="5 8.5 12 15.5 19 8.5" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
+            </div>
+          </div>
+        </div>
 
 
-
-        <div class="setting  column-setting">
+        <div class="setting  column-setting"  data-setting="condition">
           <label style="display: flex; align-items: center;">
             <svg xmlns="http://www.w3.org/2000/svg" 
                 width="14" height="14" 
@@ -4315,7 +4367,7 @@ input {
         </div>
 
 
-        <div class="setting">
+        <div class="setting" data-setting="sprint">
           <label style="display: flex; align-items: center;">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
               <path stroke-linecap="round" stroke-linejoin="round" d="M3 8.689c0-.864.933-1.406 1.683-.977l7.108 4.061a1.125 1.125 0 0 1 0 1.954l-7.108 4.061A1.125 1.125 0 0 1 3 16.811V8.69ZM12.75 8.689c0-.864.933-1.406 1.683-.977l7.108 4.061a1.125 1.125 0 0 1 0 1.954l-7.108 4.061a1.125 1.125 0 0 1-1.683-.977V8.69Z" />
@@ -4335,7 +4387,7 @@ input {
 
 
 
-        <div class="setting"  style="display: flex !important; align-items: center; justify-content: space-between !important;">
+        <div class="setting"  style="display: flex !important; align-items: center; justify-content: space-between !important;" data-setting="max_claims">
           <label style="display: flex; align-items: center;">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 50 50">
             
@@ -4369,7 +4421,7 @@ input {
 
 
 
-        <div class="setting" style="width: 100%;"> 
+        <div class="setting" style="width: 100%;" data-setting="instant_approval"> 
           <label class="toggle-row" style="display: flex; align-items: center; justify-content: space-between; width: 100%; ">
 
             <div style="display: flex; gap: 4px; position: relative !important;">

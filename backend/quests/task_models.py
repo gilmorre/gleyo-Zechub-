@@ -47,16 +47,16 @@ class CoinHolderVote(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     community_id = db.Column(
-        db.Integer, db.ForeignKey("communities.id"), nullable=False, index=True
+        db.Integer, db.ForeignKey("communities.id"), nullable=False, index=True   
     )
     subquest_id = db.Column(
-        db.Integer, db.ForeignKey("subquests.id"), nullable=False, index=True
+        db.Integer, db.ForeignKey("subquest.id"), nullable=False, index=True   
     )
     task_id = db.Column(
-        db.Integer, db.ForeignKey("tasks.id"), nullable=False, index=True
+        db.Integer, db.ForeignKey("task.id"), nullable=False, index=True      
     )
     user_id = db.Column(
-        db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
+        db.Integer, db.ForeignKey("users.id"), nullable=False, index=True       
     )
 
     project_index = db.Column(db.Integer, nullable=False)
@@ -94,10 +94,10 @@ class CoinHolderVoteTally(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     community_id = db.Column(
-        db.Integer, db.ForeignKey("communities.id"), nullable=False, index=True
+        db.Integer, db.ForeignKey("communities.id"), nullable=False, index=True    
     )
     task_id = db.Column(
-        db.Integer, db.ForeignKey("tasks.id"), nullable=False, index=True
+        db.Integer, db.ForeignKey("task.id"), nullable=False, index=True        
     )
 
     project_index = db.Column(db.Integer, nullable=False)

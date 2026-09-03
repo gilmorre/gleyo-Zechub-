@@ -601,7 +601,6 @@ margin-left: 4px;
     list-style: none;
     border-radius: 10px;
     scrollbar-width: thin;
-    font-size: 14px;
     scrollbar-color: grey transparent;
   }
 
@@ -1168,4 +1167,44 @@ margin-left: 4px;
   transform: translateX(-50%);
   color: #ccc;
   font-size: 13px;
+}
+
+.type-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13.5px !important;
+  font-weight: 500;
+  gap: 8px;
+}
+
+.type-item-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mark-all-read-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(29, 155, 240, 0.12);
+  color: #1d9bf0;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease;
+}
+
+.mark-all-read-btn:hover {
+  background: rgba(29, 155, 240, 0.22);
+}
+
+.mark-all-read-btn svg,
+.type-item-label svg {
+  flex-shrink: 0;
+  opacity: 0.75;
 }

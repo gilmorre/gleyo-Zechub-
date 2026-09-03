@@ -4918,3 +4918,97 @@ background-color: var(--bg-app);
   0% { background-position: 100% 50%; }
   100% { background-position: 0 50%; }
 }
+
+
+/* ============================
+   VOTE / DATE PILLS
+   Shared base for .span-con (detail page)
+   and .vote-countdown-chip (preview grid)
+============================ */
+.span-con,
+.vote-countdown-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(68, 73, 94, 0.366);
+  border: 1px solid rgba(80, 86, 108, 0.452);
+  backdrop-filter: blur(12px);
+  font-family: 'Outfit', sans-serif;
+  font-size: 12px;
+  font-weight: 550;
+  color: rgba(255, 255, 255, 0.82);
+  white-space: nowrap;
+}
+
+.span-con svg,
+.vote-countdown-chip svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  opacity: 0.75;
+}
+
+/* numbers/timers get DM Mono, same as the wallet/ZEC convention */
+.vote-countdown-value,
+.cooldown-retry {
+  font-family: 'DM Mono', monospace;
+  font-weight: 500;
+  color: #ffb84d; /* amber accent */
+}
+
+/* ============================
+   VOTE COUNTDOWN CHIP — preview grid
+============================ */
+.vote-countdown-chip {
+  margin-left: 5px;
+}
+
+.vote-countdown-chip[data-vote-label="starts"] .vote-countdown-value {
+  color: #7dd3fc; /* cool blue-ish for "not started yet" — distinct from "ends" amber */
+}
+
+/* once a chip's countdown hits done="1" (started/ended text) */
+.vote-countdown-chip[data-done="1"] {
+  opacity: 0.6;
+}
+
+/* ============================
+   "VOTING HAS ENDED" — plain span in span-gap
+   (the ternary fallback with no icon in renderQuestComplete)
+============================ */
+.span-gap > span.span-con:has(> :only-child:not(svg)) {
+  /* fallback for browsers without :has(), see below */
+}
+
+/* Since that plain "Voting has ended" span has no SVG icon and no
+   class of its own, give it one in the template instead of relying
+   on :has() — see JS note below. This targets it once added: */
+.span-con.voting-ended-pill {
+  color: #f87171; /* soft red — signals "closed", distinct from active amber */
+  border-color: rgba(248, 113, 113, 0.28);
+  background: rgba(248, 113, 113, 0.06);
+}
+
+/* ============================
+   VOTE-OPENS-WRAP — "Opens in:" pill on detail page
+============================ */
+.span-con.vote-opens-wrap {
+  color: #7dd3fc;
+  border-color: rgba(125, 211, 252, 0.28);
+  background: rgba(125, 211, 252, 0.06);
+}
+
+/* ============================
+   "Voting Ended" state badge — preview grid card
+   (reuses .lock-main so it inherits the same shape as
+   the Locked/Cooldown/No-retry badges already on preview-box)
+============================ */
+.preview-box.expired .lock-main .lock-text {
+  color: #f87171;
+}
+
+.preview-box.expired .lock-main svg {
+  stroke: #f87171;
+}

@@ -693,6 +693,7 @@ def normalize_uuid(value):
 
 
 def send_email(msg):
+    print(f"'Message',{msg}")
     html_content = None
     text_content = None
 
@@ -2471,6 +2472,7 @@ def send_code():
     now = time.time()
 
     session["is_new"] = user is None
+    print("New code for")
     new_code_for(email)
     session["pending_email"] = email
 
@@ -3414,12 +3416,12 @@ def send_delete_otp():
 
 
 
-
 @app.get("/api/public/communities")
 def public_communities():
     query = (
         Community.query
         .outerjoin(CommunitySecurity, Community.id == CommunitySecurity.community_id)
+        .filter(Community.is_paid == True)
     )
 
     if current_user.is_authenticated:
@@ -3433,7 +3435,7 @@ def public_communities():
             db.or_(
                 CommunitySecurity.private_community.is_(None),
                 CommunitySecurity.private_community == False,
-                CommunityUserRole.id.isnot(None)   # member/admin can see their own private community
+                CommunityUserRole.id.isnot(None)  
             )
         )
     else:
@@ -3456,7 +3458,6 @@ def public_communities():
         }
         for c in communities
     ])
-
 
 
 

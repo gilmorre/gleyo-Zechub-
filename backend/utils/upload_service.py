@@ -582,10 +582,11 @@ def _send_quest_emails(community, quest, subquest):
 
 
 def send_quest_emails_async(community, quest, subquest):
-    app = current_app._get_current_object()
+    pass
+    # app = current_app._get_current_object()
 
-    def task():
-        with app.app_context():
-            _send_quest_emails(community, quest, subquest)
+    # def task():
+    #     with app.app_context():
+    #         _send_quest_emails(community, quest, subquest)
 
-    return email_executor.submit(task)
+    # return email_executor.submit(task)

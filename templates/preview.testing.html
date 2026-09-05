@@ -20304,8 +20304,15 @@ function isValidCSSColor(color) {
 
 function stylizeLinks(text) {
 
-  
+  const placeholders = [];
 
+  function protect(html) {
+    const token = `\u0000LINK${placeholders.length}\u0000`;
+    placeholders.push(html);
+    return token;
+  }
+
+  // ["label" https://url] style links
   text = text.replace(
     /\[\s*&quot;([^&]+)&quot;\s+(https?:\/\/[^\s\]]+)\s*\]/g,
     (match, rawLabel, url) => {
@@ -20326,33 +20333,32 @@ function stylizeLinks(text) {
           : "var(--text)";
 
         label = `<span style="color:${safeColor};" data-color="${color}">${txt}</span>`;
-
-
       } else {
         label = applyInlineStyles(label);
       }
 
       const style = keepUnderline ? "" : `style="text-decoration:none;"`;
 
-      return `<a href="${url}" class="chat-link" data-font-style="link${keepUnderline ? '+underline' : ''}" ${style} target="_blank">${label}</a>`;}
+      const html = `<a href="${url}" class="chat-link" data-font-style="link${keepUnderline ? '+underline' : ''}" ${style} target="_blank">${label}</a>`;
+
+      return protect(html); // 🔒 keep this out of reach of applyInlineStyles
+    }
   );
 
-
-  
-
+  // bare https:// urls
   text = text.replace(
     /(?<!["'>])(https?:\/\/[^\s<]+)/g,
-    url => `<a href="${url}" class="chat-link" target="_blank" data-font-style="link">${url}</a>`
+    url => protect(`<a href="${url}" class="chat-link" target="_blank" data-font-style="link">${url}</a>`)
   );
 
-
-  
-
+  // now it's safe to run bold/italic/underline/strike on whatever plain text is left
   text = applyInlineStyles(text);
 
-  return text; 
-}
+  // put the real link HTML back
+  text = text.replace(/\u0000LINK(\d+)\u0000/g, (_, i) => placeholders[i]);
 
+  return text;
+}
 
 
 function openReplyMode(wrapper) {
@@ -28178,15 +28184,22 @@ function renderMentionables(users) {
 function insertMention(username) {
   chatInput.focus();
 
-  // 🔥 RESTORE CARET EXACTLY WHERE USER TYPED "@"
+  // 🔥 RESTORE CARET EXACTLY WHERE USER LEFT OFF (end of typed query)
   restoreMentionCaret();
 
-  // 🔥 delete typed query AFTER "@"
+  const sel = window.getSelection();
+
+  // 🔥 SELECT the typed query characters (e.g. "g") going backward from caret
   for (let i = 0; i < currentQuery.length; i++) {
+    sel.modify("extend", "backward", "character");
+  }
+
+  // 🔥 now there IS an actual selection, so delete works reliably
+  if (currentQuery.length > 0) {
     document.execCommand("delete", false);
   }
 
-  // 🔥 insert mention
+  // 🔥 insert mention (the "@" typed by the user stays untouched, right before caret)
   document.execCommand("insertText", false, username + " ");
 
   pendingMentions.add(username.toLowerCase());
@@ -28197,7 +28210,6 @@ function insertMention(username) {
 
   closeMentionBox();
 }
-
 
 document.addEventListener("click", e => {
   const editBtn = e.target.closest(".menu-item-msg.edit-message");

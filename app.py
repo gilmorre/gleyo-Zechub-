@@ -16142,6 +16142,9 @@ def publish_subquest(community_slug):
             subquest_claim_count = None
 
     autovalidation = str(data.get("autovalidation", "0")) in ["1", "true", "True"]
+    
+    if has_coin_holder_vote:
+        autovalidation = True
 
     quest = Quest.query.filter_by(uuid=quest_uuid, community_id=community.id).first()
     if not quest:
@@ -20157,6 +20160,7 @@ def api_quests(community_slug):
             for t in sq.tasks:
                 icon_data = PLATFORM_ICONS.get((t.type or "").lower(), PLATFORM_ICONS["globe"])
                 sq_data["tasks"].append({
+                    "type": t.type,
                     "icon_color": icon_data.get("color", "#2c2c2c"),
                     "icon_svg": icon_data.get("icon", ""),
                 })
@@ -21256,6 +21260,7 @@ def claim_subquest(subquest_id):
 
 
     tasks = Task.query.filter_by(subquest_id=subquest_id).all()
+    is_coin_holder_vote_quest = any(t.type == "coin_holder_vote" for t in tasks)
     subquest_completion = SubquestCompletion(
         user_id=user.id,
         subquest_id=subquest.id,
@@ -21948,7 +21953,7 @@ def claim_subquest(subquest_id):
         reserved = reserve_subquest_claim(session, subquest_id)
         assigned_rewards = assign_fcfs_rewards_atomic(session, subquest_rewards)
 
-        if subquest.autovalidation:
+        if subquest.autovalidation or is_coin_holder_vote_quest:
             subquest_completion.status = "success"
             subquest_completion.success_count = len(successful_tasks_data) or 1
             subquest_completion.completed_at = utcnow()
@@ -29467,13 +29472,14 @@ class SubquestRewardAdmin(BaseAdmin):
 # ✅ Task Admin View
 # ------------------------
 class TaskAdmin(BaseAdmin):
-    column_list = ('id', 'type', 'config', 'subquest_id', 'subquest_name')
+    column_list = ('id', 'type', 'config', 'subquest_id', 'subquest_name', 'payout_sent_at')
     column_labels = {
         'id': 'Task ID',
         'type': 'Task Type',
         'config': 'Configuration',
         'subquest_id': 'Subquest ID',
-        'subquest_name': 'Subquest Name'
+        'subquest_name': 'Subquest Name',
+        'payout_sent_at': 'Payout Sent At'
     }
     form_columns = ('type', 'config', 'subquest_id')
 
@@ -29486,8 +29492,7 @@ class TaskAdmin(BaseAdmin):
 
     can_view_details = True
     column_searchable_list = ('type',)
-    column_filters = ('type', 'subquest_id')
-
+    column_filters = ('type', 'subquest_id', 'payout_sent_at')
 
 
 

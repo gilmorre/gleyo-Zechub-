@@ -3680,11 +3680,10 @@ function setQuestState(state, options = {}) {
   else if (state === "completed") {
     stateUI = renderQuestStateUI({
       img: "https://zupdpwnloewdkjqsymdm.supabase.co/storage/v1/object/public/uploads/5/channels/21/7509f516-d6bd-4ac1-927f-816a3e3ececa.png",
-      text: "Quest Completed",
+      text: options.text || "Quest Completed",
       showNext: true
     });
   }
-
 
   /* ===== NO RETRY ===== */
   else if (state === "no_retry") {

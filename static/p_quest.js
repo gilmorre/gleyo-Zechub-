@@ -1779,7 +1779,8 @@ function renderSubquest(subquest, questUUID) {
   el.className = classes.join(" ");
   el.dataset.quest = questUUID;
   el.dataset.subquest = subquest.uuid;
-
+  const isCoinHolderVote = (subquest.tasks || []).some(t => t.icon_color === "#F3B724");
+  el.dataset.coinHolderVote = isCoinHolderVote ? "true" : "false";
   const rewardCount = (subquest.rewards || []).length;
   const textShrinkClass = rewardCount >= 2 ? "multi-reward" : "";
 
@@ -1827,12 +1828,11 @@ function renderVotingEnded() {
   `;
 }
 function renderStateBadge(subquest, isLocked) {
-  // 🥇 PRIORITY SYSTEM
-
-  // 1) Completed overrides everything
+  const isCoinHolderVote = (subquest.tasks || []).some(t => t.icon_color === "#F3B724");
   if (subquest.is_completed) {
-    return renderCompleted();
+    return renderCompleted(isCoinHolderVote ? "Vote casted" : "Completed");
   }
+
 
   if (subquest.is_expired) {
     return renderVotingEnded();
@@ -2126,14 +2126,14 @@ function renderRewards(rewards = []) {
 }
 
 
-function renderCompleted() {
+function renderCompleted(label = "Completed") {
   return `
     <div class="complete-main">
       <div class="complete-container">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor" width="13" height="13">
         <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
         </svg>
-        <span class="completed-subquest" style="color: currentColor"">Completed</span>
+        <span class="completed-subquest" style="color: currentColor">${label}</span>
       </div>
     </div>
   `;
@@ -5420,16 +5420,12 @@ function parseUtc(dateString) {
 
 
 function hasNextPlayableQuest(currentBox){
-
   const boxes = [...document.querySelectorAll(".preview-box")];
-
   const index = boxes.indexOf(currentBox);
   if(index === -1) return false;
-
   const nextBoxes = boxes.slice(index + 1);
 
   return nextBoxes.some(box => {
-
     if(
       box.classList.contains("locked") ||
       box.classList.contains("completed") ||
@@ -5439,8 +5435,7 @@ function hasNextPlayableQuest(currentBox){
     ){
       return false;
     }
-
-    return true; // playable found
+    return true; 
   });
 }
 
@@ -5532,6 +5527,7 @@ async function routeToSubquest(box){
   const questUUID = box.dataset.quest;
   const showNext = hasNextPlayableQuest(box);
   const subUUID   = box.dataset.subquest;
+  const isCoinHolderVote = box.dataset.coinHolderVote === "true"; 
   if(!questUUID || !subUUID) return;
 
   pushSubquestURL(questUUID, subUUID);
@@ -5555,7 +5551,7 @@ async function routeToSubquest(box){
     else if (isCompleted) {
       stateUI = renderQuestStateUI({
         img: "https://zupdpwnloewdkjqsymdm.supabase.co/storage/v1/object/public/uploads/5/channels/21/7509f516-d6bd-4ac1-927f-816a3e3ececa.png",
-        text: "Quest Completed",
+        text: isCoinHolderVote ? "Vote casted" : "Quest Completed",
         showNext 
       });
     }
@@ -5798,8 +5794,9 @@ function updateActivePreviewBoxState(state, options = {}) {
   if (state === "completed") {
     box.classList.add("completed");
 
+    const isCoinHolderVote = box.dataset.coinHolderVote === "true";
     const wrapper = document.createElement("div");
-    wrapper.innerHTML = renderCompleted();
+    wrapper.innerHTML = renderCompleted(isCoinHolderVote ? "Vote casted" : "Completed");
 
     box.appendChild(wrapper.firstElementChild);
     return;
@@ -6468,18 +6465,13 @@ async function handleClaim(subquestId, claimBtn){
       // ✅ SUCCESS
       if (data.success) {
           window.updateXpUI(communityId);
-
-        // right panel
-        setQuestState("completed");
-
-        // preview grid
-        updateActivePreviewBoxState("completed");
-
-        // header progress
-        updateQuestProgressAfterClaim();
-
-        disableClaimButton();
-        return; 
+          setQuestState("completed", {
+            text: isCoinHolderVote ? "Vote casted" : "Quest Completed"
+          });
+          updateActivePreviewBoxState("completed");
+          updateQuestProgressAfterClaim();
+          disableClaimButton();
+          return; 
       }
 
 

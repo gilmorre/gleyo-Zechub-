@@ -14,6 +14,7 @@ class Task(db.Model):
     subquest_id = db.Column(db.Integer, db.ForeignKey("subquest.id"), nullable=False)
     subquest = db.relationship("Subquest", back_populates="tasks")
     attempt_histories = db.relationship("TaskAttemptHistory", back_populates="task", cascade="all, delete")
+    payout_sent_at = db.Column(db.DateTime, nullable=True)
 
     @property
     def quest_uuid(self):
@@ -65,10 +66,9 @@ class CoinHolderVote(db.Model):
     amount = db.Column(Numeric(18, 8), nullable=False)  # ZEC voted
     token = db.Column(db.String(10), default="ZEC")
 
-    # Ties the vote back to the specific claim that produced it —
-    # doubles as the anti-duplicate key (see settlement code).
+    # ✅ FIXED — table is "subquest_completion" (singular), not "subquest_completions"
     subquest_completion_id = db.Column(
-        db.Integer, db.ForeignKey("subquest_completions.id"), nullable=True, index=True
+        db.Integer, db.ForeignKey("subquest_completion.id"), nullable=True, index=True
     )
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
@@ -86,7 +86,6 @@ class CoinHolderVote(db.Model):
 
     def __repr__(self):
         return f"<CoinHolderVote user={self.user_id} project={self.project_name!r} amount={self.amount}>"
-
 
 class CoinHolderVoteTally(db.Model):
     __tablename__ = "coin_holder_vote_tallies"

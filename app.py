@@ -266,7 +266,7 @@ def human_readable_number(n):
     else:
         return str(n)
 
-scheduler = BackgroundScheduler()
+scheduler = BackgroundScheduler(timezone=pytz.utc)
 
 
 
@@ -356,7 +356,6 @@ scheduler.add_jobstore(
     SQLAlchemyJobStore(url=app.config["SQLALCHEMY_DATABASE_URI"]),
     'default'
 )
-scheduler.start()
 
 
 
@@ -3145,7 +3144,7 @@ def community_not_deleted():
     Blocks access to deleted communities.
     - Creator → redirected to deletion page
     - Others → 404
-    """
+    """ 
 
     def decorator(view_func):
         @wraps(view_func)
@@ -15587,44 +15586,42 @@ def get_coin_holder_vote_result(task):
     winner = tallies[0]
     print(f"🔍 [get_coin_holder_vote_result] winner={winner.project_name!r} amount={winner.total_amount}")
 
-    if zec_per_vote > 0:
-        computed_votes = (winner.total_amount / zec_per_vote)
-    else:
-        computed_votes = Decimal("0")
-    print(f"🔍 [get_coin_holder_vote_result] computed_votes={computed_votes}")
-
     total_zec_all = sum((t.total_amount or Decimal("0")) for t in tallies)
     print(f"🔍 [get_coin_holder_vote_result] total_zec_all={total_zec_all}")
 
-    share_pct = (
-        round(float(winner.total_amount / total_zec_all) * 100, 2)
-        if total_zec_all > 0 else 0.0
-    )
-    print(f"🔍 [get_coin_holder_vote_result] share_pct={share_pct}")
+    def _computed_votes(amount):
+        return (amount / zec_per_vote) if zec_per_vote > 0 else Decimal("0")
+
+    def _share(amount):
+        return round(float(amount / total_zec_all) * 100, 2) if total_zec_all > 0 else 0.0
+
+    all_projects = [
+        {
+            "rank": idx + 1,
+            "project_name": t.project_name,
+            "project_index": t.project_index,
+            "total_zec": t.total_amount,
+            "vote_count": t.vote_count,
+            "computed_votes": _computed_votes(t.total_amount or Decimal("0")),
+            "share_pct": _share(t.total_amount or Decimal("0")),
+        }
+        for idx, t in enumerate(tallies)
+    ]
 
     result = {
         "project_name": winner.project_name,
         "project_index": winner.project_index,
         "total_zec": winner.total_amount,
         "vote_count": winner.vote_count,
-        "computed_votes": computed_votes,
+        "computed_votes": _computed_votes(winner.total_amount),
         "zec_per_vote": zec_per_vote,
-        "share_pct": share_pct,
-        "all_projects": [
-            {
-                "project_name": t.project_name,
-                "total_zec": t.total_amount,
-                "vote_count": t.vote_count,
-                "computed_votes": (t.total_amount / zec_per_vote) if zec_per_vote > 0 else Decimal("0"),
-            }
-            for t in tallies
-        ],
+        "share_pct": _share(winner.total_amount),
+        "total_zec_all": total_zec_all,
+        "all_projects": all_projects,
+        "top_projects": all_projects[:5],   # 👈 what the template should loop over
     }
     print(f"✅ [get_coin_holder_vote_result] returning result dict with {len(result['all_projects'])} projects")
     return result
-
-
-import traceback
 
 @app.route('/<community_slug>/result/<string:subquest_uuid>')
 @login_required
@@ -15643,12 +15640,6 @@ def result_html(community_slug, subquest_uuid):
     print(f"🔍 [result_html] subquest lookup by uuid → {subquest!r}")
     if not subquest:
         print(f"❌ [result_html] 404 — no subquest with uuid={subquest_uuid!r}")
-        near_matches = Subquest.query.filter(
-            Subquest.uuid.like(f"{subquest_uuid[:8]}%")
-        ).all()
-        print(f"🔍 [result_html] near-UUID matches (first 8 chars): {[s.uuid for s in near_matches]}")
-        total_subquests = Subquest.query.count()
-        print(f"🔍 [result_html] total subquest rows in DB: {total_subquests}")
         abort(404)
 
     print(f"🔍 [result_html] subquest found: id={subquest.id} name={subquest.name!r} quest_id={subquest.quest_id}")
@@ -15681,11 +15672,13 @@ def result_html(community_slug, subquest_uuid):
         success_band = "high"
     print(f"🔍 [result_html] success_band={success_band}")
 
+    # --- coin holder vote lookup: direct query, no relationship walking ---
     try:
-        vote_task = next(
-            (t for t in subquest.tasks if t.type == "coin_holder_vote"), None
-        )
-        print(f"🔍 [result_html] vote_task={vote_task!r} (subquest has {len(subquest.tasks)} tasks total: {[t.type for t in subquest.tasks]})")
+        vote_task = Task.query.filter_by(
+            subquest_id=subquest.id,
+            type="coin_holder_vote"
+        ).first()
+        print(f"🔍 [result_html] vote_task={vote_task!r}")
     except Exception as e:
         print(f"💥 [result_html] EXCEPTION resolving vote_task: {e!r}")
         traceback.print_exc()
@@ -15698,6 +15691,7 @@ def result_html(community_slug, subquest_uuid):
         print(f"💥 [result_html] EXCEPTION in get_coin_holder_vote_result: {e!r}")
         traceback.print_exc()
         raise
+    # --- end coin holder block ---
 
     print(f"✅ [result_html] about to render_template('result.html') for subquest {subquest.uuid}")
 
@@ -15723,7 +15717,7 @@ def result_html(community_slug, subquest_uuid):
         print(f"💥 [result_html] EXCEPTION during render_template: {e!r}")
         traceback.print_exc()
         raise
-    
+
 @app.route("/api/quest-progress/<int:quest_id>")
 @login_required
 def quest_progress(quest_id):
@@ -15770,7 +15764,18 @@ def get_quests_and_subquests(community_slug, subquest_uuid):
     return jsonify(data)
 
 
+from apscheduler.events import EVENT_JOB_EXECUTED, EVENT_JOB_ERROR, EVENT_JOB_MISSED
 
+def _job_event_listener(event):
+    if event.code == EVENT_JOB_MISSED:
+        logger.error("⏰ MISSED job %s — scheduled_run_time=%s (this means it never ran!)",
+                     event.job_id, event.scheduled_run_time)
+    elif event.code == EVENT_JOB_ERROR:
+        logger.error("💥 job %s raised an exception: %s", event.job_id, event.exception)
+    elif event.code == EVENT_JOB_EXECUTED:
+        logger.info("✅ job %s executed, return value=%s", event.job_id, event.retval)
+
+scheduler.add_listener(_job_event_listener, EVENT_JOB_EXECUTED | EVENT_JOB_ERROR | EVENT_JOB_MISSED)
 
 
 def save_subquest_blocks_when_done(future, subquest_id, block_index):
@@ -16399,16 +16404,7 @@ def publish_subquest(community_slug):
         subquest.expires_at = vote_end_date if has_coin_holder_vote else None
         subquest.is_expired = False
         existing_tasks = {t.id: t for t in subquest.tasks}
-        if subquest.expires_at:
-            from backend.jobs.expire_subquests import expire_one_subquest
-            scheduler.add_job(
-                func=expire_one_subquest,
-                trigger="date",
-                run_date=subquest.expires_at,
-                args=[subquest.id],
-                id=f"expire_subquest_{subquest.id}",
-                replace_existing=True,
-            )
+
         for i, task_data in enumerate(tasks_data):
             if i < len(existing_tasks):
                 t = list(existing_tasks.values())[i]
@@ -16451,7 +16447,22 @@ def publish_subquest(community_slug):
         subquest.is_draft = False
 
         db.session.commit()
-
+        if subquest.expires_at:
+            from backend.jobs.expire_subquests import expire_one_subquest
+            job = scheduler.add_job(
+                func=expire_one_subquest,
+                trigger="date",
+                run_date=subquest.expires_at,
+                args=[subquest.id],
+                id=f"expire_subquest_{subquest.id}",
+                replace_existing=True,
+                misfire_grace_time=None,
+            )
+            logger.info(
+                "🗓️ Scheduled expiry for subquest %s (uuid=%s) at %s UTC — job_id=%s next_run=%s",
+                subquest.id, subquest.uuid, subquest.expires_at.isoformat(),
+                job.id, job.next_run_time
+            )
         if was_draft:
             bot_user = get_bot_user()
             quest_channel = CommunityChannel.query.filter_by(
@@ -21261,6 +21272,24 @@ def claim_subquest(subquest_id):
 
     tasks = Task.query.filter_by(subquest_id=subquest_id).all()
     is_coin_holder_vote_quest = any(t.type == "coin_holder_vote" for t in tasks)
+
+    if is_coin_holder_vote_quest:
+        now = utcnow()
+        vote_end = subquest.vote_end_date
+
+        # normalize to aware UTC for comparison, same pattern used elsewhere in this file
+        if vote_end and vote_end.tzinfo is None:
+            vote_end = vote_end.replace(tzinfo=timezone.utc)
+
+        vote_closed = subquest.is_expired or (vote_end and now >= vote_end)
+
+        if vote_closed:
+            return jsonify({
+                "success": False,
+                "error_code": "VOTE_CLOSED",
+                "toast": "Voting has ended for this quest."
+            }), 400
+
     subquest_completion = SubquestCompletion(
         user_id=user.id,
         subquest_id=subquest.id,
@@ -22825,6 +22854,7 @@ def verify_payment(community_slug, payment_id):
 
 
 @app.route('/api/wallet/zec/deposit/create', methods=['POST'])
+@csrf.exempt
 @login_required
 def create_deposit():
     data = request.get_json(force=True) or {}
@@ -22841,8 +22871,12 @@ def create_deposit():
         return jsonify({'error': 'Invalid amount'}), 400
     if amount <= 0:
         return jsonify({'error': 'Invalid amount'}), 400
-    if token != 'ZEC' and not refund_address:
-        return jsonify({'error': 'Refund address required'}), 400
+    if token != 'ZEC':
+        if not refund_address:
+            return jsonify({'error': 'Refund address required'}), 400
+        if not Web3.is_address(refund_address):
+            return jsonify({'error': 'Invalid refund address'}), 400
+        refund_address = Web3.to_checksum_address(refund_address)
 
     existing = UserTransaction.query.filter_by(
         user_id=current_user.id, type='in', status='pending'
@@ -32573,7 +32607,6 @@ def page_not_found(e):
     return render_template('404.html'), 404
 
 
-scheduler = BackgroundScheduler()
 
 
 def poll_pending_evm_payments():
@@ -32641,6 +32674,7 @@ if __name__ == "__main__":
         trigger=IntervalTrigger(seconds=20),
         id="evm_poll_job",
         next_run_time=datetime.now(),
+        replace_existing=True
     )
     scheduler.start()
 

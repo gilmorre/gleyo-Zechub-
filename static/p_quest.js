@@ -729,7 +729,35 @@ function initVoteCountdownChips(){
 
       if (chip.dataset.done === "1") return;
       chip.dataset.done = "1";
-      valueEl.textContent = chip.dataset.voteLabel === "starts" ? "started" : "ended";
+
+      const isEndsChip = chip.dataset.voteLabel === "ends";
+
+      if (isEndsChip) {
+        const box = chip.closest(".preview-box");
+
+        // 🔥 remove the stale chip itself — don't leave "Ends in ended" behind
+        chip.remove();
+
+        if (box && !box.classList.contains("expired")) {
+          box.classList.add("expired");
+
+          const oldBadge = box.querySelector(".complete-main, .lock-main, .pending-reviews, .timer-main");
+          if (oldBadge) oldBadge.remove();
+          box.insertAdjacentHTML("beforeend", renderVotingEnded());
+
+          if (box.tagName === "A") {
+            const replacement = document.createElement("div");
+            replacement.className = box.className;
+            replacement.dataset.quest = box.dataset.quest;
+            replacement.dataset.subquest = box.dataset.subquest;
+            replacement.innerHTML = box.innerHTML;
+            box.replaceWith(replacement);
+          }
+        }
+      } else {
+        // "starts" chip — just update text, no removal needed
+        valueEl.textContent = "started";
+      }
     });
   }
 
@@ -2269,7 +2297,7 @@ function initCooldownTimers() {
   if (!timers.length) return;
 
   function update() {
-    const now = Date.now(); // ms
+    const now = Date.now();
 
     timers.forEach(el => {
       const untilRaw = el.dataset.cooldownUntil;
@@ -2278,46 +2306,34 @@ function initCooldownTimers() {
       const until = new Date(untilRaw).getTime();
       if (isNaN(until)) return;
 
-      const diff = Math.floor((until - now) / 1000); // seconds
+      const diff = Math.floor((until - now) / 1000);
 
-      const isVoteTimer = el.classList.contains("vote-opens-timer");
+      const isVoteOpenTimer = el.classList.contains("vote-opens-timer");
+      const isVoteEndTimer  = el.classList.contains("vote-ends-timer");
 
       const timerMain  = el.closest(".timer-main");
       const previewBox = el.closest(".preview-box");
 
-      /* =======================
-         ACTIVE COUNTDOWN
-      ======================= */
       if (diff > 0) {
-        el.innerText = isVoteTimer
+        el.innerText = (isVoteOpenTimer || isVoteEndTimer)
           ? formatFullCountdown(diff)
           : formatCooldown(diff);
 
-        if (previewBox) {
-          previewBox.classList.add("try-again");
-        }
-
+        if (previewBox) previewBox.classList.add("try-again");
         return;
       }
 
-      /* =======================
-         EXPIRED
-      ======================= */
       if (el.dataset.cooldownDone === "1") return;
       el.dataset.cooldownDone = "1";
 
-      /* ---- VOTE-OPENS TIMER: unlock live, no refresh needed ---- */
-      if (isVoteTimer) {
+      /* ---- VOTE-OPENS TIMER: unlock live (existing behavior) ---- */
+      if (isVoteOpenTimer) {
         const wrap = el.closest(".vote-opens-wrap");
-        if (wrap) wrap.remove(); // drop the "Opens in" line entirely
+        if (wrap) wrap.remove();
 
-        // unblock the tasks section
         const tasksList = document.querySelector(".tasks-list.disabled-tasks");
-        if (tasksList) {
-          tasksList.classList.remove("disabled-tasks");
-        }
+        if (tasksList) tasksList.classList.remove("disabled-tasks");
 
-        // re-enable the claim/vote button if nothing else is blocking it
         const claimBtn = document.querySelector("#claim-task");
         if (claimBtn && !claimBtn.classList.contains("disabled-task")) {
           claimBtn.removeAttribute("disabled");
@@ -2325,37 +2341,46 @@ function initCooldownTimers() {
           claimBtn.classList.add("enabled");
           claimBtn.style.cursor = "pointer";
         }
-
         return;
       }
 
-      /* ---- NORMAL SUBQUEST COOLDOWN ---- */
-      if (timerMain) {
-        timerMain.remove();
+      /* ---- VOTE-ENDS TIMER: lock live, swap in "Voting Ended" ---- */
+      if (isVoteEndTimer) {
+        const wrap = el.closest(".vote-ends-wrap");
+        if (wrap) {
+          wrap.outerHTML = `<span class="span-con voting-ended-pill">Voting has ended</span>`;
+        }
+
+        const tasksList = document.querySelector(".tasks-list");
+        if (tasksList) tasksList.classList.add("disabled-tasks");
+
+        const claimBtn = document.querySelector("#claim-task");
+        if (claimBtn) {
+          claimBtn.textContent = "Voting Ended";
+          claimBtn.setAttribute("disabled", "true");
+          claimBtn.classList.remove("enabled");
+          claimBtn.classList.add("disable", "disabled-task");
+          claimBtn.style.cursor = "not-allowed";
+        }
+        return;
       }
 
-      if (previewBox) {
-        previewBox.classList.remove("try-again");
-      }
+      /* ---- NORMAL SUBQUEST COOLDOWN (existing, unchanged) ---- */
+      if (timerMain) timerMain.remove();
+      if (previewBox) previewBox.classList.remove("try-again");
 
-      const claimSection = el.closest(".claim-button")
-                        || document.querySelector(".claim-button");
-
+      const claimSection = el.closest(".claim-button") || document.querySelector(".claim-button");
       if (!claimSection) return;
 
-      const claimBtn = claimSection.querySelector("#claim-task");
+      const claimBtn2 = claimSection.querySelector("#claim-task");
       const coolDisplay = claimSection.querySelector(".cool-display");
-
-      if (coolDisplay) {
-        coolDisplay.style.display = "none";
-      }
-
-      if (claimBtn) {
-        claimBtn.style.display = "flex";
-        claimBtn.classList.remove("enabled");
-        claimBtn.classList.add("disable");
-        claimBtn.setAttribute("disabled", "true");
-        claimBtn.style.cursor = "not-allowed";
+      if (coolDisplay) coolDisplay.style.display = "none";
+      if (claimBtn2) {
+        claimBtn2.style.display = "flex";
+        claimBtn2.classList.remove("enabled");
+        claimBtn2.classList.add("disable");
+        claimBtn2.setAttribute("disabled", "true");
+        claimBtn2.style.cursor = "not-allowed";
       }
     });
   }
@@ -2944,9 +2969,8 @@ function renderQuestComplete(data){
 
   const socialsBlocked = hasBlockingSocials(socials_to_show);
 
-  // 🔥 new: gate on vote_start_date / vote_end_date
   const voteTime    = getVoteTimeState(subquest);
-  const timeBlocked = voteTime.state !== "active";
+  const timeBlocked = subquest.is_expired || voteTime.state !== "active";
 
   // 🔥 combined — either reason disables the tasks section
   const tasksBlocked = socialsBlocked || timeBlocked;
@@ -3112,7 +3136,7 @@ function renderQuestComplete(data){
     <!-- Claim section -->
 
   </div>
-  ${renderClaimSection(subquest, ui, socials_to_show, tasks)}
+  ${renderClaimSection(subquest, ui, socials_to_show, tasks, timeBlocked)}
 
 </div>
 `;
@@ -5036,7 +5060,7 @@ function initPreviewKeyboardNav(){
 }
 
 
-function renderClaimSection(subquest, ui, socials_to_show, tasks = []) {
+function renderClaimSection(subquest, ui, socials_to_show, tasks = [], votingEnded = false) {
   const remaining = ui?.remaining?.[subquest.id] ?? 0;
   const cooldownTs = ui?.cooldowns?.[subquest.id] ?? 0;
   const completed = ui?.completed_subquests?.includes(subquest.id);
@@ -5044,7 +5068,9 @@ function renderClaimSection(subquest, ui, socials_to_show, tasks = []) {
   const socialsBlocked = hasBlockingSocials(socials_to_show);
   const isLoggedIn = currentUserId && currentUserId !== "None";
   const isCoinHolderVote = (tasks || []).some(t => t.type === "coin_holder_vote");
-  const claimLabel = isCoinHolderVote ? "Vote" : "Claim";
+  const claimLabel = votingEnded ? "Voting Ended" : (isCoinHolderVote ? "Vote" : "Claim");
+  const isDisabled = socialsBlocked || votingEnded;
+
   return `
     <div class="claim-button">
 
@@ -5085,8 +5111,8 @@ function renderClaimSection(subquest, ui, socials_to_show, tasks = []) {
               <button id="claim-task" 
                       data-subquest-id="${subquest.id}"
                       style="outline:none; ${remaining > 0 ? "display:none;" : ""}"
-                      class="claim-task disable ${socialsBlocked ? "disabled-task" : ""}"
-                      ${socialsBlocked ? "disabled aria-disabled='true'" : ""}>
+                      class="claim-task disable ${isDisabled ? "disabled-task" : ""}"
+                      ${isDisabled ? "disabled aria-disabled='true'" : ""}>
                 ${claimLabel}
               </button>
             `

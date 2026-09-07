@@ -25,7 +25,7 @@
   }
 
   /* ================================
-    STAT ROW
+    STAT ROW (subquest completion stats)
   ================================ */
   .stat-row{
     display: flex;
@@ -65,9 +65,6 @@
       0 0 14px rgba(66,133,244,0.22);
   }
 
-  /* ================================
-    LABEL
-  ================================ */
   .stat-label{
     font-size: 12px;
     font-weight: 600;
@@ -76,9 +73,6 @@
     text-transform: uppercase;
   }
 
-  /* ================================
-    PLAIN TEXT VALUES
-  ================================ */
   .stat-value.plain{
     font-size: 13px;
     font-weight: 600;
@@ -91,9 +85,6 @@
     text-shadow: none;
   }
 
-  /* ================================
-    SUCCESS RATE BADGE BASE
-  ================================ */
   .stat-value.rate-badge{
     font-size: 12.5px;
     font-weight: 700;
@@ -107,38 +98,12 @@
       inset 0 0 6px rgba(255,255,255,0.12);
   }
 
-  /* ================================
-    BADGE COLOR STATES (ONLY BADGE)
-  ================================ */
+  .success-rate-row.rate-none .rate-badge{ background: linear-gradient(135deg, #6b7280, #4b5563); }
+  .success-rate-row.rate-low .rate-badge{ background: #e73d3dd6; }
+  .success-rate-row.rate-mid .rate-badge{ background: linear-gradient(135deg, #f59e0b, #b45309); }
+  .success-rate-row.rate-good .rate-badge{ background: linear-gradient(135deg, #84cc16, #4d7c0f); }
+  .success-rate-row.rate-high .rate-badge{ background: linear-gradient(135deg, #22c55e, #15803d); }
 
-  /* none */
-  .success-rate-row.rate-none .rate-badge{
-    background: linear-gradient(135deg, #6b7280, #4b5563);
-  }
-
-  /* 0–20% red */
-  .success-rate-row.rate-low .rate-badge{
-    background: #e73d3dd6;
-  }
-
-  /* 21–50% yellow */
-  .success-rate-row.rate-mid .rate-badge{
-    background: linear-gradient(135deg, #f59e0b, #b45309);
-  }
-
-  /* 51–70% yellow-green */
-  .success-rate-row.rate-good .rate-badge{
-    background: linear-gradient(135deg, #84cc16, #4d7c0f);
-  }
-
-  /* 71–100% green */
-  .success-rate-row.rate-high .rate-badge{
-    background: linear-gradient(135deg, #22c55e, #15803d);
-  }
-
-  /* ================================
-    INFO CARD
-  ================================ */
   .hushby{
     margin-top: 12px;
     background: var(--bg-surface);
@@ -153,9 +118,6 @@
     font-weight: 500;
   }
 
-  /* ================================
-    ENTRY BADGE
-  ================================ */
   .entry{
     display: inline-block;
     margin-top: 6px;
@@ -167,6 +129,165 @@
     color: var(--text-muted);
     border: 1px solid var(--border);
   }
+
+  /* ================================
+    VOTE LEADERBOARD (coin holder vote)
+  ================================ */
+  .vote-header{
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    padding: 0 2px;
+  }
+
+  .vote-header .vote-title{
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-main);
+    letter-spacing: 0.2px;
+  }
+
+  .vote-header .vote-subtitle{
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-main-items);
+    text-transform: uppercase;
+  }
+
+  .vote-row{
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: linear-gradient(180deg, var(--bg-surface-active), var(--bg-surface-in-active));
+    padding: 12px 14px;
+    border-radius: 16px;
+    margin-bottom: 8px;
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+
+  .vote-row:hover{
+    transform: translateY(-2px) scale(1.004);
+    background: linear-gradient(180deg, var(--bg-hover), var(--bg-surface));
+    box-shadow:
+      0 6px 18px rgba(0,0,0,0.4),
+      0 0 0 1px var(--bg-active-border);
+  }
+
+  .vote-rank{
+    flex: 0 0 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 800;
+    color: white;
+    background: linear-gradient(135deg, #6b7280, #4b5563);
+    box-shadow: inset 0 0 6px rgba(255,255,255,0.12);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  }
+
+  .vote-row.rank-1 .vote-rank{ background: linear-gradient(135deg, #ffd76a, #b8860b); }
+  .vote-row.rank-2 .vote-rank{ background: linear-gradient(135deg, #d9d9e3, #8a8a99); }
+  .vote-row.rank-3 .vote-rank{ background: linear-gradient(135deg, #e0a370, #8a5a2e); }
+
+  .vote-row.rank-1{ border-color: rgba(255,215,106,0.35); }
+
+  .vote-main{
+    flex: 1;
+    min-width: 0;
+  }
+
+  .vote-name-line{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+
+  .vote-name{
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .vote-pct{
+    font-size: 12px;
+    font-weight: 800;
+    color: white;
+    padding: 2px 9px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #5865f2, #4338ca);
+    text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+    white-space: nowrap;
+  }
+
+  .vote-row.rank-1 .vote-pct{ background: linear-gradient(135deg, #22c55e, #15803d); }
+
+  .vote-bar-track{
+    width: 100%;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--bg-app-others);
+    overflow: hidden;
+    box-shadow: inset 0 0 4px rgba(0,0,0,0.4);
+  }
+
+  .vote-bar-fill{
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #5865f2, #7c8cf9);
+  }
+
+  .vote-row.rank-1 .vote-bar-fill{ background: linear-gradient(90deg, #22c55e, #4ade80); }
+
+  .vote-meta{
+    display: flex;
+    gap: 10px;
+    margin-top: 6px;
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--text-main-items);
+  }
+
+  .vote-summary{
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+
+  .vote-summary-item{
+    flex: 1;
+    text-align: center;
+  }
+
+  .vote-summary-value{
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--text-main);
+    display: block;
+  }
+
+  .vote-summary-label{
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text-main-items);
+    margin-top: 2px;
+    display: block;
+  }
 </style>
 
 <div style="display: flex; flex-direction: column; width: 100%;">
@@ -174,26 +295,47 @@
   {% if vote_task %}
     {% if vote_result %}
       <div class="stats-table">
-        <div class="stat-row">
-          <span class="stat-label">Leading project</span>
-          <span class="stat-value plain">{{ vote_result.project_name }}</span>
+
+        <div class="vote-header">
+          <span class="vote-title">🏆 Project Vote Results</span>
+          <span class="vote-subtitle">{{ vote_result.zec_per_vote }} ZEC / vote</span>
         </div>
-        <div class="stat-row">
-          <span class="stat-label">Total ZEC voted</span>
-          <span class="stat-value plain">{{ vote_result.total_zec }} ZEC</span>
+
+        {% for p in vote_result.top_projects %}
+        <div class="vote-row rank-{{ p.rank }}">
+          <div class="vote-rank">{{ p.rank }}</div>
+          <div class="vote-main">
+            <div class="vote-name-line">
+              <span class="vote-name">{{ p.project_name }}</span>
+              <span class="vote-pct">{{ p.share_pct }}%</span>
+            </div>
+            <div class="vote-bar-track">
+              <div class="vote-bar-fill" style="width: {{ p.share_pct }}%;"></div>
+            </div>
+            <div class="vote-meta">
+              <span>{{ p.total_zec }} ZEC</span>
+              <span>·</span>
+              <span>{{ p.computed_votes }} votes</span>
+            </div>
+          </div>
         </div>
-        <div class="stat-row">
-          <span class="stat-label">Votes ({{ vote_result.zec_per_vote }} ZEC/vote)</span>
-          <span class="stat-value plain">{{ vote_result.computed_votes }}</span>
+        {% endfor %}
+
+        <div class="vote-summary">
+          <div class="vote-summary-item">
+            <span class="vote-summary-value">{{ vote_result.total_zec_all }}</span>
+            <span class="vote-summary-label">Total ZEC</span>
+          </div>
+          <div class="vote-summary-item">
+            <span class="vote-summary-value">{{ vote_result.vote_count }}</span>
+            <span class="vote-summary-label">Voters</span>
+          </div>
+          <div class="vote-summary-item">
+            <span class="vote-summary-value">{{ vote_result.all_projects|length }}</span>
+            <span class="vote-summary-label">Projects</span>
+          </div>
         </div>
-        <div class="stat-row">
-          <span class="stat-label">Voters</span>
-          <span class="stat-value plain">{{ vote_result.vote_count }}</span>
-        </div>
-        <div class="stat-row success-rate-row rate-high">
-          <span class="stat-label">Share of total</span>
-          <span class="stat-value rate-badge">{{ vote_result.share_pct }}%</span>
-        </div>
+
       </div>
     {% else %}
       <div class="stats-table">

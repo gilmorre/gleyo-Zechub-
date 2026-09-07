@@ -191,7 +191,10 @@ def create_evm_deposit(user_id, token, network, amount, refund_address=None,
         },
         timeout=20,
     )
-    quote_resp.raise_for_status()
+    if not quote_resp.ok:
+        raise RuntimeError(
+            f"Defuse quote failed ({quote_resp.status_code}): {quote_resp.text}"
+        )
     data = quote_resp.json()
     quote = data.get("quote", {})
 

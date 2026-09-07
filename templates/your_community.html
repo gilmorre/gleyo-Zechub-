@@ -35,7 +35,7 @@
 <meta name="color-scheme" content="light">
 <link rel="shortcut icon" href="https://zupdpwnloewdkjqsymdm.supabase.co/storage/v1/object/public/uploads/communities/7/logos/511f4996-5748-4f1f-b74c-5d5c33f7124c.png">
 
-<link rel="stylesheet" href="{{ url_for('static', filename='your_communitys.css') }}?v=3">
+<link rel="stylesheet" href="{{ url_for('static', filename='your_communitys.css') }}?v=1">
 <style>
 
 :root {
@@ -5204,13 +5204,18 @@ function buildSidebar(ctx) {
   const hasSprint = ctx.sprint?.exists;
   const sprintUUID = ctx.sprint?.uuid;
 
-  function addItem(label, path, icon) {
+  function addItem(label, path, icon, opts = {}) {
 
     const a = document.createElement("a");
 
     a.className = "naved-item";
     a.dataset.path = path;
     a.href = path;
+
+    if (opts.newTab) {
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+    }
 
     if (label === "Inbox") {
       a.innerHTML = `
@@ -5221,10 +5226,12 @@ function buildSidebar(ctx) {
       a.innerHTML = icon + label;
     }
 
-    a.onclick = (e) => {
-      e.preventDefault();
-      loadMainSettingsSection(path);
-    };
+    if (!opts.newTab) {
+      a.onclick = (e) => {
+        e.preventDefault();
+        loadMainSettingsSection(path);
+      };
+    }
 
     nav.appendChild(a);
   }
@@ -5291,7 +5298,7 @@ function buildSidebar(ctx) {
     addItem("Partnerships", `/${slug}/partnerships`, navbarSVG.partnerships);
   }
 
-  addItem("Chat", `/chat/${slug}`, navbarSVG.chat);
+  addItem("Chat", `/chat/${slug}`, navbarSVG.chat, { newTab: true });
 
   
   addItem("Rewards", `/${slug}/rewards`, navbarSVG.rewards);
@@ -7412,9 +7419,9 @@ async function loadMainSettingsSection(path, push = true, previewMode = false, n
 
   if (finalPath.includes("/quest/admin/")) {
 
-    __CURRENT_SCRIPT__ = "/static/arial.js?v=7";
+    __CURRENT_SCRIPT__ = "/static/arial.js?v=9";
 
-  await loadScript("/static/arial.js?v=7");
+  await loadScript("/static/arial.js?v=9");
 
 
   if (window.AialModule) {
@@ -7455,9 +7462,9 @@ async function loadMainSettingsSection(path, push = true, previewMode = false, n
 
 
 
-    __CURRENT_SCRIPT__ = "/static/p_quest.js?v=2";
+    __CURRENT_SCRIPT__ = "/static/p_quest.js?v=0";
 
-    await loadScript("/static/p_quest.js?v=2");
+    await loadScript("/static/p_quest.js?v=0");
 
     if (window.PQUESTModule) {
       window.PQUESTModule.init();
@@ -7580,9 +7587,9 @@ async function loadMainSettingsSection(path, push = true, previewMode = false, n
 
   if (finalPath.includes("/rewards")) {
     
-    __CURRENT_SCRIPT__ = "/static/reward.js?v=9";
+    __CURRENT_SCRIPT__ = "/static/reward.js?v=2";
 
-    await loadScript("/static/reward.js?v=9");
+    await loadScript("/static/reward.js?v=2");
 
     if (window.ReviewModule) {
       window.ReviewModule.init();

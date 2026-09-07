@@ -220,6 +220,7 @@ def create_evm_deposit(user_id, token, network, amount, refund_address=None,
     )
     db.session.add(tx)
     db.session.commit()
+    _wake_poller_safe()
     return tx
 
 

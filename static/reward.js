@@ -1147,8 +1147,8 @@ function startDepTimer(secondsRemaining){
 }
 
 function checkDepositPayment(){
+  if (!currentDepositId) return;
   const btn = document.getElementById('depCheckBtn');
-  if (btn.disabled || !currentDepositId) return;
   const statusEl = document.getElementById('depStatus');
   btn.disabled = true;
   statusEl.innerHTML = `<span class="payment-waiting" style="color:var(--p-light)"><span class="spinner"></span> Checking payment...</span>`;

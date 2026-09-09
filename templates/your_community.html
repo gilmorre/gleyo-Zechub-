@@ -408,7 +408,7 @@
   {% if is_banned %}
   <div class="banned-modal-container">
     <div class="banned-modal-header">
-      <img src="{{ url_for('static', filename=logo) }}"  alt="community-img">
+      <img src="{{ community.logo_path }}"  alt="community-img">
       <h2>{{ community.name }}</h2>
     </div>
     <div class="banned-modal-message">
@@ -435,7 +435,7 @@
 
 
     </div>
-    <a  href=""  class="banned-go-home-btn">Go home</a>
+    <a href="mailto:donald@gleyo.app" class="contact-link">Contact us</a>
 
   </div>
   {% endif %}

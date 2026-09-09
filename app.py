@@ -4252,7 +4252,6 @@ def admin_panel_api():
         "success": True,
         "redirect_url": url_for("community_logo")
     }
-    
 
 @app.route("/community/<slug>/leave", methods=["POST"])
 @login_required
@@ -4275,6 +4274,14 @@ def leave_community(slug):
         return jsonify({
             "message": "You are not a member of this community"
         }), 400
+
+    # ❌ banned users can't leave — they're already locked out, and letting
+    # them "leave" would delete the CommunityUserRole row (which is what's
+    # holding banned=True), effectively un-banning them if they rejoin.
+    if role.banned:
+        return jsonify({
+            "message": "You are banned from this community and cannot leave it"
+        }), 403
 
     # ✅ remove access
     db.session.delete(role)
@@ -4301,6 +4308,69 @@ def leave_community(slug):
         "next_community_slug": next_slug
     })
 
+
+@app.route('/api/<community_slug>/members')
+@login_required
+def api_community_members(community_slug):
+    community = Community.query.filter_by(slug=community_slug).first_or_404()
+
+    if not has_role(current_user.id, community.id, "admin"):
+        return jsonify({"error": "Only admins can access this"}), 403
+
+    offset = request.args.get('offset', 0, type=int)
+    limit = request.args.get('limit', 20, type=int)
+    search = (request.args.get('search') or "").strip()
+
+    if offset < 0:
+        offset = 0
+    if limit <= 0:
+        limit = 20
+    limit = min(limit, 100)  # sane upper bound
+
+    query = (
+        db.session.query(CommunityUserRole, Users)
+        .join(Users, CommunityUserRole.user_id == Users.id)
+        .filter(CommunityUserRole.community_id == community.id)
+    )
+
+    # 🔎 server-side search — searches the WHOLE membership, not just
+    # whatever page happens to be loaded in the DOM
+    if search:
+        query = query.filter(Users.username.ilike(f"%{search}%"))
+
+    # total for THIS filter (so "N members" / has_more math stays correct
+    # whether or not a search is active)
+    total_members = query.count()
+
+    rows = (
+        query
+        .order_by(CommunityUserRole.joined_at.asc(), CommunityUserRole.id.asc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+
+    member_data = []
+    for role_entry, member in rows:
+        member_data.append({
+            "id":          member.id,
+            "username":    member.username,
+            "banned":      role_entry.banned,
+            "profile_pic": member.profile_pic or None,
+            "role":        role_entry.role.title(),
+            "joined":      role_entry.joined_at.strftime("%b %d, %Y") if role_entry.joined_at else None,
+            "is_creator":  (member.id == community.created_by_id)
+        })
+
+    next_offset = offset + len(member_data)
+    has_more = next_offset < total_members
+
+    return jsonify({
+        "members":       member_data,
+        "total_members": total_members,
+        "next_offset":   next_offset,
+        "has_more":      has_more
+    })
 
 
 def slugify(text):
@@ -7611,9 +7681,6 @@ def api_alltime_leaderboard(community_slug):
     community = Community.query.filter_by(slug=community_slug).first_or_404()
 
     # ── pagination params ──────────────────────────────────
-    # offset/limit now actually come from the request instead of being
-    # hardcoded. Defaults keep first-page behaviour identical to before
-    # (offset=0, limit=30) for any old client that doesn't pass them.
     offset = request.args.get('offset', 0, type=int)
     limit = request.args.get('limit', 30, type=int)
 
@@ -7621,22 +7688,31 @@ def api_alltime_leaderboard(community_slug):
         offset = 0
     if limit <= 0:
         limit = 30
-    limit = min(limit, 100)  # sane upper bound so nobody can ask for 100000 rows
+    limit = min(limit, 100)
 
-    # ── TRUE total participant count for this community ──────
-    # This is what the frontend should show as "N participants",
-    # NOT len(leaderboard_data) — that only ever reflects the current page.
+    # ── banned users for this community ───────────────────
+    # Anyone banned here is excluded everywhere below: from total_count,
+    # from the page rows, and from the "higher_count" rank math for the
+    # current user. If it's not in this subquery, it wasn't banned.
+    banned_subq = (
+        db.session.query(CommunityUserRole.user_id)
+        .filter(
+            CommunityUserRole.community_id == community.id,
+            CommunityUserRole.banned.is_(True)
+        )
+        .subquery()
+    )
+
+    # ── TRUE total participant count for this community (banned excluded) ──
     total_count = (
         db.session.query(CommunityUserXP)
-        .filter(CommunityUserXP.community_id == community.id)
+        .filter(
+            CommunityUserXP.community_id == community.id,
+            ~CommunityUserXP.user_id.in_(banned_subq)
+        )
         .count()
     )
 
-    # LATEST (not earliest) COMPLETION timestamp per user, scoped to THIS community.
-    # This is the timestamp that actually reflects "when did this user reach
-    # their current XP total" — using MIN() here was the bug, since it grabbed
-    # each user's very FIRST ever completion instead of their most recent one,
-    # unfairly favoring early starters over fast finishers in tie-breaks.
     latest_activity_subq = (
         db.session.query(
             SubquestCompletion.user_id.label('user_id'),
@@ -7664,7 +7740,10 @@ def api_alltime_leaderboard(community_slug):
         )
         .join(Users, Users.id == CommunityUserXP.user_id)
         .outerjoin(latest_activity_subq, latest_activity_subq.c.user_id == Users.id)
-        .filter(CommunityUserXP.community_id == community.id)
+        .filter(
+            CommunityUserXP.community_id == community.id,
+            ~CommunityUserXP.user_id.in_(banned_subq)
+        )
         .order_by(
             CommunityUserXP.xp.desc(),
             latest_activity_subq.c.last_xp_at.asc().nullslast(),
@@ -7688,53 +7767,63 @@ def api_alltime_leaderboard(community_slug):
     current_user_data = None
 
     if current_user.is_authenticated:
-        full_rank = (
-            db.session.query(CommunityUserXP)
+        # If the current user is banned in this community, don't show them
+        # at all — just leave current_user_data as None.
+        is_banned = (
+            db.session.query(CommunityUserRole.banned)
             .filter_by(community_id=community.id, user_id=current_user.id)
-            .first()
+            .scalar()
         )
 
-        if full_rank:
-            my_last_xp_at = (
-                db.session.query(func.max(SubquestCompletion.completed_at))
-                .join(Subquest, SubquestCompletion.subquest_id == Subquest.id)
-                .join(Quest, Subquest.quest_id == Quest.id)
-                .filter(
-                    Quest.community_id == community.id,
-                    SubquestCompletion.user_id == current_user.id,
-                    SubquestCompletion.status == "success",
-                    SubquestCompletion.completed_at.isnot(None)
-                )
-                .scalar()
+        if not is_banned:
+            full_rank = (
+                db.session.query(CommunityUserXP)
+                .filter_by(community_id=community.id, user_id=current_user.id)
+                .first()
             )
 
-            higher_count = (
-                db.session.query(CommunityUserXP.user_id)
-                .outerjoin(latest_activity_subq, latest_activity_subq.c.user_id == CommunityUserXP.user_id)
-                .filter(
-                    CommunityUserXP.community_id == community.id,
-                    (
-                        (CommunityUserXP.xp > full_rank.xp) |
+            if full_rank:
+                my_last_xp_at = (
+                    db.session.query(func.max(SubquestCompletion.completed_at))
+                    .join(Subquest, SubquestCompletion.subquest_id == Subquest.id)
+                    .join(Quest, Subquest.quest_id == Quest.id)
+                    .filter(
+                        Quest.community_id == community.id,
+                        SubquestCompletion.user_id == current_user.id,
+                        SubquestCompletion.status == "success",
+                        SubquestCompletion.completed_at.isnot(None)
+                    )
+                    .scalar()
+                )
+
+                higher_count = (
+                    db.session.query(CommunityUserXP.user_id)
+                    .outerjoin(latest_activity_subq, latest_activity_subq.c.user_id == CommunityUserXP.user_id)
+                    .filter(
+                        CommunityUserXP.community_id == community.id,
+                        ~CommunityUserXP.user_id.in_(banned_subq),
                         (
-                            (CommunityUserXP.xp == full_rank.xp) &
+                            (CommunityUserXP.xp > full_rank.xp) |
                             (
-                                (latest_activity_subq.c.last_xp_at < my_last_xp_at)
-                                if my_last_xp_at is not None
-                                else False
+                                (CommunityUserXP.xp == full_rank.xp) &
+                                (
+                                    (latest_activity_subq.c.last_xp_at < my_last_xp_at)
+                                    if my_last_xp_at is not None
+                                    else False
+                                )
                             )
                         )
                     )
+                    .count()
                 )
-                .count()
-            )
 
-            current_user_data = {
-                "user_id":  current_user.id,
-                "username": current_user.username,
-                "image":    current_user.profile_pic,
-                "xp":       full_rank.xp,
-                "rank":     higher_count + 1
-            }
+                current_user_data = {
+                    "user_id":  current_user.id,
+                    "username": current_user.username,
+                    "image":    current_user.profile_pic,
+                    "xp":       full_rank.xp,
+                    "rank":     higher_count + 1
+                }
 
     next_offset = offset + len(leaderboard_data)
     has_more = next_offset < total_count
@@ -7769,10 +7858,25 @@ def api_sprint_leaderboard(community_slug, sprint_uuid):
         limit = 30
     limit = min(limit, 100)
 
-    # ── TRUE total participant count for this sprint ─────────
+    # ── banned users for this community ───────────────────
+    # Bans are per-community, so we key off community.id (not the sprint)
+    # even though this route is scoped to a sprint's leaderboard.
+    banned_subq = (
+        db.session.query(CommunityUserRole.user_id)
+        .filter(
+            CommunityUserRole.community_id == community.id,
+            CommunityUserRole.banned.is_(True)
+        )
+        .subquery()
+    )
+
+    # ── TRUE total participant count for this sprint (banned excluded) ──
     total_count = (
         db.session.query(SprintUserXP)
-        .filter(SprintUserXP.sprint_id == sprint.id)
+        .filter(
+            SprintUserXP.sprint_id == sprint.id,
+            ~SprintUserXP.user_id.in_(banned_subq)
+        )
         .count()
     )
 
@@ -7802,7 +7906,10 @@ def api_sprint_leaderboard(community_slug, sprint_uuid):
         )
         .join(Users, Users.id == SprintUserXP.user_id)
         .outerjoin(latest_activity_subq, latest_activity_subq.c.user_id == Users.id)
-        .filter(SprintUserXP.sprint_id == sprint.id)
+        .filter(
+            SprintUserXP.sprint_id == sprint.id,
+            ~SprintUserXP.user_id.in_(banned_subq)
+        )
         .order_by(
             SprintUserXP.xp.desc(),
             latest_activity_subq.c.last_xp_at.asc().nullslast(),
@@ -7826,52 +7933,60 @@ def api_sprint_leaderboard(community_slug, sprint_uuid):
     current_user_data = None
 
     if current_user.is_authenticated:
-        current_user_entry = (
-            db.session.query(SprintUserXP)
-            .filter_by(sprint_id=sprint.id, user_id=current_user.id)
-            .first()
+        is_banned = (
+            db.session.query(CommunityUserRole.banned)
+            .filter_by(community_id=community.id, user_id=current_user.id)
+            .scalar()
         )
 
-        if current_user_entry:
-            my_last_xp_at = (
-                db.session.query(func.max(SubquestCompletion.completed_at))
-                .join(Subquest, SubquestCompletion.subquest_id == Subquest.id)
-                .filter(
-                    Subquest.sprint_id == sprint.id,
-                    SubquestCompletion.user_id == current_user.id,
-                    SubquestCompletion.status == "success",
-                    SubquestCompletion.completed_at.isnot(None)
-                )
-                .scalar()
+        if not is_banned:
+            current_user_entry = (
+                db.session.query(SprintUserXP)
+                .filter_by(sprint_id=sprint.id, user_id=current_user.id)
+                .first()
             )
 
-            higher_count = (
-                db.session.query(SprintUserXP.user_id)
-                .outerjoin(latest_activity_subq, latest_activity_subq.c.user_id == SprintUserXP.user_id)
-                .filter(
-                    SprintUserXP.sprint_id == sprint.id,
-                    (
-                        (SprintUserXP.xp > current_user_entry.xp) |
+            if current_user_entry:
+                my_last_xp_at = (
+                    db.session.query(func.max(SubquestCompletion.completed_at))
+                    .join(Subquest, SubquestCompletion.subquest_id == Subquest.id)
+                    .filter(
+                        Subquest.sprint_id == sprint.id,
+                        SubquestCompletion.user_id == current_user.id,
+                        SubquestCompletion.status == "success",
+                        SubquestCompletion.completed_at.isnot(None)
+                    )
+                    .scalar()
+                )
+
+                higher_count = (
+                    db.session.query(SprintUserXP.user_id)
+                    .outerjoin(latest_activity_subq, latest_activity_subq.c.user_id == SprintUserXP.user_id)
+                    .filter(
+                        SprintUserXP.sprint_id == sprint.id,
+                        ~SprintUserXP.user_id.in_(banned_subq),
                         (
-                            (SprintUserXP.xp == current_user_entry.xp) &
+                            (SprintUserXP.xp > current_user_entry.xp) |
                             (
-                                (latest_activity_subq.c.last_xp_at < my_last_xp_at)
-                                if my_last_xp_at is not None
-                                else False
+                                (SprintUserXP.xp == current_user_entry.xp) &
+                                (
+                                    (latest_activity_subq.c.last_xp_at < my_last_xp_at)
+                                    if my_last_xp_at is not None
+                                    else False
+                                )
                             )
                         )
                     )
+                    .count()
                 )
-                .count()
-            )
 
-            current_user_data = {
-                "user_id":  current_user.id,
-                "username": current_user.username,
-                "image":    current_user.profile_pic,
-                "xp":       current_user_entry.xp or 0,
-                "rank":     higher_count + 1
-            }
+                current_user_data = {
+                    "user_id":  current_user.id,
+                    "username": current_user.username,
+                    "image":    current_user.profile_pic,
+                    "xp":       current_user_entry.xp or 0,
+                    "rank":     higher_count + 1
+                }
 
     next_offset = offset + len(leaderboard_data)
     has_more = next_offset < total_count
@@ -7884,7 +7999,8 @@ def api_sprint_leaderboard(community_slug, sprint_uuid):
         "next_offset":   next_offset,
         "has_more":      has_more
     })
-    
+
+
 @app.route("/api/<community_slug>/user/<username>/activity")
 @login_required
 def user_recent_activity(community_slug, username):
@@ -32678,4 +32794,4 @@ if __name__ == "__main__":
     )
     scheduler.start()
 
-    socketio.run(app, host="0.0.0.0", port=8000)    
+    socketio.run(app, host="0.0.0.0", port=800)    

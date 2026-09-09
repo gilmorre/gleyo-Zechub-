@@ -17,10 +17,15 @@ csrf = CSRFProtect()
 def has_role(user_id, community_id, required_role):
     role_order = {'member': 0, 'reviewer': 1, 'editor': 2, 'admin': 3}
     role_entry = CommunityUserRole.query.filter_by(user_id=user_id, community_id=community_id).first()
-    if role_entry:
-        user_role = role_entry.role.lower()
-        return role_order.get(user_role, 0) >= role_order.get(required_role.lower(), 0)
-    return False
+
+    if not role_entry:
+        return False
+
+    if role_entry.banned:
+        return False
+
+    user_role = role_entry.role.lower()
+    return role_order.get(user_role, 0) >= role_order.get(required_role.lower(), 0)
 
 
 def check_banned(user_id, community_id):

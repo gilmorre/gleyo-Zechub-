@@ -2557,6 +2557,41 @@ function parseInlineStyles(text){
   return t;
 }
 
+/* =========================
+   STRIP TRAILING PUNCTUATION
+   FROM AUTO-DETECTED URLS
+
+   Only strips punctuation found at the
+   very end of the matched string, so
+   query params (?foo=bar&baz=1) and
+   in-path characters are NEVER touched —
+   only a trailing , . ; : ! ? ) ] } etc.
+   gets moved outside the <a> tag.
+========================= */
+function stripTrailingPunctuation(url){
+  const trailingPunctRe = /[),.;:!?\]}'"*_~]+$/;
+  const match = url.match(trailingPunctRe);
+
+  if (!match) return { cleanUrl: url, trailing: "" };
+
+  let trailing = match[0];
+  let cleanUrl = url.slice(0, url.length - trailing.length);
+
+  // don't strip a ")" if it's actually closing a "(" that's part of the URL
+  while (trailing.startsWith(")")) {
+    const opens  = (cleanUrl.match(/\(/g) || []).length;
+    const closes = (cleanUrl.match(/\)/g) || []).length;
+    if (opens > closes) {
+      cleanUrl += ")";
+      trailing = trailing.slice(1);
+    } else {
+      break;
+    }
+  }
+
+  return { cleanUrl, trailing };
+}
+
 
 function parseQuestDescription(text){
   if(!text) return "";
@@ -2574,7 +2609,7 @@ function parseQuestDescription(text){
   out = out.replace(
     /\["([\s\S]*?)"\s+(https?:\/\/[^\s<>"']+)\]/g,
     (match, label, url) => {
-      const cleanUrl = url.trim();
+      const { cleanUrl } = stripTrailingPunctuation(url.trim());
       return `<a href="${cleanUrl}" class="quest-link-init" target="_blank" rel="noopener noreferrer">${label}</a>`;
     }
   );
@@ -2589,7 +2624,9 @@ function parseQuestDescription(text){
       // prevent nested links
       if(url.includes('href="')) return match;
 
-      return `${prefix}<a href="${url}" class="quest-link-init" target="_blank" rel="noopener noreferrer">${url}</a>`;
+      const { cleanUrl, trailing } = stripTrailingPunctuation(url);
+
+      return `${prefix}<a href="${cleanUrl}" class="quest-link-init" target="_blank" rel="noopener noreferrer">${cleanUrl}</a>${trailing}`;
     }
   );
 
@@ -2597,15 +2634,16 @@ function parseQuestDescription(text){
      4) AUTO LINK DOMAINS
   ========================= */
   out = out.replace(
-    /(^|[\s>])((?:www\.)?[a-zA-Z0-9-]+\.(?:com|net|org|io|co|app|xyz|site|dev|ai))/g,
-    (match, prefix, domain) => {
+    /(^|[\s>])((?:www\.)?[a-zA-Z0-9-]+\.(?:com|net|org|io|co|app|xyz|site|dev|ai)(?:\/[^\s<>"']*)?)/g,
+    (match, prefix, domainAndPath) => {
 
       // skip if already linked
-      if(domain.includes("href=")) return match;
+      if(domainAndPath.includes("href=")) return match;
 
-      const url = `https://${domain}`;
+      const { cleanUrl: cleanDomain, trailing } = stripTrailingPunctuation(domainAndPath);
+      const url = `https://${cleanDomain}`;
 
-      return `${prefix}<a href="${url}" class="quest-link-init" target="_blank" rel="noopener noreferrer">${domain}</a>`;
+      return `${prefix}<a href="${url}" class="quest-link-init" target="_blank" rel="noopener noreferrer">${cleanDomain}</a>${trailing}`;
     }
   );
 

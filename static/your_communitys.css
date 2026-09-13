@@ -4148,7 +4148,9 @@ border-top-color: var(--text-main) !important;
 }
 
 
-
+.activity-xp.negative {
+  color: #ff6565; /* matches your existing --danger variable */
+}
 
 
  

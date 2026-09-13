@@ -8,18 +8,17 @@
 
 *{
   font-family: 'Outfit', sans-serif !important;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(140, 140, 140, 0.6) transparent;
-}
 
-body {
-  background: #1e1e2f;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  margin: 0;
+  
 }
+  body {
+    background: #1e1e2f;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+  }
 
 ::selection {
   background: #4effcd29; 
@@ -319,14 +318,15 @@ body.busy, body.busy * { cursor: wait !important; }
         </div>
       </div>
 
+      <!-- Step 3 -->
       <div class="step">
         <div class="input-group">
           <label for="requirements">Your Requirements / Notes</label>
           <textarea id="requirements" name="requirements" rows="4" required></textarea>
         </div>
         <div class="input-group">
-          <label for="budget">Reward Pool Budget (ZEC) (Optional)</label>
-          <input type="text" id="budget" name="budget" placeholder="3Zec">
+          <label for="budget">Budget (Optional)</label>
+          <input type="text" id="budget" name="budget">
         </div>
         <div class="buttons">
           <button type="button" class="back-btned" onclick="prevStep()">Back</button>
@@ -334,6 +334,7 @@ body.busy, body.busy * { cursor: wait !important; }
         </div>
       </div>
 
+      <!-- Step 4 -->
       <div class="step">
         <h3>Review your information</h3>
         <p>Please make sure your details are correct before submission.</p>
@@ -485,4 +486,3 @@ form.addEventListener("keydown", function(e) {
   }
 });
 </script>
-

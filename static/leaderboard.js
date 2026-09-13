@@ -1451,7 +1451,6 @@ async function showUserActivity(username, position) {
 }
 
 
-
 function renderUserActivity(data, isMobile, position) {
 
   modalContent.innerHTML = "";
@@ -1464,7 +1463,7 @@ function renderUserActivity(data, isMobile, position) {
     <div class="mobile-user-card">
 
       <!-- 🔥 TOP BAR -->
-      <div class="p">
+      <div class="mobile-top-bar">
         <button class="back-btn-modalinit" id="activityBackBtn">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
             <path d="M15 6L9 12L15 18"
@@ -1483,8 +1482,8 @@ function renderUserActivity(data, isMobile, position) {
             ? `<img class="mobile-avatar" src="${data.image}" alt="${data.username}">`
             : `<div class="mobile-avatar mobile-avatar-fallback"
                     style="display:flex;align-items:center;justify-content:center;
-                          background:${getColor(data.user_id ?? data.username.charCodeAt(0))};
-                          color:${getTextColor(getColor(data.user_id ?? data.username.charCodeAt(0)))};
+                          background:${getColor(data.user_id)};
+                          color:${getTextColor(getColor(data.user_id))};
                           font-weight:500;">
                 ${data.username[0].toUpperCase()}
               </div>`
@@ -1531,6 +1530,25 @@ function renderUserActivity(data, isMobile, position) {
             ? `<div class="no-activity">No activity yet</div>`
             : data.activities.map(act => {
 
+                // 🔥 Admin XP grant/removal — different shape, own render path
+                if (act.type === "admin_xp_action") {
+                  const sign = act.xp > 0 ? "+" : "";
+                  const xpClass = act.xp > 0 ? "activity-xp" : "activity-xp negative";
+
+                  return `
+                    <div class="activity-item">
+                      <div class="activity-left">
+                        ${act.message}
+                        <span class="activity-time-inline">
+                          ${timeAgo(act.completed_at)}
+                        </span>
+                      </div>
+                      <div class="${xpClass}">${sign}${act.xp} XP</div>
+                    </div>
+                  `;
+                }
+
+                // quest_completion (default)
                 const actor = data.is_current_user ? "You" : data.username;
 
                 return `
@@ -1578,15 +1596,35 @@ function renderUserActivity(data, isMobile, position) {
       modalContent.appendChild(empty);
 
     } else {
-      
-      data.activities.forEach(act => {
 
-        const text = data.is_current_user
-          ? `You completed ${act.subquest_name}`
-          : `${data.username} completed ${act.subquest_name}`;
+      data.activities.forEach(act => {
 
         const div = document.createElement("div");
         div.className = "activity-item";
+
+        // 🔥 Admin XP grant/removal — different shape, own render path
+        if (act.type === "admin_xp_action") {
+          const sign = act.xp > 0 ? "+" : "";
+          const xpClass = act.xp > 0 ? "activity-xp" : "activity-xp negative";
+
+          div.innerHTML = `
+            <div class="activity-left">
+              ${act.message}
+              <span class="activity-time-inline">
+                ${timeAgo(act.completed_at)}
+              </span>
+            </div>
+            <div class="${xpClass}">${sign}${act.xp} XP</div>
+          `;
+
+          modalContent.appendChild(div);
+          return;
+        }
+
+        // quest_completion (default)
+        const text = data.is_current_user
+          ? `You completed ${act.subquest_name}`
+          : `${data.username} completed ${act.subquest_name}`;
 
         div.innerHTML = `
           <div class="activity-left">

@@ -859,6 +859,25 @@ function renderUserActivity(data, isMobile, position) {
             ? `<div class="no-activity">No activity yet</div>`
             : data.activities.map(act => {
 
+                // 🔥 Admin XP grant/removal — different shape, own render path
+                if (act.type === "admin_xp_action") {
+                  const sign = act.xp > 0 ? "+" : "";
+                  const xpClass = act.xp > 0 ? "activity-xp" : "activity-xp negative";
+
+                  return `
+                    <div class="activity-item">
+                      <div class="activity-left">
+                        ${act.message}
+                        <span class="activity-time-inline">
+                          ${timeAgo(act.completed_at)}
+                        </span>
+                      </div>
+                      <div class="${xpClass}">${sign}${act.xp} XP</div>
+                    </div>
+                  `;
+                }
+
+                // quest_completion (default)
                 const actor = data.is_current_user ? "You" : data.username;
 
                 return `
@@ -906,15 +925,35 @@ function renderUserActivity(data, isMobile, position) {
       modalContent.appendChild(empty);
 
     } else {
-      
-      data.activities.forEach(act => {
 
-        const text = data.is_current_user
-          ? `You completed ${act.subquest_name}`
-          : `${data.username} completed ${act.subquest_name}`;
+      data.activities.forEach(act => {
 
         const div = document.createElement("div");
         div.className = "activity-item";
+
+        // 🔥 Admin XP grant/removal — different shape, own render path
+        if (act.type === "admin_xp_action") {
+          const sign = act.xp > 0 ? "+" : "";
+          const xpClass = act.xp > 0 ? "activity-xp" : "activity-xp negative";
+
+          div.innerHTML = `
+            <div class="activity-left">
+              ${act.message}
+              <span class="activity-time-inline">
+                ${timeAgo(act.completed_at)}
+              </span>
+            </div>
+            <div class="${xpClass}">${sign}${act.xp} XP</div>
+          `;
+
+          modalContent.appendChild(div);
+          return;
+        }
+
+        // quest_completion (default)
+        const text = data.is_current_user
+          ? `You completed ${act.subquest_name}`
+          : `${data.username} completed ${act.subquest_name}`;
 
         div.innerHTML = `
           <div class="activity-left">

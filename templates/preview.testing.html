@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <link rel="shortcut icon" href="https://zupdpwnloewdkjqsymdm.supabase.co/storage/v1/object/public/uploads/communities/7/logos/511f4996-5748-4f1f-b74c-5d5c33f7124c.png">
-
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
 <meta name="csrf-token" content="{{ csrf_token() }}">
 
@@ -105,11 +105,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
 </script>
 
+<head> 
 
 
 <title>Community Chat</title>
 
 <style>
+* { font-family: 'Plus Jakarta Sans', sans-serif !important;}
+
 :root {
   --bg: #f2f3f5;
   --card-bg: #ffffff;
@@ -187,6 +190,7 @@ body.dark {
   --border: #2c2c40;
   --system-header: #34344a;
   --bg-hover: #2a2a3d;
+  --bg-hover-hover-dimmer: #2a2a3d79;
   --bg-hover-selected-comm: #2a2a3d;
   --bg-bgt-roles: rgba(34, 34, 54, 0.712);
   --lighterness: rgb(34, 34, 54, 0.448);
@@ -5377,6 +5381,7 @@ audio, .audio-bar {
 
 #will-show-roles {
   max-height: 320px;
+  padding-top: 12px;
   overflow-y: auto;
 }
 
@@ -5385,13 +5390,14 @@ audio, .audio-bar {
 .mention-item {
   display: flex;
   align-items: center;
+  border-radius: 14px;
   gap: 10px;
   padding: 8px 12px;
   cursor: pointer;
 }
 
 .mention-item:hover {
-  background: rgba(255,255,255,0.08);
+  background: var(--bg-hover-hover-dimmer);
 }
 
 
@@ -6207,6 +6213,211 @@ audio, .audio-bar {
   background: rgba(255, 255, 255, 0.4);
 }
 
+
+.admin-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 8, 15, 0.72);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: adminOverlayFade 160ms ease;
+}
+
+@keyframes adminOverlayFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.admin-confirm-modal {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  background: rgba(34, 34, 54, 0.448); 
+  border: 0.9px solid var(--border);
+  border-radius: 40px;
+  padding: 24px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  color: var(--text-main);
+} 
+
+@keyframes adminModalPop {
+  0% { opacity: 0; transform: scale(0.92) translateY(8px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.admin-confirm-title { 
+  font-weight: 800;
+  font-size: 18px;
+  margin-bottom: 14px;
+  color: var(--text-main);
+}
+
+.admin-confirm-body {
+  font-size: 14px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.admin-confirm-body p {
+  margin: 0 0 8px 0;
+}
+
+.admin-confirm-body b {
+  color: #ffb454;
+  font-weight: 500;
+}
+
+.admin-confirm-error {
+  color: #ff6b6b !important;
+}
+
+.admin-confirm-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 0;
+}
+
+.skeleton-line {
+  height: 14px;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.06) 25%,
+    rgba(255, 255, 255, 0.14) 50%,
+    rgba(255, 255, 255, 0.06) 75%
+  );
+  background-size: 200% 100%;
+  animation: adminSkeletonShimmer 1.3s ease-in-out infinite;
+}
+
+.skeleton-line.short {
+  width: 60%;
+}
+
+@keyframes adminSkeletonShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.admin-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.admin-confirm-cancel,
+.admin-confirm-ok {
+  font-size: 14px;
+  font-weight: 600;
+  padding: 9px 20px;
+  border-radius: 17px;
+  border: 1px solid var(--border-react);
+  cursor: pointer;
+  transition: transform 120ms ease, background 120ms ease, opacity 120ms ease;
+}
+
+.admin-confirm-cancel {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.admin-confirm-cancel:hover {
+  background: var(--bg-hover);
+}
+
+.admin-confirm-ok {
+  background: #ffb454;
+  color: #08080f;
+  border-color: #ffb454;
+}
+
+.admin-confirm-ok:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: #ffc373;
+}
+
+.admin-confirm-ok:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background: rgba(255, 180, 84, 0.3);
+  border-color: transparent;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.slash-desc {
+  font-size: 13.5px;
+  color: var(--text-muted);
+  font-weight: 550
+}
+
+.sprint-toggle-pill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+
+.sprint-toggle-pill:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.sprint-toggle-pill.on {
+  background: rgba(84, 178, 255, 0.12);
+  border-color: rgba(84, 144, 255, 0.4);
+}
+
+.sprint-toggle-label {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.82);
+  white-space: nowrap;
+  overflow: hidden;
+  font-weight: 550;
+  text-overflow: ellipsis;
+} 
+
+.sprint-toggle-switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 38px;
+  height: 22px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+  transition: background 150ms ease;
+}
+
+.sprint-toggle-pill.on .sprint-toggle-switch {
+  background: #4285f4;
+}
+
+.sprint-toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 150ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.sprint-toggle-pill.on .sprint-toggle-knob {
+  transform: translateX(16px);
+  outline: 1px solid #fff;
+  outline-offset: 3px;
+}
 </style>
 
 
@@ -11225,7 +11436,7 @@ async function renderMessagesFromServer(messages, pins = []) {
           <div class="message-content reaction-target">
             <div class="message-main">
               <div class="message-meta">
-                <span class="author" style="color: ${authorColor};">
+                <span class="author" data-colored-user="${authorColor}" style="color: ${authorColor};">
                   ${msg.username}
                   ${isBot ? '<span class="bot-badge">BOT</span>' : ''}
                 </span>
@@ -11459,10 +11670,10 @@ socket.on("community_notification", (data) => {
   };
 
   const cache = ChannelStore[communityId][chatKey];
-console.log("CLIENT CHECK", {
-  incoming: data.client_id,
-  cache: cache.messages.map(m => m.client_id)
-});
+  console.log("CLIENT CHECK", {
+    incoming: data.client_id,
+    cache: cache.messages.map(m => m.client_id)
+  });
   if (data.client_id) {
     const temp = cache.messages.find(m => m.client_id === data.client_id);
 
@@ -13467,11 +13678,9 @@ function canDeleteStructure(communityId) {
 
 
 function applyAdminOnlyUI(communityId) {
-  const canManage = canManageStructure(communityId); // admin + editor
+  const canManage = canManageStructure(communityId);  
   const isAdmin = getMyCommunityRole(communityId) === "admin";
 
-  // Toggle helper
-  // default = flex, override when needed
   const toggle = (selector, show, display = "flex") => {
     document.querySelectorAll(selector).forEach(el => {
       el.style.display = show ? display : "none";
@@ -13655,6 +13864,11 @@ const isAdmin = getMyCommunityRole(CurrentActiveChat.communityId) === "admin";
    Main logic
 ---------------------------------- */
 const MyCommunityColor = {};
+
+function isCurrentCommunityCreator() {
+  const community = COMMUNITIES?.find(c => c.id === CurrentActiveChat.communityId);
+    return !!community?.is_creator;
+}
 
 document.addEventListener("DOMContentLoaded", async () => {
   const container = document.getElementById("communityLogoList");
@@ -23866,9 +24080,278 @@ window.appendAudioMessage = async function appendAudioMessage(audioURL, duration
 }  
 });
 console.log("IsBlocked denied", typeof isBlocked);
-
  
+function parseAdminCommand(text) {
+  const tipMatch = text.match(/^\/tip\s+(.+)$/i);
+  const xpMatch = text.match(/^\/xp\s+(.+)$/i);
+  if (!tipMatch && !xpMatch) return null;
+
+  const type = tipMatch ? "tip" : "xp";
+  const body = (tipMatch || xpMatch)[1].trim();
+
+  const mentionRegex = /@([A-Za-z0-9_.\-]+)/g;
+  const usernames = [];
+  let m;
+  while ((m = mentionRegex.exec(body)) !== null) usernames.push(m[1]);
+  if (usernames.length === 0) return null;
+
+  // 🔥 allow an optional leading "-" so negative XP amounts parse correctly
+  const amountMatch = body.match(/(-?[0-9]*\.?[0-9]+)\s*$/);
+  const amount = amountMatch ? parseFloat(amountMatch[1]) : null;
+  if (amount === null || isNaN(amount)) return null;
+
+  return { type, usernames, amount };
+}
+
+const capitalizeFirst = s => s.charAt(0).toUpperCase() + s.slice(1);
+
+function joinNames(names) {
+  const display = names.map(capitalizeFirst);
+  if (display.length === 1) return display[0];
+  if (display.length === 2) return `${display[0]} and ${display[1]}`;
+  return `${display.slice(0, -1).join(", ")} and ${display[display.length - 1]}`;
+}
+
+const IsloadingInit = `
+<svg xmlns="["http://www.w3.org/2000/svg"" http://www.w3.org/2000/svg"] viewBox="0 0 200 200" width="20" height="20"><radialGradient id="a11" cx=".66" fx=".66" cy=".3125" fy=".3125" gradientTransform="scale(1.5)"><stop offset="0" stop-color="currentColor" stop-opacity="0"></stop><stop offset=".2" stop-color="currentColor" stop-opacity=".3"></stop><stop offset=".4" stop-color="currentColor" stop-opacity=".6"></stop><stop offset=".7" stop-color="currentColor" stop-opacity=".9"></stop><stop offset="1" stop-color="currentColor"></stop></radialGradient><circle transform-origin="center" fill="none" stroke="url(#a11)" stroke-width="20" stroke-linecap="round" stroke-dasharray="200 1000" stroke-dashoffset="0" cx="100" cy="100" r="70"><animateTransform type="rotate" attributeName="transform" calcMode="spline" dur="1" values="0;360" keyTimes="0;1" keySplines="0 0 1 1" repeatCount="indefinite"></animateTransform></circle><circle transform-origin="center" fill="none" opacity=".2" stroke="currentColor" stroke-width="20" stroke-linecap="round" cx="100" cy="100" r="70"></circle></svg>
+`;
+
+function joinMentions(usernames) {
+  const mentions = usernames.map(u => `@${u}`);
+  if (mentions.length === 1) return mentions[0];
+  if (mentions.length === 2) return `${mentions[0]} and ${mentions[1]}`;
+  return `${mentions.slice(0, -1).join(", ")} and ${mentions[mentions.length - 1]}`;
+}
+
+function handleAdminCommand(cmd) {
+  const namesDisplay = joinNames(cmd.usernames);
+  if (cmd.type === "tip") {
+    showTipConfirmModal(cmd, namesDisplay);
+  } else {
+    showXpConfirmModal(cmd, namesDisplay);
+  }
+}
+
+function buildConfirmModal({ title, bodyHTML }) {
+  const overlay = document.createElement("div");
+  overlay.className = "admin-confirm-overlay";
+  overlay.innerHTML = `
+    <div class="admin-confirm-modal">
+      <div class="admin-confirm-title">${title}</div>
+      <div class="admin-confirm-body">${bodyHTML}</div>
+      <div class="admin-confirm-actions">
+        <button class="admin-confirm-cancel">Cancel</button>
+        <button class="admin-confirm-ok" disabled>Confirm</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.querySelector(".admin-confirm-cancel").onclick = () => overlay.remove();
+  return overlay;
+}
+
+
+
+async function showXpConfirmModal(cmd, namesDisplay) {
+  const isMultiple = cmd.usernames.length > 1;
+  const isRemoval = cmd.amount < 0;
+  const absAmount = Math.abs(cmd.amount);
+
+  let sentence;
+  if (isRemoval) {
+    sentence = isMultiple
+      ? `Are you sure you want to remove ${absAmount} XP from <b>${namesDisplay}</b> each?`
+      : `Are you sure you want to remove ${absAmount} XP from <b>${namesDisplay}</b>?`;
+  } else {
+    sentence = isMultiple
+      ? `Are you sure you want to give <b>${namesDisplay}</b> ${cmd.amount} XP each?`
+      : `Are you sure you want to give <b>${namesDisplay}</b> ${cmd.amount} XP?`;
+  }
+
+  const overlay = buildConfirmModal({
+    title: isRemoval ? "Remove XP" : "Give XP",
+    bodyHTML: `<p>${sentence}</p>`
+  });
+
+  const confirmBtn = overlay.querySelector(".admin-confirm-ok");
+  const bodyEl = overlay.querySelector(".admin-confirm-body");
+  confirmBtn.disabled = false;
+
+  let sprintUuid = null; // stays null unless an active sprint exists AND the pill is toggled on
+
+  if (!isRemoval) {
+    try {
+      const res = await fetch(
+        `/api/platform/active-sprint?community_slug=${encodeURIComponent(CurrentActiveChat.communitySlug)}`,
+        { credentials: "include" }
+      );
+      const data = await res.json();
+
+      if (data.sprint) {
+        const pillWrap = document.createElement("div");
+        pillWrap.className = "sprint-toggle-pill";
+        pillWrap.innerHTML = `
+          <span class="sprint-toggle-label">
+            Add to ongoing Sprint
+          </span>
+          <span class="sprint-toggle-switch">
+            <span class="sprint-toggle-knob"></span>
+          </span>
+        `;
+        bodyEl.appendChild(pillWrap);
+
+        let isOn = false;
+        pillWrap.addEventListener("click", () => {
+          isOn = !isOn;
+          pillWrap.classList.toggle("on", isOn);
+          sprintUuid = isOn ? data.sprint.uuid : null;
+        });
+      }
+    } catch (err) {
+      console.error("Failed to check for active sprint", err);
+    }
+  }
+
+  confirmBtn.onclick = async () => {
+    confirmBtn.disabled = true;
+    confirmBtn.innerHTML = IsloadingInit;
+
+    try {
+      await submitAdminCommand({ ...cmd, sprintUuid });
+      overlay.remove();
+    } catch (err) {
+      confirmBtn.disabled = false;
+      confirmBtn.innerHTML = "Confirm";
+    }
+  };
+}
+
+async function showTipConfirmModal(cmd, namesDisplay) {
+  const isMultiple = cmd.usernames.length > 1;
+
+  const overlay = buildConfirmModal({
+    title: "Tip ZEC",
+    bodyHTML: `
+      <div class="admin-confirm-skeleton">
+        <div class="skeleton-line"></div>
+        <div class="skeleton-line short"></div>
+      </div>`
+  });
+  const confirmBtn = overlay.querySelector(".admin-confirm-ok");
+  const bodyEl = overlay.querySelector(".admin-confirm-body");
+
+  try {
+    const res = await fetch(
+      `/api/platform/zec-balance?community_slug=${encodeURIComponent(CurrentActiveChat.communitySlug)}`,
+      { credentials: "include" }
+    );
+    const data = await res.json();
+    const balance = data.balance ?? 0;
+    const totalCost = cmd.amount * cmd.usernames.length;
+    const remaining = (balance - totalCost).toFixed(6);
+
+    const sentence = isMultiple
+      ? `Are you sure you want to tip <b>${namesDisplay}</b> ${cmd.amount} ZEC each?`
+      : `Are you sure you want to tip <b>${namesDisplay}</b> ${cmd.amount} ZEC?`;
+
+    bodyEl.innerHTML = `
+      <p>${sentence}</p>
+      <p>Your balance would remain <b>${remaining} ZEC</b>.</p>`;
+
+    confirmBtn.disabled = parseFloat(remaining) < 0;
+    confirmBtn.onclick = async () => {
+      confirmBtn.disabled = true;
+      confirmBtn.innerHTML = IsloadingInit;
+
+      try {
+        await submitAdminCommand(cmd);
+        overlay.remove();
+      } catch (err) {
+        confirmBtn.disabled = false;
+        confirmBtn.innerHTML = "Confirm";
+      }
+    };
+  } catch (err) {
+    console.error("Failed to fetch community balance", err);
+    bodyEl.innerHTML = `<p class="admin-confirm-error">Could not fetch community balance. Try again.</p>`;
+  }
+}
+
+function submitAdminCommand(cmd) {
+  const endpoint = cmd.type === "tip" ? "/api/comm_message/tip" : "/api/comm_message/xp";
+
+  const payload = {
+    community_id: CurrentActiveChat.communityId,
+    channel_uuid: CurrentActiveChat.channelUuid,
+    usernames: cmd.usernames,
+    amount: cmd.amount
+  };
+
+  if (cmd.sprintUuid) {
+    payload.sprint_uuid = cmd.sprintUuid;
+  }
+
+  return fetch(endpoint, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken },
+    body: JSON.stringify(payload)
+  })
+    .then(async res => {
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        showError(errData.error || `Failed to run ${cmd.type} command`);
+        throw new Error(`${cmd.type} command failed`);
+      }
+
+      const data = await res.json();
+
+      const announcementText = buildAdminActionText(cmd);
+      chatInput.innerText = announcementText;
+      await sendChatMessage(true);
+    })
+    .catch(err => {
+      console.error(`Failed to submit ${cmd.type} command`, err);
+      throw err;  
+    });
+}
+
+
+
+
+
+
+function buildAdminActionText(cmd) {
+  const namesDisplay = joinMentions(cmd.usernames);
+  const isMultiple = cmd.usernames.length > 1;
+  const isRemoval = cmd.type === "xp" && cmd.amount < 0;
+
+  if (cmd.type === "xp") {
+    if (isRemoval) {
+      return `➖ ${namesDisplay} had ${Math.abs(cmd.amount)} XP removed`;
+    }
+    return `⭐ ${namesDisplay} received ${cmd.amount} XP${isMultiple ? " each" : ""}`;
+  }
+
+  return `💰 ${namesDisplay} got tipped ${cmd.amount} ZEC${isMultiple ? " each" : ""}`;
+}
+
 async function CommhandleSend() {
+  const rawCheck = chatInput.innerText.trim();
+
+  if (isCurrentCommunityCreator()) {
+    const adminCommand = parseAdminCommand(rawCheck);
+    if (adminCommand) {
+      handleAdminCommand(adminCommand);
+      chatInput.innerText = "";
+      chatInput.style.height = "auto";
+      return;
+    }
+  }
+
+  await sendChatMessage();
+}
+
+async function sendChatMessage(isAdminAction = false) {
       const channelUuid = CurrentActiveChat.channelUuid;
 
       const SWIPEMOBILED = !is_mobiled ? "" : SWIPEACTIONsHTML;
@@ -24150,7 +24633,8 @@ async function CommhandleSend() {
 
           form.append("is_mention", mentionEnabled ? "1" : "0");
 
-          // mentions (send as repeated fields OR JSON string)
+          form.append("is_admin_action", isAdminAction ? "1" : "0");
+
           Array.from(pendingMentions).forEach(m => {
             form.append("mentions", m);
           });
@@ -27984,6 +28468,60 @@ const rolesList = document.getElementById("will-show-roles");
 const inputContainer = document.querySelector(".tnmr-chat-input-container");
 const rolesInner = document.querySelector(".when-ness-roles");
 const actionNotAllowed = document.getElementById("is-slow-mode-on");
+const SLASH_COMMANDS = [
+  { cmd: "tip", label: "/tip @user amount", desc: "Tip ZEC to a user" },
+  { cmd: "xp",  label: "/xp @user amount",  desc: "Give XP to a user" }
+];
+let lastFilteredSlashCommands = [];
+let lastFilteredMentionUsers = [];
+
+let slashInputMode = null;  
+
+
+function renderSlashCommands(filtered) {
+  lastFilteredSlashCommands = filtered; // 🔥 track for Tab
+
+  rolesList.innerHTML = "";
+
+  if (!filtered.length) {
+    rolesInner.style.height = "0px";
+    return;
+  }
+
+  filtered.forEach(entry => {
+    const item = document.createElement("div");
+    item.className = "mention-item slash-item";
+    item.innerHTML = `
+      <span class="slash-icon">/</span>
+      <span class="mention-username">${entry.cmd}</span>
+      <span class="slash-desc">${entry.desc}</span>
+    `;
+
+    item.addEventListener("mousedown", e => e.preventDefault());
+    item.addEventListener("click", () => insertSlashCommand(entry.cmd));
+
+    rolesList.appendChild(item);
+  });
+
+  syncMentionHeight();
+}
+
+function insertSlashCommand(cmd) {
+  chatInput.focus();
+  chatInput.innerText = "/" + cmd + "\u00A0";
+
+  const range = document.createRange();
+  const sel = window.getSelection();
+  range.selectNodeContents(chatInput);
+  range.collapse(false);
+  sel.removeAllRanges();
+  sel.addRange(range);
+
+  currentQuery = "";
+  slashInputMode = null;
+  closeMentionBox();
+}
+
 
 const pendingMentions = new Set();
 
@@ -28096,8 +28634,6 @@ chatInput.addEventListener("input", async () => {
   if (!sel.rangeCount) return;
 
   const range = sel.getRangeAt(0);
-
-  // 🔥 SAVE RANGE CONTINUOUSLY
   lastMentionRange = range.cloneRange();
 
   const preRange = range.cloneRange();
@@ -28105,6 +28641,32 @@ chatInput.addEventListener("input", async () => {
   preRange.setEnd(range.endContainer, range.endOffset);
 
   const textBeforeCaret = preRange.toString();
+  const fullText = chatInput.innerText;
+
+  if (
+    isCurrentCommunityCreator() &&
+    fullText.startsWith("/") &&
+    !/\s/.test(textBeforeCaret)
+  ) {
+    const query = fullText.slice(1).toLowerCase();
+    const filtered = SLASH_COMMANDS.filter(c => c.cmd.startsWith(query));
+
+    if (!filtered.length) {
+      if (slashInputMode === "slash") closeMentionBox();
+      slashInputMode = null;
+    } else {
+      slashInputMode = "slash";
+      openMentionBox();
+      renderSlashCommands(filtered);
+    }
+    return;
+  }
+
+  if (slashInputMode === "slash") {
+    slashInputMode = null;
+    closeMentionBox();
+  }
+
   const atIndex = textBeforeCaret.lastIndexOf("@");
 
   if (atIndex === -1) {
@@ -28120,6 +28682,7 @@ chatInput.addEventListener("input", async () => {
   }
 
   currentQuery = afterAt;
+  slashInputMode = "mention";
 
   openMentionBox();
   await ensureMentionCache();
@@ -28136,7 +28699,6 @@ chatInput.addEventListener("input", async () => {
       )
     );
   }
-
 });
 
 function restoreMentionCaret() {
@@ -28148,9 +28710,9 @@ function restoreMentionCaret() {
 }
 
 
-/* ---------------- RENDER ---------------- */
-
 function renderMentionables(users) {
+  lastFilteredMentionUsers = users;  
+
   rolesList.innerHTML = "";
 
   if (!users.length) {
@@ -28167,7 +28729,6 @@ function renderMentionables(users) {
             style="color: ${user.user_color || "#5865f2"};">
         ${user.username}
       </span>
-
     `;
 
     item.addEventListener("mousedown", e => e.preventDefault());
@@ -28178,8 +28739,6 @@ function renderMentionables(users) {
 
   syncMentionHeight();
 }
-
-/* ---------------- INSERT (FINALLY CORRECT) ---------------- */
 
 function insertMention(username) {
   chatInput.focus();
@@ -28269,7 +28828,26 @@ function getMessageCopyText(wrapper) {
   return serializeNode(textEl).trim();
 }
 
+chatInput.addEventListener("keydown", e => {
+  if (e.key !== "Tab") return;
 
+  const boxIsOpen = rolesBox.classList.contains("show");
+  if (!boxIsOpen) return; 
+  
+  if (slashInputMode === "slash") {
+    if (!lastFilteredSlashCommands.length) return; 
+    e.preventDefault();
+    insertSlashCommand(lastFilteredSlashCommands[0].cmd);
+    return;
+  }
+
+  if (slashInputMode === "mention") {
+    if (!lastFilteredMentionUsers.length) return; 
+    e.preventDefault();
+    insertMention(lastFilteredMentionUsers[0].username);
+    return;
+  }
+});
 
 function serializeNode(node) {
   let output = "";
@@ -28577,7 +29155,7 @@ function maybeLoadOlder() {
 
 
 function appendNewMessages(messages, pins = []) {
-  buildMessageElement(messages, pins, false); // false = append
+  buildMessageElement(messages, pins, false);  
 }
 
 
@@ -28703,7 +29281,7 @@ async function buildMessageElement(messages = [], pins = [], insertBefore = fals
           <div class="message-content reaction-target">
             <div class="message-main">
               <div class="message-meta">
-                <span class="author" style="color: ${authorColor};">
+                <span class="author" data-colored-user="${authorColor}" style="color: ${authorColor};">
                   ${msg.username}
                   ${isBot ? '<span class="bot-badge">BOT</span>' : ''}
                 </span>
@@ -28812,19 +29390,25 @@ async function buildMessageElement(messages = [], pins = [], insertBefore = fals
       const currentWrapper = messageIndex[msg.uuid];
       if (!currentWrapper) return;
 
-      const repliedWrapper = messageIndex[msg.reply_to];
+      let repliedWrapper = messageIndex[msg.reply_to];
+      if (!repliedWrapper) {
+        repliedWrapper = messagesEl.querySelector(
+          `.message-wrapper[data-msg-ids="${msg.reply_to}"]`
+        );
+      }
 
-      // 🧠 CASE 1: replied message exists
       if (repliedWrapper) {
         const replyPreviewHTML =
           extractReplyPreviewFromWrapper(repliedWrapper);
 
+        const repliedAuthorEl = repliedWrapper.querySelector(".author");
+
         injectReplyHeader(currentWrapper, {
-          username:
-            repliedWrapper.querySelector(".author")?.innerText || "User",
-          avatar:
-            repliedWrapper.querySelector("img.avatar")?.src || null,
-          userColor: messageColorMap[msg.reply_to],
+          username: repliedAuthorEl?.innerText || "User",
+          avatar: repliedWrapper.querySelector("img.avatar")?.src || null,
+          userColor:
+            repliedAuthorEl?.getAttribute("data-colored-user") ||
+            messageColorMap[msg.reply_to],   // fallback for same-batch case
           previewHTML: replyPreviewHTML,
           replyToUuid: msg.reply_to,
           isMention: msg.is_mention
@@ -28832,9 +29416,7 @@ async function buildMessageElement(messages = [], pins = [], insertBefore = fals
 
         return;
       }
-
-      // 🧠 CASE 2: replied message was deleted
-      injectReplyHeader(currentWrapper, {
+            injectReplyHeader(currentWrapper, {
         username: null,
         avatar: "https://xpcqiovfesvllsljxhac.supabase.co/storage/v1/object/public/uploads/1/logos/4f88da54-69ef-447b-a82b-209778bd5135.png",
         userColor: null,

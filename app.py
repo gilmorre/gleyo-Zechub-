@@ -138,8 +138,8 @@ from backend.notifications.notifications import increment_review_notification
 from backend.utils.scheduler import check_and_update_invite_status
 from backend.quests.check_analytics import generate_all_insights
 from backend.quests.invite_validation import invited_user_is_valid
-from backend.utils.upload_service import upload_async, send_push_notification_async, send_discord_message_async, send_quest_emails_async
-import backend.utils.ai_init as ai_init
+from backend.utils.upload_service import upload_async, send_push_notification_async, send_discord_message_async, send_quest_emails_async, send_mention_email_async, send_tip_email_async, send_xp_email_async
+import backend.utils.ai_init as ai_init 
 
 # ─────────────────────────────────────────────────────────────
 # INTERNAL — BLUEPRINTS / OAUTH
@@ -180,7 +180,7 @@ from backend.communities.community_models import (
     Community, CommunityInteractionSettings, AIConversation,
     CommunityClaimUsage, CommunityWallet, CommunityWalletTransaction,
     EarlyAccessApplication, ProWaitlist, SprintUserXP, CommunityUserXP,
-    CommunityInviteUsage, ReviewNotification, InboxNotification,
+    CommunityInviteUsage, ReviewNotification, InboxNotification, AdminXPAction
 )
 from backend.utils.user_deposit_service import (
     create_zec_deposit, create_evm_deposit,
@@ -6153,6 +6153,65 @@ def get_user_transactions():
     return jsonify(data)
 
 
+def fetch_all_communities_has_paid(current_community_id):
+    results = (
+        db.session.query(
+            Community.id,
+            Community.name,
+            Community.logo_path,
+            Community.slug,
+            Community.about,
+            CommunityTwitter.xusername.label("twitter_username"),
+            DiscordGuild.guild_id,
+            DiscordGuild.guild_name.label("discord_guild_name"),
+            DiscordGuild.member_count,
+            DiscordGuild.member_count_updated_at
+        )
+        .outerjoin(CommunityTwitter, CommunityTwitter.community_id == Community.id)
+        .outerjoin(DiscordGuild, DiscordGuild.community_id == Community.id)
+        .filter(Community.is_paid == True)
+        .all()
+    )
+
+    enriched = []
+    for r in results:
+        request = CommunityRequest.query.filter(
+            ((CommunityRequest.from_community_id == current_community_id) & 
+             (CommunityRequest.to_community_id == r.id)) |
+            ((CommunityRequest.from_community_id == r.id) &
+             (CommunityRequest.to_community_id == current_community_id))
+        ).first()
+
+        is_partner = request and request.status == "accept"
+        request_sent = request and request.status == "pending" and request.from_community_id == current_community_id
+
+        member_count = None
+        if r.guild_id and r.member_count is not None:
+            member_count = format_count(r.member_count)
+
+        enriched.append({
+            "id": r.id,
+            "name": r.name,
+            "slug": r.slug,
+            "logo_path": r.logo_path,
+            "twitter_username": r.twitter_username,
+            "about": r.about,
+            "discord_guild_name": r.discord_guild_name,
+            "discord_member_count": member_count,
+            "discord_member_count_updated_at": (
+                r.member_count_updated_at.strftime("%Y-%m-%d %H:%M:%S")
+                if r.member_count_updated_at else None
+            ),
+            "is_partner": is_partner,
+            "request_sent": request_sent,
+        })
+
+    enriched.sort(key=lambda c: 0 if c["id"] == current_community_id else 1)
+    print(enriched)
+
+    return enriched
+
+
 @app.route("/api/<community_slug>/partnerships")
 @login_required
 @community_not_deleted()
@@ -6162,14 +6221,13 @@ def api_partnerships(community_slug):
     if not has_role(current_user.id, community.id, "admin"):
         return jsonify({"error": "Unauthorized"}), 403
 
-    all_communities = fetch_all_communities(community.id)
+    all_communities = fetch_all_communities_has_paid(community.id)
 
     return jsonify({
         "current_community_id": community.id,
         "is_premium": community.is_paid,
         "communities": all_communities
     })
-
 
 
 
@@ -8036,7 +8094,6 @@ def user_recent_activity(community_slug, username):
     )
 
     roles = []
-
     for r in extra_roles:
         roles.append({
             "name": r.name,
@@ -8047,7 +8104,7 @@ def user_recent_activity(community_slug, username):
     total_xp = get_total_xp(user.id, community.id)
     level_data = get_level(total_xp)
 
-    # RECENT ACTIVITY
+    # RECENT ACTIVITY — subquest completions
     completions = (
         db.session.query(SubquestCompletion)
         .join(Subquest)
@@ -8058,31 +8115,74 @@ def user_recent_activity(community_slug, username):
             Quest.community_id == community.id
         )
         .order_by(SubquestCompletion.completed_at.desc())
-        .limit(5)
+        .limit(20)
         .all()
     )
 
-    activities = []
+    # RECENT ACTIVITY — admin XP grants/removals
+    admin_actions = (
+        AdminXPAction.query
+        .filter_by(
+            target_user_id=user.id,
+            community_id=community.id
+        )
+        .order_by(AdminXPAction.created_at.desc())
+        .limit(20)
+        .all()
+    )
+
+    timeline = []
 
     for c in completions:
+        xp_amount = None
 
-        xp_amount = None  # default
-
-        # 🔥 extract XP from assigned_rewards
         if c.assigned_rewards:
             for reward in c.assigned_rewards:
                 if reward.get("reward_type") == "xp":
                     xp_amount = reward.get("reward_data", {}).get("amount", 0)
-                    break  
+                    break
 
-        activities.append({
+        timeline.append({
+            "type": "quest_completion",
             "subquest_name": c.subquest.name,
             "completed_at": c.completed_at.isoformat(),
-            "xp": xp_amount    
+            "xp": xp_amount,
+            "sort_time": c.completed_at
         })
 
+    for a in admin_actions:
+        admin_name = a.admin.username if a.admin else "an admin"
+
+        if a.action_type == "grant":
+            message = f"Received bonus XP by {admin_name}"
+        else:
+            message = f"Had XP removed by {admin_name}"
+
+        if a.sprint:
+            message += f" ({a.sprint.title})"
+
+        timeline.append({
+            "type": "admin_xp_action",
+            "message": message,
+            "xp": a.amount,
+            "action_type": a.action_type,
+            "admin_username": admin_name,
+            "sprint_name": a.sprint.title if a.sprint else None,
+            "completed_at": a.created_at.isoformat(),
+            "sort_time": a.created_at
+        })
+
+    # 🔥 merge both sources into one feed, sorted newest-first
+    timeline.sort(key=lambda item: item["sort_time"], reverse=True)
+    timeline = timeline[:20]
+
+    activities = []
+    for item in timeline:
+        item.pop("sort_time")
+        activities.append(item)
+
     return jsonify({
-        "user_id": user.id, 
+        "user_id": user.id,
         "username": user.username,
         "image": user.profile_pic,
         "is_current_user": user.id == current_user.id,
@@ -8097,7 +8197,6 @@ def user_recent_activity(community_slug, username):
 
         "activities": activities
     })
-
 
 
 @app.route("/save_subquest_state", methods=["POST"])
@@ -11779,6 +11878,321 @@ def platform_zec_balance():
     return jsonify({'balance': round(balance_zec, 8)})
 
 
+@app.route('/api/platform/active-sprint', methods=['GET'])
+@login_required
+def platform_active_sprint():
+    slug = request.args.get('community_slug')
+    if not slug:
+        return jsonify({'error': 'community_slug required'}), 400
+
+    community = Community.query.filter_by(slug=slug).first()
+    if not community:
+        return jsonify({'sprint': None})
+
+    now = datetime.utcnow()
+
+    sprint = Sprint.query.filter(
+        Sprint.community_id == community.id,
+        Sprint.start_date <= now,
+        Sprint.end_date >= now
+    ).order_by(Sprint.start_date.desc()).first()
+
+    if not sprint:
+        return jsonify({'sprint': None})
+
+    return jsonify({
+        'sprint': {
+            'uuid': sprint.uuid,
+            'title': sprint.title,
+            'end_date': sprint.end_date.isoformat() + 'Z'
+        }
+    })
+
+@app.route('/api/comm_message/xp', methods=['POST'])
+@login_required
+def comm_message_xp():
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({'success': False, 'error': 'Invalid JSON'}), 400
+
+    community_id = data.get('community_id')
+    usernames = data.get('usernames', [])
+    amount = data.get('amount')
+    sprint_uuid = data.get('sprint_uuid')  # optional
+
+    if not community_id or not usernames or amount is None:
+        return jsonify({'success': False, 'error': 'Missing required fields'}), 400
+
+    try:
+        amount = int(amount)
+    except (ValueError, TypeError):
+        return jsonify({'success': False, 'error': 'Invalid amount'}), 400
+
+    if amount == 0:
+        return jsonify({'success': False, 'error': 'Amount cannot be zero'}), 400
+
+    community = Community.query.get(community_id)
+    if not community:
+        return jsonify({'success': False, 'error': 'Community not found'}), 404
+
+    if current_user.id != community.created_by_id:
+        return jsonify({
+            'success': False,
+            'error': 'Only the community creator can run this action.'
+        }), 403
+
+    sprint = None
+    if sprint_uuid:
+        sprint = Sprint.query.filter_by(
+            uuid=sprint_uuid,
+            community_id=community.id
+        ).first()
+        if not sprint:
+            return jsonify({'success': False, 'error': 'Sprint not found'}), 404
+
+    action_type = "grant" if amount > 0 else "removal"
+    tagger_display = current_user.username[:1].upper() + current_user.username[1:] if current_user.username else "Someone"
+    results = []
+    to_notify = []  # 📧 successfully-processed target_user objects, emailed after commit
+
+    for uname in usernames:
+        target_user = Users.query.filter_by(username=uname).first()
+        if not target_user:
+            results.append({'username': uname, 'success': False, 'error': 'User not found'})
+            continue
+
+        # ── UserXP is a LOG table — one row per XP event ──
+        reason = f"/xp command in {community.name}" + (f" (Sprint: {sprint.title})" if sprint else "")
+
+        xp_log = UserXP(
+            user_id=target_user.id,
+            amount=amount,
+            reason=reason
+        )
+        db.session.add(xp_log)
+
+        # ── CommunityUserXP — running total, scoped to this community ──
+        comm_xp = CommunityUserXP.query.filter_by(
+            user_id=target_user.id,
+            community_id=community.id
+        ).first()
+        if not comm_xp:
+            comm_xp = CommunityUserXP(
+                user_id=target_user.id,
+                community_id=community.id,
+                xp=0
+            )
+            db.session.add(comm_xp)
+            db.session.flush()
+        comm_xp.xp = max(0, (comm_xp.xp or 0) + amount)
+
+        # ── SprintUserXP — running total, scoped to sprint, only if toggled ──
+        if sprint:
+            sprint_xp = SprintUserXP.query.filter_by(
+                user_id=target_user.id,
+                sprint_id=sprint.id
+            ).first()
+            if not sprint_xp:
+                sprint_xp = SprintUserXP(
+                    user_id=target_user.id,
+                    community_id=community.id,
+                    sprint_id=sprint.id,
+                    xp=0
+                )
+                db.session.add(sprint_xp)
+                db.session.flush()
+            sprint_xp.xp = max(0, (sprint_xp.xp or 0) + amount)
+
+        # ── 📋 AUDIT LOG — admin action record, so /user/activity can show it ──
+        admin_action = AdminXPAction(
+            community_id=community.id,
+            admin_id=current_user.id,
+            target_user_id=target_user.id,
+            amount=amount,
+            action_type=action_type,
+            sprint_id=sprint.id if sprint else None
+        )
+        db.session.add(admin_action)
+
+        results.append({
+            'username': uname,
+            'success': True,
+            'xp_logged': amount,
+            'new_community_xp': comm_xp.xp,
+            'sprint_applied': bool(sprint)
+        })
+
+        to_notify.append(target_user)
+
+    db.session.commit()
+
+    # 📧 SEPARATE PERSONAL EMAIL — distinct from the in-channel ⭐/➖
+    # admin-action announcement message.
+    for target_user in to_notify:
+        # ❌ exempt — don't email the admin for XP they gave/removed themselves
+        if target_user.id == current_user.id:
+            continue
+
+        target_url = f"https://gleyo.app/{community.slug}/leaderboard"
+
+        if target_user.email:
+            send_xp_email_async(
+                to_email=target_user.email,
+                username=target_user.username or "there",
+                community_name=community.name,
+                tagger_username=current_user.username,
+                amount=amount,
+                target_url=target_url
+            )
+
+    return jsonify({
+        'success': True,
+        'amount': amount,
+        'action_type': action_type,
+        'sprint_uuid': sprint.uuid if sprint else None,
+        'results': results
+    })
+
+
+@app.route('/api/comm_message/tip', methods=['POST'])
+@login_required
+def comm_message_tip():
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({'success': False, 'error': 'Invalid JSON'}), 400
+
+    community_id = data.get('community_id')
+    usernames = data.get('usernames', [])
+    amount = data.get('amount')
+
+    if not community_id or not usernames or amount is None:
+        return jsonify({'success': False, 'error': 'Missing required fields'}), 400
+
+    try:
+        amount = Decimal(str(amount))
+    except Exception:
+        return jsonify({'success': False, 'error': 'Invalid amount'}), 400
+
+    if amount <= 0:
+        return jsonify({'success': False, 'error': 'Tip amount must be positive'}), 400
+
+    community = Community.query.get(community_id)
+    if not community:
+        return jsonify({'success': False, 'error': 'Community not found'}), 404
+
+    # 🔒 CREATOR-ONLY GUARD
+    if current_user.id != community.created_by_id:
+        return jsonify({
+            'success': False,
+            'error': 'Only the community creator can run this action.'
+        }), 403
+
+    # Resolve target users first, before touching any balances —
+    # fail fast if any username is bad, so we don't partially debit.
+    target_users = []
+    for uname in usernames:
+        user = Users.query.filter_by(username=uname).first()
+        if not user:
+            return jsonify({
+                'success': False,
+                'error': f'User "{uname}" not found'
+            }), 404
+        target_users.append(user)
+
+    amount_zatoshi = int(round(amount * Decimal("100000000")))
+    total_zatoshi_needed = amount_zatoshi * len(target_users)
+
+    # ── 🔒 DEBIT COMMUNITY WALLET — mirrors publish_subquest's fund-lock pattern ──
+    wallet = CommunityWallet.query.filter_by(
+        community_id=community.id
+    ).with_for_update().first()
+
+    if not wallet:
+        return jsonify({
+            'success': False,
+            'error': 'Community wallet not found'
+        }), 400
+
+    if (wallet.available_balance or 0) < total_zatoshi_needed:
+        available_zec = (wallet.available_balance or 0) / 100_000_000
+        needed_zec = total_zatoshi_needed / 100_000_000
+        return jsonify({
+            'success': False,
+            'error': f'Insufficient community wallet balance. Available: {available_zec:.8f} ZEC, required: {needed_zec:.8f} ZEC'
+        }), 400
+
+    wallet.available_balance -= total_zatoshi_needed
+    wallet.updated_at = datetime.utcnow()
+
+    tagger_display = current_user.username[:1].upper() + current_user.username[1:] if current_user.username else "Someone"
+    results = []
+
+    # ── 💳 CREDIT EACH RECIPIENT — mirrors verify_user_zec_deposit's crediting pattern ──
+    for user in target_users:
+        user_bal = UserBalance.query.filter_by(
+            user_id=user.id
+        ).with_for_update().first()
+
+        if not user_bal:
+            user_bal = UserBalance(
+                user_id=user.id,
+                balance=Decimal("0"),
+                total_earned=Decimal("0"),
+                total_withdrawn=Decimal("0"),
+            )
+            db.session.add(user_bal)
+            db.session.flush()
+
+        user_bal.balance = (user_bal.balance or Decimal("0")) + amount
+        user_bal.total_earned = (user_bal.total_earned or Decimal("0")) + amount
+        user_bal.updated_at = datetime.utcnow()
+
+        # ── 📝 TRANSACTION HISTORY — user-facing remark names the community ──
+        db.session.add(UserTransaction(
+            user_id=user.id,
+            type='in',
+            amount=amount,
+            token='ZEC',
+            status='confirmed',
+            community_id=community.id,
+            remark=f'Tip · {community.name}',
+        ))
+
+        results.append({
+            'username': user.username,
+            'success': True,
+            'amount': str(amount),
+            'new_balance': str(user_bal.balance)
+        })
+
+    db.session.commit()
+
+    # 📧 SEPARATE PERSONAL EMAIL — "you've been tipped", distinct from the
+    # in-channel 💰 admin-action announcement message.
+    for user in target_users:
+        # ❌ exempt — don't email the admin for tipping themselves
+        if user.id == current_user.id:
+            continue
+
+        target_url = f"https://gleyo.app/{community.slug}/rewards"
+
+        if user.email:
+            send_tip_email_async(
+                to_email=user.email,
+                username=user.username or "there",
+                community_name=community.name,
+                tagger_username=current_user.username,
+                amount=amount,
+                target_url=target_url
+            )
+
+    return jsonify({
+        'success': True,
+        'amount_per_user': str(amount),
+        'total_debited': str(amount * len(target_users)),
+        'remaining_wallet_balance': (wallet.available_balance / 100_000_000),
+        'results': results
+    })
 
 
 @app.route('/api/zec-price', methods=['GET'])
@@ -11859,6 +12273,124 @@ def load_settings_context(community_slug):
         "community": community,
         "security_settings": community.security_settings
     }
+
+
+
+
+
+@app.route("/enterprise/<slug>/<interval>", methods=["GET", "POST"])
+def enterprise(slug, interval):
+    community = Community.query.filter_by(slug=slug).first_or_404()
+    community_id = community.id   
+
+    if request.method == "POST":
+        company = request.form.get("company")
+        website = request.form.get("website")
+        fullname = request.form.get("fullname")
+        email = request.form.get("email")
+        phone = request.form.get("phone")
+        requirements = request.form.get("requirements")
+        budget = request.form.get("budget")
+
+        ref_code = generate_reference()
+
+        request_entry = EnterpriseRequest(
+            community_id=community_id, 
+            company=company,
+            website=website,
+            fullname=fullname,
+            email=email,
+            phone=phone,
+            requirements=requirements,
+            budget=budget,
+            reference_code=ref_code
+        )
+        db.session.add(request_entry)
+
+        existing_payment = CommunityPayment.query.filter_by(
+            community_id=community_id,
+            plan="enterprise",
+            interval=interval
+        ).first()
+
+        if not existing_payment:
+            enterprise_payment = CommunityPayment(
+                community_id=community_id,   # ✅ still saving ID
+                plan="enterprise",
+                interval=interval,
+                stripe_session_id=None,
+                status="pending"
+            )
+            db.session.add(enterprise_payment)
+            request_entry.payment = enterprise_payment
+
+        db.session.commit()
+
+
+        msg = EmailMessage()
+        msg["Subject"] = f"New Enterprise Request from {company}"
+        msg["From"] = "Gleyo <noreply@gleyo.app>"
+        msg["To"] = "florishisreal@gmail.com"
+
+        html_content = f"""
+        <html>
+        <body style="font-family:Arial, sans-serif; line-height:1.5;">
+            <h2>Enterprise Plan Request</h2>
+            <ul>
+                <li><strong>Reference Code:</strong> {ref_code}</li>
+                <li><strong>Community ID:</strong> {community_id}</li>
+                <li><strong>Interval:</strong> {interval}</li>
+                <li><strong>Company:</strong> {company}</li>
+                <li><strong>Website:</strong> {website}</li>
+                <li><strong>Full Name:</strong> {fullname}</li>
+                <li><strong>Email:</strong> {email}</li>
+                <li><strong>Phone:</strong> {phone}</li>
+                <li><strong>Requirements:</strong> {requirements}</li>
+                <li><strong>Budget:</strong> {budget}</li>
+            </ul>
+        </body>
+        </html>
+        """
+        msg.add_alternative(html_content, subtype="html")
+
+        send_email(msg)
+
+        # After sending email
+        return render_template(
+            "enterprise.html",
+            success=True,
+            reference_code=ref_code,
+            community=community,
+            interval=interval
+        )
+
+
+    # GET request
+    return render_template("enterprise.html", community=community, interval=interval)
+
+
+
+
+@app.route("/community/<community_slug>/settings/billing")
+@login_required
+@community_not_deleted()
+def settings_billing(community_slug):
+    ctx = load_settings_context(community_slug)
+
+    community = ctx["community"]
+
+    wallet = community.wallet  
+
+    if request.headers.get("X-Partial"):
+        return render_template("settings/billing.html", wallet=wallet, community=ctx["community"])
+
+    return render_template(
+        "community_settings.html",
+        community=ctx["community"],
+        wallet=wallet,
+        community_slug=community_slug
+    )
+
 
 
 @app.route("/community/<community_slug>/settings/general", methods=["GET", "POST"])
@@ -24995,7 +25527,6 @@ def push_subscribe():
 
 
 def extract_mentions_from_text(text):
-    # matches @username (letters, numbers, underscore, dot)
     return {
         m.lower()
         for m in re.findall(r'@([A-Za-z0-9_.]+)', text)
@@ -25747,6 +26278,7 @@ def comm_message():
     content = (data.get("content") or "").strip()
     reply_to_uuid = data.get("reply_to_uuid")
     frontend_is_mention = bool(data.get("is_mention", False))
+    is_admin_action = data.get("is_admin_action") == "1"
     frontend_mentions = data.get("mentions", [])
     if not isinstance(frontend_mentions, list):
         frontend_mentions = []
@@ -25768,6 +26300,7 @@ def comm_message():
     print("🏷 frontend_mentions:", frontend_mentions)
     print("🧠 parsed_mentions:", parsed_mentions)
     print("✅ final mentions:", mentions)
+    print("🎛 admin_action:", is_admin_action)
     
 
     if not community_id:
@@ -26132,6 +26665,17 @@ def comm_message():
                             "message_uuid": message.uuid
                         }
                     )
+
+                if user.email and not is_admin_action:
+                    send_mention_email_async(
+                        to_email=user.email,
+                        username=user.username or "there",
+                        community_name=community.name,
+                        tagger_username=current_user.username,
+                        message_content=content,
+                        target_url=target_url
+                    )
+
                 notified_user_ids.add(user.id)
 
 
@@ -27761,6 +28305,7 @@ def get_my_communities():
                 "logo": community.logo_path,
                 "creator_id": community.created_by_id,
                 "creator_username": community.creator.username,
+                "is_creator": current_user.id == community.created_by_id,
                 "member_count": member_count,
                 "is_paid": community.is_paid,
                 "categories": {},
@@ -32603,6 +33148,76 @@ class CoinHolderVoteTallyAdmin(BaseAdmin):
     can_view_details = True
 
 
+
+class AdminXPActionAdmin(BaseAdmin):
+
+    can_create = True
+    can_edit = True
+    can_delete = True
+
+    column_list = (
+        "id",
+        "community",
+        "admin",
+        "target_user",
+        "amount",
+        "action_type",
+        "sprint",
+        "created_at",
+    )
+
+    column_filters = (
+        "community",
+        "action_type",
+        "created_at",
+    )
+
+    column_searchable_list = (
+        "admin.username",
+        "target_user.username",
+        "community.name",
+    )
+
+    column_default_sort = ("created_at", True)
+
+    form_columns = (
+        "community",
+        "admin",
+        "target_user",
+        "amount",
+        "action_type",
+        "sprint",
+    )
+
+    form_ajax_refs = {
+        "admin": {
+            "fields": ("username", "email"),
+        },
+        "target_user": {
+            "fields": ("username", "email"),
+        },
+        "community": {
+            "fields": ("name",),
+        },
+        "sprint": {
+            "fields": ("title",),
+        },
+    }
+
+    column_labels = {
+        "id": "ID",
+        "community": "Community",
+        "admin": "Admin",
+        "target_user": "Target User",
+        "amount": "Amount",
+        "action_type": "Action Type",
+        "sprint": "Sprint",
+        "created_at": "Created At",
+    }
+
+    can_view_details = True
+
+
 admin.add_view(UserAdmin(Users, db.session))
 admin.add_view(UserTwoFactorAdmin(UserTwoFactor, db.session))
 admin.add_view(UserSessionAdmin(UserSession, db.session))
@@ -32656,6 +33271,7 @@ admin.add_view(SubquestCooldownAdmin(SubquestCooldown, db.session))
 admin.add_view(UserXPAdmin(UserXP, db.session, name="User XP"))
 admin.add_view(SubquestCompletionAdmin(SubquestCompletion, db.session))
 admin.add_view(SprintAdmin(Sprint, db.session)) 
+admin.add_view(AdminXPActionAdmin(AdminXPAction, db.session))
 admin.add_view(CommunityUserXPAdmin(CommunityUserXP, db.session))
 admin.add_view(SprintUserXPAdmin(SprintUserXP, db.session))
 admin.add_view(PaymentAdmin(Payment, db.session))

@@ -590,3 +590,589 @@ def send_quest_emails_async(community, quest, subquest):
     #         _send_quest_emails(community, quest, subquest)
 
     # return email_executor.submit(task)
+
+
+
+
+
+
+def build_mention_email(to_email, username, community_name, tagger_username, message_content, target_url):
+    tagger_display = tagger_username[:1].upper() + tagger_username[1:] if tagger_username else "Someone"
+
+    msg = EmailMessage()
+    msg["Subject"] = f"{community_name} • {tagger_display} tagged you"
+    msg["From"] = "Gleyo <noreply@gleyo.app>"
+    msg["To"] = to_email
+
+    # keep the plain-text preview short/safe even if content is huge
+    preview_text = (message_content or "").strip()
+    if len(preview_text) > 500:
+        preview_text = preview_text[:500] + "…"
+
+    text_content = (
+        f"Hey {username},\n\n"
+        f"{tagger_display} tagged you in {community_name}:\n\n"
+        f"\"{preview_text}\"\n\n"
+        f"View it here: {target_url}\n\n"
+        f"— Gleyo"
+    )
+
+    # Escape user-generated content before dropping into HTML
+    import html as _html
+    safe_preview = _html.escape(preview_text) if preview_text else "📎 Sent an attachment"
+
+    html_content = f"""
+    <!DOCTYPE html>
+    <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="dark light">
+    <meta name="supported-color-schemes" content="dark light">
+    <title>You were tagged</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&family=Lora:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        body, table, td, a {{ -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }}
+        table, td {{ mso-table-lspace: 0pt; mso-table-rspace: 0pt; }}
+        img {{ border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }}
+        a {{ text-decoration: none; }}
+
+        body {{
+            font-family: 'Lora', Georgia, serif;
+            background-color: #0b0b12;
+            margin: 0;
+            padding: 0;
+        }}
+
+        .email-wrapper {{
+            background-color: #0b0b12;
+            padding: 48px 16px;
+        }}
+
+        .email-card {{
+            background-color: #222236;
+            border: 1px solid #2f2f4a;
+            border-radius: 14px;
+            max-width: 520px;
+            margin: 0 auto;
+            overflow: hidden;
+        }}
+
+        .header {{
+            background-color: #0b0b12;
+            padding: 32px 44px 28px;
+            border-bottom: 1px solid #2f2f4a;
+        }}
+
+        .logo {{
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }}
+
+        .logo-mark {{
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #6366f1, #4338ca);
+            border-radius: 9px;
+            display: inline-block;
+        }}
+
+        .logo-name {{
+            font-family: 'Bricolage Grotesque', Arial, sans-serif;
+            font-size: 17px;
+            font-weight: 600;
+            color: #e5e7eb;
+            letter-spacing: 0.3px;
+        }}
+
+        .body-content {{
+            padding: 44px 44px 36px;
+        }}
+
+        .eyebrow {{
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 11px;
+            letter-spacing: 2.5px;
+            text-transform: uppercase;
+            color: #6366f1;
+            margin-bottom: 14px;
+        }}
+
+        h1 {{
+            font-family: 'Bricolage Grotesque', Arial, sans-serif;
+            font-size: 27px;
+            font-weight: 600;
+            color: #e5e7eb;
+            line-height: 1.3;
+            margin-bottom: 18px;
+            letter-spacing: -0.2px;
+        }}
+
+        .intro {{
+            font-family: 'Lora', Georgia, serif;
+            font-size: 15px;
+            color: #bbbfc7;
+            line-height: 1.7;
+            margin-bottom: 30px;
+        }}
+
+        .intro strong {{ color: #e5e7eb; }}
+
+        .cta-wrap {{
+            text-align: center;
+            margin-bottom: 32px;
+        }}
+
+        .cta-btn {{
+            display: inline-block;
+            padding: 13px 32px;
+            background: #6366f1;
+            color: #ffffff !important;
+            font-family: 'Bricolage Grotesque', Arial, sans-serif;
+            font-size: 14.5px;
+            font-weight: 600;
+            border-radius: 10px;
+            letter-spacing: 0.2px;
+        }}
+
+        .message-box {{
+            border: 1px solid #2f2f4a;
+            border-radius: 12px;
+            padding: 18px 22px;
+            margin-bottom: 30px;
+            background: #222236e3;
+        }}
+
+        .message-box-label {{
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 10.5px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: #6366f1;
+            margin-bottom: 8px;
+        }}
+
+        .message-box-content {{
+            font-family: 'Lora', Georgia, serif;
+            font-size: 15px;
+            color: #e5e7eb;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }}
+
+        .separator {{
+            height: 1px;
+            background: #2f2f4a;
+            margin: 0 0 28px;
+        }}
+
+        .signature {{
+            font-family: 'Lora', Georgia, serif;
+            font-size: 14px;
+            color: #bbbfc7;
+            font-style: italic;
+        }}
+
+        .footer {{
+            background: #0b0b12;
+            padding: 24px 44px;
+            border-top: 1px solid #2f2f4a;
+        }}
+
+        .footer-text {{
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 11px;
+            color: #6a6a80;
+            line-height: 1.7;
+            text-align: center;
+        }}
+
+        @media only screen and (max-width: 540px) {{
+            .body-content {{ padding: 32px 26px 28px !important; }}
+            .header {{ padding: 26px 26px 22px !important; }}
+            .footer {{ padding: 20px 26px !important; }}
+            h1 {{ font-size: 22px !important; }}
+        }}
+    </style>
+    </head>
+    <body>
+    <div class="email-wrapper">
+    <div class="email-card">
+
+        <div class="header">
+            <div class="logo">
+                <div class="logo-mark"></div>
+                <span class="logo-name">Gleyo</span>
+            </div>
+        </div>
+
+        <div class="body-content">
+            <p class="eyebrow">You Were Tagged</p>
+            <h1>{tagger_display} tagged<br>you in {community_name}.</h1>
+            <p class="intro">
+                Hey {username} — <strong>{tagger_display}</strong> mentioned you in a message. Here's what they said:
+            </p>
+
+            <div class="message-box">
+                <p class="message-box-label">Message</p>
+                <p class="message-box-content">{safe_preview}</p>
+            </div>
+
+            <div class="cta-wrap">
+                <a href="{target_url}" class="cta-btn">View Message</a>
+            </div>
+
+            <div class="separator"></div>
+
+            <p class="signature">— Gleyo</p>
+        </div>
+
+        <div class="footer">
+            <p class="footer-text">
+                You're receiving this because {tagger_display} tagged you in {community_name} on Gleyo.
+            </p>
+        </div>
+
+    </div>
+    </div>
+    </body>
+    </html>
+    """
+
+    msg.set_content(text_content)
+    msg.add_alternative(html_content, subtype="html")
+    return msg
+
+
+def _send_mention_email(to_email, username, community_name, tagger_username, message_content, target_url):
+    try:
+        msg = build_mention_email(
+            to_email, username, community_name, tagger_username, message_content, target_url
+        )
+        send_mass_email(msg)
+        print(f"✅ Mention email sent to {to_email}")
+    except Exception as e:
+        print(f"❌ Failed to send mention email to {to_email}: {e}")
+
+
+def send_mention_email_async(to_email, username, community_name, tagger_username, message_content, target_url):
+    app = current_app._get_current_object()
+
+    def task():
+        with app.app_context():
+            _send_mention_email(to_email, username, community_name, tagger_username, message_content, target_url)
+
+    return email_executor.submit(task)
+
+
+
+
+
+def build_reward_email(to_email, username, community_name, tagger_username, headline, box_label, box_content, cta_text, target_url):
+    """
+    Shared template for tip / xp-grant / xp-removal emails — same visual
+    shell as build_mention_email, just swapping the headline, the boxed
+    content, and the button text/label.
+    """
+    tagger_display = tagger_username[:1].upper() + tagger_username[1:] if tagger_username else "Someone"
+
+    msg = EmailMessage()
+    msg["Subject"] = f"{community_name} • {headline}"
+    msg["From"] = "Gleyo <noreply@gleyo.app>"
+    msg["To"] = to_email
+
+    text_content = (
+        f"Hey {username},\n\n"
+        f"{box_content}\n\n"
+        f"View it here: {target_url}\n\n"
+        f"— Gleyo"
+    )
+
+    html_content = f"""
+    <!DOCTYPE html>
+    <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="dark light">
+    <meta name="supported-color-schemes" content="dark light">
+    <title>{headline}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&family=Lora:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        body, table, td, a {{ -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }}
+        table, td {{ mso-table-lspace: 0pt; mso-table-rspace: 0pt; }}
+        img {{ border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }}
+        a {{ text-decoration: none; }}
+
+        body {{
+            font-family: 'Lora', Georgia, serif;
+            background-color: #0b0b12;
+            margin: 0;
+            padding: 0;
+        }}
+
+        .email-wrapper {{
+            background-color: #0b0b12;
+            padding: 48px 16px;
+        }}
+
+        .email-card {{
+            background-color: #222236;
+            border: 1px solid #2f2f4a;
+            border-radius: 14px;
+            max-width: 520px;
+            margin: 0 auto;
+            overflow: hidden;
+        }}
+
+        .header {{
+            background-color: #0b0b12;
+            padding: 32px 44px 28px;
+            border-bottom: 1px solid #2f2f4a;
+        }}
+
+        .logo {{
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }}
+
+        .logo-mark {{
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #6366f1, #4338ca);
+            border-radius: 9px;
+            display: inline-block;
+        }}
+
+        .logo-name {{
+            font-family: 'Bricolage Grotesque', Arial, sans-serif;
+            font-size: 17px;
+            font-weight: 600;
+            color: #e5e7eb;
+            letter-spacing: 0.3px;
+        }}
+
+        .body-content {{
+            padding: 44px 44px 36px;
+        }}
+
+        .eyebrow {{
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 11px;
+            letter-spacing: 2.5px;
+            text-transform: uppercase;
+            color: #6366f1;
+            margin-bottom: 14px;
+        }}
+
+        h1 {{
+            font-family: 'Bricolage Grotesque', Arial, sans-serif;
+            font-size: 27px;
+            font-weight: 600;
+            color: #e5e7eb;
+            line-height: 1.3;
+            margin-bottom: 18px;
+            letter-spacing: -0.2px;
+        }}
+
+        .intro {{
+            font-family: 'Lora', Georgia, serif;
+            font-size: 15px;
+            color: #bbbfc7;
+            line-height: 1.7;
+            margin-bottom: 30px;
+        }}
+
+        .intro strong {{ color: #e5e7eb; }}
+
+        .cta-wrap {{
+            text-align: center;
+            margin-bottom: 32px;
+        }}
+
+        .cta-btn {{
+            display: inline-block;
+            padding: 13px 32px;
+            background: #6366f1;
+            color: #ffffff !important;
+            font-family: 'Bricolage Grotesque', Arial, sans-serif;
+            font-size: 14.5px;
+            font-weight: 600;
+            border-radius: 10px;
+            letter-spacing: 0.2px;
+        }}
+
+        .reward-box {{
+            border: 1px solid #2f2f4a;
+            border-radius: 12px;
+            padding: 18px 22px;
+            margin-bottom: 30px;
+            background: #222236e3;
+        }}
+
+        .reward-box-label {{
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 10.5px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: #6366f1;
+            margin-bottom: 8px;
+        }}
+
+        .reward-box-content {{
+            font-family: 'Bricolage Grotesque', Arial, sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            color: #e5e7eb;
+        }}
+
+        .separator {{
+            height: 1px;
+            background: #2f2f4a;
+            margin: 0 0 28px;
+        }}
+
+        .signature {{
+            font-family: 'Lora', Georgia, serif;
+            font-size: 14px;
+            color: #bbbfc7;
+            font-style: italic;
+        }}
+
+        .footer {{
+            background: #0b0b12;
+            padding: 24px 44px;
+            border-top: 1px solid #2f2f4a;
+        }}
+
+        .footer-text {{
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 11px;
+            color: #6a6a80;
+            line-height: 1.7;
+            text-align: center;
+        }}
+
+        @media only screen and (max-width: 540px) {{
+            .body-content {{ padding: 32px 26px 28px !important; }}
+            .header {{ padding: 26px 26px 22px !important; }}
+            .footer {{ padding: 20px 26px !important; }}
+            h1 {{ font-size: 22px !important; }}
+        }}
+    </style>
+    </head>
+    <body>
+    <div class="email-wrapper">
+    <div class="email-card">
+
+        <div class="header">
+            <div class="logo">
+                <div class="logo-mark"></div>
+                <span class="logo-name">Gleyo</span>
+            </div>
+        </div>
+
+        <div class="body-content">
+            <p class="eyebrow">{headline}</p>
+            <h1>{box_content}</h1>
+            <p class="intro">
+                Hey {username} — <strong>{tagger_display}</strong> just sent this your way in <strong>{community_name}</strong>.
+            </p>
+
+            <div class="reward-box">
+                <p class="reward-box-label">{box_label}</p>
+                <p class="reward-box-content">{box_content}</p>
+            </div>
+
+            <div class="cta-wrap">
+                <a href="{target_url}" class="cta-btn">{cta_text}</a>
+            </div>
+
+            <div class="separator"></div>
+
+            <p class="signature">— Gleyo</p>
+        </div>
+
+        <div class="footer">
+            <p class="footer-text">
+                You're receiving this because {tagger_display} sent you this in {community_name} on Gleyo.
+            </p>
+        </div>
+
+    </div>
+    </div>
+    </body>
+    </html>
+    """
+
+    msg.set_content(text_content)
+    msg.add_alternative(html_content, subtype="html")
+    return msg
+
+
+def _send_reward_email(to_email, username, community_name, tagger_username, headline, box_label, box_content, cta_text, target_url):
+    try:
+        msg = build_reward_email(
+            to_email, username, community_name, tagger_username,
+            headline, box_label, box_content, cta_text, target_url
+        )
+        send_mass_email(msg)
+        print(f"✅ Reward email sent to {to_email}")
+    except Exception as e:
+        print(f"❌ Failed to send reward email to {to_email}: {e}")
+
+
+def send_tip_email_async(to_email, username, community_name, tagger_username, amount, target_url):
+    app = current_app._get_current_object()
+    tagger_display = tagger_username[:1].upper() + tagger_username[1:] if tagger_username else "Someone"
+
+    def task():
+        with app.app_context():
+            _send_reward_email(
+                to_email=to_email,
+                username=username,
+                community_name=community_name,
+                tagger_username=tagger_username,
+                headline=f"You've been tipped {amount} ZEC",
+                box_label="Tip",
+                box_content=f"{tagger_display} tipped you {amount} ZEC",
+                cta_text="View Reward",
+                target_url=target_url
+            )
+
+    return email_executor.submit(task)
+
+
+def send_xp_email_async(to_email, username, community_name, tagger_username, amount, target_url):
+    app = current_app._get_current_object()
+    tagger_display = tagger_username[:1].upper() + tagger_username[1:] if tagger_username else "Someone"
+
+    is_removal = amount < 0
+    headline = f"{abs(amount)} XP removed" if is_removal else f"You received {amount} XP"
+    box_content = (
+        f"{tagger_display} removed {abs(amount)} XP from you"
+        if is_removal
+        else f"{tagger_display} gave you {amount} XP"
+    )
+    cta_text = "View Action" if is_removal else "View Leaderboard"
+
+    def task():
+        with app.app_context():
+            _send_reward_email(
+                to_email=to_email,
+                username=username,
+                community_name=community_name,
+                tagger_username=tagger_username,
+                headline=headline,
+                box_label="XP",
+                box_content=box_content,
+                cta_text=cta_text,
+                target_url=target_url
+            )
+
+    return email_executor.submit(task)

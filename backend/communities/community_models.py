@@ -1,6 +1,8 @@
 import uuid
 from backend.utils.instance import db
 from datetime import datetime
+from sqlalchemy import func
+
 
 
 class Community(db.Model):
@@ -639,3 +641,27 @@ class AIActionLog(db.Model):
 
 
 
+class AdminXPAction(db.Model):
+    __tablename__ = "admin_xp_actions"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    community_id = db.Column(db.Integer, db.ForeignKey("communities.id"), nullable=False)
+    community = db.relationship("Community", backref="admin_xp_actions")
+
+    admin_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    admin = db.relationship("Users", foreign_keys=[admin_id], backref="admin_xp_actions_performed")
+
+    target_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    target_user = db.relationship("Users", foreign_keys=[target_user_id], backref="admin_xp_actions_received")
+
+    amount = db.Column(db.Integer, nullable=False)  # positive = grant, negative = removal
+    action_type = db.Column(db.String(20), nullable=False)  # "grant" | "removal"
+
+    sprint_id = db.Column(db.Integer, db.ForeignKey("sprints.id"), nullable=True)
+    sprint = db.relationship("Sprint", backref="admin_xp_actions")
+
+    created_at = db.Column(db.DateTime, server_default=func.now())
+
+    def __repr__(self):
+        return f"<AdminXPAction admin={self.admin_id} target={self.target_user_id} {self.amount:+d}XP>"

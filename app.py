@@ -11775,7 +11775,7 @@ def zec_withdraw():
 
     ZEC_MIN = 0.00185
     ZEC_PLATFORM = 0.03
-    ZEC_NET_FEE = 0.001
+    ZEC_NET_FEE = 0.0004
 
     if not is_valid_shielded_zec(address):
         print("DEBUG: FAILED at address validation")
@@ -33410,4 +33410,4 @@ if __name__ == "__main__":
     )
     scheduler.start()
 
-    socketio.run(app, host="0.0.0.0", port=8000)    
+    socketio.run(app, host="0.0.0.0", port=8000)

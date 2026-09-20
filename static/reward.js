@@ -1,9 +1,9 @@
 (function () { 
 let qrLibPromise = null;
-let ZEC_PRICE_USD = 460;
-const ZEC_NET_FEE  = 0.001;   
+let ZEC_PRICE_USD = 1000;
+const ZEC_NET_FEE  = 0.0004;   
 const ZEC_PLATFORM = 0.03;
-const ZEC_MIN      = 0.00185;
+const ZEC_MIN      = 0.0007;
 
 const balEl             = document.getElementById('zecBalDisplay');
 let zecBalance          = parseFloat(balEl?.dataset?.balance    || '0') || 0;
@@ -275,7 +275,7 @@ function calcFee(amountOnly) {
       if (amt > zecBalance) {
         r('balRemain').textContent = 'Insufficient balance';
         r('balRemain').className   = 'bal-remain danger';
-      } else if (left < 0.001) {
+      } else if (left < 0.0004) {
         r('balRemain').textContent = 'Remaining: ' + fmtZec(left) + ' ZEC';
         r('balRemain').className   = 'bal-remain warn';
       } else {
@@ -292,7 +292,6 @@ function calcFee(amountOnly) {
       if (r('amtErr')) r('amtErr').textContent = 'Amount exceeds available balance';
     } else {
       // FIXED: fees come OUT of the amount the user typed, not added on top
-      // User types X → platform takes 3% of X, network takes 0.001, receiver gets the rest
       const platformFee = parseFloat((amt * ZEC_PLATFORM).toFixed(8));
       const receive     = parseFloat((amt - platformFee - ZEC_NET_FEE).toFixed(8));
       const remaining   = parseFloat((zecBalance - amt).toFixed(8));

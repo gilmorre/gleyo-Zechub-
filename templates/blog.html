@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blog · Gleyo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,600;12..96,700&family=Lora:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-app: #0b0b12;
+  --bg-surface: #222236;
+  --bg-surface-lower: #222236e3;
+  --border: #2f2f4a;
+  --text-main: #e5e7eb;
+  --text-muted: #bbbfc7;
+  --accent-color: #6366f1;
+  --radius: 14px;
+}
+* {
+  box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(140, 140, 140, 0.6) transparent;
+}
+::selection { background: #4effcd29; color: var(--text-main); }
+::-moz-selection { background: #4effcd29; color: var(--text-main); }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  font-family: 'Lora', serif;
+  background: radial-gradient(circle at 30% 20%, #151528 0%, #0b0b12 60%);
+  color: var(--text-main);
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  html, body { height: 100% !important; min-height: 100% !important; }
+  .container { overflow-y: auto !important; }
+}
+
+.container {
+  width: 100%;
+  max-width: 760px;
+  padding: 56px 40px 80px;
+}
+
+.page-head {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+h1 {
+  margin: 0 0 12px;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+.page-head p {
+  color: var(--text-muted);
+  font-size: 14.5px;
+  line-height: 1.7;
+  margin: 0;
+}
+
+.post-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.post-card {
+  display: block;
+  padding: 24px 26px;
+  border-radius: var(--radius);
+  background: var(--bg-surface-lower);
+  border: 1px solid var(--border);
+  text-decoration: none;
+  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.post-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent-color);
+  background: var(--bg-surface);
+  text-decoration: none;
+}
+
+.post-meta {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--accent-color);
+  letter-spacing: 0.3px;
+  margin-bottom: 10px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.post-meta .dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  display: inline-block;
+}
+
+.post-card h2 {
+  margin: 0 0 8px;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--text-main);
+  letter-spacing: -0.2px;
+}
+
+.post-card p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-muted);
+  font-size: 14.5px;
+}
+
+.go-back {
+  text-align: center;
+  margin-top: 48px;
+}
+
+.go-back a {
+  display: inline-block;
+  padding: 10px 18px;
+  border-radius: 12px;
+  background: rgba(99,102,241,0.1);
+  border: 1px solid var(--border);
+  transition: all 0.2s ease;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-weight: 500;
+  color: var(--accent-color);
+  text-decoration: none;
+}
+
+.go-back a:hover {
+  background: rgba(99,102,241,0.2);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 480px) {
+  html, body { align-items: flex-start; }
+  .container {
+    padding: 32px 20px;
+    border-radius: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+  }
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="page-head">
+    <h1>Blog</h1>
+    <p>Notes on building communities, shielded rewards, and growing with Zcash.</p>
+  </div>
+
+  {% if posts %}
+    <div class="post-list">
+      {% for post in posts %}
+        <a class="post-card" href="{{ url_for('blog_post', slug=post.slug) }}">
+          <div class="post-meta">
+            <span>{{ post.date }}</span>
+            <span class="dot"></span>
+            <span>{{ post.read_time }}</span>
+          </div>
+          <h2>{{ post.title }}</h2>
+          <p>{{ post.excerpt }}</p>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">No posts yet — check back soon.</div>
+  {% endif %}
+
+  <div class="go-back">
+    <a href="/">← Back home</a>
+  </div>
+
+</div>
+<script src="{{ url_for('static', filename='js/socket.io.js') }}" defer></script>
+</body>
+</html>

@@ -1435,6 +1435,49 @@ async function initReviewinit() {
     card.appendChild(bubble);
   }
 
+  else if (taskType === "coin_holder_vote") {
+    const vote = task.coin_holder_vote || task.user_input?.coin_holder_vote || null;
+
+    const bubble = document.createElement("div");
+    bubble.className = "review-bubble";
+    bubble.style.display = "flex";
+    bubble.style.flexDirection = "column";
+    bubble.style.gap = "8px";
+
+    if (vote) {
+      const makeRow = (labelText, valueText) => {
+        const row = document.createElement("div");
+        row.style.display = "flex";
+        row.style.justifyContent = "space-between";
+        row.style.alignItems = "center";
+        row.style.gap = "12px";
+
+        const l = document.createElement("span");
+        l.style.color = "var(--text-muted)";
+        l.style.fontSize = "13px";
+        l.textContent = labelText;
+
+        const v = document.createElement("strong");
+        v.style.fontWeight = "600";
+        v.style.textAlign = "right";
+        v.style.wordBreak = "break-word";
+        v.textContent = valueText;
+
+        row.appendChild(l);
+        row.appendChild(v);
+        return row;
+      };
+
+      bubble.appendChild(makeRow("Project", vote.project_name || "Unknown project"));
+      bubble.appendChild(
+        makeRow("Amount voted", `${vote.amount ?? "0"} ${vote.token || "ZEC"}`)
+      );
+    } else {
+      bubble.textContent = "No vote recorded";
+    }
+
+    card.appendChild(bubble);
+  }
 
   else if (["youtube", "discord", "partnership", "partnership_quest"].includes(taskType)) {
       const bubble = document.createElement("div");

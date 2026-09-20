@@ -10380,6 +10380,17 @@ def sitemap():
     return Response("\n".join(xml), mimetype="application/xml")
 
 
+
+def fmt_zec(d):
+    """Exact decimal string: no float rounding, no trailing zeros."""
+    if d is None:
+        return "0"
+    s = format(Decimal(d), "f")
+    if "." in s:
+        s = s.rstrip("0").rstrip(".")
+    return s or "0"
+
+
 @app.route('/api/<community_slug>/review/<int:completion_id>')
 @login_required
 @community_not_deleted()
@@ -10429,6 +10440,17 @@ def api_single_review(community_slug, completion_id):
     level_info = get_level(total_xp)
 
     # ===============================
+    # COIN HOLDER VOTES (source of truth)
+    # ===============================
+    votes_by_task = {
+        v.task_id: v
+        for v in CoinHolderVote.query.filter_by(
+            subquest_completion_id=r.id,
+            user_id=uid
+        ).all()
+    }
+
+    # ===============================
     # TASK ATTEMPTS
     # ===============================
     attempts = (
@@ -10441,6 +10463,8 @@ def api_single_review(community_slug, completion_id):
     attempt_payload = []
 
     for t in attempts:
+        vote = votes_by_task.get(t.task_id)
+
         attempt_payload.append({
             "attempt_id": t.id,
             "task_id": t.task.id if t.task else None,
@@ -10449,6 +10473,19 @@ def api_single_review(community_slug, completion_id):
             "user_input": t.user_input or {},
             "attempted_at": t.created_at.strftime("%Y-%m-%d %H:%M:%S"),
             "task_type": getattr(t.task, "type", None),
+
+            # 🗳️ exact amount the user voted (string, no float rounding)
+            "coin_holder_vote": (
+                {
+                    "project_index": vote.project_index,
+                    "project_name": vote.project_name,
+                    "amount": fmt_zec(vote.amount),
+                    "token": vote.token or "ZEC",
+                    "voted_at": vote.created_at.strftime("%Y-%m-%d %H:%M:%S")
+                                if vote.created_at else None,
+                }
+                if vote else None
+            ),
         })
 
     # ===============================
@@ -10469,8 +10506,6 @@ def api_single_review(community_slug, completion_id):
         db.session.add(task_review)
         db.session.commit()
 
-
-
     history_payload = []
     if task_review:
         history_items = TaskReviewHistory.query.filter_by(
@@ -10480,16 +10515,17 @@ def api_single_review(community_slug, completion_id):
         for h in history_items:
             history_payload.append({
                 "history_id": h.id,
-                "status": h.status,             
+                "status": h.status,
                 "comment": h.comment,
                 "reviewer_id": h.reviewer_id,
                 "reviewer_username": h.reviewer.username if h.reviewer else None,
                 "created_at": h.created_at.strftime("%Y-%m-%d %H:%M:%S"),
                 "time_ago": format_time_ago(h.created_at),
-                "star": h.stars,                     
-                "free_xp": h.free_xp,               
-                "flag": h.flag    
+                "star": h.stars,
+                "free_xp": h.free_xp,
+                "flag": h.flag
             })
+
     if task_review and task_review.pending_reward:
         rewards = task_review.pending_reward
 
@@ -10504,6 +10540,7 @@ def api_single_review(community_slug, completion_id):
             }
             for reward in r.subquest.rewards
         ]
+
     # ===============================
     # RESPONSE
     # ===============================
@@ -10548,6 +10585,7 @@ def api_single_review(community_slug, completion_id):
         "review_history": history_payload
 
     }), 200
+
 
 
 @app.route('/api/<community_slug>/reviews')

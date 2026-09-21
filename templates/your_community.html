@@ -7477,9 +7477,9 @@ async function loadMainSettingsSection(path, push = true, previewMode = false, n
     /* ---------------- REVIEWS ---------------- */
 
   if (finalPath.includes("/reviews")) {
-    __CURRENT_SCRIPT__ = "/static/reviews.js?v=2";
+    __CURRENT_SCRIPT__ = "/static/reviews.js?v=7";
 
-    await loadScript("/static/reviews.js?v=2");
+    await loadScript("/static/reviews.js?v=7");
 
     if (window.ReviewsModule) {
       window.ReviewsModule.init();

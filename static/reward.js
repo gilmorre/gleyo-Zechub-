@@ -14,17 +14,25 @@ let addrCheckTimer      = null;
 let addrVerified        = false;
 let lastVerifiedAddr    = '';
 
-function fmtZec(n) { return n.toFixed(8); }
-function fmtRewardZec(n) { return parseFloat(n).toFixed(4); }
+// Truncate (never round) to `dp` decimals.
+// toFixed(8) first cleans up float noise, and ZEC only has 8 decimals anyway.
+function truncDecimals(n, dp) {
+  const s = Number(n).toFixed(8);
+  const [whole, frac = ''] = s.split('.');
+  return dp > 0 ? whole + '.' + frac.slice(0, dp) : whole;
+}
+
+function fmtZec(n)       { return Number(n).toFixed(8); }    // exact, 8 dp
+function fmtRewardZec(n) { return truncDecimals(n, 4); }     // 0.00185 -> "0.0018"
 
 const earnedEl = document.getElementById('totalEarned');
-if (earnedEl) earnedEl.textContent = zecTotalEarned.toFixed(2);
-
+if (earnedEl) earnedEl.textContent = truncDecimals(zecTotalEarned, 2);
+  
 const sheetEl = document.getElementById('sheetBal');
 if (sheetEl) sheetEl.innerHTML = fmtZec(zecBalance) + ' <em>ZEC</em>';
 
 const usdElInit = document.getElementById('zecUsdDisplay');
-if (usdElInit) usdElInit.textContent = (zecBalance * ZEC_PRICE_USD).toFixed(2);
+if (usdElInit) usdElInit.textContent = truncDecimals(zecBalance * ZEC_PRICE_USD, 2);
 
 function updateWithdrawButton() {
   const btn = document.querySelector('.btn-p');
@@ -79,7 +87,7 @@ function txStatusClass(tx) {
 function refreshUsdDisplays() {
   const usdEl = document.getElementById('zecUsdDisplay');
   if (!usdEl) return;
-  usdEl.textContent  = (zecBalance * ZEC_PRICE_USD).toFixed(2);
+  usdEl.textContent  = truncDecimals(zecBalance * ZEC_PRICE_USD, 2);
   usdEl.style.transition = 'opacity 0.15s ease';
   usdEl.style.opacity    = '0.25';
   setTimeout(() => { usdEl.style.opacity = '1'; }, 150);
@@ -102,7 +110,7 @@ function setBalanceDisplay(bal) {
   const usdEl   = document.getElementById('zecUsdDisplay');
   const sheetEl = document.getElementById('sheetBal');
   if (balEl)   balEl.innerHTML   = fmtZec(bal) + ' <em>ZEC</em>';
-  if (usdEl)   usdEl.textContent = (bal * ZEC_PRICE_USD).toFixed(2);
+  if (usdEl)   usdEl.textContent = truncDecimals(bal * ZEC_PRICE_USD, 2);
   if (sheetEl) sheetEl.innerHTML = fmtZec(bal) + ' <em>ZEC</em>';
   updateWithdrawButton();
 }
@@ -212,7 +220,7 @@ function bgClose(e, id) {
   if (e.target === document.getElementById(id)) document.getElementById(id).classList.remove('open');
 }
 
-// FIXED: MAX just sets the exact balance — no division, no reduction
+// MAX just sets the exact balance — no division, no reduction
 function setMax() {
   if (zecBalance <= 0) return;
   const el = document.getElementById('amtIn');
@@ -291,7 +299,7 @@ function calcFee(amountOnly) {
     } else if (amt > zecBalance) {
       if (r('amtErr')) r('amtErr').textContent = 'Amount exceeds available balance';
     } else {
-      // FIXED: fees come OUT of the amount the user typed, not added on top
+      // Fees come OUT of the amount the user typed, not added on top
       const platformFee = parseFloat((amt * ZEC_PLATFORM).toFixed(8));
       const receive     = parseFloat((amt - platformFee - ZEC_NET_FEE).toFixed(8));
       const remaining   = parseFloat((zecBalance - amt).toFixed(8));
@@ -433,7 +441,7 @@ function renderRecentTx() {
     const isIn      = tx.type === 'in';
     const isPending = tx.status === 'pending';
     const isZec     = (tx.token || '').toUpperCase() === 'ZEC';
-    const amtStr    = isZec ? fmtRewardZec(tx.amount) : tx.amount.toFixed(2);
+    const amtStr    = isZec ? fmtRewardZec(tx.amount) : truncDecimals(tx.amount, 2);
     return `
       <div class="tx-row">
         ${txDot(tx)}
@@ -695,7 +703,7 @@ function openAll() {
       const isIn      = tx.type === 'in';
       const isPending = tx.status === 'pending';
       const isZec     = (tx.token || '').toUpperCase() === 'ZEC';
-      const amtStr    = isZec ? fmtRewardZec(tx.amount) : tx.amount.toFixed(2);
+      const amtStr    = isZec ? fmtRewardZec(tx.amount) : truncDecimals(tx.amount, 2);
       return `
         <div class="stx" onclick="openTxFromAPI(${i})">
           ${txDot(tx)}
@@ -707,7 +715,7 @@ function openAll() {
             <div class="tx-amt ${txStatusClass(tx)}">
               ${isIn ? '+' : '−'}${amtStr} ${tx.token}
             </div>
-            <div class="tx-usd">≈ $${(tx.amount * ZEC_PRICE_USD).toFixed(2)} USD</div>
+            <div class="tx-usd">≈ $${truncDecimals(tx.amount * ZEC_PRICE_USD, 2)} USD</div>
           </div>
           <svg width="6" height="10" viewBox="0 0 6 10" fill="none">
             <path d="M1 1L5 5L1 9" stroke="currentColor" stroke-width="1.4"/>
@@ -722,7 +730,7 @@ function openTxFromAPI(i) {
   if (!tx) return;
   const isIn   = tx.type === 'in';
   const isZec  = (tx.token || '').toUpperCase() === 'ZEC';
-  const amtStr = isZec ? fmtRewardZec(tx.amount) : tx.amount.toFixed(2);
+  const amtStr = isZec ? fmtRewardZec(tx.amount) : truncDecimals(tx.amount, 2);
 
   let color;
   if (tx.status === 'confirmed' || tx.status === 'paid') {
@@ -734,7 +742,7 @@ function openTxFromAPI(i) {
   }
 
   const sign   = isIn ? '+' : '−';
-  const usdVal = (tx.amount * ZEC_PRICE_USD).toFixed(2);
+  const usdVal = truncDecimals(tx.amount * ZEC_PRICE_USD, 2);
 
   const hashRow = tx.tx_hash
     ? `<div class="dr"><span class="dk">Tx Hash</span><span class="dv" style="font-family:var(--mono);font-size:.7rem">${tx.tx_hash.slice(0, 14)}…${tx.tx_hash.slice(-8)}</span></div>`
@@ -806,7 +814,13 @@ const DEP_NETWORKS_BY_TOKEN = {
   ZEC:  [{ value:'Zcash', label:'Zcash' }]
 };
 
-function depFormatZec(n){ return Number(n).toLocaleString(undefined,{minimumFractionDigits:4,maximumFractionDigits:4}); }
+// Exact amount: at least 4 decimals, up to 8, trailing zeros trimmed (no rounding)
+// 0.00185 -> "0.00185", 0.5 -> "0.5000"
+function depFormatZec(n){
+  const s  = Number(n).toFixed(8).replace(/0+$/, '');
+  const dp = (s.split('.')[1] || '').length;
+  return dp < 4 ? Number(n).toFixed(4) : s;
+}
 function depConvertToZec(amount, token){ return token === 'ZEC' ? amount : (ZEC_PRICE_USD ? amount / ZEC_PRICE_USD : null); }
 function truncateAddrRP(addr, front=10, back=8){
   if (!addr) return '';
@@ -976,7 +990,8 @@ async function generateDeposit(){
   let zecAmount = rawAmount;
   if (selectedDepToken !== 'ZEC') {
     if (!ZEC_PRICE_USD) { showToast('Unable to fetch conversion rate right now.', 'error'); return; }
-    zecAmount = Math.round(depConvertToZec(rawAmount, selectedDepToken) * 10000) / 10000;
+    // Round UP (never down) so the user never underpays. toFixed(6) guards against float noise.
+    zecAmount = Math.ceil(Number((depConvertToZec(rawAmount, selectedDepToken) * 10000).toFixed(6))) / 10000;
   }
 
   btn.disabled = true;

@@ -4466,7 +4466,7 @@ def privacy():
 @login_required
 @csrf.exempt
 @community_not_deleted()
-def next(community_slug):
+def next_setup(community_slug):
     community = Community.query.filter_by(slug=community_slug).first_or_404()
     user_id = current_user.id if current_user.is_authenticated else None
     
@@ -26880,47 +26880,6 @@ def community_preview(slug):
         "preview": _serialize_community_preview(community, member_count)
     }), 200
 
-@app.route("/api/channel/read", methods=["POST"])
-@login_required
-@csrf.exempt
-def mark_channel_read():
-    data = request.get_json(force=True)
-
-    locked = chat_locked(data.get("community_id"))
-    if locked:
-        return locked
-
-    channel = CommunityChannel.query.filter_by(
-        uuid=data.get("channel_uuid"),
-        community_id=data.get("community_id")
-    ).first_or_404()
-
-    latest_id = (
-        db.session.query(func.max(CommunityMessage.id))
-        .filter(CommunityMessage.channel_id == channel.id)
-        .scalar() or 0
-    )
-
-    state = ChannelReadState.query.filter_by(
-        user_id=current_user.id, channel_id=channel.id
-    ).first()
-
-    if not state:
-        db.session.add(ChannelReadState(
-            user_id=current_user.id,
-            channel_id=channel.id,
-            last_read_message_id=latest_id
-        ))
-    elif latest_id > state.last_read_message_id:
-        state.last_read_message_id = latest_id
-
-    try:
-        db.session.commit()
-    except IntegrityError:
-        db.session.rollback()
-
-    return jsonify({"ok": True})
-
 
 @app.route("/api/comm_message", methods=["POST"])
 @login_required
@@ -28497,6 +28456,66 @@ def build_reply_previews(reply_ids, community):
         }
 
     return previews
+  
+
+@app.route("/api/channel/read", methods=["POST"])
+@login_required
+@csrf.exempt
+def mark_channel_read():
+    data = request.get_json(force=True)
+
+    locked = chat_locked(data.get("community_id"))
+    if locked:
+        return locked
+
+    channel = CommunityChannel.query.filter_by(
+        uuid=data.get("channel_uuid"),
+        community_id=data.get("community_id")
+    ).first_or_404()
+
+    latest_id = (
+        db.session.query(func.max(CommunityMessage.id))
+        .filter(CommunityMessage.channel_id == channel.id)
+        .scalar() or 0
+    )
+
+    state = ChannelReadState.query.filter_by(
+        user_id=current_user.id, channel_id=channel.id
+    ).first()
+
+    if UNREAD_DEBUG:
+        log.warning(
+            "[UNREAD-DEBUG] /api/channel/read user=%s channel=%s "
+            "old_last_read=%s -> latest_id=%s",
+            current_user.id, channel.id,
+            state.last_read_message_id if state else None, latest_id,
+        )
+
+    if not state:
+        db.session.add(ChannelReadState(
+            user_id=current_user.id,
+            channel_id=channel.id,
+            last_read_message_id=latest_id
+        ))
+    elif latest_id > state.last_read_message_id:
+        state.last_read_message_id = latest_id
+
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+
+    return jsonify({"ok": True})
+
+
+import logging
+from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
+
+PAGE_INITIAL = 25
+
+log = logging.getLogger("gleyo.fetch")
+
 
 @app.route("/api/messages/fetch", methods=["POST"])
 @login_required
@@ -28545,9 +28564,14 @@ def get_comm_messages():
             return jsonify({"error": "Ticket not found"}), 404
 
     query = CommunityMessage.query.filter_by(is_deleted=False)
-    query = query.filter_by(channel_id=channel.id) if channel else query.filter_by(ticket_id=ticket.id)
+    query = (
+        query.filter_by(channel_id=channel.id)
+        if channel
+        else query.filter_by(ticket_id=ticket.id)
+    )
 
-    has_more = True
+    # has_more = are there OLDER messages not sent yet
+    has_more = False
 
     if after:
         try:
@@ -28567,23 +28591,69 @@ def get_comm_messages():
         except ValueError:
             return jsonify({"error": "invalid_before"}), 400
 
-        messages = (
+        rows = (
             query.filter(CommunityMessage.created_at < before_dt)
             .order_by(CommunityMessage.created_at.desc())
-            .limit(limit)
+            .limit(limit + 1)
             .all()
         )
-        has_more = len(messages) == limit
-        messages = list(reversed(messages))
+        has_more = len(rows) > limit
+        messages = list(reversed(rows[:limit]))
 
     else:
-        messages = (
+        rows = (
             query.order_by(CommunityMessage.created_at.desc())
-            .limit(25)
+            .limit(PAGE_INITIAL + 1)
             .all()
         )
-        messages = list(reversed(messages))
+        has_more = len(rows) > PAGE_INITIAL
+        messages = list(reversed(rows[:PAGE_INITIAL]))
 
+    # ---------- "NEW MESSAGES" marker (initial channel load only) ----------
+    first_unread_uuid = None
+
+    if channel and not after and not before and messages:
+        read_state = ChannelReadState.query.filter_by(
+            user_id=current_user.id, channel_id=channel.id
+        ).first()
+
+        latest_id = (
+            db.session.query(func.max(CommunityMessage.id))
+            .filter(CommunityMessage.channel_id == channel.id)
+            .scalar()
+        ) or 0
+
+        # no row yet = first time here, treat everything as read
+        last_read = read_state.last_read_message_id if read_state else latest_id
+
+        if last_read < latest_id:
+            if has_more and messages[0].id > last_read:
+                # every loaded message is unread, older unread ones exist
+                first_unread_uuid = messages[0].uuid
+            else:
+                # plain loop on purpose: `next` is shadowed in app.py
+                for m in messages:
+                    if m.id > last_read and m.user_id != current_user.id:
+                        first_unread_uuid = m.uuid
+                        break
+
+        # mark read here so the client never races its own marker
+        try:
+            if read_state:
+                read_state.last_read_message_id = max(
+                    read_state.last_read_message_id, latest_id
+                )
+            else:
+                db.session.add(ChannelReadState(
+                    user_id=current_user.id,
+                    channel_id=channel.id,
+                    last_read_message_id=latest_id
+                ))
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+
+    # ---------- pins ----------
     pins_payload = []
     if channel:
         pinned_rows = (
@@ -28606,8 +28676,232 @@ def get_comm_messages():
         "messages": serialize_messages(messages, community),
         "pins": pins_payload,
         "has_more": has_more,
+        "first_unread_uuid": first_unread_uuid,
     }), 200
- 
+
+
+def _get_comm_messages_impl():
+    data = request.get_json(silent=True)
+    log.warning("[FETCH-DEBUG] payload=%s", data)
+
+    if not data:
+        return _err("Invalid JSON", 400)
+
+    community_id = data.get("community_id")
+    channel_uuid = normalize_uuid(data.get("channel_uuid"))
+    ticket_uuid = normalize_uuid(data.get("ticket_uuid"))
+    after = data.get("after")
+    before = data.get("before")
+
+    try:
+        limit = max(1, min(int(data.get("limit", 10)), 50))
+    except (TypeError, ValueError):
+        limit = 10
+
+    if not community_id:
+        return _err("community_id_required", 400)
+    if not channel_uuid and not ticket_uuid:
+        return _err("channel_or_ticket_required", 400)
+    if channel_uuid and ticket_uuid:
+        return _err("only_one_context_allowed", 400)
+
+    community = db.session.get(Community, community_id)
+    if not community:
+        return _err(f"Community not found (community_id={community_id!r})", 404)
+
+    channel = None
+    ticket = None
+
+    if channel_uuid:
+        channel = CommunityChannel.query.filter_by(
+            uuid=channel_uuid, community_id=community_id
+        ).first()
+        if not channel:
+            return _err(
+                f"Channel not found (uuid={channel_uuid!r}, community_id={community_id!r})",
+                404,
+            )
+    else:
+        ticket = CommunityTicket.query.filter_by(
+            uuid=ticket_uuid, community_id=community_id
+        ).first()
+        if not ticket:
+            return _err(
+                f"Ticket not found (uuid={ticket_uuid!r}, community_id={community_id!r})",
+                404,
+            )
+
+    query = CommunityMessage.query.filter_by(is_deleted=False)
+    query = (
+        query.filter_by(channel_id=channel.id)
+        if channel
+        else query.filter_by(ticket_id=ticket.id)
+    )
+
+    # has_more = are there OLDER messages not sent yet
+    has_more = False
+
+    if after:
+        try:
+            after_dt = _parse_cursor(after)
+        except ValueError:
+            return _err("invalid_after", 400)
+
+        messages = (
+            query.filter(CommunityMessage.created_at > after_dt)
+            .order_by(CommunityMessage.created_at.asc())
+            .all()
+        )
+
+    elif before:
+        try:
+            before_dt = _parse_cursor(before)
+        except ValueError:
+            return _err("invalid_before", 400)
+
+        rows = (
+            query.filter(CommunityMessage.created_at < before_dt)
+            .order_by(CommunityMessage.created_at.desc())
+            .limit(limit + 1)
+            .all()
+        )
+        has_more = len(rows) > limit
+        messages = list(reversed(rows[:limit]))
+
+    else:
+        rows = (
+            query.order_by(CommunityMessage.created_at.desc())
+            .limit(PAGE_INITIAL + 1)
+            .all()
+        )
+        has_more = len(rows) > PAGE_INITIAL
+        messages = list(reversed(rows[:PAGE_INITIAL]))
+
+    # ---------- "NEW MESSAGES" marker (initial channel load only) ----------
+    first_unread_uuid = None
+    dbg = None  # filled only on the initial channel load
+
+    if channel and not after and not before and messages:
+        read_state = ChannelReadState.query.filter_by(
+            user_id=current_user.id, channel_id=channel.id
+        ).first()
+
+        latest_id = (
+            db.session.query(func.max(CommunityMessage.id))
+            .filter(CommunityMessage.channel_id == channel.id)
+            .scalar()
+        ) or 0
+
+        # no row yet = first time here, treat everything as read
+        last_read = read_state.last_read_message_id if read_state else latest_id
+
+        if not read_state:
+            reason = "NO read_state row (first visit) -> treated as all read"
+        elif last_read >= latest_id:
+            reason = "last_read >= latest_id -> already read (did /api/channel/read run before this fetch?)"
+        else:
+            if has_more and messages[0].id > last_read:
+                # every loaded message is unread, older unread ones exist
+                first_unread_uuid = messages[0].uuid
+                reason = "all loaded messages unread, older unread exist -> using oldest loaded"
+            else:
+                first = next(
+                    (m for m in messages
+                     if m.id > last_read and m.user_id != current_user.id),
+                    None
+                )
+                first_unread_uuid = first.uuid if first else None
+                if first:
+                    reason = "first unread message from someone else in loaded window"
+                else:
+                    reason = "unread messages exist but none from others in loaded window (all are mine?)"
+
+        dbg = {
+            "user_id": current_user.id,
+            "channel_id": channel.id,
+            "last_read": last_read,
+            "latest_id": latest_id,
+            "has_more": has_more,
+            "loaded": len(messages),
+            "loaded_id_range": (messages[0].id, messages[-1].id),
+            "reason": reason,
+        }
+
+        # mark read here so the client never races its own marker
+        try:
+            if read_state:
+                read_state.last_read_message_id = max(
+                    read_state.last_read_message_id, latest_id
+                )
+            else:
+                db.session.add(ChannelReadState(
+                    user_id=current_user.id,
+                    channel_id=channel.id,
+                    last_read_message_id=latest_id
+                ))
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+
+    # ---------- pins ----------
+    pins_payload = []
+    if channel:
+        pinned_rows = (
+            db.session.query(PinnedMessage)
+            .join(CommunityMessage)
+            .filter(PinnedMessage.channel_id == channel.id)
+            .order_by(PinnedMessage.pinned_at.asc())
+            .all()
+        )
+        for p in pinned_rows:
+            pins_payload.append({
+                "message_uuid": p.message.uuid,
+                "channel_uuid": channel_uuid,
+                "pinned_at": p.pinned_at.isoformat(),
+                "username": p.pinned_by.username if p.pinned_by else "Unknown",
+            })
+
+    log.warning("[FETCH-DEBUG] about to serialize %s messages", len(messages))
+    serialized = serialize_messages(messages, community)
+    log.warning("[FETCH-DEBUG] serialize ok")
+
+    # ---------- DEBUG: what the "new message" divider will point to ----------
+    if UNREAD_DEBUG and dbg is not None:
+        target = next(
+            (m for m in serialized if m.get("uuid") == first_unread_uuid), None
+        ) if first_unread_uuid else None
+
+        log.warning(
+            "[UNREAD-DEBUG] user=%s channel=%s last_read=%s latest_id=%s "
+            "has_more=%s loaded=%s id_range=%s",
+            dbg["user_id"], dbg["channel_id"], dbg["last_read"],
+            dbg["latest_id"], dbg["has_more"], dbg["loaded"],
+            dbg["loaded_id_range"],
+        )
+        log.warning("[UNREAD-DEBUG] reason: %s", dbg["reason"])
+
+        if first_unread_uuid:
+            log.warning(
+                "[UNREAD-DEBUG] first_unread_uuid=%s sender=%s -> %s",
+                first_unread_uuid,
+                (target or {}).get("username"),
+                _describe_serialized(target),
+            )
+            if target is None:
+                log.warning(
+                    "[UNREAD-DEBUG] uuid is NOT in serialized messages "
+                    "(serialize_messages dropped it?)"
+                )
+        else:
+            log.warning("[UNREAD-DEBUG] first_unread_uuid=None -> no divider will render")
+
+    return jsonify({
+        "ok": True,
+        "messages": serialized,
+        "pins": pins_payload,
+        "has_more": has_more,
+        "first_unread_uuid": first_unread_uuid,
+    }), 200
 
 SEARCH_PAGE_SIZE = 20
 

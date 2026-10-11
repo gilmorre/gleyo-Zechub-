@@ -32,6 +32,36 @@
 
   document.addEventListener("focusout", handleFocusOut);
 
+  // ---------- gradient edge (works on any page, even without your CSS vars) ----------
+  function ensureEdgeStyles() {
+    if (document.getElementById("gl-edge-styles")) return;
+
+    const style = document.createElement("style");
+    style.id = "gl-edge-styles";
+    style.textContent = `
+      .gl-edge::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        padding: 1px;
+        border-radius: inherit;
+        background: linear-gradient(
+          135deg,
+          var(--edge-hi-strong, rgba(255,255,255,.55)) 0%,
+          var(--edge-lo-strong, rgba(255,255,255,.10)) 28%,
+          var(--edge-lo-strong, rgba(255,255,255,.10)) 72%,
+          var(--edge-hi-strong, rgba(255,255,255,.55)) 100%
+        );
+        -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+        mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        pointer-events: none;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
   function loadSocketIO() {
     if (window.io) return Promise.resolve();
 
@@ -249,8 +279,11 @@
 
     const isDesktop = window.matchMedia("(min-width: 992px)").matches;
 
+    ensureEdgeStyles();
+
     const modal = document.createElement("div");
     modal.id = "community-top-modal";
+    modal.className = "gl-edge";
 
     modal.style.cssText = `
       position: fixed;
@@ -264,7 +297,7 @@
 
       backdrop-filter: blur(26px) saturate(170%);
       -webkit-backdrop-filter: blur(26px) saturate(170%);
-      border: 0.9px solid var(--border);
+      border: none;
 
       padding: 16px 16px;
       color: #fff;
@@ -593,8 +626,11 @@
 
     if (document.getElementById("push-banner")) return;
 
+    ensureEdgeStyles();
+
     const banner = document.createElement("div");
     banner.id = "push-banner";
+    banner.className = "gl-edge";
 
     banner.innerHTML = `
       <button id="push-close-btn">
@@ -619,7 +655,8 @@
       transform: "translateX(-50%)",
       background: "rgba(18, 18, 30, 0.88)",
       backdropFilter: "blur(14px)",
-      border: "0.9px solid #2f2f4a",
+      webkitBackdropFilter: "blur(14px)",
+      border: "none",
       color: "#e5e7eb",
       boxShadow: "0 10px 40px rgba(0,0,0,0.4)",
       zIndex: "9998",

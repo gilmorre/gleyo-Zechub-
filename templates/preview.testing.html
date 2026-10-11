@@ -1002,7 +1002,7 @@ body{
   left: 0;
   z-index: 200;
   width: auto;
-  min-width: 180px !important;
+  max-width: 180px !important;
   padding: 28px 14px;
   box-sizing: border-box;
   background: var(--card-bg-glassy);
@@ -13647,6 +13647,169 @@ document.addEventListener("visibilitychange", () => {
   if (!document.hidden) markActiveChannelRead();
 });
 
+
+// ---------- DATE DIVIDERS ----------
+function parseServerDate(iso) {
+  return new Date(/Z$|[+-]\d\d:\d\d$/.test(iso) ? iso : iso + "Z");
+}
+
+function dateKey(d) {
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+
+function formatDividerLabel(d) {
+  const now = new Date();
+  const yest = new Date(now);
+  yest.setDate(now.getDate() - 1);
+
+  if (dateKey(d) === dateKey(now)) return "Today";
+  if (dateKey(d) === dateKey(yest)) return "Yesterday";
+
+  return d.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: d.getFullYear() === now.getFullYear() ? undefined : "numeric"
+  });
+}
+
+function buildDateDivider(d) {
+  const el = document.createElement("div");
+  el.className = "date-divider";
+  el.dataset.dateKey = dateKey(d);
+  el.innerHTML = `<span>${formatDividerLabel(d)}</span>`;
+  return el;
+}
+
+function hasOlderToLoad() {
+  if (JumpState.windowed) return JumpState.hasOlder;
+  return getActiveChatCache()?.hasMore !== false;
+}
+
+function reassignMarkerBeforeDelete(msgUuid, el) {
+  const cache = getActiveChatCache();
+  if (!cache || cache.firstUnreadUuid !== msgUuid) return;
+
+  let next = el.nextElementSibling;
+  while (
+    next &&
+    !(next.classList.contains("message-wrapper") && next.dataset.msgSent !== "true")
+  ) {
+    next = next.nextElementSibling;
+  }
+  cache.firstUnreadUuid = next?.dataset.msgIds || null;
+}
+
+function resyncAfterRemoval() {
+  const cache = getActiveChatCache();
+  if (document.querySelector(".new-messages-marker") && !cache?.firstUnreadUuid) {
+    dismissNewMarker();      
+  } else {
+    syncNewMarker();         
+  }
+  syncDateDividers();        
+}
+
+function syncDateDividers() {
+  const el = document.getElementById("messages");
+  if (!el) return;
+
+  el.querySelectorAll(".date-divider").forEach(d => d.remove());
+
+  const hideOldest = hasOlderToLoad();
+  let prevKey = null;
+  let isFirst = true;
+
+  el.querySelectorAll(".message-wrapper").forEach(w => {
+    const iso = w.dataset.createdAt;
+    if (!iso) return;
+
+    const d = parseServerDate(iso);
+    const key = dateKey(d);
+
+    if (key !== prevKey) {
+      if (!(isFirst && hideOldest)) {
+        w.before(buildDateDivider(d));
+      }
+      prevKey = key;
+    }
+    isFirst = false;
+  });
+}
+
+// ---------- "NEW MESSAGES" MARKER ----------
+let newMarkerObserver = null;
+let newMarkerTimer = null;
+
+function buildNewMarker() {
+  const el = document.createElement("div");
+  el.className = "new-messages-marker";
+  el.innerHTML = `<span class="new-messages-label">New messages</span>`;
+  return el;
+}
+
+// starts the 5s countdown the first time the marker is actually visible
+function watchNewMarker(marker) {
+  newMarkerObserver?.disconnect();
+  clearTimeout(newMarkerTimer);
+
+  newMarkerObserver = new IntersectionObserver(entries => {
+    if (!entries.some(e => e.isIntersecting)) return;
+    newMarkerObserver.disconnect();
+    newMarkerObserver = null;
+    newMarkerTimer = setTimeout(dismissNewMarker, 5000);
+  }, { root: document.getElementById("messages") });
+
+  newMarkerObserver.observe(marker);
+}
+
+function dismissNewMarker() {
+  clearTimeout(newMarkerTimer);
+  newMarkerObserver?.disconnect();
+  newMarkerObserver = null;
+
+  const cache = getActiveChatCache();
+  if (cache) cache.firstUnreadUuid = null;
+
+  const m = document.querySelector(".new-messages-marker");
+  if (!m) return;
+  m.classList.add("fading");
+  setTimeout(() => m.remove(), 300);
+}
+
+// Places (or moves) the marker right before the first unread message.
+// Safe to call after every render, like syncDateDividers.
+function syncNewMarker() {
+  const el = document.getElementById("messages");
+  if (!el) return;
+
+  const uuid = getActiveChatCache()?.firstUnreadUuid;
+  let marker = el.querySelector(".new-messages-marker");
+  const target = uuid
+    ? el.querySelector(`.message-wrapper[data-msg-ids="${uuid}"]`)
+    : null;
+
+  if (!target) {
+    marker?.remove();
+    return;
+  }
+
+  const isNew = !marker;
+  if (isNew) marker = buildNewMarker();
+
+  // sits after the date divider, directly above the message
+  if (marker.nextElementSibling !== target) target.before(marker);
+
+  // "New message" vs "New messages"
+  let count = 0;
+  for (let n = target; n; n = n.nextElementSibling) {
+    if (n.classList?.contains("message-wrapper") && n.dataset.msgSent !== "true") count++;
+  }
+  marker.querySelector(".new-messages-label").textContent =
+    count > 1 ? "New messages" : "New message";
+
+  if (isNew) watchNewMarker(marker);
+}
+
 async function renderMessagesFromServer(messages, pins = []) {
   const messagesEl = document.getElementById("messages");
   if (!messagesEl) return;
@@ -13893,10 +14056,22 @@ async function renderMessagesFromServer(messages, pins = []) {
       );
     }
   }
+  syncDateDividers();
+  syncNewMarker();
 
-  messagesEl.scrollTop = messagesEl.scrollHeight;
-}
-
+  const marker = messagesEl.querySelector(".new-messages-marker");
+  if (marker) {
+    
+    const top =
+      marker.getBoundingClientRect().top -
+      messagesEl.getBoundingClientRect().top +
+      messagesEl.scrollTop;
+      
+    messagesEl.scrollTop = Math.max(60, top - 80);
+  } else {
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+} 
 window.__INITIAL_STATE__ = {
   communityId: {{ initial_community_id|tojson }},
   categoryUuid: {{ initial_category_uuid|tojson }},
@@ -14021,6 +14196,7 @@ onSocketReady((socket) => {
       if (viewing) {
         scheduleMarkRead();
       } else {
+        cache.firstUnreadUuid ??= normalized.uuid; 
         bumpUnread(
           communityId,
           normalized.channel_uuid,
@@ -15349,6 +15525,7 @@ async function openTicketChat(ticketUuid, displayId) {
 
   const cache = ChannelStore[communityId][ticketUuid];
   if (cache?.fetched) {
+    markActiveChannelRead(); 
     renderMessagesFromServer(cache.messages, cache.pins || []);
     return;
   }
@@ -15363,6 +15540,7 @@ async function openTicketChat(ticketUuid, displayId) {
       fetched: true,
       scrollTop: 0,
       inputText: "",
+      hasMore: data.has_more !== false,  
       replyState: null,
       editState: null
     };
@@ -15589,6 +15767,7 @@ function ClassMobOpenChat() {
         ChannelStore[communityId][CurrentActiveChat.channelUuid].inputText =
           inputEl.innerHTML;
       }
+      dismissNewMarker(); 
       closeReplyUIOnly();
       closeEditUIOnly();
       document.querySelectorAll(".channel").forEach(c =>
@@ -15599,8 +15778,8 @@ function ClassMobOpenChat() {
       CurrentActiveChat.channelUuid = channelUuid;
       CurrentActiveChat.channelName = channelName;
       CurrentActiveChat.ticketUuid = null;
-
-      markActiveChannelRead();      // 👈 NEW: clears the badge + tells the server
+      delete UnreadStore[channelUuid]; 
+      queueBadges();
 
       updateBrowserURL({
         communitySlug: CurrentActiveChat.communitySlug,
@@ -15628,6 +15807,7 @@ function ClassMobOpenChat() {
         runSlowmodeTimer(until);
       }
       if (cache?.fetched) {
+        markActiveChannelRead(); 
         renderMessagesFromServer(cache.messages, cache.pins || []);
 
         rehydratePinnedNotices();
@@ -15671,8 +15851,10 @@ function ClassMobOpenChat() {
             pins: data.pins || [],
             fetched: true,
             scrollTop: 0,
+            hasMore: data.has_more !== false,  
             inputText: saved?.inputText || "",
             replyState: saved?.replyState || null,
+            firstUnreadUuid: data.first_unread_uuid || null,
             editState: saved?.editState || null,
           });
 
@@ -24873,20 +25055,17 @@ deleteBtnModal.addEventListener("click", () => {
   if (!messageToDelete) return;
 
   const el = messageToDelete;
-  const msgUuid = el.dataset.msgIds; // ✅ real uuid
+  const msgUuid = el.dataset.msgIds;
 
-  // 🔒 lock height
   const height = el.offsetHeight;
   el.style.height = height + "px";
   el.style.overflow = "hidden";
   markRepliesAsDeleted(msgUuid);
 
-  // 🔥 fade first (old feel)
   el.style.transition = "opacity 0.12s ease, transform 0.12s ease";
   el.style.opacity = "0";
   el.style.transform = "scale(0.97)";
 
-  // 🔥 collapse layout after fade starts
   setTimeout(() => {
     el.style.transition = `
       height 0.18s ease,
@@ -24902,11 +25081,17 @@ deleteBtnModal.addEventListener("click", () => {
 
   // 🧹 FINAL CLEANUP
   setTimeout(() => {
-    
+
+    // 👈 NEW: must run while el is still in the DOM (reads nextElementSibling)
+    reassignMarkerBeforeDelete(msgUuid, el);
+
     el.remove();
 
     // ✅ REMOVE FROM CACHE
     removeMessageFromCache(msgUuid);
+
+    // 👈 NEW: after DOM + cache are clean. Fixes the marker and date dividers
+    resyncAfterRemoval();
 
     const activeReplyTarget = getActiveReplyTarget();
     const activeEditTarget = getActiveEditTarget();
@@ -24925,6 +25110,7 @@ deleteBtnModal.addEventListener("click", () => {
 
   deleteModalMSg.style.display = "none";
   deletePreview.innerHTML = "";
+
   fetch("/api/comm_message/delete", {
     method: "PATCH",
     credentials: "include",
@@ -24932,10 +25118,10 @@ deleteBtnModal.addEventListener("click", () => {
       "Content-Type": "application/json",
       "X-CSRFToken": csrfToken
     },
-    body: JSON.stringify({ 
+    body: JSON.stringify({
       message_uuid: msgUuid,
       channel_uuid: CurrentActiveChat.channelUuid || null,
-      ticket_uuid: CurrentActiveChat.ticketUuid || null 
+      ticket_uuid: CurrentActiveChat.ticketUuid || null
     })
   })
   .then(res => {
@@ -24944,10 +25130,7 @@ deleteBtnModal.addEventListener("click", () => {
     }
   })
   .catch(err => console.error(err));
-
-
 });
-
 
 onSocketReady((socket) => {
 socket.on("delete_comm_message", (data) => {
@@ -26504,6 +26687,7 @@ window.appendAudioMessage = async function appendAudioMessage(audioURL, duration
   const wrapper = document.createElement("div");
   wrapper.classList.add("message-wrapper");
   wrapper.dataset.msgSent = "true";
+  wrapper.dataset.createdAt = new Date().toISOString(); 
   const replyBlob = document.getElementById("replyBlobContainer");
   const replyTargetUuid =
   replyBlob && replyBlob.style.display !== "none"
@@ -26556,6 +26740,7 @@ window.appendAudioMessage = async function appendAudioMessage(audioURL, duration
     });
   }
   messagesEl.appendChild(wrapper);
+  syncDateDividers();     
 
   if (is_mobile) {
     attachMobileLongPress(wrapper);
@@ -26564,7 +26749,7 @@ window.appendAudioMessage = async function appendAudioMessage(audioURL, duration
   if (!is_mobile) {
     attachMessageInteractions(wrapper);
     closeEmojiPicker();           
-  }
+  } 
   messagesEl.scrollTop = messagesEl.scrollHeight;
 
   attachAudioButtonEvents(wrapper);
@@ -26670,6 +26855,7 @@ window.appendAudioMessage = async function appendAudioMessage(audioURL, duration
     wrapper.dataset.senderRole = msg.sender_role;
     wrapper.dataset.isCreator = msg.is_creator ? "true" : "false";
     wrapper.dataset.createdAt = msg.created_at;
+    syncDateDividers();    
 
     // 🔥 normalize slowmode timestamp
     if (data.cooldown_ends_at) {
@@ -27113,6 +27299,7 @@ async function sendChatMessage(isAdminAction = false) {
         const wrapper = document.createElement("div");
         wrapper.classList.add("message-wrapper");
         wrapper.dataset.msgSent = "true";
+        wrapper.dataset.createdAt = new Date().toISOString(); 
         lastSentMessageWrapper = wrapper;
         wrapper.innerHTML = `
             <div class="message">
@@ -27152,6 +27339,7 @@ async function sendChatMessage(isAdminAction = false) {
 
 
         messagesEl.appendChild(wrapper);
+        syncDateDividers();     
         if (is_mobile) {
           attachMobileLongPress(wrapper);
           closeReactionPopupMoobile()
@@ -27184,7 +27372,7 @@ async function sendChatMessage(isAdminAction = false) {
         if(is_mobile){
          enableSwipe(wrapper)
         }
-
+        syncDateDividers();
         messagesEl.scrollTop = messagesEl.scrollHeight;
 
         closeReplyMode()
@@ -27299,6 +27487,7 @@ async function sendChatMessage(isAdminAction = false) {
             wrapper.dataset.senderRole = msg.sender_role;
             wrapper.dataset.isCreator = msg.is_creator ? "true" : "false";
             wrapper.dataset.createdAt = msg.created_at;
+            syncDateDividers();    
 
             // 🔗 fill skeleton(s) with what the backend already returned
             settleCommunityPreviews(wrapper, msg.link_previews);
@@ -32220,7 +32409,8 @@ async function buildMessageElement(messages = [], pins = [], insertBefore = fals
       );
     }
   }
-
+  syncDateDividers();
+  syncNewMarker(); 
   if (insertBefore) {
     const newHeight = messagesEl.scrollHeight;
     messagesEl.scrollTop += newHeight - prevHeight;
@@ -33792,7 +33982,7 @@ function renderTypingIndicator() {
     const width = filterDropdown.offsetWidth;
     let left = rect.right - width;
     left = Math.max(8, Math.min(left, window.innerWidth - width - 8));
-    filterDropdown.style.top = `${rect.bottom + 10}px`;
+    filterDropdown.style.top = `${rect.bottom + 19}px`;
     filterDropdown.style.left = `${left}px`;
   }
 
@@ -34379,6 +34569,118 @@ body.community-locked .all-ticket-container {
   font-size: 10px; font-weight: 700;
   display: flex; align-items: center; justify-content: center;
   box-shadow: 0 0 0 2px var(--bg-sidebar, #111);
+}
+
+/* ---------- DATE DIVIDER ---------- */
+.date-divider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 18px 16px 10px;
+  user-select: none;
+}
+
+/* lines fade out toward the screen edges */
+.date-divider::before,
+.date-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border, rgba(255,255,255,.14)));
+}
+.date-divider::after {
+  background: linear-gradient(270deg, transparent, var(--border, rgba(255,255,255,.14)));
+}
+
+/* glass pill with the gradient edge */
+.date-divider span {
+  position: relative;
+  padding: 3px 12px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: .02em;
+  color: var(--subtext);
+  border-radius: 999px;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.06), rgba(255,255,255,.01)),
+    rgba(20, 20, 40, .35);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+.date-divider span::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: 0.9px;
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    var(--edge-hi) 0%,
+    var(--edge-lo) 28%,
+    var(--edge-lo) 72%,
+    var(--edge-hi) 100%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* ---------- NEW MESSAGES MARKER ---------- */
+.new-messages-marker {
+  position: relative;
+  height: 0;                 /* zero height: removing it never shifts the scroll */
+  z-index: 2;
+  pointer-events: none;
+  transition: opacity .3s ease;
+}
+
+/* line fades in from the left and strengthens toward the label */
+.new-messages-marker::before {
+  content: "";
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(242, 63, 66, .45) 45%,
+    rgba(242, 63, 66, .95) 100%
+  );
+  box-shadow: 0 0 8px rgba(242, 63, 66, .35);
+}
+
+.new-messages-label {
+  position: absolute;
+  right: 12px;
+  top: -9px;
+  padding: 0 9px;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 18px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: #fff;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #f5575a, #e0343a);
+  box-shadow:
+    0 4px 12px rgba(242, 63, 66, .35),
+    inset 0 1px 0 rgba(255, 255, 255, .25);
+  animation: nm-pop .35s cubic-bezier(.22, 1, .36, 1) both;
+}
+
+.new-messages-marker.fading { opacity: 0; }
+
+@keyframes nm-pop {
+  from { opacity: 0; transform: translateY(3px) scale(.92); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .new-messages-label { animation: none; }
 }
 </style>
 </body>

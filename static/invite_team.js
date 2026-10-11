@@ -3,13 +3,14 @@
 let currentIsLimited = false;
 let currentCode = null;
 
-// ── members state ──────────────────────────────────────
 let memberOffset = 0;
 let memberLimit = 20;
 let memberSearch = "";
 let memberHasMore = true;
 let memberLoading = false;
 let searchDebounceTimer = null;
+
+const LOCKED_MESSAGE = "❌ Team roles aren't available on your plan. Upgrade to add team members.";
 
 const roleColors = {
   admin: '#f5a524', editor: '#5b8def', reviewer: '#8b5cf6', member: '#8a8f98'
@@ -49,7 +50,6 @@ function escapeHtml(str) {
   }[c]));
 }
 
-// ── build a real member row (mirrors the Jinja markup exactly) ──
 function buildMemberHTML(m) {
   const avatarInner = m.profile_pic
     ? `<img src="${escapeHtml(m.profile_pic)}" alt="${escapeHtml(m.username)}" loading="lazy" decoding="async">`
@@ -131,7 +131,6 @@ function removeSkeletons() {
   document.querySelectorAll(".team-member.skeleton-row").forEach(el => el.remove());
 }
 
-// ── core fetch: append (infinite scroll) or replace (search / reset) ──
 async function fetchMembers({ replace = false } = {}) {
   if (memberLoading) return;
   if (!replace && !memberHasMore) return;
@@ -188,7 +187,6 @@ async function fetchMembers({ replace = false } = {}) {
   }
 }
 
-// ── infinite scroll sentinel ──────────────────────────
 function setupInfiniteScroll() {
   const list = document.querySelector(".team-members-list");
   let sentinel = document.querySelector(".team-members-sentinel");
@@ -197,7 +195,7 @@ function setupInfiniteScroll() {
     sentinel.className = "team-members-sentinel";
     sentinel.style.height = "1px";
   }
-  list.appendChild(sentinel); // keep it last after every render
+  list.appendChild(sentinel);
 
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
@@ -210,7 +208,6 @@ function setupInfiniteScroll() {
   observer.observe(sentinel);
 }
 
-// ── debounced search (2s pause), both mobile + desktop inputs ──
 function setupSearch() {
   const inputs = document.querySelectorAll(".team-search-box input.input-style");
 
@@ -219,18 +216,16 @@ function setupSearch() {
       clearTimeout(searchDebounceTimer);
       const value = input.value.trim();
 
-      // keep the other search box in sync visually
       inputs.forEach(other => { if (other !== input) other.value = input.value; });
 
       searchDebounceTimer = setTimeout(() => {
-        memberSearch = value; // empty string => server just returns the full paginated list again
+        memberSearch = value;
         fetchMembers({ replace: true }).then(setupInfiniteScroll);
       }, 2000);
     });
   });
 }
 
-// ── role dropdown, delegated so dynamically-added rows work ──
 function setupRoleDropdownDelegation() {
   const dropdown = document.getElementById("roleDropdown");
   const container = document.querySelector(".team-container");
@@ -273,6 +268,12 @@ function setupRoleDropdownDelegation() {
   dropdown.querySelectorAll("div").forEach(option => {
     option.addEventListener("click", async (e) => {
       e.stopPropagation();
+
+      if (option.classList.contains("locked")) {
+        showToast(LOCKED_MESSAGE, "error");
+        return;
+      }
+
       const role = option.dataset.role;
       if (!currentUserId) return;
 
@@ -318,9 +319,6 @@ function setupRoleDropdownDelegation() {
 function teaminbxinit() {
   const filterDropdown = document.querySelector(".team-role-filter");
 
-  // role filter — now filters by re-querying the CURRENT dataset via search
-  // (server-side "ban" filter isn't a username search, so this stays a
-  // client-side show/hide over whatever's currently loaded, same as before)
   filterDropdown.querySelectorAll("div").forEach(option => {
     option.addEventListener("click", () => {
       const filter = option.getAttribute("data-filter");
@@ -337,8 +335,6 @@ function teaminbxinit() {
   setupRoleDropdownDelegation();
   setupSearch();
   setupInfiniteScroll();
-
-  // ── everything below is unchanged from before ──
 
   const inviteUser = document.querySelector(".invite-user");
   const inviteDropdown = document.querySelector(".team-role-invite");
@@ -363,6 +359,10 @@ function teaminbxinit() {
     inviteDropdown.querySelectorAll("div").forEach(option => {
       option.addEventListener("click", (e) => {
         e.stopPropagation();
+        if (option.classList.contains("locked")) {
+          showToast(LOCKED_MESSAGE, "error");
+          return;
+        }
         inviteUser.querySelector("span").textContent = option.textContent;
         inviteDropdown.style.display = "none";
       });
@@ -448,6 +448,7 @@ function teaminbxinit() {
   };
 
   const generateCode = async (role) => {
+    currentCode = null;
     showButtonSpinner(copyLinkBtn);
     try {
       const res = await fetch(`/${communitySlug}/generate_invite_code`, {
@@ -460,10 +461,11 @@ function teaminbxinit() {
         currentCode = data.code;
         currentIsLimited = data.is_limited;
       } else {
-        console.error("Error generating code:", data.error);
+        showToast(`❌ ${data.error || "Could not generate link"}`, "error");
       }
     } catch (err) {
       console.error(err);
+      showToast("❌ Network error", "error");
     } finally {
       restoreButton(copyLinkBtn);
     }
@@ -471,7 +473,7 @@ function teaminbxinit() {
 
   copyBtn.addEventListener("click", () => {
     modal.classList.add("show");
-    const role = roleToggle.getAttribute("data-selected-role") || "Editor";
+    const role = roleToggle.getAttribute("data-selected-role") || "editor";
     generateCode(role);
   });
 
@@ -505,6 +507,10 @@ function teaminbxinit() {
   roleDropdown.querySelectorAll("div").forEach(option => {
     option.addEventListener("click", async (e) => {
       e.stopPropagation();
+      if (option.classList.contains("locked")) {
+        showToast(LOCKED_MESSAGE, "error");
+        return;
+      }
       const selectedRole = option.getAttribute("data-link");
       roleToggle.setAttribute("data-selected-role", selectedRole);
       roleSpan.textContent = selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1);
@@ -552,10 +558,11 @@ function teaminbxinit() {
   let selectedRole = document.querySelector(".invite-user span").textContent.trim().toLowerCase();
 
   document.querySelectorAll(".team-role-invite div").forEach(item => {
-    item.addEventListener("click", e => {
-      selectedRole = e.target.getAttribute("data-invite");
+    item.addEventListener("click", () => {
+      if (item.classList.contains("locked")) return;
+      selectedRole = item.getAttribute("data-invite");
       document.querySelectorAll(".team-role-invite div").forEach(d => d.classList.remove("selected"));
-      e.target.classList.add("selected");
+      item.classList.add("selected");
     });
   });
 
@@ -568,7 +575,7 @@ function teaminbxinit() {
       const res = await fetch(`/community/${communitySlug}/send_invite`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken },
-        body: JSON.stringify({ emails, role: selectedRole, current_user_id: currentUserId })
+        body: JSON.stringify({ emails, role: selectedRole })
       });
       const data = await res.json();
 

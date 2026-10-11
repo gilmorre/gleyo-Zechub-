@@ -1,4 +1,51 @@
 <style>
+  /* ===== GRADIENT EDGE (same as the profile page) ===== */
+  @property --edge-hi {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: rgba(255, 255, 255, 0.42);
+  }
+  @property --edge-lo {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: rgba(255, 255, 255, 0.05);
+  }
+
+  .emoji-empty-state,
+  .view-uploadedemoji {
+    --edge-hi: rgba(255, 255, 255, 0.253);
+    --edge-lo: rgba(255, 255, 255, 0.05);
+    --edge-w: 1px;
+  }
+
+  @media (min-resolution: 2dppx) {
+    .emoji-empty-state,
+    .view-uploadedemoji { --edge-w: 0.75px; }
+  }
+
+  .emoji-card::before,
+  .emoji-info-box::before,
+  .emoji-count::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: var(--edge-w);
+    border-radius: inherit;
+    background: linear-gradient(
+      135deg,
+      var(--edge-hi) 0%,
+      var(--edge-lo) 28%,
+      var(--edge-lo) 72%,
+      var(--edge-hi) 100%
+    );
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+
   @media (max-width: 768px) {
 
   .emoji-empty-state {
@@ -35,7 +82,6 @@
     padding: 32px;
 
     background: var(--bg-sidebar);
-    border: 1px dashed var(--border);
     border-radius: var(--radius);
     max-width: 520px;
     min-width: 520px;
@@ -152,7 +198,7 @@
     display: flex;
     flex-wrap: wrap;
     position: relative;
-    gap: 44px;
+    gap: 20px;
     margin-top: 24px;
   }
 
@@ -198,7 +244,7 @@
     width: auto;
     padding: 12px 14px;
     background: var(--bg-surface);
-    border: 1px solid var(--border);
+    border: var(--edge-w) solid transparent;
     border-radius: 14px;
     cursor: pointer;
     transition: transform 0.15s ease, box-shadow 0.15s ease, width 25s ease;
@@ -214,7 +260,7 @@
     width: 30px;
     height: 30px;
     object-fit: contain;
-    background: #f4f4f5;
+    background: transparent;
   }
 
 
@@ -285,6 +331,7 @@
   }
 
   .emoji-count {
+    position: relative;
     font-size: 12px;
     font-weight: 500;
     color: var(--text-muted);
@@ -293,7 +340,7 @@
     border-radius: 999px;
 
     background: rgba(0,0,0,0.04);
-    border: 1px solid var(--border);
+    border: var(--edge-w) solid transparent;
   }
 
 
@@ -302,12 +349,13 @@
   /* ===== INFO BOX (UPLOADED VIEW) ===== */
 
   .view-uploadedemoji .emoji-info-box {
+    position: relative;
     margin-top: 20px;
     padding: 16px 18px;
 
     background: rgba(0, 0, 0, 0.03);
-    border: 1px solid var(--border);
-    border-radius: 12px;
+    border: var(--edge-w) solid transparent;
+    border-radius: 25px;
   }
 
   .view-uploadedemoji .emoji-subtitle {
@@ -358,7 +406,6 @@
 
 
 </style>
-
 <div class="emoji-empty-state 
   {% if emoji_count == 0 %}
   emoji-visible
@@ -400,8 +447,8 @@
 
   <div class="emoji-requirements">
     <ul>
-      <li>Up to <strong>65</strong> custom emojis</li>
-      <li>PNG, JPG, GIF, or SVG</li>
+      <li>Up to <strong>{{ emoji_limit }}</strong> custom emojis</li>
+      <li>PNG, JPG, GIF, WebP, or SVG</li>
       <li>Max file size: <strong>256 KB</strong></li>
       <li>Recommended: <strong>128×128 px</strong></li>
       <li>Lowercase names, no spaces</li>
@@ -410,7 +457,7 @@
   <input
     type="file"
     class="emoji-file-input"
-    accept="image/png,image/jpeg,image/gif,image/svg+xml"
+    accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml"
     hidden>
 
   <button class="emoji-upload-btn">
@@ -430,7 +477,7 @@
  <div class="diver-emojis">
     <div class="emoji-section-header">
       <h2>Manage emojis</h2>
-      <span class="emoji-count">{{ emoji_count }}/65</span>
+      <span class="emoji-count" data-limit="{{ emoji_limit }}">{{ emoji_count }}/{{ emoji_limit }}</span>
     </div>
 
     <div class="emoji-upload-card-detail">
@@ -444,7 +491,7 @@
       <input
         type="file"
         class="emoji-file-input"
-        accept="image/png,image/jpeg,image/gif,image/svg+xml"
+        accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml"
         hidden
       >
     </div>  
@@ -458,8 +505,8 @@
 
     <div class="emoji-requirements-after">
       <ul>
-        <li>Up to <strong>65</strong> custom emojis</li>
-        <li>PNG, JPG, GIF, or SVG</li>
+        <li>Up to <strong>{{ emoji_limit }}</strong> custom emojis</li>
+        <li>PNG, JPG, GIF, WebP, or SVG</li>
         <li>Max file size: <strong>256 KB</strong></li>
         <li>Recommended: <strong>128×128 px</strong></li>
         <li>Lowercase names, no spaces</li>
@@ -471,8 +518,3 @@
 
   <div class="emoji-list"></div>
 </div>
-
-
-
-
-

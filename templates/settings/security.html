@@ -1,4 +1,15 @@
 <style>
+  @property --edge-hi {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: rgba(255, 255, 255, 0.42);
+  }
+  @property --edge-lo {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: rgba(255, 255, 255, 0.05);
+  }
+
   @media (max-width: 768px) {
 
     .tab-content {
@@ -63,10 +74,9 @@
     flex: 1;
   }
 
-  /* ================= DESKTOP ALIGNMENT ================= */
   @media (min-width: 992px) {
     .toggle-row {
-      max-width: 560px;   /* 🔥 keeps toggle from flying right */
+      max-width: 560px;
     }
 
     .switch {
@@ -74,50 +84,12 @@
     }
   }
 
-  /* ================= MOBILE ================= */
   @media (max-width: 991px) {
     .toggle-row {
       justify-content: space-between;
     }
   }
 
-  /* ================= SWITCH ================= */
-  .switch {
-    position: relative;
-    width: 42px;
-    height: 22px;
-    flex-shrink: 0;
-  }
-
-  .switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
-
-  /* TRACK */
-  .slider {
-    position: absolute;
-    inset: 0;
-    background: rgba(255,255,255,0.18);
-    border-radius: 999px;
-    cursor: pointer;
-    transition: background 0.25s ease;
-  }
-
-  /* KNOB */
-  .slider::before {
-    content: "";
-    position: absolute;
-    height: 16px;
-    width: 16px;
-    left: 3px;
-    top: 3px;
-    background: white;
-    border-radius: 50%;
-    transition: transform 0.25s ease;
-  }
-  /* ================= GROUP ================= */
   .setting-group {
     padding: 20px 0;
   }
@@ -126,21 +98,18 @@
     border-bottom: none;
   }
 
-  /* ================= HEADER ROW ================= */
   .setting-head {
     display: flex;
     align-items: center;
     gap: 16px;
   }
 
-  /* keep slider from flying away */
   @media (min-width: 992px) {
     .setting-head {
       max-width: 560px;
     }
   }
 
-  /* title / label */
   .h3info,
   .setting-head .span {
     font-size: 15px;
@@ -149,7 +118,6 @@
     flex: 1;
   }
 
-  /* description */
   .desc {
     margin-top: 6px;
     font-size: 13px;
@@ -157,75 +125,90 @@
     line-height: 1.5;
   }
 
-  /* ================= SWITCH ================= */
   .switch {
+    --edge-hi: rgba(255, 255, 255, 0.253);
+    --edge-lo: rgba(255, 255, 255, 0.05);
+    --edge-w: 1px;
     position: relative;
-    width: 42px;
-    height: 22px;
+    width: 58px;
+    height: 30px;
     flex-shrink: 0;
   }
 
+  @media (min-resolution: 2dppx) {
+    .switch { --edge-w: 0.75px; }
+  }
+
   .switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
+    display: none;
   }
 
   .slider {
     position: absolute;
     inset: 0;
-    background: rgba(255,255,255,0.18);
+    background: rgba(120, 120, 128, 0.5);
     border-radius: 999px;
     cursor: pointer;
-    transition: background 0.25s ease;
+    transition: background 0.3s ease;
+  }
+
+  .slider::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: var(--edge-w);
+    border-radius: inherit;
+    background: linear-gradient(
+      135deg,
+      var(--edge-hi) 0%,
+      var(--edge-lo) 28%,
+      var(--edge-lo) 72%,
+      var(--edge-hi) 100%
+    );
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
   }
 
   .slider::before {
     content: "";
     position: absolute;
-    height: 16px;
-    width: 16px;
     left: 3px;
     top: 3px;
+    width: 34px;
+    height: 24px;
     background: #fff;
-    border-radius: 50%;
-    transition: transform 0.25s ease;
+    border-radius: 999px;
+    box-shadow:
+      0 3px 8px rgba(0, 0, 0, 0.35),
+      0 0 0 2px rgba(255, 255, 255, 0.16);
+    transition:
+      transform 0.4s cubic-bezier(0.34, 1.4, 0.64, 1),
+      width 0.25s cubic-bezier(0.34, 1.4, 0.64, 1);
+  }
+
+  .switch:active .slider::before {
+    width: 40px;
   }
 
   .switch input:checked + .slider {
-    background: #4f7cff;
+    background: #4285f4;
   }
 
   .switch input:checked + .slider::before {
-    transform: translateX(20px);
-    outline: 1px solid #fff;
-    outline-offset: 3px;
+    transform: translateX(18px);
   }
 
-  .switch input:focus-visible + .slider {
-    box-shadow: 0 0 0 2px rgba(79,124,255,0.4);
+  .switch:active input:checked + .slider::before {
+    transform: translateX(12px);
   }
 
-  /* ACTIVE */
-  .switch input:checked + .slider {
-    background: #4f7cff;
-  }
-
-  .switch input:checked + .slider::before {
-    transform: translateX(20px);
-  }
-
-  /* FOCUS */
-  .switch input:focus-visible + .slider {
-    box-shadow: 0 0 0 2px rgba(79,124,255,0.4);
-  }
-
-  /* ================= PRIVATE COMMUNITY FIX ================= */
   .setting-group > .switch {
     margin-top: 10px;
   }
 
-  /* ================= INPUT AREA ================= */
   .input-label {
     display: block;
     margin-bottom: 6px;
@@ -247,7 +230,6 @@
     border-color: #4f7cff;
   }
 
-  /* subtle spacing fix */
   .note {
     margin-top: 6px;
   }
@@ -263,13 +245,40 @@
   }
 
   .security-card{
+    --edge-hi: rgba(255, 255, 255, 0.253);
+    --edge-lo: rgba(255, 255, 255, 0.05);
+    --edge-w: 1px;
+    position: relative;
     background: var(--sub-init-app);
     border-radius: 20px;
     padding: 20px;
-    border: 1px solid var(--border);
+    border: var(--edge-w) solid transparent;
   }
 
-  /* ================= INVITE PERMISSION EXPANDER ================= */
+  @media (min-resolution: 2dppx) {
+    .security-card { --edge-w: 0.75px; }
+  }
+
+  .security-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: var(--edge-w);
+    border-radius: inherit;
+    background: linear-gradient(
+      135deg,
+      var(--edge-hi) 0%,
+      var(--edge-lo) 28%,
+      var(--edge-lo) 72%,
+      var(--edge-hi) 100%
+    );
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
   .invite-perm-chevron-row {
     display: flex;
     align-items: center;
@@ -391,7 +400,6 @@
         Require an invite to join the community and see the quests.
       </p>
 
-      <!-- 🔥 INVITE PERMISSION EXPANDER -->
       <div class="invite-perm-chevron-row" id="invitePermChevronRow"
            style="{% if not (security_settings and security_settings.private_community) %}display:none;{% endif %}">
         <span class="span" style="font-size:13px;">Who can invite people?</span>

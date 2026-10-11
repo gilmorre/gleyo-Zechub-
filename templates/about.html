@@ -61,52 +61,38 @@
 
   <link rel="stylesheet" href="{{ url_for('static', filename='about.css') }}">
   <script src="{{ url_for('static', filename='about.js') }}" defer></script>
-  <style>
-  .view {
-    display: none;
-    padding: 80px 8%;
-    max-width: 1100px;
-    margin: auto;
-  }
-
-  .view.active {
-    display: block;
-  }
-
-  *, *::before, *::after {
-    box-sizing: border-box;
-    margin: 0; padding: 0;
-    -webkit-text-size-adjust: 100% !important;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  ::selection { background: #4effcd29; color: var(--text-main); }
-  </style>
 </head>
 
+<body>
 <div class="about-container">
 
-  <nav>
-    <div class="logo">Gleyo</div>
-    <div class="nav-links">
-      <a href="{{ url_for('about', page='home') }}"
-        class="{% if active_page == 'home' %}active{% endif %}">
-        Home
+  <div class="nav-shell">
+    <div class="nav-fade" aria-hidden="true"></div>
+    <nav class="nav">
+      <a class="logo" href="/" aria-label="Gleyo home">
+        <img src="https://zupdpwnloewdkjqsymdm.supabase.co/storage/v1/object/public/uploads/communities/7/logos/511f4996-5748-4f1f-b74c-5d5c33f7124c.png" alt="" width="38" height="38" draggable="false">
+        <span>Gleyo</span>
       </a>
-      <a href="{{ url_for('about', page='product') }}"
-        class="{% if active_page == 'product' %}active{% endif %}">
-        Product
-      </a>
-      <a href="{{ url_for('about', page='pricing') }}"
-        class="{% if active_page == 'pricing' %}active{% endif %}">
-        Pricing
-      </a>
-      <a href="{{ url_for('about', page='about') }}"
-        class="{% if active_page == 'about' %}active{% endif %}">
-        About
-      </a>
-    </div>
-  </nav>
+      <div class="nav-links">
+        <a href="{{ url_for('about', page='home') }}"
+          class="{% if active_page == 'home' %}active{% endif %}">
+          Home
+        </a>
+        <a href="{{ url_for('about', page='product') }}"
+          class="{% if active_page == 'product' %}active{% endif %}">
+          Product
+        </a>
+        <a href="{{ url_for('about', page='pricing') }}"
+          class="{% if active_page == 'pricing' %}active{% endif %}">
+          Pricing
+        </a>
+        <a href="{{ url_for('about', page='about') }}"
+          class="{% if active_page == 'about' %}active{% endif %}">
+          About
+        </a>
+      </div>
+    </nav>
+  </div>
 
   <section id="home" class="view {% if active_page == 'home' %}active{% endif %}">
     <div class="hero">
@@ -196,65 +182,69 @@
 
 <div id="earlyModal" class="modal">
   <div class="modal-content">
-    <span class="close" onclick="closeModal('earlyModal')">
-      <svg width="17" height="17" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path fill-rule="evenodd" clip-rule="evenodd"
-          d="M5.29289 5.29289C5.68342 4.90237 6.31658 4.90237 6.70711 5.29289L12 10.5858L17.2929 5.29289C17.6834 4.90237 18.3166 4.90237 18.7071 5.29289C19.0976 5.68342 19.0976 6.31658 18.7071 6.70711L13.4142 12L18.7071 17.2929C19.0976 17.6834 19.0976 18.3166 18.7071 18.7071C18.3166 19.0976 17.6834 19.0976 17.2929 18.7071L12 13.4142L6.70711 18.7071C6.31658 19.0976 5.68342 19.0976 5.29289 18.7071C4.90237 18.3166 4.90237 17.6834 5.29289 17.2929L10.5858 12L5.29289 6.70711C4.90237 6.31658 4.90237 5.68342 5.29289 5.29289Z"
-          fill="currentColor"/>
-      </svg>
-    </span>
-    <h2>Apply for Early Access</h2>
-    <form id="earlyAccessForm">
-      <input type="text" name="name" placeholder="Full Name" required>
-      <input type="email" name="email" placeholder="Work Email" required>
-      <input type="text" name="community_name" placeholder="Community Name" required>
-      <input type="text" name="community_link" placeholder="Website / Discord Link" required>
+    <div class="modal-scroll">
+      <span class="close" onclick="closeModal('earlyModal')">
+        <svg width="17" height="17" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path fill-rule="evenodd" clip-rule="evenodd"
+            d="M5.29289 5.29289C5.68342 4.90237 6.31658 4.90237 6.70711 5.29289L12 10.5858L17.2929 5.29289C17.6834 4.90237 18.3166 4.90237 18.7071 5.29289C19.0976 5.68342 19.0976 6.31658 18.7071 6.70711L13.4142 12L18.7071 17.2929C19.0976 17.6834 19.0976 18.3166 18.7071 18.7071C18.3166 19.0976 17.6834 19.0976 17.2929 18.7071L12 13.4142L6.70711 18.7071C6.31658 19.0976 5.68342 19.0976 5.29289 18.7071C4.90237 18.3166 4.90237 17.6834 5.29289 17.2929L10.5858 12L5.29289 6.70711C4.90237 6.31658 4.90237 5.68342 5.29289 5.29289Z"
+            fill="currentColor"/>
+        </svg>
+      </span>
+      <h2>Apply for Early Access</h2>
+      <form id="earlyAccessForm">
+        <input type="text" name="name" placeholder="Full Name" required>
+        <input type="email" name="email" placeholder="Work Email" required>
+        <input type="text" name="community_name" placeholder="Community Name" required>
+        <input type="text" name="community_link" placeholder="Website / Discord Link" required>
 
-      <div class="custom-select" id="communitySizeSelect">
-        <div class="select-trigger">
-          <span id="selectedSize">Community Size</span>
-          <svg width="16" height="16" viewBox="0 0 24 24">
-            <path fill="currentColor" d="M7 10l5 5 5-5z"/>
-          </svg>
+        <div class="custom-select" id="communitySizeSelect">
+          <div class="select-trigger">
+            <span id="selectedSize">Community Size</span>
+            <svg width="16" height="16" viewBox="0 0 24 24">
+              <path fill="currentColor" d="M7 10l5 5 5-5z"/>
+            </svg>
+          </div>
+          <div class="select-options">
+            <div class="select-option" data-value="<500">&lt;500</div>
+            <div class="select-option" data-value="500-5k">500–5k</div>
+            <div class="select-option" data-value="5k-20k">5k–20k</div>
+            <div class="select-option" data-value="20k+">20k+</div>
+          </div>
+          <input type="hidden" name="community_size" id="communitySizeInput" required>
         </div>
-        <div class="select-options">
-          <div class="select-option" data-value="<500">&lt;500</div>
-          <div class="select-option" data-value="500-5k">500–5k</div>
-          <div class="select-option" data-value="5k-20k">5k–20k</div>
-          <div class="select-option" data-value="20k+">20k+</div>
+
+        <textarea name="problem" placeholder="What problem are you trying to solve?" required></textarea>
+        <textarea name="reason" placeholder="Why do you want early access?" required></textarea>
+
+        <div class="outer-shell">
+          <button type="submit" class="btn others">Submit Application</button>
         </div>
-        <input type="hidden" name="community_size" id="communitySizeInput" required>
-      </div>
-
-      <textarea name="problem" placeholder="What problem are you trying to solve?" required></textarea>
-      <textarea name="reason" placeholder="Why do you want early access?" required></textarea>
-
-      <div class="outer-shell">
-        <button type="submit" class="btn others">Submit Application</button>
-      </div>
-      <p id="earlyFeedback" class="feedback"></p>
-    </form>
+        <p id="earlyFeedback" class="feedback"></p>
+      </form>
+    </div>
   </div>
 </div>
 
 <div id="waitlistModal" class="modal">
   <div class="modal-content">
-    <span class="close" onclick="closeModal('waitlistModal')">
-      <svg width="17" height="17" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path fill-rule="evenodd" clip-rule="evenodd"
-          d="M5.29289 5.29289C5.68342 4.90237 6.31658 4.90237 6.70711 5.29289L12 10.5858L17.2929 5.29289C17.6834 4.90237 18.3166 4.90237 18.7071 5.29289C19.0976 5.68342 19.0976 6.31658 18.7071 6.70711L13.4142 12L18.7071 17.2929C19.0976 17.6834 19.0976 18.3166 18.7071 18.7071C18.3166 19.0976 17.6834 19.0976 17.2929 18.7071L12 13.4142L6.70711 18.7071C6.31658 19.0976 5.68342 19.0976 5.29289 18.7071C4.90237 18.3166 4.90237 17.6834 5.29289 17.2929L10.5858 12L5.29289 6.70711C4.90237 6.31658 4.90237 5.68342 5.29289 5.29289Z"
-          fill="currentColor"/>
-      </svg>
-    </span>
-    <h2>Join Pro Waitlist</h2>
-    <form id="waitlistForm">
-      <input type="email" name="email" placeholder="Your Email" required>
-      <input type="text" name="community_name" placeholder="Community Name (optional)">
-      <div class="outer-shell">
-        <button type="submit" class="btn others">Join Waitlist</button>
-      </div>
-      <p id="waitlistFeedback" class="feedback"></p>
-    </form>
+    <div class="modal-scroll">
+      <span class="close" onclick="closeModal('waitlistModal')">
+        <svg width="17" height="17" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path fill-rule="evenodd" clip-rule="evenodd"
+            d="M5.29289 5.29289C5.68342 4.90237 6.31658 4.90237 6.70711 5.29289L12 10.5858L17.2929 5.29289C17.6834 4.90237 18.3166 4.90237 18.7071 5.29289C19.0976 5.68342 19.0976 6.31658 18.7071 6.70711L13.4142 12L18.7071 17.2929C19.0976 17.6834 19.0976 18.3166 18.7071 18.7071C18.3166 19.0976 17.6834 19.0976 17.2929 18.7071L12 13.4142L6.70711 18.7071C6.31658 19.0976 5.68342 19.0976 5.29289 18.7071C4.90237 18.3166 4.90237 17.6834 5.29289 17.2929L10.5858 12L5.29289 6.70711C4.90237 6.31658 4.90237 5.68342 5.29289 5.29289Z"
+            fill="currentColor"/>
+        </svg>
+      </span>
+      <h2>Join Pro Waitlist</h2>
+      <form id="waitlistForm">
+        <input type="email" name="email" placeholder="Your Email" required>
+        <input type="text" name="community_name" placeholder="Community Name (optional)">
+        <div class="outer-shell">
+          <button type="submit" class="btn others">Join Waitlist</button>
+        </div>
+        <p id="waitlistFeedback" class="feedback"></p>
+      </form>
+    </div>
   </div>
 </div>
 

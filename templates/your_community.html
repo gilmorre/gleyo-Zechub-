@@ -43,6 +43,7 @@
   --bg-app-others: #212136;
   --bg-app-init: #0b0b12;
   --bg-app: #0b0b12;
+  --bg-app-export: #10101bfd;
   --bg-sidebar: #181826;
   /* --bg-sidebar: #1818266c; */
   --bg-sidebar-opaque: #181826a4;
@@ -5433,7 +5434,6 @@ function getCommunitySlugFromPath(path = window.location.pathname) {
       if (isMobile()) {
         mobile.style.display = "block";
         desktop.style.display = "none";
-        // Trigger slide-up animation
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
             mobile.classList.add("open");

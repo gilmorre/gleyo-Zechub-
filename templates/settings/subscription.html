@@ -1,5 +1,14 @@
 <style>
-
+  @property --edge-hi {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: rgba(255, 255, 255, 0.42);
+  }
+  @property --edge-lo {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: rgba(255, 255, 255, 0.05);
+  }
 
 .plan-card-container{
   padding-top: 24px;
@@ -11,31 +20,90 @@
   max-width: 100%;
 }
 
-
-  @media (max-width: 768px) {
-    .plan-card-container{
-      width: 100% !important;
-      min-width: 100% !important;
-    }
+@media (max-width: 768px) {
+  .plan-card-container{
+    width: 100% !important;
+    min-width: 100% !important;
   }
-
+}
 
 .plan-card-container,
-.plan-card-container * {
+.plan-card-container *,
+.modal-overlay,
+.modal-overlay * {
   font-family: 'Syne', sans-serif !important;
 }
 
+.plan-card,
+.modal-overlay .modal-box,
+.amount-option,
+.btn-secondary,
+.btn-danger {
+  --edge-hi: rgba(255, 255, 255, 0.253);
+  --edge-lo: rgba(255, 255, 255, 0.05);
+  --edge-w: 1px;
+  position: relative;
+  border: var(--edge-w) solid transparent;
+}
+
+@media (min-resolution: 2dppx) {
+  .plan-card,
+  .modal-overlay .modal-box,
+  .amount-option,
+  .btn-secondary,
+  .btn-danger {
+    --edge-w: 0.75px;
+  }
+}
+
+.modal-box::-webkit-scrollbar {
+  display: none;
+}
+
+
+.modal-box {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+} 
+
+.plan-card::before,
+.modal-overlay .modal-box::before,
+.amount-option::before,
+.btn-secondary::before,
+.btn-danger::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: var(--edge-w);
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    var(--edge-hi) 0%,
+    var(--edge-lo) 28%,
+    var(--edge-lo) 72%,
+    var(--edge-hi) 100%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.btn-danger {
+  --edge-hi: rgba(248, 113, 113, 0.5);
+  --edge-lo: rgba(248, 113, 113, 0.12);
+}
 
 .plan-card {
-  border: 0.9px solid var(--border);
   border-radius: 20px;
   padding: 20px 20px;
-  background-color: var(--bg-surface-plan-card);
+  background-color: var(--sub-init-app);
   display: flex;
   flex-direction: column;
   gap: 14px;
 }
-
 
 .plan-header {
   display: flex;
@@ -50,7 +118,6 @@
   flex-direction: column;
 }
 
-
 .plan-card h3 {
   margin: 0;
   font-size: 14px;
@@ -58,38 +125,10 @@
   color: var(--text-main);
 }
 
-
 .plan-cycle {
   font-size: 13px;
   color: var(--text-muted);
   margin-top: 2px;
-}
-
-.plan-cycle.manage {
-  display: flex;
-  align-items: center;
-  text-decoration: none;
-  gap: 4px;
-  cursor: pointer;
-  justify-content: center;
-}
-
-
-.plan-cycle.manage:hover {
-  color: var(--text-main);
-  text-decoration: underline;
-  opacity: 0.8;
-}
-
-.plan-cycle.manage svg{
-  width: 14px;
-  height: 14px;
-}
-
-.usage-note {
-  font-size: 13px;
-  font-style: italic;
-  color: var(--text-muted);
 }
 
 .plan-meta {
@@ -98,6 +137,9 @@
   margin-top: 2px;
 }
 
+.plan-meta-line {
+  display: block;
+}
 
 .plan-status {
   padding: 4px 10px;
@@ -109,17 +151,29 @@
   white-space: nowrap;
 }
 
+.plan-status.unlimited {
+  background: rgba(66,133,244,0.15);
+  color: #6ea2f7;
+}
+
+.plan-status.warn {
+  background: rgba(250,204,21,0.14);
+  color: #facc15;
+}
+
+.plan-status.bad {
+  background: rgba(248,113,113,0.14);
+  color: #f87171;
+}
 
 .plan-actions {
   display: flex;
   gap: 10px;
-  display: flex;
   align-items: center;
   justify-content: flex-end;
   margin-top: 6px;
   flex-wrap: wrap;
 }
-
 
 .btn-secondary,
 .btn-danger {
@@ -128,12 +182,10 @@
   font-size: 13px;
   font-weight: 550;
   cursor: pointer;
-  border: 1px solid var(--border);
   background: var(--border-nexterr);
   color: var(--text-main);
   transition: 0.2s ease;
 }
-
 
 .btn-secondary:hover {
   background: var(--bg-hover);
@@ -142,7 +194,6 @@
 
 .btn-danger {
   color: #f87171;
-  border-color: rgba(248,113,113,0.35);
 }
 
 .btn-danger:hover {
@@ -150,7 +201,32 @@
   transform: translateY(-1px);
 }
 
+.btn-secondary:disabled,
+.btn-danger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
 
+.btn-upgrade,
+.walletss .plan-actions button,
+.promo-card .plan-actions button {
+  color: var(--text-main);
+  border-radius: 15px;
+  padding: 10px 13px;
+  font-size: 14px;
+  cursor: pointer;
+  background-color: #4285f4;
+  border: 1px solid #4285f4;
+  transition: outline 0.2s ease;
+}
+
+.btn-upgrade:hover,
+.walletss .plan-actions button:hover,
+.promo-card .plan-actions button:hover {
+  outline: 1px solid #4285f4;
+  outline-offset: 2px;
+}
 
 .claim-box {
   margin-top: 7px;
@@ -158,7 +234,6 @@
   flex-direction: column;
   gap: 10px;
 }
-
 
 .claim-row {
   display: flex;
@@ -176,7 +251,6 @@
   color: var(--text-muted);
 }
 
-
 .claim-progress {
   height: 3.8px;
   width: 100%;
@@ -187,7 +261,7 @@
 
 .claim-progress-bar {
   height: 100%;
-  width: 20%;  
+  width: 20%;
   outline: 4px solid var(--bg-app);
   outline-offset: 0;
   border-radius: 999px;
@@ -195,12 +269,10 @@
   transition: width 0.4s ease;
 }
 
-
 .claim-note {
   font-size: 12px;
   color: var(--text-muted);
 }
-
 
 .wallet-stats {
   display: flex;
@@ -216,46 +288,25 @@
   gap: 4px;
   padding: 14px 16px;
   border-radius: 14px;
-  flex: 1 1 calc(33.333% - 12px); /* 3 across by default */
+  flex: 1 1 calc(33.333% - 12px);
   min-width: 0;
 }
 
-/* Below ~340px container width, 3-across gets too tight — drop to 2+1 */
 @media (max-width: 424px) {
   .wallet-item {
     flex: 1 1 calc(50% - 6px);
   }
 }
 
-/* Below ~280px, even 2 up is tight — stack fully */
 @media (max-width: 280px) {
   .wallet-item {
     flex: 1 1 100%;
   }
 }
 
-.wallet-amount {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--text-main);
-  letter-spacing: 0.4px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .wallet-stats .amount{
   font-family:'DM Mono', monospace;
 }
-
-.wallet-item{
-  display:flex;
-  flex-direction:column;
-  gap:4px;
-  padding:14px 16px;
-  border-radius:14px;
-}
-
 
 .wallet-label{
   display:flex;
@@ -267,14 +318,15 @@
   letter-spacing:0.3px;
 }
 
-
 .wallet-amount{
   font-size: 18px;
   font-weight:700;
   color:var(--text-main);
   letter-spacing:0.4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-
 
 .wallet-dot{
   width:9px;
@@ -292,80 +344,86 @@
   margin-top:6px;
 }
 
-.walletss .plan-actions button{
-  color: var(--text-main);
-  border-radius: 15px;
-  padding: 10px 13px;
+.switch {
+  --edge-hi: rgba(255, 255, 255, 0.253);
+  --edge-lo: rgba(255, 255, 255, 0.05);
+  --edge-w: 1px;
+  position: relative;
+  display: inline-block;
+  width: 58px;
+  height: 30px;
+  flex-shrink: 0;
+}
+
+@media (min-resolution: 2dppx) {
+  .switch { --edge-w: 0.75px; }
+}
+
+.switch input {
+  display: none;
+}
+
+.slider {
+  position: absolute;
+  inset: 0;
+  background: rgba(120, 120, 128, 0.5);
+  border-radius: 999px;
   cursor: pointer;
-  background-color: #4285f4;
-  border: 1px solid #4285f4;
+  transition: background 0.3s ease;
 }
 
-.walletss .plan-actions button:hover {
-  outline: 1px solid #4285f4;
-  outline-offset: 2px;
+.slider::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: var(--edge-w);
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    var(--edge-hi) 0%,
+    var(--edge-lo) 28%,
+    var(--edge-lo) 72%,
+    var(--edge-hi) 100%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
 }
 
-
-
-
-
-.switch{
-  position:relative;
-  display:inline-block;
-  width:42px;
-  height:24px;
+.slider::before {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  width: 34px;
+  height: 24px;
+  background: #fff;
+  border-radius: 999px;
+  box-shadow:
+    0 3px 8px rgba(0, 0, 0, 0.35),
+    0 0 0 2px rgba(255, 255, 255, 0.16);
+  transition:
+    transform 0.4s cubic-bezier(0.34, 1.4, 0.64, 1),
+    width 0.25s cubic-bezier(0.34, 1.4, 0.64, 1);
 }
 
-.switch input{
-  opacity:0;
-  width:0;
-  height:0;
+.switch:active .slider::before {
+  width: 40px;
 }
 
-
-.slider{
-  position:absolute;
-  cursor:pointer;
-  inset:0;
-  background: var(--bg-hover-hover);
-  border-radius:999px;
-  transition:all .25s ease;
+.switch input:checked + .slider {
+  background: #4285f4;
 }
 
-
-.slider:before{
-  content:"";
-  position:absolute;
-  height:18px;
-  width:18px;
-  left:3px;
-  top:3px;
-
-  background-color: var(--text-main);
-
-  border-radius:50%;
-  transition:all .25s ease;
+.switch input:checked + .slider::before {
+  transform: translateX(18px);
 }
 
-
-.switch input:checked + .slider{
-  background:#4285f4;
-
+.switch:active input:checked + .slider::before {
+  transform: translateX(12px);
 }
-
-.switch input:checked + .slider:before{
-  transform:translateX(18px);
-  outline-offset: 3px;
-  background-color: white;
-  outline: 1px solid white;
-}
-
-.slider:hover:before{
-  opacity:0.8;
-}
-
-
 
 .plan-card.auto-renew-init h3{
   font-size:15px;
@@ -392,94 +450,19 @@
   height:14px;
   margin-top:2px;
   flex-shrink:0;
-  color:#16a34a; 
+  color:#16a34a;
 }
 
 .auto-renew-row{
   display:flex;
   justify-content:space-between;
   align-items:center;
+  gap: 16px;
 }
 
 .auto-renew-title{
   font-size:13px;
   font-weight:600;
-}
-
-.amount-grid{
-  display:grid;
-  grid-template-columns:repeat(3, 1fr);
-  gap:10px;
-  margin:16px 0;
-}
-
-.amount-option{
-  padding:10px;
-  border: 0.9px solid var(--border);
-  border-radius: 12px;
-  text-align:center;
-  cursor: pointer;
-  font-weight:500;
-  transition:all .2s ease;
-}
-
-
-.amount-option:hover{
-  border-color: var(--bg-hover-hover);
-  background: var(--sub-init-app);
-}
-
- 
-.amount-option.active{
-  border-color:#22c55e;
-  background:  #22c55e34;
-  color: #ffffffe0;
-  font-weight:600;
-}
-
-
-
-.modal-title {
-  font-size: 15px;
-  color: var(--text-main);
-  font-weight: 700 !important;
-  font-family: 'Syne', sans-serif !important;
-
-}
-
-
-.custom-input input:focus {
-  border-color: var(--sub-accent);
-}
-
-
-.custom-input input {
-  border-radius: 15px;
-  padding: 14px 14px;
-  font: 14px;
-  color: var(--text-main);
-  margin-bottom: 15px;
-  margin-top: 10px;
-  border: 1px solid var(--border);
-}
-
-.custom-input input::-webkit-outer-spin-button,
-.custom-input input::-webkit-inner-spin-button{
-  -webkit-appearance:none;
-  margin:0;
-}
-
-
-
-.custom-input input[type="number"]{
-  -moz-appearance:textfield;
-}
-
-
-.modal-desc {
-  font-size: 14px;
-  color: var(--text-muted);
-  margin-top: 15px;
 }
 
 .modal-overlay{
@@ -493,24 +476,94 @@
   padding: 0 15px;
 }
 
- 
 .modal-overlay.active{
   display:flex;
 }
 
- 
-#topupModal .modal-box{
+.modal-overlay .modal-box{
   width: 100%;
   max-width: 420px;
+  max-height: 85dvh;
+  overflow-y: auto;
   background: rgba(34, 34, 54, 0.448);
   backdrop-filter: blur(14px);
-  border: 0.9px solid var(--border);
+  -webkit-backdrop-filter: blur(14px);
   border-radius: 16px;
   padding: 20px;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-  animation:modalFade .25s ease;
+  animation: modalFade .25s ease;
 }
- 
+
+.modal-title {
+  font-size: 15px;
+  color: var(--text-main);
+  font-weight: 700 !important;
+}
+
+.modal-desc {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-top: 15px;
+  line-height: 1.5;
+}
+
+.amount-grid{
+  display:grid;
+  grid-template-columns:repeat(3, 1fr);
+  gap:10px;
+  margin:16px 0;
+}
+
+.amount-option{
+  padding:10px;
+  border-radius: 12px;
+  text-align:center;
+  cursor: pointer;
+  font-weight:500;
+  transition:background .2s ease, border-color .2s ease, color .2s ease;
+}
+
+.amount-option:hover{
+  background: var(--sub-init-app);
+}
+
+.amount-option.active{
+  border-color:#22c55e;
+  background:  #22c55e34;
+  color: #ffffffe0;
+  font-weight:600;
+}
+
+.amount-option.active::before{
+  opacity: 0;
+}
+
+.custom-input input:focus {
+  border-color: var(--sub-accent);
+}
+
+.custom-input input {
+  border-radius: 15px;
+  padding: 14px 14px;
+  font-size: 14px;
+  color: var(--text-main);
+  margin-bottom: 15px;
+  margin-top: 10px;
+  background-color: var(--bg-surface-dimmer);
+  border: 0.1px solid var(--border);
+  outline: none !important;
+}
+
+.custom-input input::-webkit-outer-spin-button,
+.custom-input input::-webkit-inner-spin-button{
+  -webkit-appearance:none;
+  margin:0;
+}
+
+.custom-input input[type="number"]{
+  -moz-appearance:textfield;
+}
+
 #topupModal .modal-actions {
   display: flex;
   align-items: center;
@@ -518,6 +571,7 @@
   gap: 20px;
   margin-top: 5px;
 }
+
 #topupModal .modal-actions button:first-child {
   cursor: pointer !important;
 }
@@ -535,11 +589,10 @@
   color: var(--text-main);
 }
 
-
 #topupModal .modal-actions .btn-primary {
   color: #4285f4;
   opacity: 0.85;
-  transition: opacit 0.2s ease;
+  transition: opacity 0.2s ease, color 0.2s ease;
 }
 
 #topupModal .modal-actions .btn-primary.active {
@@ -547,71 +600,743 @@
   cursor: pointer !important;
 }
 
-
 #topupModal .modal-actions .btn-primary.active:hover {
   color: #4286f4ce;
-
 }
-
 
 #topupModal .modal-actions .btn-primary:hover {
   color: #4286f48f;
 }
+
+/* ---------- Cancel subscription modal ---------- */
+#cancelModal .modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+#cancelModal .modal-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 96px;
+  padding: 9px 16px;
+  font-size: 14px;
+}
+
+.cancel-error {
+  display: none;
+  margin-top: 14px;
+  font-size: 13px;
+  color: #f87171;
+}
+
+.btn-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 8px;
+  animation: btnSpin 0.7s linear infinite;
+}
+
+@keyframes btnSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* ---------- Twitter promotion card ---------- */
+.promo-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.promo-title-row svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  color: var(--text-main);
+}
+
+.promo-features {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.promo-feature {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.promo-feature svg {
+  width: 14px;
+  height: 14px;
+  margin-top: 2px;
+  flex-shrink: 0;
+  color: #16a34a;
+}
+
+.promo-status-note {
+  display: none;
+  font-size: 13px;
+  color: #22c55e;
+  background: rgba(34,197,94,0.1);
+  border-radius: 12px;
+  padding: 10px 12px;
+  line-height: 1.45;
+}
+
+#promoModal .modal-box {
+  max-width: 460px;
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+#promoModal .modal-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 20px;
+  border-radius: inherit;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+#promoModal .modal-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.promo-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 16px;
+}
+
+.promo-field[hidden] {
+  display: none;
+}
+
+.promo-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.promo-label .promo-optional {
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-left: 4px;
+}
+
+.promo-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.promo-input,
+.promo-select,
+.promo-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-size: 14px;
+  color: var(--text-main);
+  background-color: var(--bg-surface-dimmer);
+  border: 0.1px solid var(--border);
+  outline: none !important;
+  transition: border-color 0.2s ease;
+  color-scheme: dark;
+}
+
+.promo-input:focus,
+.promo-select:focus,
+.promo-textarea:focus {
+  border-color: var(--sub-accent);
+}
+
+.promo-input.invalid,
+.promo-select.invalid,
+.promo-textarea.invalid {
+  border-color: #f87171;
+}
+
+.promo-input::placeholder,
+.promo-textarea::placeholder {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.promo-select {
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 38px;
+}
+
+.promo-textarea {
+  resize: none;
+  min-height: 92px;
+  line-height: 1.45;
+}
+
+.promo-counter {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+.promo-counter.over {
+  color: #f87171;
+}
+
+.promo-error {
+  display: none;
+  margin-top: 14px;
+  font-size: 13px;
+  color: #f87171;
+}
+
+#promoModal .modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+#promoModal .modal-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 96px;
+  padding: 9px 16px;
+  font-size: 14px;
+}
+
+#promoSubmitBtn {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+#promoSubmitBtn.valid {
+  opacity: 1;
+  cursor: pointer;
+}
+
+
+
+.flatpickr-calendar {
+  background-color: var(--main-ui) !important;
+  border-radius: 12px !important;
+  color: var(--text-main) !important;
+  border-top: 1px solid var(--border) !important;
+  border-bottom: 1px solid var(--border) !important;
+  border-left: 1px solid var(--border) !important;
+  border-right: 1px solid var(--border) !important;
+
+}
+.flatpickr-calendar.arrowTop::after {
+  border-bottom-color: var(--border) !important;
+}
+
+.flatpickr-calendar.arrowBottom::after {
+  border-top-color: var(--border) !important;
+}
+
+
+.flatpickr-prev-month svg, .flatpickr-next-month svg{
+  color: var(--text-main) !important;
+  fill: var(--text-main) !important;
+  stroke: var(--text-main) !important;
+}
+
+
+.numInputWrapper .arrowUp, .numInputWrapper .arrowDown {
+  color: var(--text-main);
+  background-color: #3b3b59!important;
+  
+}
+
+.numInputWrapper .arrowUp::after,
+.numInputWrapper .arrowDown::after {
+  color: var(--text-main) !important;
+}
+
+
+.flatpickr-weekday {
+  color: var(--text-muted) !important;
+}
+.numInput.cur-year, .flatpickr-time-separator {
+  color: var(--text-main) !important;
+  opacity: 0.9 !important;
+}
+
+.flatpickr-monthDropdown-months {
+  color: var(--text-main) !important;
+  background-color: #1e1e2f;
+}
+
+
+.flatpickr-day:not(.selected):not(.startRange):not(.endRange) {
+  color: var(--text-main) !important;
+  opacity: 0.9;
+}
+
+.flatpickr-day.prevMonthDay, .flatpickr-day.nextMonthDay{
+  opacity: 0.5 !important;
+
+}
+
+
+.flatpickr-day:hover:not(.selected):not(.startRange):not(.endRange) {
+  background-color: var(--bg-hover-hover) !important;
+  border: 1px solid var(--border) !important;
+}
+
+
+.numInputWrapper:hover {
+  background-color: var(--bg-hover) !important;
+}
+
+
+.numInput.flatpickr-hour, .numInput.flatpickr-minute, .flatpickr-am-pm {
+  color: var(--text-main) !important;
+  opacity: 0.95 !important;
+}
+.flatpickr-day.selected {
+  color: #fff !important;
+}
+
+
+.flatpickr-time {
+  border-top: 1px solid var(--border) !important;
+}
+
+
+
+
+.flatpickr-time input:hover,.flatpickr-time .flatpickr-am-pm:hover,.flatpickr-time input:focus,.flatpickr-time .flatpickr-am-pm:focus{
+  background: var(--bg-hover) !important;
+}
+
+
+.flatpickr-calendar {
+  background:transparent;
+  opacity:0;
+  display :none;
+  text-align:center;
+  visibility:hidden;
+  padding:0;
+  -webkit-animation:none;
+  animation:none;
+  direction:ltr;
+  border:0;
+  font-size:14px;
+  line-height:24px;
+  border-radius:5px;
+  position:absolute;
+  width:307.875px;
+  -webkit-box-sizing:border-box;
+  box-sizing:border-box;
+  -ms-touch-action:manipulation;
+  touch-action:manipulation;
+  background:#fff;
+  -webkit-box-shadow:1px 0 0 #e6e6e6,-1px 0 0 #e6e6e6,0 1px 0 #e6e6e6,0 -1px 0 #e6e6e6,0 3px 13px rgba(0,0,0,0.08) !important;
+  box-shadow: none !important;
+
+}
+  
+  
+   
+  .flatpickr-calendar.open{
+    display:inline-block;
+    z-index: 2;
+  }
+  .flatpickr-calendar.animate.open{
+    -webkit-animation:fpFadeInDown 300ms cubic-bezier(.23,1,.32,1);animation:fpFadeInDown 300ms cubic-bezier(.23,1,.32,1)
+  }.flatpickr-calendar.inline
+  {display:block;position:relative;top:2px
+  }
+  .flatpickr-calendar.static{
+    position:absolute;top:calc(100% + 2px)
+  }
+  .flatpickr-calendar.static.open
+  {z-index:999;display:block
+  }
+  .flatpickr-calendar.multiMonth .flatpickr-days .dayContainer:nth-child(n+1) .flatpickr-day.inRange:nth-child(7n+7){
+    -webkit-box-shadow:none !important;box-shadow:none !important
+  }
+  
+  .flatpickr-calendar.multiMonth .flatpickr-days .dayContainer:nth-child(n+2) .flatpickr-day.inRange:nth-child(7n+1){
+    -webkit-box-shadow:-2px 0 0 #e6e6e6,5px 0 0 #e6e6e6;box-shadow:-2px 0 0 #e6e6e6,5px 0 0 #e6e6e6
+  }
+  .flatpickr-calendar .hasWeeks .dayContainer,.flatpickr-calendar .hasTime .dayContainer
+  {border-bottom:0;border-bottom-right-radius:0;border-bottom-left-radius:0
+  }.flatpickr-calendar .hasWeeks .dayContainer{border-left:0}.flatpickr-calendar.hasTime .flatpickr-time{height:40px;border-top:1px solid #e6e6e6}.flatpickr-calendar.noCalendar.hasTime .flatpickr-time{height:auto}.flatpickr-calendar:before,.flatpickr-calendar:after{position:absolute;display:block;pointer-events:none;border:solid transparent;content:'';height:0;width:0;left:22px}.flatpickr-calendar.rightMost:before,.flatpickr-calendar.arrowRight:before,.flatpickr-calendar.rightMost:after,.flatpickr-calendar.arrowRight:after{left:auto;right:22px}.flatpickr-calendar.arrowCenter:before,.flatpickr-calendar.arrowCenter:after{left:50%;right:50%}.flatpickr-calendar:before{border-width:5px;margin:0 -5px}.flatpickr-calendar:after{border-width:4px;margin:0 -4px}.flatpickr-calendar.arrowTop:before,.flatpickr-calendar.arrowTop:after{bottom:100%}.flatpickr-calendar.arrowTop:before{border-bottom-color:var(--border)}.flatpickr-calendar.arrowTop:after{border-bottom-color:var(--border)}.flatpickr-calendar.arrowBottom:before,.flatpickr-calendar.arrowBottom:after{top:100%}.flatpickr-calendar.arrowBottom:before{border-top-color:var(--border)}.flatpickr-calendar.arrowBottom:after{border-top-color:var(--border)}.flatpickr-calendar:focus{outline:0}
+
+
+
+
+
+ 
+
+.numInput {
+  border: none !important;
+  outline: none;
+}
+
+.triggered-flatpicker-cal{
+  align-items: center;
+  flex-shrink: 0;
+  justify-content: center;
+  display: flex;
+  color: var(--text-main);
+  height: 100%;
+}
+.triggered-flatpicker-cal svg{
+  width: 17px;
+
+  height: 17px;
+}
+
+.numInput::-webkit-outer-spin-button,
+.numInput::-webkit-inner-spin-button {
+  -webkit-appearance: none !important;
+  margin: 0;
+}
+
+
+
+.numInput {
+  -moz-appearance: textfield !important;
+}
+
+.flatpickr-calendar{background:transparent;opacity:0;display:none;text-align:center;visibility:hidden;padding:0;-webkit-animation:none;animation:none;direction:ltr;border:0;font-size:14px;line-height:24px;border-radius:5px;position:absolute;width:307.875px;-webkit-box-sizing:border-box;box-sizing:border-box;-ms-touch-action:manipulation;touch-action:manipulation;background:#c67979;-webkit-box-shadow:1px 0 0 #e6e6e6,-1px 0 0 #e6e6e6,0 1px 0 #e6e6e6,0 -1px 0 #e6e6e6,0 3px 13px rgba(0,0,0,0.08);box-shadow:1px 0 0 #e6e6e6,-1px 0 0 #e6e6e6,0 1px 0 #e6e6e6,0 -1px 0 #e6e6e6,0 3px 13px rgba(0,0,0,0.08)}.flatpickr-calendar.open,.flatpickr-calendar.inline{opacity:1;max-height:640px;visibility:visible}.flatpickr-calendar.open{display:inline-block;z-index:99999}.flatpickr-calendar.animate.open{-webkit-animation:fpFadeInDown 300ms cubic-bezier(.23,1,.32,1);animation:fpFadeInDown 300ms cubic-bezier(.23,1,.32,1)}.flatpickr-calendar.inline{display:block;position:relative;top:2px}.flatpickr-calendar.static{position:absolute;top:calc(100% + 2px)}.flatpickr-calendar.static.open{z-index:999;display:block}.flatpickr-calendar.multiMonth .flatpickr-days .dayContainer:nth-child(n+1) .flatpickr-day.inRange:nth-child(7n+7){-webkit-box-shadow:none !important;box-shadow:none !important}.flatpickr-calendar.multiMonth .flatpickr-days .dayContainer:nth-child(n+2) .flatpickr-day.inRange:nth-child(7n+1){-webkit-box-shadow:-2px 0 0 #e6e6e6,5px 0 0 #e6e6e6;box-shadow:-2px 0 0 #e6e6e6,5px 0 0 #e6e6e6}.flatpickr-calendar .hasWeeks .dayContainer,.flatpickr-calendar .hasTime .dayContainer{border-bottom:0;border-bottom-right-radius:0;border-bottom-left-radius:0}.flatpickr-calendar .hasWeeks .dayContainer{border-left:0}.flatpickr-calendar.hasTime .flatpickr-time{height:40px;border-top:1px solid #e6e6e6}.flatpickr-calendar.noCalendar.hasTime .flatpickr-time{height:auto}.flatpickr-calendar:before,.flatpickr-calendar:after{position:absolute;display:block;pointer-events:none;border:solid transparent;content:'';height:0;width:0;left:22px}.flatpickr-calendar.rightMost:before,.flatpickr-calendar.arrowRight:before,.flatpickr-calendar.rightMost:after,.flatpickr-calendar.arrowRight:after{left:auto;right:22px}.flatpickr-calendar.arrowCenter:before,.flatpickr-calendar.arrowCenter:after{left:50%;right:50%}.flatpickr-calendar:before{border-width:5px;margin:0 -5px}.flatpickr-calendar:after{border-width:4px;margin:0 -4px}.flatpickr-calendar.arrowTop:before,.flatpickr-calendar.arrowTop:after{bottom:100%}.flatpickr-calendar.arrowTop:before{border-bottom-color:var(--border)}.flatpickr-calendar.arrowTop:after{border-bottom-color:var(--border)}.flatpickr-calendar.arrowBottom:before,.flatpickr-calendar.arrowBottom:after{top:100%}.flatpickr-calendar.arrowBottom:before{border-top-color:var(--border)}.flatpickr-calendar.arrowBottom:after{border-top-color:var(--border)}.flatpickr-calendar:focus{outline:0}.flatpickr-wrapper{position:relative;display:inline-block}.flatpickr-months{display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex}.flatpickr-months .flatpickr-month{background:transparent;color:rgba(0,0,0,0.9);fill:rgba(0,0,0,0.9);height:34px;line-height:1;text-align:center;position:relative;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;overflow:hidden;-webkit-box-flex:1;-webkit-flex:1;-ms-flex:1;flex:1}.flatpickr-months .flatpickr-prev-month,.flatpickr-months .flatpickr-next-month{-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;text-decoration:none;cursor:pointer;position:absolute;top:0;height:34px;padding:10px;z-index:3;color:rgba(0,0,0,0.9);fill:rgba(0,0,0,0.9)}.flatpickr-months .flatpickr-prev-month.flatpickr-disabled,.flatpickr-months .flatpickr-next-month.flatpickr-disabled{display:none}.flatpickr-months .flatpickr-prev-month i,.flatpickr-months .flatpickr-next-month i{position:relative}.flatpickr-months .flatpickr-prev-month.flatpickr-prev-month,.flatpickr-months .flatpickr-next-month.flatpickr-prev-month{/*
+      /*rtl:begin:ignore*/left:0/*
+      /*rtl:end:ignore*/}/*
+      /*rtl:begin:ignore*/
+/*
+      /*rtl:end:ignore*/
+.flatpickr-months .flatpickr-prev-month.flatpickr-next-month,.flatpickr-months .flatpickr-next-month.flatpickr-next-month{/*
+      /*rtl:begin:ignore*/right:0/*
+      /*rtl:end:ignore*/}/*
+      /*rtl:begin:ignore*/
+/*
+      /*rtl:end:ignore*/
+.flatpickr-months .flatpickr-prev-month:hover,.flatpickr-months .flatpickr-next-month:hover{color:#927373}.flatpickr-months .flatpickr-prev-month:hover svg,.flatpickr-months .flatpickr-next-month:hover svg{fill:#f64747}.flatpickr-months .flatpickr-prev-month svg,.flatpickr-months .flatpickr-next-month svg{width:14px;height:14px}.flatpickr-months .flatpickr-prev-month svg path,.flatpickr-months .flatpickr-next-month svg path{-webkit-transition:fill .1s;transition:fill .1s;fill:inherit}.numInputWrapper{position:relative;height:auto}.numInputWrapper input,.numInputWrapper span{display:inline-block}.numInputWrapper input{width:100%}.numInputWrapper input::-ms-clear{display:none}.numInputWrapper input::-webkit-outer-spin-button,.numInputWrapper input::-webkit-inner-spin-button{margin:0;-webkit-appearance:none}.numInputWrapper span{position:absolute;right:0;width:14px;padding:0 4px 0 2px;height:50%;line-height:50%;opacity:0;cursor:pointer;border:1px solid rgba(57,57,57,0.15);-webkit-box-sizing:border-box;box-sizing:border-box}.numInputWrapper span:hover{background:rgba(0,0,0,0.1)}.numInputWrapper span:active{background:rgba(0,0,0,0.2)}.numInputWrapper span:after{display:block;content:"";position:absolute}.numInputWrapper span.arrowUp{top:0;border-bottom:0}.numInputWrapper span.arrowUp:after{border-left:4px solid transparent;border-right:4px solid transparent;border-bottom:4px solid rgba(171, 25, 25, 0.6);top:26%}.numInputWrapper span.arrowDown{top:50%}.numInputWrapper span.arrowDown:after{border-left:4px solid transparent;border-right:4px solid transparent;border-top:4px solid rgba(57,57,57,0.6);top:40%}.numInputWrapper span svg{width:inherit;height:auto}.numInputWrapper span svg path{fill:rgba(195, 23, 23, 0.5)}.numInputWrapper:hover{background:rgba(0,0,0,0.05)}.numInputWrapper:hover span{opacity:1}.flatpickr-current-month{font-size:135%;line-height:inherit;font-weight:300;color:inherit;position:absolute;width:75%;left:12.5%;padding:7.48px 0 0 0;line-height:1;height:34px;display:inline-block;text-align:center;-webkit-transform:translate3d(0,0,0);transform:translate3d(0,0,0)}.flatpickr-current-month span.cur-month{font-family:inherit;font-weight:700;color:inherit;display:inline-block;margin-left:.5ch;padding:0}.flatpickr-current-month span.cur-month:hover{background:rgba(0,0,0,0.05)}.flatpickr-current-month .numInputWrapper{width:6ch;width:7ch\0;display:inline-block}.flatpickr-current-month .numInputWrapper.flatpickr-current-month .numInputWrapper span.arrowDown:after{border-top-color:rgba(0,0,0,0.9)}.flatpickr-current-month input.cur-year{background:transparent;-webkit-box-sizing:border-box;box-sizing:border-box;color:inherit;cursor:text;padding:0 0 0 .5ch;margin:0;display:inline-block;font-size:inherit;font-family:inherit;font-weight:300;line-height:inherit;height:auto;border:0;border-radius:0;vertical-align:initial;-webkit-appearance:textfield;-moz-appearance:textfield;appearance:textfield}.flatpickr-current-month input.cur-year:focus{outline:0}.flatpickr-current-month input.cur-year[disabled],.flatpickr-current-month input.cur-year[disabled]:hover{font-size:100%;color:rgba(0,0,0,0.5);background:transparent;pointer-events:none}.flatpickr-current-month .flatpickr-weekdays{background:transparent;text-align:center;overflow:hidden;width:100%;display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;-webkit-box-align:center;-webkit-align-items:center;-ms-flex-align:center;align-items:center;height:28px}.flatpickr-weekdays .flatpickr-weekdaycontainer{display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;-webkit-box-flex:1;-webkit-flex:1;-ms-flex:1;flex:1}span.flatpickr-weekday{cursor:default;font-size:90%;background:transparent;color:rgba(0,0,0,0.54);line-height:1;margin:0;text-align:center;display:block;-webkit-box-flex:1;-webkit-flex:1;-ms-flex:1;flex:1;font-weight:bolder}.dayContainer,.flatpickr-weeks{padding:1px 0 0 0}.flatpickr-days{position:relative;overflow:hidden;display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;-webkit-box-align:start;-webkit-align-items:flex-start;-ms-flex-align:start;align-items:flex-start;width:307.875px}.flatpickr-days:focus{outline:0}.dayContainer{padding:0;outline:0;text-align:left;width:307.875px;min-width:307.875px;max-width:307.875px;-webkit-box-sizing:border-box;box-sizing:border-box;display:inline-block;display:-ms-flexbox;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-flex-wrap:wrap;flex-wrap:wrap;-ms-flex-wrap:wrap;-ms-flex-pack:justify;-webkit-justify-content:space-around;justify-content:space-around;-webkit-transform:translate3d(0,0,0);transform:translate3d(0,0,0);opacity:1}.dayContainer + .dayContainer{-webkit-box-shadow:-1px 0 0 #927373;box-shadow:-1px 0 0 #927373}.flatpickr-day{background:none;border:1px solid transparent;border-radius:150px;-webkit-box-sizing:border-box;box-sizing:border-box;color:#393939;cursor:pointer;font-weight:400;width:14.2857143%;-webkit-flex-basis:14.2857143%;-ms-flex-preferred-size:14.2857143%;flex-basis:14.2857143%;max-width:39px;height:39px;line-height:39px;margin:0;display:inline-block;position:relative;-webkit-box-pack:center;-webkit-justify-content:center;-ms-flex-pack:center;justify-content:center;text-align:center}.flatpickr-day.inRange,.flatpickr-day.prevMonthDay.inRange,.flatpickr-day.nextMonthDay.inRange,.flatpickr-day.today.inRange,.flatpickr-day.prevMonthDay.today.inRange,.flatpickr-day.nextMonthDay.today.inRange,.flatpickr-day:hover,.flatpickr-day.prevMonthDay:hover,.flatpickr-day.nextMonthDay:hover,.flatpickr-day:focus,.flatpickr-day.prevMonthDay:focus,.flatpickr-day.nextMonthDay:focus{cursor:pointer;outline:0;background:#927373;border-color:#927373}.flatpickr-day.today{border-color:#927373}.flatpickr-day.today:hover,.flatpickr-day.today:focus{border-color:#927373;background:#927373;color:#927373}.flatpickr-day.selected,.flatpickr-day.startRange,.flatpickr-day.endRange,.flatpickr-day.selected.inRange,.flatpickr-day.startRange.inRange,.flatpickr-day.endRange.inRange,.flatpickr-day.selected:focus,.flatpickr-day.startRange:focus,.flatpickr-day.endRange:focus,.flatpickr-day.selected:hover,.flatpickr-day.startRange:hover,.flatpickr-day.endRange:hover,.flatpickr-day.selected.prevMonthDay,.flatpickr-day.startRange.prevMonthDay,.flatpickr-day.endRange.prevMonthDay,.flatpickr-day.selected.nextMonthDay,.flatpickr-day.startRange.nextMonthDay,.flatpickr-day.endRange.nextMonthDay{background:#569ff7;-webkit-box-shadow:none;box-shadow:none;color:#927373;border-color:#569ff7}.flatpickr-day.selected.startRange,.flatpickr-day.startRange.startRange,.flatpickr-day.endRange.startRange{border-radius:50px 0 0 50px}.flatpickr-day.selected.endRange,.flatpickr-day.startRange.endRange,.flatpickr-day.endRange.endRange{border-radius:0 50px 50px 0}.flatpickr-day.selected.startRange + .endRange:not(:nth-child(7n+1)),.flatpickr-day.startRange.startRange + .endRange:not(:nth-child(7n+1)),.flatpickr-day.endRange.startRange + .endRange:not(:nth-child(7n+1)){-webkit-box-shadow:-10px 0 0 #569ff7;box-shadow:-10px 0 0 #569ff7}.flatpickr-day.selected.startRange.endRange,.flatpickr-day.startRange.startRange.endRange,.flatpickr-day.endRange.startRange.endRange{border-radius:50px}.flatpickr-day.inRange{border-radius:0;-webkit-box-shadow:-5px 0 0 #927373,5px 0 0 #927373;box-shadow:-5px 0 0 #927373,5px 0 0 #927373}.flatpickr-day.flatpickr-disabled,.flatpickr-day.flatpickr-disabled:hover,.flatpickr-day.prevMonthDay,.flatpickr-day.nextMonthDay,.flatpickr-day.notAllowed,.flatpickr-day.notAllowed.prevMonthDay,.flatpickr-day.notAllowed.nextMonthDay{color:rgba(57,57,57,0.3);background:transparent;border-color:transparent;cursor:default}.flatpickr-day.flatpickr-disabled,.flatpickr-day.flatpickr-disabled:hover{cursor:not-allowed;color:rgba(57,57,57,0.1)}.flatpickr-day.week.selected{border-radius:0;-webkit-box-shadow:-5px 0 0 #569ff7,5px 0 0 #569ff7;box-shadow:-5px 0 0 #569ff7,5px 0 0 #569ff7}.flatpickr-day.hidden{visibility:hidden}.rangeMode .flatpickr-day{margin-top:1px}.flatpickr-weekwrapper{float:left}.flatpickr-weekwrapper .flatpickr-weeks{padding:0 12px;-webkit-box-shadow:1px 0 0 #927373;box-shadow:1px 0 0 #927373}.flatpickr-weekwrapper .flatpickr-weekday{float:none;width:100%;line-height:28px}.flatpickr-weekwrapper span.flatpickr-day,.flatpickr-weekwrapper span.flatpickr-day:hover{display:block;width:100%;max-width:none;color:rgba(57,57,57,0.3);background:transparent;cursor:default;border:none}.flatpickr-innerContainer{display:block;display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex;-webkit-box-sizing:border-box;box-sizing:border-box;overflow:hidden}.flatpickr-rContainer{display:inline-block;padding:0;-webkit-box-sizing:border-box;box-sizing:border-box}.flatpickr-time{text-align:center;outline:0;display:block;height:0;line-height:40px;max-height:40px;-webkit-box-sizing:border-box;box-sizing:border-box;overflow:hidden;display:-webkit-box;display:-webkit-flex;display:-ms-flexbox;display:flex}.flatpickr-time:after{content:"";display:table;clear:both}.flatpickr-time .numInputWrapper{-webkit-box-flex:1;-webkit-flex:1;-ms-flex:1;flex:1;width:40%;height:40px;float:left}.flatpickr-time .numInputWrapper.flatpickr-time .numInputWrapper span.arrowDown:after{border-top-color:#393939}.flatpickr-time.hasSeconds .numInputWrapper{width:26%}.flatpickr-time.time24hr .numInputWrapper{width:49%}.flatpickr-time input{background:transparent;-webkit-box-shadow:none;box-shadow:none;border:0;border-radius:0;text-align:center;margin:0;padding:0;height:inherit;line-height:inherit;color:#393939;font-size:14px;position:relative;-webkit-box-sizing:border-box;box-sizing:border-box;-webkit-appearance:textfield;-moz-appearance:textfield;appearance:textfield}.flatpickr-time input.flatpickr-hour{font-weight:bold}.flatpickr-time input.flatpickr-minute,.flatpickr-time input.flatpickr-second{font-weight:400}.flatpickr-time input:focus{outline:0;border:0}.flatpickr-time .flatpickr-time-separator,.flatpickr-time .flatpickr-am-pm{height:inherit;float:left;line-height:inherit;color:#393939;font-weight:bold;width:2%;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;-webkit-align-self:center;-ms-flex-item-align:center;align-self:center}.flatpickr-time .flatpickr-am-pm{outline:0;width:18%;cursor:pointer;text-align:center;font-weight:400}.flatpickr-time input:hover,.flatpickr-time .flatpickr-am-pm:hover,.flatpickr-time input:focus,.flatpickr-time .flatpickr-am-pm:focus{background:#927373}.flatpickr-input[readonly]{cursor:pointer}@-webkit-keyframes fpFadeInDown{from{opacity:0;-webkit-transform:translate3d(0,-20px,0);transform:translate3d(0,-20px,0)}to{opacity:1;-webkit-transform:translate3d(0,0,0);transform:translate3d(0,0,0)}}@keyframes fpFadeInDown{from{opacity:0;-webkit-transform:translate3d(0,-20px,0);transform:translate3d(0,-20px,0)}to{opacity:1;-webkit-transform:translate3d(0,0,0);transform:translate3d(0,0,0)}}
+
+span.arrowUp:after, span.arrowDown:after {
+border-bottom-color: var(--text-main) !important;
+}
+span.arrowDown:after {
+border-top-color: var(--text-main) !important;
+
+}
+
+
+
+ 
+
+
+
+
+
+
+
+.dropdown-panel,
+.flatpickr-minuteDropdown,
+.flatpickr-monthDropdown-months {
+  position: fixed !important;
+  background: var(--main-ui) !important;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  box-shadow: 0 20px 50px rgba(0,0,0,.45);
+  z-index: 99999;
+  display: none;
+  overflow-y: auto;
+  box-sizing: border-box !important;
+  max-height: 50%;
+  display: iflex !important;
+  flex-direction: column;
+  width: 150px;
+  min-width: 150px;
+  padding: 3px 0;
+}
+
+.closed {
+  display: none !important;
+}
+
+.dropdown-item {
+  padding: 7px 12px;
+  cursor: pointer;
+  color: var(--text-main);
+}
+
+.dropdown-item:hover {
+  background: var(--bg-hover);
+}
+
+
+.flatpickr-monthDropdown-month {
+  border-radius: none;
+  cursor: pointer;
+  padding: 7px 12px !important;
+  color: #fff;
+
+}
+
+.flatpickr-monthDropdown-months .flatpickr-monthDropdown-month:hover {
+  background: var(--bg-hover) !important;
+}
+
+
+ 
+
+/* month trigger */
+.flatpickr-monthDropdown-panel {
+  position: relative;
+  display: flex;
+  font-size: 16px;
+  color: var(--text-main);
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.flatpickr-monthDropdown-panel::after {
+  content: "" !important;
+  position: absolute !important;
+  right: -18px !important; 
+  width: 16px;
+  top: 2px;
+  height: 16px;
+
+  background: currentColor;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M4.29289 8.29289C4.68342 7.90237 5.31658 7.90237 5.70711 8.29289L12 14.5858L18.2929 8.29289C18.6834 7.90237 19.3166 7.90237 19.7071 8.29289C20.0976 8.68342 20.0976 9.31658 19.7071 9.70711L12.7071 16.7071C12.3166 17.0976 11.6834 17.0976 11.2929 16.7071L4.29289 9.70711C3.90237 9.31658 3.90237 8.68342 4.29289 8.29289Z'/%3E%3C/svg%3E")
+    no-repeat center / contain;
+
+  opacity: 0;
+  transform: translateY(-2px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  pointer-events: none;
+}
+
+
+.flatpickr-monthDropdown-panel:hover::after {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+
+.flatpickr-months {
+  margin-bottom: 19px !important; 
+}
+
+.flatpickr-months {
+  color: #fff;
+  border-bottom: 1px solid var(--border);
+  border-top-left-radius: 12px;
+  height: 50px !important;
+  min-height: 50px !important;
+  border-top-right-radius: 12px;
+}
+
+.flatpickr-prev-month, .flatpickr-month {
+  height: 50px !important;
+  min-height: 50px !important;
+}
+
+.flatpickr-monthDropdown-panel {
+  width: fit-content !important;
+}
+
+.flatpickr-current-month {
+  display: flex !important;
+  padding-top: 14px !important;
+  flex-direction: column;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+#promoSubmitBtn:not(.valid) {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+#promoSubmitBtn:not(.valid):hover {
+  outline: none;
+  transform: none;
+}
+
+#promoSubmitBtn.valid {
+  opacity: 1;
+  cursor: pointer;
+}
+
+.promo-btn-wrap {
+  display: inline-block;
+}
+
+.promo-btn-wrap.locked {
+  cursor: not-allowed;
+}
+
+#promoOpenBtn[aria-disabled="true"] {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background-color: rgba(66, 133, 244, 0.35);
+  border-color: transparent;
+  outline: none;
+  transform: none;
+}
+
+#promoOpenBtn[aria-disabled="true"]:hover {
+  outline: none;
+  transform: none;
+}
 </style>
 
+{% set plans = {
+  'free':       {'label': 'Free Plan',       'tier': 'Community tier · No billing'},
+  'standard':   {'label': 'Standard Plan',   'tier': 'Standard tier'},
+  'plus':       {'label': 'Pro Plan',        'tier': 'Pro tier'},
+  'enterprise': {'label': 'Enterprise Plan', 'tier': 'Enterprise tier · Unlimited claims'}
+} %}
+{% set plan_key = (plan_name or 'free')|string|lower %}
+{% if plan_key not in plans %}{% set plan_key = 'free' %}{% endif %}
+{% set current = plans[plan_key] %}
+{% set is_free = (plan_key == 'free') %}
+{% set is_enterprise = (plan_key == 'enterprise') %}
 
+{% set sub_status = subscription.status if subscription else none %}
+{% set is_canceled = (sub_status == 'canceled') %}
+{% set is_past_due = (sub_status == 'past_due') %}
+{% set is_wallet_sub = (subscription and subscription.payment_method == 'wallet') %}
+
+{% set show_upgrade = is_free or plan_key == 'standard' %}
+{% set is_cancelable_plan = plan_key in ['standard', 'plus'] %}
+
+{# the settings route now passes twitter_promotion (entitlement), sprints and the promo_* cooldown values #}
+{% set can_twitter_promo = twitter_promotion if twitter_promotion is defined else (plan_key in ['standard', 'plus', 'enterprise']) %}
+
+{# 1 week cooldown, enforced here so the page renders locked before any JS runs #}
+{% set promo_locked = (promo_next_allowed is defined and promo_next_allowed) %}
+
+{% set billing_path = '/community/' ~ (community_slug or community.slug) ~ '/settings/billing' %}
 
 
 <div class="plan-card-container">
 
-  <!-- ===================== -->
-  <!-- CURRENT PLAN CARD -->
-  <!-- ===================== -->
-
   <div class="plan-card">
 
-  <div class="plan-header" style="display:flex;align-items:center;justify-content:space-between;">
-    <div>
-      <h3>Free Plan</h3>
-      <span class="plan-meta">Community tier · No billing</span>
+    <div class="plan-header" style="display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <h3>{{ current.label }}</h3>
+        <span class="plan-meta plan-meta-line">{{ current.tier }}</span>
+        {% if not is_free and paid_date %}
+          <span class="plan-meta plan-meta-line">
+            Paid {{ paid_date }} · <span id="planEndLabel">{{ 'Ends' if is_canceled else 'Expires' }}</span> {{ expires_date }}{% if days_left is not none %} ({{ days_left }} day{{ '' if days_left == 1 else 's' }} left){% endif %}
+          </span>
+        {% endif %}
+      </div>
+      {% if is_past_due %}
+        <span class="plan-status bad" id="planStatusBadge">Payment failed</span>
+      {% elif is_canceled %}
+        <span class="plan-status warn" id="planStatusBadge">Ending</span>
+      {% else %}
+        <span class="plan-status" id="planStatusBadge">Active</span>
+      {% endif %}
     </div>
-    <span class="plan-status">Active</span>
-  </div>
 
+    <span class="plan-meta" id="planCancelNote" style="{{ '' if is_canceled else 'display:none;' }}">
+      Your subscription is cancelled and will not renew. You keep access until {{ expires_date }}.
+    </span>
 
-
-
+    {% if show_upgrade or is_cancelable_plan %}
     <div class="plan-actions">
-      <button class="btn-secondary">Change plan</button>
-      <button class="btn-danger">Cancel subscription</button>
+      {% if show_upgrade %}
+        <button class="btn-upgrade" onclick="var l=document.querySelector('a[data-path=&quot;{{ billing_path }}&quot;]'); l ? l.click() : loadSettingsSection('{{ billing_path }}')">
+          Upgrade plan
+        </button>
+      {% endif %}
+      {% if is_cancelable_plan %}
+        <button class="btn-danger" id="cancelSubBtn" onclick="openCancelModal()" style="{{ 'display:none;' if is_canceled else '' }}">
+          Cancel subscription
+        </button>
+        <button class="btn-secondary" id="resumeSubBtn" onclick="resumeSubscription()" style="{{ '' if is_canceled else 'display:none;' }}">
+          Resume subscription
+        </button>
+      {% endif %}
     </div>
+    {% endif %}
 
   </div>
 
-
-  <!-- ===================== -->
-  <!-- CLAIM USAGE CARD -->
-  <!-- ===================== -->
 
   <div class="plan-card claim">
     <div class="plan-header">
       <div class="claim-usaged-init">
         <h3>Claim Usage this month</h3>
       </div>
+      {% if is_enterprise %}
+        <span class="plan-status unlimited">Unlimited</span>
+      {% endif %}
     </div>
+
     <div class="claim-box">
       <div class="claim-row">
         <span class="claim-title">Claims used</span>
         <span class="claim-value">
-          {{ "{:,}".format(claim_count) }} / {{ "{:,}".format(claim_limit) }}
+          {% if is_enterprise %}
+            {{ "{:,}".format(claim_count or 0) }}
+          {% else %}
+            {{ "{:,}".format(claim_count or 0) }} / {{ "{:,}".format(claim_limit or 0) }}
+          {% endif %}
         </span>
       </div>
-      <div class="claim-progress">
-        <div class="claim-progress-bar" style="width:{{ claim_percent }}%;"></div>
-      </div>
+
+      {% if not is_enterprise %}
+        <div class="claim-progress">
+          <div class="claim-progress-bar" style="width:{{ claim_percent or 0 }}%;"></div>
+        </div>
+      {% endif %}
+
+      {% if not is_enterprise and extra_left %}
+        <div class="claim-row">
+          <span class="claim-title">Extra claimed quests</span>
+          <span class="claim-value">{{ "{:,}".format(extra_left) }}</span>
+        </div>
+      {% endif %}
+
+      {% if is_enterprise %}
+        <span class="plan-meta">No monthly claim limit on Enterprise.</span>
+      {% endif %}
       <span class="plan-meta">Resets {{ reset_date }}</span>
     </div>
   </div>
+
 
   {% set total = (wallet.total_balance or 0) / 100 %}
   {% set available = (wallet.available_balance or 0) / 100 %}
@@ -622,7 +1347,7 @@
     <div class="plan-header">
       <div>
         <h3>Wallet</h3>
-        <p class="plan-cycle">Your campaign funds</p>
+        <p class="plan-cycle">Your reward funds</p>
       </div>
     </div>
 
@@ -672,7 +1397,7 @@
     </div>
 
     <div class="wallet-note">
-      Locked funds are reserved for active campaigns and can’t be spent yet.
+      Locked funds are ZEC set aside as rewards for active quests and leaderboards. They can’t be spent elsewhere while reserved.
     </div>
 
     <div class="plan-actions">
@@ -684,11 +1409,66 @@
   </div>
 
 
+  {% if can_twitter_promo %}
+  <div class="plan-card promo-card" id="promoCard" style="margin-top:16px;">
 
+    <div class="plan-header">
+      <div>
+        <div class="promo-title-row">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+          </svg>
+          <h3>Twitter Promotion</h3>
+        </div>
+        <p class="plan-cycle">Get your community featured on our X account</p>
+      </div>
+    </div>
+
+    <div class="promo-features">
+      <div class="promo-feature">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
+          <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
+        </svg>
+        Promote a sprint, a quest, or your whole community.
+      </div>
+      <div class="promo-feature">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
+          <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
+        </svg>
+        Pick your preferred date. Our team confirms the final slot by email.
+      </div>
+    </div>
+
+    <div class="promo-status-note" id="promoStatusNote">
+      Request received. We'll confirm your date by email.
+    </div>
+
+    {% if promo_locked %}
+    <div class="promo-status-note" id="promoCooldownNote" style="display:block;">
+      Your next promotion request opens on {{ promo_next_label }}.
+    </div>
+    {% endif %}
+
+    <div class="plan-actions">
+      <span class="promo-btn-wrap{{ ' locked' if promo_locked else '' }}"
+            id="promoBtnWrap"
+            tabindex="0"
+            {% if promo_locked %}data-tip="Next promotion in {{ promo_days_left }} day{{ '' if promo_days_left == 1 else 's' }}&#10;Available on {{ promo_next_label }}"{% endif %}>
+        <button type="button" id="promoOpenBtn" onclick="openPromoModal()"{% if promo_locked %} aria-disabled="true"{% endif %}>
+          Request promotion
+        </button>
+      </span>
+    </div>
+
+  </div>
+  {% endif %}
+
+
+  {% if not is_free %}
   <div class="plan-card auto-renew-init" style="margin-top:16px;">
 
     <div class="auto-renew-row">
-      
+
       <div>
         <h3>Auto-Renew Using Wallet Balance</h3>
         <div class="auto-renew-title">Enable Auto-Renew</div>
@@ -720,17 +1500,15 @@
     </div>
 
   </div>
+  {% endif %}
 </div>
-
-
-
 
 
 <div class="modal-overlay" id="topupModal">
   <div class="modal-box">
     <div class="modal-title">Top Up Wallet</div>
     <div class="modal-desc">
-      Add ZEC to your wallet to pay for subscriptions and campaigns.
+      Add ZEC to your wallet to pay for subscriptions and rewards.
     </div>
     <div class="amount-grid">
       <div class="amount-option" onclick="selectAmount(0.5, this)">0.5 ZEC</div>
@@ -753,4 +1531,106 @@
 </div>
 
 
+{% if is_cancelable_plan %}
+<div class="modal-overlay" id="cancelModal">
+  <div class="modal-box">
+    <div class="modal-title">Cancel your {{ current.label }}?</div>
+    <div class="modal-desc">
+      Are you sure you want to cancel your {{ current.label }} for {{ community.name }}?
+      {% if is_wallet_sub %}
+        We won't renew it from your wallet
+      {% else %}
+        We won't charge your card again
+      {% endif %}
+      and your community will drop to the Free plan on {{ expires_date }}. You keep full access until then.
+    </div>
+    <div class="cancel-error" id="cancelError"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="keepPlanBtn" onclick="closeCancelModal()">Keep plan</button>
+      <button class="btn-danger" id="confirmCancelBtn" onclick="confirmCancelSubscription()">Yes, cancel</button>
+    </div>
+  </div>
+</div>
+{% endif %}
 
+
+{% if can_twitter_promo %}
+<div class="modal-overlay" id="promoModal">
+  <div class="modal-box">
+    <div class="modal-scroll">
+
+      <div class="modal-title">Request a Twitter promotion</div>
+      <div class="modal-desc" style="margin-top:10px;">
+        Tell us what to promote and when. Our team reviews every request and confirms the final date by email.
+      </div>
+
+      <div class="promo-field">
+        <label class="promo-label" for="promoType">What do you want to promote?</label>
+        <select class="promo-select" id="promoType" onchange="onPromoTypeChange()">
+          <option value="" selected disabled>Choose one</option>
+          {% if sprints %}<option value="sprint">A sprint</option>{% endif %}
+          <option value="quest">A quest</option>
+          <option value="community">My community</option>
+          <option value="other">Something else</option>
+        </select>
+      </div>
+
+      {% if sprints %}
+      <div class="promo-field" id="promoSprintField" hidden>
+        <label class="promo-label" for="promoSprint">Which sprint?</label>
+        <select class="promo-select" id="promoSprint" onchange="onPromoSprintChange()">
+          <option value="" selected disabled>Choose a sprint</option>
+          {% for sprint in sprints %}
+            <option value="{{ sprint.uuid }}"
+                    data-start="{{ sprint.start_date.strftime('%Y-%m-%d') if sprint.start_date else '' }}"
+                    data-end="{{ sprint.end_date.strftime('%Y-%m-%d') if sprint.end_date else '' }}">
+              {{ sprint.title }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+
+      <div class="promo-field" id="promoQuestField" hidden>
+        <label class="promo-label" for="promoQuest">Quest name or link</label>
+        <input class="promo-input" id="promoQuest" type="text" maxlength="200" placeholder="Paste the quest link or type its name">
+      </div>
+
+      <div class="promo-field" id="promoOtherField" hidden>
+        <label class="promo-label" for="promoOther">What should we promote?</label>
+        <input class="promo-input" id="promoOther" type="text" maxlength="200" placeholder="Briefly describe it">
+      </div>
+
+      <div class="promo-field">
+        <label class="promo-label" for="promoDate">Preferred date</label>
+        <input class="promo-input" id="promoDate" type="date">
+        <span class="promo-hint" id="promoDateHint">Final date is confirmed by our team.</span>
+      </div>
+
+      <div class="promo-field">
+        <label class="promo-label" for="promoMessage">
+          What should the post say?<span class="promo-optional">(optional)</span>
+        </label>
+        <textarea class="promo-textarea" id="promoMessage" maxlength="280" placeholder="e.g. Join our sprint, top 3 win ZEC"></textarea>
+        <div class="promo-counter" id="promoCounter">0/280</div>
+      </div>
+
+      <div class="promo-field">
+        <label class="promo-label" for="promoHandle">
+          Your X handle<span class="promo-optional">(optional)</span>
+        </label>
+        <input class="promo-input" id="promoHandle" type="text" maxlength="16" placeholder="@yourcommunity">
+        <span class="promo-hint">So we can tag you.</span>
+      </div>
+
+      <div class="promo-error" id="promoError"></div>
+
+      <div class="modal-actions">
+        <button class="btn-secondary" id="promoCancelBtn" type="button" onclick="closePromoModal()">Cancel</button>
+        <button class="btn-upgrade" id="promoSubmitBtn" type="button" onclick="submitPromoRequest()">Send request</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endif %}

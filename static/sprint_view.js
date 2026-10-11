@@ -15,6 +15,9 @@ let isLoadingMore = false;
 let scrollContainer = null;
 let rewardDividerInserted = false; // 🔒 must survive across page fetches — only reset on full reload
 
+// ── export state ──────────────────────────────────────
+let exportTotalCount = 0; // set from loadLeaderboardSprint
+
 // ── tie-badge tracking ──────────────────────────────────
 // ties can span across pages (e.g. last row of page 1 and first row of
 // page 2 have equal xp), so all of this has to be module-level, not
@@ -252,6 +255,211 @@ function getScrollContainer() {
   return scrollContainer;
 }
 
+
+function closeExportModal() {
+  const modal = document.getElementById("exportModal");
+  if (!modal) return;
+  modal.classList.remove("show");
+  setTimeout(() => modal.remove(), 200);
+}
+
+function openExportModal({ scope = "sprint", sprintUuid = null } = {}) {
+  document.getElementById("exportModal")?.remove();
+
+  const modal = document.createElement("div");
+  modal.id = "exportModal";
+  modal.className = "modal-backdrop";
+  modal.innerHTML = `
+    <div class="modal-glass" id="exportModalInner">
+      <div class="export-loading"><div class="export-spinner"></div></div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  modal.classList.add("show");
+
+  modal.onclick = (e) => {
+    if (e.target === modal) closeExportModal();
+  };
+
+  const inner = modal.querySelector("#exportModalInner");
+
+  fetch(`/api/${communitySlug}/export-info`, { credentials: "include" })
+    .then(async (res) => {
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Could not load your plan.");
+      renderExportForm(inner, data, { scope, sprintUuid });
+    })
+    .catch((err) => {
+      inner.innerHTML = `
+        <h3>Export leaderboard</h3>
+        <p class="export-error" id="exportLoadError"></p>
+        <div class="modal-actions push-downer">
+          <button class="btn-outline" id="exportCloseBtn">Close</button>
+        </div>
+      `;
+      // textContent so server messages can never inject HTML
+      inner.querySelector("#exportLoadError").textContent = err.message;
+      inner.querySelector("#exportCloseBtn").onclick = closeExportModal;
+    });
+}
+
+function renderExportForm(inner, info, { scope, sprintUuid }) {
+  const cap = info.max_export;               // null = unlimited
+  const unlimited = cap === null || cap === undefined;
+  const total = exportTotalCount || 0;
+
+  const maxAllowed = unlimited ? total : Math.min(cap, total);
+  const capLabel = unlimited ? "Unlimited" : cap.toLocaleString();
+
+  const title = scope === "sprint" ? "Export sprint leaderboard" : "Export leaderboard";
+
+  const limitNote = unlimited
+    ? `Your ${info.plan_label} plan has no export limit.`
+    : `Your ${info.plan_label} plan can export up to ${cap.toLocaleString()} members.`;
+
+  const overCapNote = !unlimited && total > cap
+    ? ` This leaderboard has ${total.toLocaleString()} participants, so only the top ${cap.toLocaleString()} can be exported. Upgrade to export more.`
+    : "";
+
+  inner.innerHTML = `
+    <h3>${title}</h3>
+    <p>${limitNote}${overCapNote}</p>
+
+    <input type="number" id="exportCount" class="export-input"
+           min="1" ${maxAllowed ? `max="${maxAllowed}"` : ""}
+           placeholder="How many top members to export"
+           value="${maxAllowed || ""}" />
+    <div class="export-counter" id="exportCounter"></div>
+
+    <p class="export-error" id="exportError" style="display:none;"></p>
+
+    <div class="modal-actions push-downer export">
+      <button class="btn-outline" id="exportCancelBtn">Cancel</button>
+      <button id="exportConfirmBtn" class="export-btn-comfirm">Export</button>
+    </div>
+  `;
+
+  const input = inner.querySelector("#exportCount");
+  const counter = inner.querySelector("#exportCounter");
+  const confirmBtn = inner.querySelector("#exportConfirmBtn");
+  const cancelBtn = inner.querySelector("#exportCancelBtn");
+  const errorEl = inner.querySelector("#exportError");
+
+  let isSending = false;
+
+  function validate() {
+    const n = parseInt(input.value, 10);
+    const hasValue = Number.isInteger(n) && n > 0;
+    const overCap = !unlimited && hasValue && n > cap;
+    const overTotal = hasValue && total > 0 && n > total;
+
+    counter.textContent = `${hasValue ? n.toLocaleString() : 0}/${capLabel}`;
+    counter.classList.toggle("over", overCap);
+    input.classList.toggle("invalid", overCap || overTotal);
+
+    if (overCap) {
+      errorEl.textContent = `Your plan can only export ${cap.toLocaleString()} members.`;
+      errorEl.style.display = "block";
+    } else if (overTotal) {
+      errorEl.textContent = `There are only ${total.toLocaleString()} participants.`;
+      errorEl.style.display = "block";
+    } else {
+      errorEl.style.display = "none";
+    }
+
+    // same pattern as the email modal: "valid" class instead of disabled
+    confirmBtn.classList.toggle("valid", hasValue && !overCap && !overTotal && total > 0);
+  }
+
+  function setSending(state) {
+    isSending = state;
+    input.disabled = state;
+    cancelBtn.disabled = state;
+    confirmBtn.textContent = state ? "Sending…" : "Export";
+    confirmBtn.style.opacity = state ? "0.7" : "";
+    confirmBtn.style.pointerEvents = state ? "none" : "";
+  }
+
+  input.addEventListener("input", validate);
+  validate();
+
+  cancelBtn.onclick = closeExportModal;
+
+  confirmBtn.onclick = async () => {
+    if (isSending) return;
+
+    // nothing on the leaderboard → tell the user instead of silently doing nothing
+    if (total === 0) {
+      showError("Nothing to export yet.");
+      return;
+    }
+
+    if (!confirmBtn.classList.contains("valid")) return;
+
+    const count = parseInt(input.value, 10);
+
+    setSending(true);
+
+    try {
+      const res = await fetch(`/api/${communitySlug}/export`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": csrfToken
+        },
+        body: JSON.stringify({
+          count,
+          sprint_uuid: scope === "sprint" ? sprintUuid : null
+        })
+      });
+
+      // error pages (e.g. a 404 HTML page) aren't JSON, so don't let parsing throw
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setSending(false);
+        showError(data.message || "Something went wrong. Please try again.");
+        return;
+      }
+
+      closeExportModal();
+      showSuccess(data.message || "Export sent to your email.");
+
+    } catch (err) {
+      console.error("Export failed:", err);
+      setSending(false);
+      showError("Network error. Please try again.");
+    }
+  };
+}
+
+function initExportButton() {
+  const btn = document.getElementById("exportBtn");
+  if (!btn || btn.dataset.bound === "1") return;
+  btn.dataset.bound = "1";
+
+  btn.addEventListener("click", () => {
+    // empty leaderboard → no point opening the modal
+    if (!exportTotalCount) {
+      showError("Nothing to export yet.");
+      return;
+    }
+
+    // this module is the sprint page, so the scope is always "sprint".
+    // The sprint uuid comes from the button if the template sets it,
+    // otherwise from the last segment of the URL (/leaderboard/<uuid>).
+    const pathParts = window.location.pathname.split("/");
+    const sprintUuidFromUrl = pathParts[pathParts.length - 1];
+
+    openExportModal({
+      scope: "sprint",
+      sprintUuid: btn.dataset.sprintUuid || sprintUuidFromUrl,
+    });
+  });
+}
+
+
 function onScrollCheck() {
   if (isLoadingMore || !hasMore) return;
 
@@ -316,6 +524,10 @@ async function loadLeaderboardSprint() {
   const rankUsername = document.querySelector(".rank-username");
   const rankXp = document.querySelector(".rank-xp");
 
+  // the template is injected dynamically, so bind the export button
+  // every time the leaderboard (re)loads
+  initExportButton();
+
   // reset pagination + tie-tracking state on (re)load
   currentOffset = 0;
   hasMore = true;
@@ -324,6 +536,7 @@ async function loadLeaderboardSprint() {
   lastRankedUser = null;
   lastRankedRowEl = null;
   tieGroupStartRowEl = null;
+  exportTotalCount = 0;
 
   list.innerHTML = makeSkeletonRows(4);
 
@@ -344,8 +557,12 @@ async function loadLeaderboardSprint() {
     // ✅ use the backend's true total, not the length of just this page —
     // users.length only ever reflects the first INITIAL_LIMIT rows, so it
     // was never the real participant count once a sprint grew past 30.
+    const totalCount = typeof data.total_count === "number"
+      ? data.total_count
+      : (users ? users.length : 0);
+    exportTotalCount = totalCount;
+
     if (participantsCount) {
-      const totalCount = typeof data.total_count === "number" ? data.total_count : users.length;
       participantsCount.textContent = `${totalCount} participants`;
     }
     // EMPTY LEADERBOARD

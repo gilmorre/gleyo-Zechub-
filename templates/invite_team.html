@@ -1,6 +1,4 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='invite_teams.css') }}">
-
-
 <div class="team-wrapper">
   <div class="team-container">
       <div class="team-header">
@@ -18,6 +16,22 @@
         <input type="text" class="input-style" placeholder="Search by name">
         </div>
       </div>
+
+      {% if team_locked %}
+      <div class="team-limit-banner">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#f5a524" stroke-width="2">
+          <rect x="3" y="11" width="18" height="11" rx="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
+        <span>
+          {% if team_cap == 1 %}
+            You're on the Free plan, which only includes the community creator on the team. Upgrade to Standard to add admins, editors and reviewers. You can still invite regular members.
+          {% else %}
+            You've reached your plan's limit of {{ team_cap }} team members. Upgrade to add more. You can still invite regular members.
+          {% endif %}
+        </span>
+      </div>
+      {% endif %}
 
       <div class="team-controls">
         <div class="team-search-box not-mob">
@@ -67,7 +81,6 @@
         <div class="team-members-list">
           <h3 style="color: var(--text-main);">{{ total_members }} Members</h3>
 
-          <!-- Dynamic members -->
           {% for m in members %}
           <div class="team-member">
             <div class="team-avatar" data-user-id="{{ m.id }}">
@@ -95,7 +108,6 @@
 
                 {% if m.is_creator %}
 
-                  <!-- 🔒 Creator lock -->
                   <span class="creator-lock" data-tooltip="Community creator cannot be edited">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="gold" stroke-width="2" class="icon">
                       <path stroke-linecap="round" stroke-linejoin="round"
@@ -129,7 +141,7 @@
 
         <div class="invite-as">invite as</div>
           <div class="invite-user">
-            <span >Editor</span> 
+            <span >{{ 'Member' if team_locked else 'Editor' }}</span> 
             <svg xmlns="http://www.w3.org/2000/svg" class="chevron" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="6 9 12 15 18 9"></polyline>
             </svg>
@@ -167,8 +179,8 @@
 
         <div class="invite-user-select">
           <div class="invite-as">Invite as</div>
-          <div class="invite-user-dropdown">
-            <span>Editor</span>
+          <div class="invite-user-dropdown" data-selected-role="{{ 'member' if team_locked else 'editor' }}">
+            <span>{{ 'Member' if team_locked else 'Editor' }}</span>
             <svg xmlns="http://www.w3.org/2000/svg" class="chevron" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="6 9 12 15 18 9"></polyline>
             </svg>
@@ -191,17 +203,17 @@
 </div>
 
 <div class="team-role-dropdown">
-  <div data-link="admin">Admin</div>
-  <div data-link="editor">Editor</div>
-  <div data-link="reviewer">Reviewer</div>
+  <div data-link="admin" class="{% if team_locked %}locked{% endif %}">Admin</div>
+  <div data-link="editor" class="{% if team_locked %}locked{% endif %}">Editor</div>
+  <div data-link="reviewer" class="{% if team_locked %}locked{% endif %}">Reviewer</div>
   <div data-link="member">Member</div>
 </div>
 
 
 <div class="team-role-invite">
-  <div data-invite="admin">Admin</div>
-  <div data-invite="editor">Editor</div>
-  <div data-invite="reviewer">Reviewer</div>
+  <div data-invite="admin" class="{% if team_locked %}locked{% endif %}">Admin</div>
+  <div data-invite="editor" class="{% if team_locked %}locked{% endif %}">Editor</div>
+  <div data-invite="reviewer" class="{% if team_locked %}locked{% endif %}">Reviewer</div>
   <div data-invite="member">Member</div>
 </div>
 
@@ -228,9 +240,9 @@
 
 
  <div id="roleDropdown" class="team-role-menu" style="display:none; position: fixed;">
-  <div data-role="admin">Admin</div>
-  <div data-role="editor">Editor</div>
-  <div data-role="reviewer">Reviewer</div>
+  <div data-role="admin" class="{% if team_locked %}locked{% endif %}">Admin</div>
+  <div data-role="editor" class="{% if team_locked %}locked{% endif %}">Editor</div>
+  <div data-role="reviewer" class="{% if team_locked %}locked{% endif %}">Reviewer</div>
   <div data-role="member">Member</div>
   <div data-role="ban" class="ban" style="color:#f66;">Ban</div>
 </div>

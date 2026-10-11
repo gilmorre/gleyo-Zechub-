@@ -1,15 +1,72 @@
 <style>
-/* =========================
-   BILLING GLASS TABS
-========================= */
-.tab-content{
+@property --edge-hi {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: rgba(255, 255, 255, 0.42);
+}
+@property --edge-lo {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: rgba(255, 255, 255, 0.05);
+}
+
+:root {
+  --edge-hi: rgba(255, 255, 255, 0.42);
+  --edge-lo: rgba(255, 255, 255, 0.05);
+  --edge-w: 1px;
+  --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Syne', 'Inter', system-ui, sans-serif;
+  --font-mono: 'DM Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --accent: #6366f1;
+  --accent-soft: rgba(99,102,241,0.25);
+  --success: #22c55e;
+  --danger: #f87171;
+  --glass-bg: linear-gradient(
+    180deg,
+    rgba(255,255,255,0.06),
+    rgba(255,255,255,0.02)
+  );
+}
+
+@media (min-resolution: 2dppx) {
+  :root { --edge-w: 0.75px; }
+}
+
+/* gradient edge: page elements + the wallet box and payment options inside the upgrade modal */
+.billing-tabs-shell::before,
+.table-edge::before,
+.mobile-plan-card::before,
+.plan-action-btn::before,
+.quest-pack::before,
+.upgrade-box .wallet-info::before,
+.upgrade-box .pay-option::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: var(--edge-w);
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    var(--edge-hi) 0%,
+    var(--edge-lo) 28%,
+    var(--edge-lo) 72%,
+    var(--edge-hi) 100%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.tab-content {
   width: 100%;
 }
 
-
-
 #billing {
   animation: fadeUp .4s ease;
+  font-family: var(--font-body);
 }
 
 @keyframes fadeUp {
@@ -17,15 +74,106 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
-.diver-karkar{
+/* generic show/hide used by the JS that updates the plan state */
+.slot-hidden { display: none !important; }
+
+.diver-karkar {
   width: 100%;
   padding: 2px 10px;
   overflow-x: auto;
 }
 
+/* ===== current subscription summary ===== */
+.sub-summary {
+  margin: 0 10px 22px;
+  padding: 18px 20px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  font-family: var(--font-body);
+}
 
+.sub-summary-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
 
- 
+.sub-summary-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.sub-summary-plan {
+  margin-top: 4px;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-main);
+}
+
+.sub-status {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  background: rgba(34, 197, 94, 0.14);
+  color: #7fd9a2;
+  box-shadow: inset 0 0 0 1px rgba(34, 197, 94, 0.22);
+}
+
+.sub-status.warn {
+  background: rgba(250, 204, 21, 0.12);
+  color: #facc15;
+  box-shadow: inset 0 0 0 1px rgba(250, 204, 21, 0.25);
+}
+
+.sub-status.bad {
+  background: rgba(248, 113, 113, 0.12);
+  color: var(--danger);
+  box-shadow: inset 0 0 0 1px rgba(248, 113, 113, 0.25);
+}
+
+.sub-summary-meta {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.sub-summary-meta span {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.sub-summary-meta strong {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-main);
+}
+
+.sub-summary-free {
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+@media (max-width: 600px) {
+  .sub-summary-meta { grid-template-columns: 1fr; gap: 10px; }
+}
 
 .billing-tabs-track {
   position: relative;
@@ -33,22 +181,31 @@
   gap: 28px;
 }
 
-
 .discount-tag {
   display: inline-block;
   margin-left: 6px;
   padding: 4px 10px;
+  font-family: var(--font-body);
   font-size: 11px;
   font-weight: 600;
   border-radius: 999px;
-
-  background: linear-gradient(90deg, #22c55e, #16a34a);
-  color: #fff;
-
-  box-shadow: 0 0 0 1px rgba(34,197,94,0.35),
-              0 6px 18px rgba(34,197,94,0.25);
+  background: rgba(34, 197, 94, 0.14);
+  color: #7fd9a2;
+  white-space: nowrap;
+  box-shadow: inset 0 0 0 1px rgba(34, 197, 94, 0.22);
 }
 
+.popular-tag {
+  display: inline-block;
+  padding: 4px 10px;
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: #fff;
+  white-space: nowrap;
+}
 
 .billing-tab {
   background: none;
@@ -60,21 +217,22 @@
   padding: 6px 2px;
   position: relative;
   z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-body);
 }
 
 .billing-tab:hover {
   color: var(--text-main);
 }
 
-/* ACTIVE TAB */
 .billing-tab.active {
   color: var(--text-main);
 }
- 
-
 
 .billing-indicator {
   position: absolute;
+  left: 0;
   bottom: -6px;
   height: 2px;
   border-radius: 2px;
@@ -82,38 +240,11 @@
   transition: transform 0.35s ease, width 0.35s ease;
 }
 
-
-
 td svg {
-    width: 20px;
-    height: 20px;
-}
- 
-/* =========================
-   ROOT EXTENSIONS
-========================= */
-:root {
-  --accent: #6366f1;
-  --accent-soft: rgba(99,102,241,0.25);
-  --success: #22c55e;
-  --glass-bg: linear-gradient(
-    180deg,
-    rgba(255,255,255,0.06),
-    rgba(255,255,255,0.02)
-  );
+  width: 20px;
+  height: 20px;
 }
 
-
-
-
-/* =========================
-   PRICING TABLE
-========================= */
-
-
-/* =========================
-   HEADER
-========================= */
 thead th {
   padding: 22px 14px;
   text-align: center;
@@ -121,6 +252,8 @@ thead th {
   font-weight: 600;
   color: var(--text-main);
   border-bottom: 1px solid var(--border);
+  vertical-align: top;
+  height: 1px;
 }
 
 thead th:first-child {
@@ -128,23 +261,119 @@ thead th:first-child {
   width: 28%;
 }
 
-.price {
-  display: inline-block;
-  margin-top: 6px;
-  font-size: 13px;
-  color: var(--text-muted);
-  font-weight: 400;
+.plan-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
 }
 
-/* =========================
-   HEADER BUTTONS
-========================= */
-.plan-action-btn{
-  margin-top: 14px;
+.plan-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.plan-badges {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.plan-badges .discount-tag,
+.plan-badges .popular-tag {
+  margin-left: 0;
+  padding: 3px 8px;
+  font-size: 10.5px;
+}
+
+.table-edge .plan-badges {
+  min-height: 22px;
+}
+
+.table-edge .plan-head {
+  height: 100%;
+}
+
+/* action button slot: holds both the "Current plan" and the default button,
+   the JS toggles which one is visible */
+.plan-action-slot {
+  display: flex;
+  justify-content: center;
+  margin-top: 6px;
+}
+
+.plan-action-slot a {
+  display: flex;
+  text-decoration: none;
+}
+
+.plan-action-slot .plan-action-btn {
+  margin-top: 0;
+}
+
+.table-edge .plan-head .plan-action-slot {
+  margin-top: auto;
+  padding-top: 6px;
+}
+
+.plan-name {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-main);
+}
+
+.price-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.price-main {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-main);
+  line-height: 1.2;
+}
+
+.price-main small {
+  font-family: var(--font-body);
+  letter-spacing: 0;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.price-sub {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.price-sub s {
+  opacity: .6;
+  margin-right: 4px;
+}
+
+.plan-action-btn {
+  position: relative;
+  margin-top: 6px;
   padding: 8px 14px;
+  font-family: var(--font-body);
+  font-weight: 500;
   font-size: 13px;
   border-radius: 999px;
-  border: 1px solid var(--border);
+  border: var(--edge-w) solid transparent;
   background: transparent;
   color: var(--text-main);
   white-space: nowrap;
@@ -158,10 +387,16 @@ thead th:first-child {
 
 .plan-action-btn.current {
   background: var(--accent-soft);
-  border-color: var(--accent);
+  --edge-hi: rgba(99, 102, 241, 0.95);
+  --edge-lo: rgba(99, 102, 241, 0.25);
   color: #fff;
   white-space: nowrap;
   cursor: default;
+}
+
+.dash {
+  color: var(--text-muted);
+  opacity: .6;
 }
 
 tbody td,
@@ -187,12 +422,6 @@ tbody td:first-child {
   color: var(--text-muted);
 }
 
-
-.tag-discounted{
-  display: flex;
-  white-space: nowrap;
-}
-
 .sub-tab-content {
   display: none;
 }
@@ -201,10 +430,8 @@ tbody td:first-child {
   display: block;
 }
 
-/* =========================
-   SECTION HEADERS
-========================= */
 tbody .section {
+  font-family: var(--font-display);
   background: var(--bg-surface);
   font-size: 14px !important;
   letter-spacing: 0.08em;
@@ -221,103 +448,66 @@ tbody .section {
   border-bottom-left-radius: 15px;
   border-bottom-right-radius: 15px;
   align-items: center;
-  padding-top: 20px  !important;
+  padding-top: 20px !important;
   top: 0;
   margin-bottom: 28px;
   width: 100%;
 }
 
+.billing-tabs-shell {
+  position: relative;
+  padding: 12px 28px;
+  border-radius: 999px;
+  border: var(--edge-w) solid transparent;
+  background: linear-gradient(
+    180deg,
+    rgba(255,255,255,0.08),
+    rgba(255,255,255,0.02)
+  );
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.table-edge {
+  position: relative;
+  border-radius: 16px;
+  border: var(--edge-w) solid transparent;
+}
+
+.table-edge table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
 @media (min-width: 900px) {
-
-  table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    /* background: var(--glass-bg); */
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    overflow: hidden;
-  }
-  .billing-tabs-shell {
-    padding: 12px 28px;  
-    border-radius: 999px;
-
-    background: linear-gradient(
-      180deg,
-      rgba(255,255,255,0.08),
-      rgba(255,255,255,0.02)
-    );
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    backdrop-filter: blur(14px);
-    border: 1px solid var(--border);
-  }
-
   .billing-tabs-wrapper {
     z-index: 9999;
-
-
   }
 }
 
-
 @media (max-width: 900px) {
-  table {
-    font-size: 13px;
-  }
-
-  table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    border: 1px solid var(--border);
-    border-bottom: none ;
-    border-radius: 0;
-    overflow: hidden;
-  }
-  
-  .billing-tabs-shell {
-    padding: 12px 28px; /* ✅ visual padding lives here */
-    border-radius: 999px;
-
-    background: linear-gradient(
-      180deg,
-      rgba(255,255,255,0.08),
-      rgba(255,255,255,0.02)
-    );
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    backdrop-filter: blur(14px);
-    border: 1px solid var(--border);
-  } 
-
-  .plan-card{
+  .plan-card {
     padding-left: 10px;
   }
 
-
-  .card{
+  .card {
     padding-bottom: 0 !important;
   }
 
-
-  thead th:first-child {
-    width: 36%;
-  }
-  .tab-content{
-    padding:  0;
+  .tab-content {
+    padding: 0;
   }
 
-  tbody .section {
-    text-align: start;
-
+  .table-edge {
+    display: none;
   }
 }
-/* =========================
-   CHECK ICONS
-========================= */
+
 td.check, .row svg {
   color: var(--success);
 }
@@ -328,71 +518,22 @@ td.check svg, .row svg {
   filter: drop-shadow(0 0 6px rgba(34,197,94,0.4));
 }
 
-/* =========================
-   ROW HOVER
-========================= */
- 
-/* =========================
-   RESPONSIVE
-========================= */
-
-
-
-</style>
-<style>
-
 .mobile-pricing {
   display: none;
   gap: 80px;
 }
 
-.mobile-plan-card {
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 16px;
-}
-
-.mobile-plan-card h3 {
-  margin: 0;
-  font-size: 18px;
-}
-
-.mobile-plan-card .price {
-  margin: 6px 0 12px;
-  color: var(--text-muted);
-  font-size: 14px;
-}
-
-.mobile-plan-card .feature {
-  display: flex;
-  justify-content: space-between;
-  padding: 10px 0;
-  border-top: 1px solid var(--border);
-  font-size: 14px;
-}
-
-.mobile-plan-card button {
-  margin-top: 14px;
-  width: 100%;
-}
-
-  @media (max-width: 900px) {
-  table {
-    display: none;
-  }
-
+@media (max-width: 900px) {
   .mobile-pricing {
     display: grid;
     padding: 0 6px;
   }
-
-
 }
 
 .mobile-plan-card {
+  position: relative;
   background: var(--bg-surface);
-  border: 1px solid var(--border);
+  border: var(--edge-w) solid transparent;
   border-radius: 14px;
   padding: 16px;
 }
@@ -402,9 +543,13 @@ td.check svg, .row svg {
   margin-bottom: 16px;
 }
 
-  .mobile-plan-card section:not(:first-of-type) {
-    margin-top: 40px;
-  }
+.mobile-plan-card header .plan-name {
+  font-size: 18px;
+}
+
+.mobile-plan-card section:not(:first-of-type) {
+  margin-top: 40px;
+}
 
 .mobile-plan-card h4 {
   font-size: 13px;
@@ -416,6 +561,7 @@ td.check svg, .row svg {
 .mobile-plan-card .row {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   padding: 15px 0;
   font-size: 14px;
   border-bottom: 1px solid var(--border);
@@ -425,1390 +571,1028 @@ td.check svg, .row svg {
   border-bottom: none;
 }
 
+.mobile-plan-card button {
+  margin-top: 14px;
+  width: 100%;
+}
+
+.plan-card h2 {
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
+.table-edge table {
+  font-family: var(--font-body);
+}
+
+tbody td:not(:first-child) {
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.mobile-plan-card h4 {
+  font-family: var(--font-display);
+  font-weight: 600;
+}
+
+.mobile-plan-card .row span:last-child {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  text-align: right;
+}
+
+.mobile-plan-card .plan-badges:empty {
+  display: none;
+}
+.extra-quests-card {
+  margin-top: 28px;
+}
+
+.extra-quests-head h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+
+.extra-quests-sub {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.extra-quests-left {
+  margin-top: 6px;
+  color: var(--text-main);
+}
+
+.extra-quests-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin: 22px 0 18px;
+}
+
+.quest-pack {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 4px;
+  padding: 24px 14px 16px;
+  border-radius: 16px;
+  border: var(--edge-w) solid transparent;
+  background: var(--bg-app);
+}
+
+.quest-pack.best {
+  --edge-hi: rgba(99, 102, 241, 0.95);
+  --edge-lo: rgba(99, 102, 241, 0.25);
+}
+
+.quest-pack-tag {
+  position: absolute;
+  top: -10px;
+  z-index: 4;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-size: 10.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: #fff;
+  background: var(--accent);
+}
+
+.quest-pack-amount {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-main);
+  line-height: 1.1;
+}
+
+.quest-pack-label {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.quest-pack-price {
+  margin-top: 10px;
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--text-main);
+}
+
+.quest-pack-rate {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.quest-pack .buy-quests-btn {
+  margin-top: 12px;
+  width: 100%;
+}
+
+.buy-quests-btn:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.extra-quests-locked {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+}
+
+.extra-quests-card .auto-renew-features {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.extra-quests-card .auto-renew-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.extra-quests-card .auto-renew-item svg {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  color: var(--success);
+  filter: drop-shadow(0 0 6px rgba(34,197,94,0.4));
+}
+
+@media (max-width: 600px) {
+  .extra-quests-grid {
+    grid-template-columns: 1fr;
+    gap: 22px;
+  }
+}
+
+/* =====================================================
+   UPGRADE MODAL
+   - solid #1d1d33 background, borders use --border (#2f2f4a)
+   - desktop: 420px on the method step, grows to 560px on the card step
+   - phone: bottom sheet, 30px top radius, grows from the bottom edge
+   - width + height changes are animated (height via the script at the end)
+===================================================== */
+.upgrade-modal {
+  --border: #2f2f4a;
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.upgrade-modal.hidden {
+  display: none;
+}
+
+.upgrade-modal .upgrade-box {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 420px;
+  max-height: 75%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 28px 24px 24px;
+  border-radius: 26px;
+  border: 1px solid var(--border);
+  background: #1d1d33;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  font-family: var(--font-body);
+  color: var(--text-main);
+  animation: modalIn .25s ease;
+  transition:
+    max-width .38s cubic-bezier(.4, 0, .2, 1),
+    height .34s cubic-bezier(.4, 0, .2, 1);
+}
+
+/* used by the script to set the first height without animating */
+.upgrade-modal .upgrade-box.no-height-anim {
+  transition: max-width .38s cubic-bezier(.4, 0, .2, 1);
+}
+
+/* wrapper that the script measures to animate the height */
+.upgrade-box .upgrade-inner {
+  display: flow-root;
+}
+
+/* card step: modal grows; Back shrinks it again */
+.upgrade-modal .upgrade-box.is-wide {
+  max-width: 560px;
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(10px) scale(.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.upgrade-box .upgrade-close,
+.upgrade-box .upgrade-back {
+  position: absolute;
+  top: 16px;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background .2s ease, color .2s ease;
+}
+
+.upgrade-box .upgrade-close { right: 16px; }
+.upgrade-box .upgrade-back  { left: 16px; }
+
+.upgrade-box .upgrade-close:hover,
+.upgrade-box .upgrade-back:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text-main);
+}
+
+.upgrade-box .upgrade-close svg,
+.upgrade-box .upgrade-back svg {
+  width: 14px;
+  height: 14px;
+}
+
+.upgrade-box .upgrade-head {
+  text-align: center;
+  padding: 4px 0 22px;
+}
+
+.upgrade-box .upgrade-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.upgrade-box #modalPlanName {
+  margin: 8px 0 8px;
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-main);
+}
+
+.upgrade-box #modalPrice {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--text-main);
+}
+
+/* upgrade note: "you only pay the difference..." */
+.upgrade-box .upgrade-note {
+  margin: 10px 0 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.upgrade-box .wallet-info {
+  position: relative;
+  border: var(--edge-w) solid transparent;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 22px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.upgrade-box #walletBalance {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-main);
+}
+
+.upgrade-box .pivooo-init {
+  margin: 0 0 10px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.upgrade-box .pay-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.upgrade-box .pay-option {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: var(--edge-w) solid transparent;
+  background: transparent;
+  cursor: pointer;
+  transition: background .2s ease;
+}
+
+.upgrade-box .pay-option:hover {
+  background: var(--bg-hover-hover);
+}
+
+.upgrade-box .pay-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.upgrade-box .pay-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-main);
+}
+
+.upgrade-box .pay-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.upgrade-box .pay-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.upgrade-box .pay-text strong {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-main);
+}
+
+.upgrade-box .pay-text small {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.upgrade-box .pay-radio {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid var(--text-muted);
+  transition: border-color .2s ease, background .2s ease;
+}
+
+.upgrade-box .pay-option:has(input:checked) {
+  --edge-hi: rgba(99, 102, 241, 0.95);
+  --edge-lo: rgba(99, 102, 241, 0.25);
+  background: rgba(99, 102, 241, 0.14);
+}
+
+.upgrade-box .pay-option:has(input:checked) .pay-icon {
+  background: rgba(99, 102, 241, 0.3);
+}
+
+.upgrade-box .pay-option input:checked ~ .pay-radio {
+  border-color: var(--accent);
+  background: radial-gradient(circle, var(--accent) 0 45%, transparent 50%);
+}
+
+.upgrade-box .pay-option input:focus-visible ~ .pay-radio {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.upgrade-box .upgrade-hint {
+  margin: 14px 0 18px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.upgrade-box .upgrade-continue {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 13px 16px;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter .2s ease, transform .1s ease;
+}
+
+.upgrade-box .upgrade-continue:hover {
+  filter: brightness(1.1);
+}
+
+.upgrade-box .upgrade-continue:active {
+  transform: scale(.99);
+}
+
+/* ===== wallet skeleton shimmer + disabled states ===== */
+.upgrade-box .hidden {
+  display: none !important;
+}
+
+.skel {
+  display: inline-block;
+  border-radius: 6px;
+  background: linear-gradient(90deg,
+    rgba(255,255,255,0.06) 25%,
+    rgba(255,255,255,0.16) 50%,
+    rgba(255,255,255,0.06) 75%);
+  background-size: 200% 100%;
+  animation: skelShimmer 1.2s linear infinite;
+}
+
+@keyframes skelShimmer {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+
+.upgrade-box #walletSkeleton {
+  width: 78px;
+  height: 16px;
+  vertical-align: middle;
+}
+
+.upgrade-box .pay-option.is-disabled {
+  opacity: .45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.upgrade-box .upgrade-continue:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+  filter: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skel { animation: none; }
+  .upgrade-modal .upgrade-box { transition: none; }
+}
+
+/* ===== card step (Stripe Payment Element) ===== */
+.upgrade-box .upgrade-continue.is-loading::before {
+  content: "";
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  animation: billingSpin .7s linear infinite;
+}
+
+@keyframes billingSpin { to { transform: rotate(360deg); } }
+
+.upgrade-box .card-form {
+  position: relative;
+  min-height: 140px;
+  margin-bottom: 14px;
+}
+
+.upgrade-box .pay-skeleton {
+  display: block;
+  width: 100%;
+  height: 140px;
+  border-radius: 14px;
+}
+
+.upgrade-box .upgrade-error {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(248, 113, 113, 0.1);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  color: var(--danger);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.upgrade-box .secure-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 14px 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.upgrade-box .secure-note svg {
+  width: 13px;
+  height: 13px;
+}
+
+.upgrade-box .upgrade-done {
+  text-align: center;
+  padding: 18px 0 8px;
+}
+
+.upgrade-box .upgrade-done .done-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  background: rgba(34, 197, 94, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(34, 197, 94, 0.3);
+  color: var(--success);
+}
+
+.upgrade-box .upgrade-done .done-icon svg {
+  width: 26px;
+  height: 26px;
+}
+
+.upgrade-box .upgrade-done h3 {
+  margin: 0 0 6px;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.upgrade-box .upgrade-done p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* ===== PHONE: bottom sheet, 30px top radius, anchored to the bottom ===== */
+@media (max-width: 640px) {
+  .upgrade-modal {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .upgrade-modal .upgrade-box,
+  .upgrade-modal .upgrade-box.is-wide {
+    max-width: none;
+    width: 100%;
+    max-height: 80vh;
+    max-height: 80dvh;
+    border-radius: 30px 30px 0 0;
+    border: 1px solid var(--border);
+    border-bottom: none;
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.45);
+    padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    animation: sheetUp .34s cubic-bezier(.2, .8, .2, 1);
+  }
+}
+
+@keyframes sheetUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+/* sticky header always above the cards */
+.billing-tabs-wrapper {
+  z-index: 50;
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+}
+
+/* keep each card's edge z-index inside the card */
+.mobile-plan-card,
+.table-edge,
+.quest-pack {
+  isolation: isolate;
+}
 </style>
- 
-{% set available = (wallet.available_balance or 0) / 100 %}
- <div class="tab-content" id="billing">
-    <div class="billing-tabs-wrapper">
-      <div class="billing-tabs-shell">
-        <div class="billing-tabs-track">
-          <button class="billing-tab" data-subtab="monthly">Monthly</button>
-          <button class="billing-tab" data-subtab="annually">Yearly</button>
-          <span class="billing-indicator"></span>
-        </div>
+{# ------------------------------------------------------------------
+   From the route:
+   `subscription`    the community's ACTIVE CommunitySubscription, or None (= Free)
+   `quest_packs`     extra-quest packs, defined in the backend (billing_stripe.PACKS)
+   `pack_valid_text` e.g. "12 months", or None when packs never expire
+   `extra_left`      extra quests the community has left
+------------------------------------------------------------------ #}
+{% set sub = subscription %}
+
+{% set all_plans = [
+  {'key': 'free', 'name': 'Free', 'monthly': 0, 'yearly_month': 0, 'yearly_total': 0, 'paid': false, 'popular': false},
+  {'key': 'standard', 'name': 'Standard', 'monthly': 69, 'yearly_month': 66, 'yearly_total': 792, 'paid': true, 'popular': true},
+  {'key': 'plus', 'name': 'Pro', 'monthly': 110, 'yearly_month': 105, 'yearly_total': 1260, 'paid': true, 'popular': false},
+  {'key': 'enterprise', 'name': 'Enterprise', 'monthly': 0, 'yearly_month': 0, 'yearly_total': 0, 'paid': false, 'popular': false}
+] %}
+
+{% set sections = [
+  {'title': 'Usage', 'rows': [
+    ['Community members', 'Up to 100', 'Up to 3,000', 'Up to 8,000', 'Unlimited'],
+    ['Team members', '1', 'Unlimited', 'Unlimited', 'Unlimited'],
+    ['Included Claimed Quests', '200 / month', '1,000 / month', '4,000 / month', 'Unlimited']
+  ]},
+  {'title': 'Features', 'rows': [
+    ['In-app Community Chat', false, true, true, true],
+    ['Custom emojis', false, 'Up to 10', 'Up to 35', 'Up to 65'],
+    ['Exports (leaderboard & claims)', 'Up to 100 members', 'Up to 1,000 members', 'Up to 4,000 members', 'Unlimited'],
+    ['CRM', false, true, true, true],
+    ['Analytics', false, true, true, true]
+  ]},
+  {'title': 'Visibility Boosters', 'rows': [
+    ['Listed on the landing page', true, true, true, true],
+    ['Twitter promotion', false, true, true, true]
+  ]},
+  {'title': 'Security', 'rows': [
+    ['Bot protection', true, true, true, true]
+  ]},
+  {'title': 'Support', 'rows': [
+    ['Priority support', false, true, true, true],
+    ['Dedicated account manager', false, false, true, true]
+  ]},
+  {'title': 'Billing', 'rows': [
+    ['Pay with crypto', false, false, false, true]
+  ]}
+] %}
+
+{% set standard_discount = ((all_plans[1].monthly - all_plans[1].yearly_month) / all_plans[1].monthly * 100)|round|int %}
+{% set pro_discount = ((all_plans[2].monthly - all_plans[2].yearly_month) / all_plans[2].monthly * 100)|round|int %}
+{% set best_discount = [standard_discount, pro_discount]|max %}
+
+{% macro tick() %}
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
+  <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
+</svg>
+{% endmacro %}
+
+{% macro cell(v) %}
+{% if v is sameas true %}{{ tick() }}{% elif v is sameas false %}<span class="dash">—</span>{% else %}{{ v }}{% endif %}
+{% endmacro %}
+
+{% macro price_block(p, interval) %}
+<div class="price-block">
+  {% if p.key == 'free' %}
+    <span class="price-main">$0<small> / month</small></span>
+    <span class="price-sub">Free forever</span>
+  {% elif p.key == 'enterprise' %}
+    <span class="price-main">Custom</span>
+    <span class="price-sub">Billed {{ 'monthly' if interval == 'monthly' else 'annually' }}</span>
+  {% elif interval == 'yearly' %}
+    <span class="price-main">${{ p.yearly_month }}<small> / month</small></span>
+    <span class="price-sub"><s>${{ p.monthly }}</s>billed ${{ "{:,}".format(p.yearly_total) }} / year</span>
+  {% else %}
+    <span class="price-main">${{ p.monthly }}<small> / month</small></span>
+    <span class="price-sub">Billed monthly</span>
+  {% endif %}
+</div>
+{% endmacro %}
+
+{# Both buttons ("Current plan" + the normal action) are always rendered inside a slot.
+   The server picks which one is visible; billing JS flips them after a payment. #}
+{% macro action(p, interval, sub, slug) %}
+{% set is_cur = (sub is none and p.key == 'free') or (sub is not none and sub.plan == p.key and sub.interval == interval) %}
+<div class="plan-action-slot" data-plan="{{ p.key }}" data-interval="{{ interval }}">
+  <button class="plan-action-btn current{% if not is_cur %} slot-hidden{% endif %}" data-role="current">Current plan</button>
+  {% if p.key == 'enterprise' %}
+    <a href="{{ url_for('enterprise', slug=slug, interval=interval) }}" data-role="default"{% if is_cur %} class="slot-hidden"{% endif %}>
+      <button class="plan-action-btn">Contact us</button>
+    </a>
+  {% elif p.key != 'free' %}
+    <button
+      class="plan-action-btn upgrade-btn{% if is_cur %} slot-hidden{% endif %}"
+      data-role="default"
+      data-plan="{{ p.key }}"
+      data-interval="{{ interval }}"
+      data-price="{{ p.yearly_total if interval == 'yearly' else p.monthly }}"
+    >
+      Upgrade
+    </button>
+  {% endif %}
+</div>
+{% endmacro %}
+
+{% macro plan_head(p, interval, sub, slug) %}
+<div class="plan-head">
+  <div class="plan-title-row">
+    <span class="plan-name">{{ p.name }}</span>
+  </div>
+  <div class="plan-badges">
+    {%- if interval == 'yearly' and p.paid -%}
+      {%- set d = ((p.monthly - p.yearly_month) / p.monthly * 100)|round|int -%}
+      <span class="discount-tag">Save {{ d }}%</span>
+    {%- endif -%}
+    {%- if p.popular -%}
+      <span class="popular-tag">Most popular</span>
+    {%- endif -%}
+  </div>
+  {{ price_block(p, interval) }}
+  {{ action(p, interval, sub, slug) }}
+</div>
+{% endmacro %}
+
+{# data-sub-* tell billing.js the community's current plan, so the upgrade modal
+   can show only the price difference. Missing = Free. #}
+<div class="tab-content" id="billing"
+     data-community-id="{{ community.id }}"
+     data-stripe-pk="{{ stripe_publishable_key }}"
+     {% if sub %}
+     data-sub-plan="{{ sub.plan }}"
+     data-sub-interval="{{ sub.interval }}"
+     data-sub-expires="{{ sub.expires_at.isoformat() }}Z"
+     {% endif %}>
+  <div class="billing-tabs-wrapper">
+    <div class="billing-tabs-shell">
+      <div class="billing-tabs-track">
+        <button class="billing-tab" data-subtab="monthly">Monthly</button>
+        <button class="billing-tab" data-subtab="annually">Yearly<span class="discount-tag">Save up to {{ best_discount }}%</span></button>
+        <span class="billing-indicator"></span>
       </div>
     </div>
-
-
-  {% set standard_monthly = 250 %}
-  {% set standard_yearly = 213 %}
-  {% set standard_discount =
-    ((standard_monthly - standard_yearly) / standard_monthly * 100) | round
-  %}
-
-  {% set plus_monthly = 560 %}
-  {% set plus_yearly = 476 %}
-  {% set plus_discount =
-    ((plus_monthly - plus_yearly) / plus_monthly * 100) | round
-  %}
+  </div>
 
   <div class="diver-karkar">
-  
-    <div class="sub-tab-content active" id="monthly">
+
+    {% for interval, tab_id in [('monthly', 'monthly'), ('yearly', 'annually')] %}
+    <div class="sub-tab-content{% if loop.first %} active{% endif %}" id="{{ tab_id }}">
+
       <div class="plans">
         <div class="plan-card">
-          <h2>Monthly Plan</h2>
+          <h2>{{ 'Monthly' if interval == 'monthly' else 'Yearly' }} Plan</h2>
           <div class="pricing-table"></div>
         </div>
       </div>
 
-
       <div class="mobile-pricing">
-        <div class="mobile-plan-card">
+        {% for p in all_plans %}
+          {% set pi = loop.index0 %}
+          <div class="mobile-plan-card {{ p.key }}-{{ interval }}">
+            <header>
+              {{ plan_head(p, interval, sub, community.slug) }}
+            </header>
 
-          <header>
-            <h3>Free</h3>
-            <p class="price">$0 / month</p>
-
-            {% set other_paid = community.community_payments
-              |selectattr("status","equalto","paid")
-              |rejectattr("plan","equalto","free")
-              |first %}
-            {% if not other_paid %}
-              <button class="plan-action-btn current">Current plan</button>
-            {% endif %}
-          </header>
-
-          <section>
-            <h4>Usage</h4>
-            <div class="row"><span>Included Claimed Quests</span><span>5,000 / month</span></div>
-            <div class="row"><span>Extra Claimed Quests</span><span>-</span></div>
-          </section>
-
-          <section>
-            <h4>Features</h4>
-            <div class="row"><span>Community Chat</span><span>Read-only</span></div>
-            <div class="row"><span>Exports</span><span>Up to 100 members</span></div>
-            <div class="row"><span>CRM</span><span>—</span></div>
-            <div class="row"><span>Analytics</span><span>—</span></div>
-            <div class="row"><span>AI Review</span><span>—</span></div>
-          </section>
-
-          <section>
-            <h4>Visibility Boosters</h4>
-            <div class="row"><span>Listed on</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-            <div class="row"><span>Promoted on homepage</span><span>—</span></div>
-            <div class="row"><span>Partnerships Network</span><span>—</span></div>
-          </section>
-
-          <section>
-            <h4>Security</h4>
-            <div class="row"><span>Bot protection</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-          </section>
-
-          <section>
-            <h4>Support</h4>
-            <div class="row"><span>Priority support</span><span>—</span></div>
-          </section>
-
-        </div>
-
-        <div class="mobile-plan-card standard-montly">
-
-          <header>
-            <h3>Standard</h3>
-            <p class="price">Starting at $250 / month</p>
-
-            {% set payment = community.community_payments
-              |selectattr("plan","equalto","standard")
-              |selectattr("interval","equalto","monthly")
-              |selectattr("status","equalto","paid")
-              |first %}
-            {% if payment %}
-              <button class="plan-action-btn current">Current plan</button>
-            {% else %}
-              <button
-                class="plan-action-btn upgrade-btn"
-                data-plan="standard"
-                data-interval="monthly"
-                data-price="467"
-              >
-                Upgrade
-              </button>
-            {% endif %}
-          </header>
-
-          <section>
-            <h4>Usage</h4>
-            <div class="row"><span>Included Claimed Quests</span><span>10,000 / month</span></div>
-            <div class="row"><span>Extra Claimed Quests</span><span>$155 / 1k</span></div>
-          </section>
-
-          <section>
-            <h4>Features</h4>
-            <div class="row"><span>Community Chat</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-            <div class="row"><span>Exports</span><span>Up to 1,000 members</span></div>
-            <div class="row"><span>CRM</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-            <div class="row"><span>Analytics</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-            <div class="row"><span>AI Review</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-          </section>
-
-          <section>
-            <h4>Visibility Boosters</h4>
-            <div class="row"><span>Listed on</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-            <div class="row"><span>Homepage promotion</span><span>2 days / month</span></div>
-            <div class="row"><span>Partnerships Network</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-          </section>
-
-          <section>
-            <h4>Security</h4>
-            <div class="row"><span>Bot protection</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-          </section>
-
-          <section>
-            <h4>Support</h4>
-            <div class="row"><span>Priority support</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-          </section>
-
-        </div>
-
-        <div class="mobile-plan-card plus-monthly">
-
-          <header>
-            <h3>Plus</h3>
-            <p class="price">Starting at $560 / month</p>
-
-            {% set payment = community.community_payments
-              |selectattr("plan","equalto","plus")
-              |selectattr("interval","equalto","monthly")
-              |selectattr("status","equalto","paid")
-              |first %}
-            {% if payment %}
-              <button class="plan-action-btn current">Current plan</button>
-            {% else %}
-              <button
-                class="plan-action-btn upgrade-btn"
-                data-plan="plus"
-                data-interval="monthly"
-                data-price="560"
-              >
-                Upgrade
-              </button>
-            {% endif %}
-          </header>
-
-          <section>
-            <h4>Usage</h4>
-            <div class="row"><span>Included Claimed Quests</span><span>50,000 / month</span></div>
-            <div class="row"><span>Extra Claimed Quests</span><span>$125 / 1k</span></div>
-          </section>
-
-          <section>
-            <h4>Features</h4>
-            <div class="row"><span>Community Chat</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-            <div class="row"><span>Exports</span><span>Up to 10,000 members</span></div>
-            <div class="row"><span>CRM</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-            <div class="row"><span>Analytics</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            <div class="row"><span>AI Review</span><span>
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-          </section>
-
-          <section>
-            <h4>Visibility Boosters</h4>
-            <div class="row"><span>Listed on</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-            <div class="row"><span>Homepage promotion</span><span>5 days / month</span></div>
-            <div class="row"><span>Partnerships Network</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-          </section>
-
-          <section>
-            <h4>Security</h4>
-            <div class="row"><span>Bot protection</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-          </section>
-
-          <section>
-            <h4>Support</h4>
-            <div class="row"><span>Priority support</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-            <div class="row"><span>Dedicated account manager</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-          </section>
-
-        </div>
-
-
-        <div class="mobile-plan-card enterprise">
-
-          <header>
-            <h3>Enterprise</h3>
-            <p class="price">Billed monthly · Custom</p>
-
-            {% set payment = community.community_payments
-              |selectattr("plan","equalto","enterprise")
-              |selectattr("interval","equalto","monthly")
-              |selectattr("status","equalto","paid")
-              |first %}
-            {% if payment %}
-              <button class="plan-action-btn current">Current plan</button>
-            {% else %}
-              <a href="{{ url_for('enterprise', slug=community.slug, interval='monthly') }}">
-                <button class="plan-action-btn">Contact us</button>
-              </a>
-            {% endif %}
-          </header>
-
-          <section>
-            <h4>Usage</h4>
-            <div class="row"><span>Included Claimed Quests</span><span>Unlimited</span></div>
-            <div class="row"><span>Extra Claimed Quests</span><span>Unlimited</span></div>
-          </section>
-
-          <section>
-            <h4>Features</h4>
-            <div class="row"><span>Community Chat</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-            <div class="row"><span>Exports</span><span>Unlimited</span></div>
-            <div class="row"><span>CRM</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-            <div class="row"><span>Analytics</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-            <div class="row"><span>AI Review</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-          </section>
-
-          <section>
-            <h4>Visibility Boosters</h4>
-            <div class="row"><span>Listed on</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-            <div class="row"><span>Homepage promotion</span><span>—</span></div>
-            <div class="row"><span>Partnerships Network</span><span>Telegram & Twitter</span></div>
-            <div class="row"><span>Booster package</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-          </section>
-
-          <section>
-            <h4>Security</h4>
-            <div class="row"><span>Bot protection</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-          </section>
-
-          <section>
-            <h4>Billing</h4>
-            <div class="row"><span>Pay with crypto</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-          </section>
-
-        </div>
-
+            {% for s in sections %}
+              {% set ns = namespace(show=false) %}
+              {% for r in s.rows %}
+                {% if r[pi + 1] is not sameas false %}{% set ns.show = true %}{% endif %}
+              {% endfor %}
+              {% if ns.show %}
+              <section>
+                <h4>{{ s.title }}</h4>
+                {% for r in s.rows %}
+                  <div class="row"><span>{{ r[0] }}</span><span>{{ cell(r[pi + 1]) }}</span></div>
+                {% endfor %}
+              </section>
+              {% endif %}
+            {% endfor %}
+          </div>
+        {% endfor %}
       </div>
 
+      <div class="table-edge">
         <table>
-        <thead>
+          <thead>
             <tr>
-            <th></th>
-            <th>
-                Free<br>
-                <span class="price">$0 / month</span><br>
-                {% set other_paid = community.community_payments|selectattr("status","equalto","paid")|rejectattr("plan","equalto","free")|first %}
-                {% if other_paid %}
-    
-                {% else %}
-                <button class="plan-action-btn current">Current plan</button>
-                {% endif %}
-            </th>
-
-            <th class="standard-montly">
-                Standard<br>
-                <span class="price">Starting at $250 / month</span><br>
-                {% set payment = community.community_payments|selectattr("plan","equalto","standard")|selectattr("interval","equalto","monthly")|selectattr("status","equalto","paid")|first %}
-                {% if payment %}
-                <button class="plan-action-btn current">Current plan</button>
-                {% else %}
-                <button
-                  class="plan-action-btn upgrade-btn"
-                  data-plan="standard"
-                  data-interval="monthly"
-                  data-price="250"
-                >
-                  Upgrade
-                </button>
-                {% endif %}
-            </th>
-
-            <th class="plus-montly">
-                Plus<br>
-                <span class="price">Starting at $560 / month</span><br>
-                {% set payment = community.community_payments|selectattr("plan","equalto","plus")|selectattr("interval","equalto","monthly")|selectattr("status","equalto","paid")|first %}
-                {% if payment %}
-                <button class="plan-action-btn current">Current plan</button>
-                {% else %}
-                <button
-                  class="plan-action-btn upgrade-btn"
-                  data-plan="plus"
-                  data-interval="monthly"
-                  data-price="560"
-                >
-                  Upgrade
-                </button>
-                {% endif %}
-            </th>
-
-            <th>
-                Enterprise<br>
-                <span class="price">Billed monthly Custom</span><br>
-                {% set payment = community.community_payments
-                    |selectattr("plan","equalto","enterprise")
-                    |selectattr("interval","equalto","monthly")
-                    |selectattr("status","equalto","paid")
-                    |first %}
-                {% if payment %}
-                <button class="plan-action-btn current">Current plan</button>
-                {% else %}
-                <a href="{{ url_for('enterprise', slug=community.slug, interval='monthly') }}">
-                    <button class="plan-action-btn">Contact us</button>
-                </a>
-                {% endif %}
-            </th>
-
-
+              <th></th>
+              {% for p in all_plans %}
+              <th class="{% if p.key == 'standard' or p.key == 'plus' %}{{ p.key }}-{{ 'montly' if interval == 'monthly' else 'yearly' }}{% endif %}">
+                {{ plan_head(p, interval, sub, community.slug) }}
+              </th>
+              {% endfor %}
             </tr>
-        </thead>
-        <tbody>
-            <tr><th colspan="5" class="section">Usage</th></tr>
-            <tr>
-            <td>Included Claimed Quests</td>
-            <td>5,000 per month</td>
-            <td>10,000 per month</td>
-            <td>50,000 per month</td>
-            <td>Unlimited</td>
-            </tr>
-            <tr>
-            <td>Extra Claimed Quests</td>
-            <td>-</td>
-            <td>$155 per 1k</td>
-            <td>$125 per 1k</td>
-            <td>Unlimited</td>
-            </tr>
-            <tr><th colspan="5" class="section">Features</th></tr>
-            <tr>
-            <tr>
-              <td>Community Chat</td>
-              <td>
-                Read-only
-              </td>
-              <td class="check">
-                Full access
-              </td>
-              <td class="check">
-                Full access
-              </td>
-              <td class="check">
-                Full access
-              </td>
-            </tr>
-
-            <td>Exports (leaderboard & claims)</td>
-            <td>Up to 100 members</td>
-            <td>Up to 1,000 members</td>
-            <td>Up to 10,000 members</td>
-            <td>Unlimited</td>
-            </tr>
-            <tr>
-            <td>CRM</td>
-            <td></td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            </tr>
-            <tr>
-            <td class="check">Analytics</td>
-            <td></td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            </tr>
-            <tr>
-            <td>AI Review</td>
-            <td></td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            </tr>
-            <tr><th colspan="5" class="section">Visibility Boosters</th></tr>
-            <tr>
-            <td>Listed on -</td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            </tr>
-            <tr>
-            <td>Promoted on the homepage</td>
-            <td></td>
-            <td>2 day / month</td>
-            <td>5 day / month</td>
-            <td>-</td>
-            </tr>
-            <tr>
-            <td>Partnerships Network access</td>
-            <td></td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            <td>Telegram & Twitter promotion</td>
-            </tr>
-            <tr>
-            <td>Booster package</td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            </tr>
-            <tr><th colspan="5" class="section">Security</th></tr>
-            <tr>
-            <td>Bot protection</td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            </tr>
-            <tr><th colspan="5" class="section">Support</th></tr>
-            <tr>
-            <td>Priority support</td>
-            <td></td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            </tr>
-            <tr>
-            <td>Dedicated account manager</td>
-            <td></td>
-            <td></td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            </tr>
-            <tr><th colspan="5" class="section">Billing</th></tr>
-            <tr>
-            <td>Pay with crypto</td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            </tr>
-        </tbody>
+          </thead>
+          <tbody>
+            {% for s in sections %}
+              <tr><th colspan="5" class="section">{{ s.title }}</th></tr>
+              {% for r in s.rows %}
+              <tr>
+                <td>{{ r[0] }}</td>
+                {% for v in r[1:] %}
+                  <td{% if v is sameas true %} class="check"{% endif %}>{{ cell(v) }}</td>
+                {% endfor %}
+              </tr>
+              {% endfor %}
+            {% endfor %}
+          </tbody>
         </table>
+      </div>
+
+    </div>
+    {% endfor %}
+
+  </div>
+
+  <div class="plan-card extra-quests-card extra-quests-init">
+
+    <div class="extra-quests-head">
+      <h3>Extra Claimed Quests</h3>
+      <div class="extra-quests-sub">Need more than your plan includes? Top up with a one-time payment.</div>
+      <div class="extra-quests-sub extra-quests-left{% if not extra_left %} slot-hidden{% endif %}" id="extraLeft">You have {{ "{:,}".format(extra_left or 0) }} extra quests left.</div>
     </div>
 
-    <div class="sub-tab-content" id="annually">
-      <div class="plans">
-        <div class="plan-card">
-          <h2>Yearly Plan</h2>
-          <div class="pricing-table"></div>
-        </div>
+    {# packs come from the backend (billing_stripe.PACKS). The button only carries the pack id. #}
+    <div class="extra-quests-grid">
+      {% for pack in quest_packs %}
+      <div class="quest-pack{% if pack.best %} best{% endif %}">
+        {% if pack.best %}<span class="quest-pack-tag">Best value</span>{% endif %}
+        <div class="quest-pack-amount">{{ "{:,}".format(pack.quests) }}</div>
+        <div class="quest-pack-label">claimed quests</div>
+        <div class="quest-pack-price">${{ pack.price }}</div>
+        <div class="quest-pack-rate">${{ pack.rate }} / 1k</div>
+        <button
+          type="button"
+          class="plan-action-btn buy-quests-btn"
+          data-pack="{{ pack.id }}"
+          data-quests="{{ pack.quests }}"
+          data-price="{{ pack.price }}"
+          {% if not sub %}disabled{% endif %}
+        >
+          Buy
+        </button>
       </div>
+      {% endfor %}
+    </div>
 
-      <div class="mobile-pricing">
-        <div class="mobile-plan-card">
+    <div class="extra-quests-locked{% if sub %} slot-hidden{% endif %}" id="questsLocked">Extra quests are available on paid plans. Upgrade to buy more.</div>
 
-          <header>
-            <h3>Free</h3>
-            <p class="price">$0 / month</p>
-
-            {% set other_paid = community.community_payments
-              |selectattr("status","equalto","paid")
-              |rejectattr("plan","equalto","free")
-              |first %}
-            {% if not other_paid %}
-              <button class="plan-action-btn current">Current plan</button>
-            {% endif %}
-          </header>
-
-          <section>
-            <h4>Usage</h4>
-            <div class="row"><span>Included Claimed Quests</span><span>5,000 / month</span></div>
-            <div class="row"><span>Extra Claimed Quests</span><span>-</span></div>
-          </section>
-
-          <section>
-            <h4>Features</h4>
-            <div class="row"><span>Community Chat</span><span>Read-only</span></div>
-            <div class="row"><span>Exports</span><span>Up to 100 members</span></div>
-            <div class="row"><span>CRM</span><span>—</span></div>
-            <div class="row"><span>Analytics</span><span>—</span></div>
-            <div class="row"><span>AI Review</span><span>—</span></div>
-          </section>
-
-          <section>
-            <h4>Visibility Boosters</h4>
-            <div class="row"><span>Listed on</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-            <div class="row"><span>Promoted on homepage</span><span>—</span></div>
-            <div class="row"><span>Partnerships Network</span><span>—</span></div>
-          </section>
-
-          <section>
-            <h4>Security</h4>
-            <div class="row"><span>Bot protection</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-          </section>
-
-          <section>
-            <h4>Support</h4>
-            <div class="row"><span>Priority support</span><span>—</span></div>
-          </section>
-
-        </div>
-
-        <div class="mobile-plan-card standard-yearly">
-
-          <header>
-            <div style="display: flex; align-items: center; justify-content: center;">
-              <h3>Standard</h3>
-              <span class="discount-tag">Save {{ standard_discount }}%</span>
-            </div>
-            <p class="price">Starting at $250 / month</p>
-
-            {% set payment = community.community_payments
-              |selectattr("plan","equalto","standard")
-              |selectattr("interval","equalto","yearly")
-              |selectattr("status","equalto","paid")
-              |first %}
-            {% if payment %}
-              <button class="plan-action-btn current">Current plan</button>
-            {% else %}
-                <button
-                  class="plan-action-btn upgrade-btn"
-                  data-plan="standard"
-                  data-interval="yearly"
-                  data-price="3000"
-                >
-                  Upgrade
-                </button>
-            {% endif %}
-          </header>
-
-          <section>
-            <h4>Usage</h4>
-            <div class="row"><span>Included Claimed Quests</span><span>10,000 / month</span></div>
-            <div class="row"><span>Extra Claimed Quests</span><span>$155 / 1k</span></div>
-          </section>
-
-          <section>
-            <h4>Features</h4>
-            <div class="row"><span>Community Chat</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-            <div class="row"><span>Exports</span><span>Up to 1,000 members</span></div>
-            <div class="row"><span>CRM</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-            <div class="row"><span>Analytics</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-            <div class="row"><span>AI Review</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-          </section>
-
-          <section>
-            <h4>Visibility Boosters</h4>
-            <div class="row"><span>Listed on</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-            <div class="row"><span>Homepage promotion</span><span>2 days / month</span></div>
-            <div class="row"><span>Partnerships Network</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-          </section>
-
-          <section>
-            <h4>Security</h4>
-            <div class="row"><span>Bot protection</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-          </section>
-
-          <section>
-            <h4>Support</h4>
-            <div class="row"><span>Priority support</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-          </section>
-
-        </div>
-
-        <div class="mobile-plan-card plus-yearly">
-
-          <header>
-            <div style="display: flex; align-items: center; justify-content: center;">
-
-              <h3>Plus</h3>
-
-              <span class="discount-tag">Save {{ standard_discount }}%</span>
-
-            </div>
-            <p class="price">Starting at $560 / month</p>
-
-            {% set payment = community.community_payments
-              |selectattr("plan","equalto","plus")
-              |selectattr("interval","equalto","yearly")
-              |selectattr("status","equalto","paid")
-              |first %}
-            {% if payment %}
-              <button class="plan-action-btn current">Current plan</button>
-            {% else %}
-              <button
-                class="plan-action-btn upgrade-btn"
-                data-plan="plus"
-                data-interval="yearly"
-                data-price="6720"
-              >
-                Upgrade
-              </button>
-            {% endif %}
-          </header>
-
-          <section>
-            <h4>Usage</h4>
-            <div class="row"><span>Included Claimed Quests</span><span>50,000 / month</span></div>
-            <div class="row"><span>Extra Claimed Quests</span><span>$125 / 1k</span></div>
-          </section>
-
-          <section>
-            <h4>Features</h4>
-            <div class="row"><span>Community Chat</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-            <div class="row"><span>Exports</span><span>Up to 10,000 members</span></div>
-            <div class="row"><span>CRM</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-            <div class="row"><span>Analytics</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-            <div class="row"><span>AI Review</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-          </section>
-
-          <section>
-            <h4>Visibility Boosters</h4>
-            <div class="row"><span>Listed on</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-
-            <div class="row"><span>Homepage promotion</span><span>5 days / month</span></div>
-            <div class="row"><span>Partnerships Network</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-          </section>
-
-          <section>
-            <h4>Security</h4>
-            <div class="row"><span>Bot protection</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-          </section>
-
-          <section>
-            <h4>Support</h4>
-            <div class="row"><span>Priority support</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-                </span></div>
-            <div class="row"><span>Dedicated account manager</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-          </section>
-
-        </div>
-
-
-        <div class="mobile-plan-card enterprise">
-
-          <header>
-            <h3>Enterprise</h3>
-            <p class="price">Billed monthly · Custom</p>
-
-            {% set payment = community.community_payments
-              |selectattr("plan","equalto","enterprise")
-              |selectattr("interval","equalto","yearly")
-              |selectattr("status","equalto","paid")
-              |first %}
-            {% if payment %}
-              <button class="plan-action-btn current">Current plan</button>
-            {% else %}
-              <a href="{{ url_for('enterprise', slug=community.slug, interval='yearly') }}">
-                <button class="plan-action-btn">Contact us</button>
-              </a>
-            {% endif %}
-          </header>
-
-          <section>
-            <h4>Usage</h4>
-            <div class="row"><span>Included Claimed Quests</span><span>Unlimited</span></div>
-            <div class="row"><span>Extra Claimed Quests</span><span>Unlimited</span></div>
-          </section>
-
-          <section>
-            <h4>Features</h4>
-            <div class="row"><span>Community Chat</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-            <div class="row"><span>Exports</span><span>Unlimited</span></div>
-            <div class="row"><span>CRM</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-            <div class="row"><span>Analytics</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-            <div class="row"><span>AI Review</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-          </section>
-
-          <section>
-            <h4>Visibility Boosters</h4>
-            <div class="row"><span>Listed on</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-            <div class="row"><span>Homepage promotion</span><span>—</span></div>
-            <div class="row"><span>Partnerships Network</span><span>Telegram & Twitter</span></div>
-            <div class="row"><span>Booster package</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-          </section>
-
-          <section>
-            <h4>Security</h4>
-            <div class="row"><span>Bot protection</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-          </section>
-
-          <section>
-            <h4>Billing</h4>
-            <div class="row"><span>Pay with crypto</span><span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </span></div>
-          </section>
-
-        </div>
-
+    <div class="auto-renew-features">
+      <div class="auto-renew-item">
+        {{ tick() }}
+        Pay from your wallet balance (crypto) or by card through Stripe.
       </div>
-        <table>
-        <thead>
-            <tr>
-            <th></th>
-            <th>
-                Free<br>
-                <span class="price">$0 / month</span><br>
-                {% set other_paid = community.community_payments|selectattr("status","equalto","paid")|rejectattr("plan","equalto","free")|first %}
-                {% if other_paid %}
-                <!-- Free disappears when another plan is paid -->
-                {% else %}
-                <button class="plan-action-btn current">Current plan</button>
-                {% endif %}
-            </th>
-
-            <th class="standard-yearly">
-              <div class="tag-discounted" class="standard-montly">
-                Standard
-                <span class="discount-tag">Save {{ standard_discount }}%</span><br>                
-              </div>
-  
-
-              <span class="price">Starting at $213 / year</span><br>
-
-              {% set payment = community.community_payments
-                |selectattr("plan","equalto","standard")
-                |selectattr("interval","equalto","yearly")
-                |selectattr("status","equalto","paid")
-                |first %}
-              {% if payment %}
-                <button class="plan-action-btn current">Current plan</button>
-              {% else %}
-                <button
-                  class="plan-action-btn upgrade-btn"
-                  data-plan="standard"
-                  data-interval="yearly"
-                  data-price="2556"
-                >
-                  Upgrade
-                </button>
-              {% endif %}
-            </th>
-
-
-            <th class="plus-yearly">
-              
-              <div class="tag-discounted">
-                Plus
-                <span class="discount-tag">Save {{ standard_discount }}%</span><br>                
-              </div>
-              <span class="price">Starting at $476 / year</span><br>
-
-              {% set payment = community.community_payments
-                |selectattr("plan","equalto","plus")
-                |selectattr("interval","equalto","yearly")
-                |selectattr("status","equalto","paid")
-                |first %}
-              {% if payment %}
-                <button class="plan-action-btn current">Current plan</button>
-              {% else %}
-              <button
-                class="plan-action-btn upgrade-btn"
-                data-plan="plus"
-                data-interval="yearly"
-                data-price="5604"
-              >
-                Upgrade
-              </button>
-              {% endif %}
-            </th>
-
-            <th>
-                Enterprise<br>
-                <span class="price">Billed annually Custom</span><br>
-                {% set payment = community.community_payments
-                    |selectattr("plan","equalto","enterprise")
-                    |selectattr("interval","equalto","yearly")
-                    |selectattr("status","equalto","paid")
-                    |first %}
-                {% if payment %}
-                <button class="plan-action-btn current">Current plan</button>
-                {% else %}
-                <a href="{{ url_for('enterprise', slug=community.slug, interval='yearly') }}">
-                    <button class="plan-action-btn">Contact us</button>
-                </a>
-                {% endif %}
-            </th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr><th colspan="5" class="section">Usage</th></tr>
-            <tr>
-            <td>Included Claimed Quests</td>
-            <td>5,000 per month</td>
-            <td>10,000 per month</td>
-            <td>50,000 per month</td>
-            <td>Unlimited</td>
-            </tr>
-            <tr>
-            <td>Extra Claimed Quests</td>
-            <td>-</td>
-            <td>$155 per 1k</td>
-            <td>$125 per 1k</td>
-            <td>Unlimited</td>
-            </tr>
-            <tr><th colspan="5" class="section">Features</th></tr>
-            <tr>
-            <tr>
-            <td>Community Chat</td>
-            <td>
-              Read-only
-            </td>
-            <td class="check">
-              Full access
-            </td>
-            <td class="check">
-              Full access
-            </td>
-            <td class="check">
-              Full access
-            </td>
-          </tr>
-            <td>Exports (leaderboard & claims)</td>
-            <td>Up to 100 members</td>
-            <td>Up to 1,000 members</td>
-            <td>Up to 10,000 members</td>
-            <td>Unlimited</td>
-            </tr>
-            <tr>
-            <td>CRM</td>
-            <td></td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            </tr>
-            <tr>
-            <td class="check">Analytics</td>
-            <td></td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            </tr>
-            <tr>
-            <td>AI Review</td>
-            <td></td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            </tr>
-            <tr><th colspan="5" class="section">Visibility Boosters</th></tr>
-            <tr>
-            <td>Listed on -</td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            </tr>
-            <tr>
-            <td>Promoted on the homepage</td>
-            <td></td>
-            <td>2 day / month</td>
-            <td>5 day / month</td>
-            <td>-</td>
-            </tr>
-            <tr>
-            <td>- Partnerships Network access</td>
-            <td></td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            <td>Telegram & Twitter promotion</td>
-            </tr>
-            <tr>
-            <td>Booster package</td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            </tr>
-            <tr><th colspan="5" class="section">Security</th></tr>
-            <tr>
-            <td>Bot protection</td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            </tr>
-            <tr><th colspan="5" class="section">Support</th></tr>
-            <tr>
-            <td>Priority support</td>
-            <td></td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            </tr>
-            <tr>
-            <td>Dedicated account manager</td>
-            <td></td>
-            <td></td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            </tr>
-            <tr><th colspan="5" class="section">Billing</th></tr>
-            <tr>
-            <td>Pay with crypto</td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td class="check">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
-                <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-                </svg>
-            </td>
-            </tr>
-        </tbody>
-        </table>
+      <div class="auto-renew-item">
+        {{ tick() }}
+        Extra quests are added instantly and used after your plan's included quests. They don't reset every month{% if pack_valid_text %} and stay valid for {{ pack_valid_text }}{% endif %}.
+      </div>
     </div>
 
   </div>
 
 </div>
-
-                                                                            
-
-
-
 
 <div id="upgradeModal" class="upgrade-modal hidden">
 
-  <div class="upgrade-box">
+  <div class="upgrade-box" role="dialog" aria-modal="true" aria-labelledby="modalPlanName">
 
-    <h2 id="modalPlanName">Standard Plan</h2>
-    <p id="modalPrice">$250 / month</p>
-
-    <div class="wallet-info">
-      Wallet Balance: <strong id="walletBalance">${{ "%.2f"|format(available) }}</strong>
-    </div>
-
-    <h4 class="pivooo-init">Choose payment method</h4>
-
-    <label>
-      <input type="radio" name="paymentMethod" value="wallet" checked>
-      Wallet Balance
-    </label>
-
-    <label>
-      <input type="radio" name="paymentMethod" value="card">
-      Card / External Payment
-    </label>
-
-    <button id="continueUpgrade">
-      Continue
+    <button type="button" class="upgrade-back hidden" id="upgradeBack" aria-label="Back">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+        <path d="M15 5l-7 7 7 7"/>
+      </svg>
     </button>
+
+    <button type="button" class="upgrade-close" aria-label="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" xmlns="http://www.w3.org/2000/svg">
+        <path d="M6 6l12 12M18 6L6 18"/>
+      </svg>
+    </button>
+
+    <div class="upgrade-inner">
+
+      <div class="upgrade-head" id="upgradeHead">
+        <span class="upgrade-eyebrow" id="modalEyebrow">Upgrade to</span>
+        <h2 id="modalPlanName">Standard Plan</h2>
+        <p id="modalPrice">$69 / month</p>
+        <p id="modalNote" class="upgrade-note hidden"></p>
+      </div>
+
+      <!-- STEP 1: choose payment method -->
+      <div id="stepMethod">
+
+        <div class="wallet-info" style="background-color: var(--bg-hover-hover);">
+          <span>Wallet balance</span>
+          <strong>
+            <span id="walletSkeleton" class="skel"></span>
+            <span id="walletBalance" class="hidden"></span>
+          </strong>
+        </div>
+
+        <h4 class="pivooo-init">Choose payment method</h4>
+
+        <div class="pay-options">
+
+          <label class="pay-option" id="walletOption">
+            <input type="radio" name="paymentMethod" value="wallet" checked>
+            <span class="pay-icon">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M20.9235 11.7502C20.9032 11.75 20.8766 11.75 20.8333 11.75H18.2308C16.8074 11.75 15.75 12.8087 15.75 14C15.75 15.1913 16.8074 16.25 18.2308 16.25H20.8333C20.8766 16.25 20.9032 16.25 20.9235 16.2498C20.9427 16.2496 20.948 16.2492 20.948 16.2492C21.154 16.2367 21.2427 16.0976 21.2495 16.0139C21.2495 16.0139 21.2497 16.0077 21.2498 15.9986C21.25 15.9808 21.25 15.9572 21.25 15.9167V12.0833C21.25 12.0609 21.25 12.0437 21.25 12.0297C21.2499 12.0185 21.2499 12.0093 21.2498 12.0014C21.2497 11.9924 21.2495 11.9861 21.2495 11.9861C21.2427 11.9024 21.154 11.7633 20.9479 11.7508C20.9479 11.7508 20.943 11.7504 20.9235 11.7502ZM20.8499 10.25C20.9163 10.25 20.9803 10.2499 21.0391 10.2535C21.9104 10.3066 22.681 10.9638 22.7458 11.8818C22.7501 11.942 22.75 12.0069 22.75 12.067V12.0833V15.9167V15.933C22.75 15.9931 22.7501 16.058 22.7458 16.1182C22.681 17.0362 21.9104 17.6934 21.0391 17.7465C20.9803 17.7501 20.9163 17.75 20.8499 17.75H20.8333H18.2308C16.0856 17.75 14.25 16.1224 14.25 14C14.25 11.8776 16.0856 10.25 18.2308 10.25H20.8333H20.8499Z" fill="currentColor"/>
+                <path d="M19 14C19 14.5523 18.5523 15 18 15C17.4477 15 17 14.5523 17 14C17 13.4477 17.4477 13 18 13C18.5523 13 19 13.4477 19 14Z" fill="currentColor"/>
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M20.8499 10.25C20.9163 10.25 20.9803 10.2499 21.0391 10.2535C21.2645 10.2672 21.4832 10.3214 21.6847 10.4101C21.5777 8.80363 21.2831 7.56563 20.3588 6.64124C19.6104 5.89288 18.6614 5.56076 17.489 5.40313L17.4467 5.39754C17.4362 5.38977 17.4255 5.38223 17.4145 5.37492L13.679 2.89806C12.3758 2.03398 10.6242 2.03398 9.32102 2.89806L5.58554 5.37492C5.57453 5.38223 5.56377 5.38977 5.55327 5.39754L5.51098 5.40313C4.33856 5.56076 3.38961 5.89288 2.64124 6.64124C1.89288 7.38961 1.56076 8.33856 1.40314 9.51098C1.24997 10.6502 1.24998 12.1058 1.25 13.9436V14.0564C1.24998 15.8942 1.24997 17.3498 1.40314 18.489C1.56076 19.6614 1.89288 20.6104 2.64124 21.3588C3.38961 22.1071 4.33856 22.4392 5.51098 22.5969C6.65019 22.75 8.10583 22.75 9.94359 22.75H13.0564C14.8942 22.75 16.3498 22.75 17.489 22.5969C18.6614 22.4392 19.6104 22.1071 20.3588 21.3588C21.2831 20.4344 21.5777 19.1964 21.6847 17.5899C21.4832 17.6786 21.2645 17.7328 21.0391 17.7465C20.9803 17.7501 20.9163 17.75 20.8499 17.75H20.8333H20.1679C20.0541 19.0915 19.7966 19.7996 19.2981 20.2981C18.8749 20.7213 18.2952 20.975 17.2892 21.1102C16.2615 21.2484 14.9068 21.25 13 21.25H10C8.09318 21.25 6.73851 21.2484 5.71085 21.1102C4.70476 20.975 4.12511 20.7213 3.7019 20.2981C3.27869 19.8749 3.02502 19.2952 2.88976 18.2892C2.75159 17.2615 2.75 15.9068 2.75 14C2.75 12.0932 2.75159 10.7385 2.88976 9.71085C3.02502 8.70476 3.27869 8.12511 3.7019 7.7019C4.12511 7.27869 4.70476 7.02502 5.71085 6.88976C6.73851 6.75159 8.09318 6.75 10 6.75H13C14.9068 6.75 16.2615 6.75159 17.2892 6.88976C18.2952 7.02502 18.8749 7.27869 19.2981 7.7019C19.7966 8.20043 20.0541 8.90854 20.1679 10.25H20.8333H20.8499ZM9.94358 5.25H13.0564C13.5729 5.24999 14.0592 5.24999 14.5168 5.25339L12.8501 4.14821C12.0493 3.61726 10.9507 3.61726 10.15 4.14821L8.48318 5.25339C8.94077 5.24999 9.42708 5.24999 9.94358 5.25Z" fill="currentColor"/>
+                <path d="M6 9.25C5.58579 9.25 5.25 9.58579 5.25 10C5.25 10.4142 5.58579 10.75 6 10.75H10C10.4142 10.75 10.75 10.4142 10.75 10C10.75 9.58579 10.4142 9.25 10 9.25H6Z" fill="currentColor"/>
+              </svg>
+            </span>
+            <span class="pay-text">
+              <strong>Wallet balance</strong>
+              <small>Pay instantly with your wallet funds</small>
+            </span>
+            <span class="pay-radio"></span>
+          </label>
+
+          <label class="pay-option">
+            <input type="radio" name="paymentMethod" value="card">
+            <span class="pay-icon">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M22 12C22 8.22876 22 6.34315 20.8284 5.17157C19.6569 4 17.7712 4 14 4H10C6.22876 4 4.34315 4 3.17157 5.17157C2 6.34315 2 8.22876 2 12C2 15.7712 2 17.6569 3.17157 18.8284C4.34315 20 6.22876 20 10 20H14C17.7712 20 19.6569 20 20.8284 18.8284C22 17.6569 22 15.7712 22 12Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                <path d="M10 16H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                <path d="M14 16H12.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                <path d="M2 10L22 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </span>
+            <span class="pay-text">
+              <strong>Card</strong>
+              <small>Pay securely with debit or credit card</small>
+            </span>
+            <span class="pay-radio"></span>
+          </label>
+
+        </div>
+
+        <p class="upgrade-hint" id="upgradeHint">Low wallet balance? Choose card instead.</p>
+
+        <div class="upgrade-error hidden" id="methodError" role="alert"></div>
+
+        <button id="continueUpgrade" class="upgrade-continue" disabled>
+          Continue
+        </button>
+
+      </div>
+
+      <!-- STEP 2: card -->
+      <div id="stepCard" class="hidden">
+
+        <div class="card-form">
+          <span class="skel pay-skeleton" id="paySkeleton"></span>
+          <div id="paymentElement"></div>
+        </div>
+
+        <div class="upgrade-error hidden" id="cardError" role="alert"></div>
+
+        <button id="payBtn" class="upgrade-continue" type="button" disabled>
+          Pay
+        </button>
+
+        <p class="secure-note">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+            <rect x="4" y="11" width="16" height="10" rx="2"/>
+            <path d="M8 11V7a4 4 0 0 1 8 0v4"/>
+          </svg>
+          Encrypted and processed by Stripe
+        </p>
+
+      </div>
+
+      <!-- STEP 3: done -->
+      <div id="stepDone" class="hidden">
+        <div class="upgrade-done">
+          <div class="done-icon">{{ tick() }}</div>
+          <h3 id="doneTitle">Payment received</h3>
+          <p id="doneText">Activating your purchase&hellip;</p>
+        </div>
+      </div>
+
+    </div><!-- /.upgrade-inner -->
 
   </div>
 
 </div>
-
-
-<style>
-.pivooo-init {
-  
-}
-</style>

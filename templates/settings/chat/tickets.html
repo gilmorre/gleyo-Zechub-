@@ -1,4 +1,15 @@
 <style> 
+  @property --edge-hi {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: rgba(255, 255, 255, 0.42);
+  }
+  @property --edge-lo {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: rgba(255, 255, 255, 0.05);
+  }
+
   :root {
     --accent: #7f5af0;
     --accent-soft: rgba(127, 90, 240, 0.12);
@@ -51,10 +62,39 @@
   }
 
   .ticket-section {
+    --edge-hi: rgba(255, 255, 255, 0.253);
+    --edge-lo: rgba(255, 255, 255, 0.05);
+    --edge-w: 1px;
+    position: relative;
     background: var(--bg-hover-hover);
     border-radius: 14px;
     padding: 18px;
     margin-bottom: 22px;
+    border: var(--edge-w) solid transparent;
+  }
+
+  @media (min-resolution: 2dppx) {
+    .ticket-section { --edge-w: 0.75px; }
+  }
+
+  .ticket-section::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: var(--edge-w);
+    border-radius: inherit;
+    background: linear-gradient(
+      135deg,
+      var(--edge-hi) 0%,
+      var(--edge-lo) 28%,
+      var(--edge-lo) 72%,
+      var(--edge-hi) 100%
+    );
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
   }
 
   .ticket-section-title {
@@ -64,7 +104,6 @@
     margin-bottom: 12px;
   }
 
-  /* Duration buttons */
   .ticket-duration {
     display: flex;
     flex-wrap: wrap;
@@ -122,13 +161,40 @@
     background: var(--accent-soft);
   }
 
-  /* Info box */
   .ticket-warning {
+    --edge-hi: rgba(250, 204, 21, 0.65);
+    --edge-lo: rgba(250, 204, 21, 0.1);
+    --edge-w: 1px;
+    position: relative;
     background: var(--info-bg);
-    border: 1px solid var(--info-border);
+    border: var(--edge-w) solid transparent;
     border-radius: 14px;
     padding: 16px;
     margin-bottom: 22px;
+  }
+
+  @media (min-resolution: 2dppx) {
+    .ticket-warning { --edge-w: 0.75px; }
+  }
+
+  .ticket-warning::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: var(--edge-w);
+    border-radius: inherit;
+    background: linear-gradient(
+      135deg,
+      var(--edge-hi) 0%,
+      var(--edge-lo) 28%,
+      var(--edge-lo) 72%,
+      var(--edge-hi) 100%
+    );
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
   }
 
   .ticket-warning-title {
@@ -161,7 +227,6 @@
     margin-top: 7px;
   }
 
-  /* Actions */
   .ticket-actions {
     display: flex;
     justify-content: flex-end;

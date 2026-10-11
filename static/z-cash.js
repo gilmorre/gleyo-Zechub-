@@ -10,7 +10,22 @@ function inject() {
   if (document.getElementById('zec-modal-overlay')) return;
 
   const CSS = `
+  /* Animatable gradient-edge tokens */
+  @property --edge-hi {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: rgba(255, 255, 255, 0.42);
+  }
+  @property --edge-lo {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: rgba(255, 255, 255, 0.05);
+  }
+
   #zec-modal-overlay {
+    --edge-hi: rgba(255, 255, 255, 0.42);
+    --edge-lo: rgba(255, 255, 255, 0.05);
+    --edge-w: 1px;
     position: fixed;
     inset: 0;
     z-index: 9999;
@@ -21,6 +36,9 @@ function inject() {
     align-items: flex-end;
     justify-content: center;
   }
+  @media (min-resolution: 2dppx) {
+    #zec-modal-overlay { --edge-w: 0.75px; }
+  }
   #zec-modal-overlay.zec-open {
     display: flex;
   }
@@ -29,31 +47,61 @@ function inject() {
       align-items: center;
     }
   }
-  #zec-sheet {
-    background: #08080e;
-    border: 0.9px solid #2f2f4aec;
+
+  /* Sheet: original translucent surface + gradient edge drawn with a masked ::before.
+     The sheet itself doesn't scroll (so the edge always wraps the full card);
+     the inner .zec-scroll does. Double-ID selector beats page-level #zec-sheet rules. */
+  #zec-modal-overlay #zec-sheet {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface, #08080e) !important;
+    border: 0 !important;
     width: 100%;
     max-width: 440px;
-    border-radius: 22px 22px 0 0;
+    border-radius: 30px 30px 0 0;
     max-height: 88dvh;
+    overflow: hidden;
+    transform: translateY(100%);
+    transition: transform .38s cubic-bezier(.32,.72,0,1);
+  }
+  #zec-modal-overlay #zec-sheet::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: var(--edge-w);
+    border-radius: inherit;
+    background: linear-gradient(
+      135deg,
+      var(--edge-hi) 0%,
+      var(--edge-lo) 28%,
+      var(--edge-lo) 72%,
+      var(--edge-hi) 100%
+    );
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    z-index: 2;
+  }
+  .zec-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
     overscroll-behavior: contain;
     touch-action: pan-y;
     -webkit-overflow-scrolling: touch;
-    transform: translateY(100%);
-    transition: transform .38s cubic-bezier(.32,.72,0,1);
     scrollbar-width: none;
   }
-  #zec-sheet::-webkit-scrollbar {
+  .zec-scroll::-webkit-scrollbar {
     display: none;
   }
   @media (min-width: 600px) {
-    #zec-sheet {
-      border-radius: 22px;
-      height: auto;
+    #zec-modal-overlay #zec-sheet {
+      border-radius: 30px;
       max-height: 84vh;
-      overflow-y: auto;
       transform: none;
       animation: zecFadeIn .22s ease;
     }
@@ -77,7 +125,7 @@ function inject() {
     .zec-handle { display: none; }
   }
   .zec-head {
-    padding: 18px 20px 0;
+    padding: 18px 24px 0;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -114,7 +162,7 @@ function inject() {
     color: #eeeef5;
   }
   .zec-sub {
-    padding: 3px 20px 14px;
+    padding: 3px 24px 14px;
     font-size: 12px;
     color: #5a5a78;
     font-family: 'DM Sans', sans-serif;
@@ -139,7 +187,7 @@ function inject() {
     flex-direction: column;
     align-items: center;
   }
-  .zec-addr-wrap { padding: 0 14px 6px; }
+  .zec-addr-wrap { padding: 0 18px 6px; }
   .zec-addr-label {
     font-size: 11px;
     font-weight: 600;
@@ -153,17 +201,41 @@ function inject() {
   .zec-addr-input {
     width: 100%;
     box-sizing: border-box;
-    background: #111122;
-    border: 1px solid #2f2f4a;
-    border-radius: 10px;
+    background:
+      linear-gradient(#111122, #111122) padding-box,
+      linear-gradient(
+        135deg,
+        var(--edge-hi) 0%,
+        var(--edge-lo) 28%,
+        var(--edge-lo) 72%,
+        var(--edge-hi) 100%
+      ) border-box;
+    border: var(--edge-w) solid transparent;
+    border-radius: 12px;
     padding: 10px 12px;
     font-size: 11.5px;
     font-family: 'Courier New', monospace;
     color: #eeeef5;
     outline: none;
-    transition: border-color .15s;
+    transition: --edge-hi .2s, --edge-lo .2s;
   }
-  .zec-addr-input:focus { border-color: rgba(244,183,40,.5); }
+  #zec-modal-overlay .zec-addr-input:focus,
+  #zec-modal-overlay .zec-addr-input:focus-visible {
+    --edge-hi: rgba(244,183,40,.85) !important;
+    --edge-lo: rgba(244,183,40,.2) !important;
+    border: var(--edge-w) solid transparent !important;
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(244,183,40,.08) !important;
+    background:
+      linear-gradient(#111122, #111122) padding-box,
+      linear-gradient(
+        135deg,
+        var(--edge-hi) 0%,
+        var(--edge-lo) 28%,
+        var(--edge-lo) 72%,
+        var(--edge-hi) 100%
+      ) border-box !important;
+  }
   .zec-addr-input::placeholder {
     color: #5a5a78;
     font-family: 'DM Sans', sans-serif;
@@ -198,11 +270,11 @@ function inject() {
     display: flex;
     align-items: flex-start;
     gap: 7px;
-    margin: 14px 14px 18px;
+    margin: 14px 18px 18px;
     padding: 10px 12px;
     background: rgba(244,183,40,.05);
     border: 1px solid rgba(244,183,40,.15);
-    border-radius: 10px;
+    border-radius: 12px;
     font-size: 11.5px;
     color: #8888aa;
     line-height: 1.55;
@@ -214,13 +286,23 @@ function inject() {
     color: #c89a20;
   }
   .zec-connect-submit {
+    --edge-hi: rgba(255, 224, 140, 0.85);
+    --edge-lo: rgba(255, 224, 140, 0.12);
     display: block;
-    width: calc(100% - 28px);
-    margin: 4px 14px 20px;
+    width: calc(100% - 36px);
+    margin: 4px 18px 24px;
     padding: 13px;
-    border-radius: 13px;
-    border: none;
-    background: linear-gradient(135deg, #F4B728, #c9890a);
+    border-radius: 14px;
+    border: var(--edge-w) solid transparent;
+    background:
+      linear-gradient(135deg, #F4B728, #c9890a) padding-box,
+      linear-gradient(
+        135deg,
+        var(--edge-hi) 0%,
+        var(--edge-lo) 28%,
+        var(--edge-lo) 72%,
+        var(--edge-hi) 100%
+      ) border-box;
     color: #0a0500;
     font-size: 14px;
     font-weight: 700;
@@ -313,6 +395,7 @@ function inject() {
   overlay.innerHTML = `
 <div id="zec-sheet">
   <div class="zec-handle"></div>
+  <div class="zec-scroll">
 
   <!-- INPUT VIEW -->
   <div id="zec-view-list" class="zec-view zec-active">
@@ -367,6 +450,7 @@ function inject() {
     </div>
   </div>
 
+  </div><!-- /zec-scroll -->
 </div>`;
 
   document.body.appendChild(overlay);
@@ -565,12 +649,3 @@ window.openZecModal = openZecModal;
 window.closeZecModal = closeZecModal;
 
 })();
-
-/*
-NOTE — Zodl-only for now (per partnership discussion):
-_walletName is hardcoded above instead of shown as a picker, since the
-wallet-selection list (ZODL / Zkool / Zingo) is no longer needed while
-you're only onboarding people through Zodl. If that changes later (multi-wallet
-support), swap _walletName back to a UI picker and pass whichever the user
-selects instead of the hardcoded default.
-*/

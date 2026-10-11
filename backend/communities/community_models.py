@@ -22,9 +22,12 @@ class Community(db.Model):
     about = db.Column(db.Text)
     blockchain = db.Column(db.String(100))
     logo_path = db.Column(db.String(255))
+    banner_pic = db.Column(db.String(500)) 
     slug = db.Column(db.String(120), unique=True, nullable=False)
 
     is_paid = db.Column(db.Boolean, default=False)
+    claims_locked = db.Column(db.Boolean, nullable=False, default=False)
+
 
     # ✅ Monthly invite cap (default 30)
     invite_limit_per_month = db.Column(
@@ -83,10 +86,16 @@ class Community(db.Model):
         lazy=True
     )
 
-    # ✅ Monthly invite usage tracker
     invite_usage = db.relationship(
         "CommunityInviteUsage",
         back_populates="community",
+        cascade="all, delete-orphan"
+    )
+
+    subscription = db.relationship(
+        "CommunitySubscription",
+        back_populates="community",
+        uselist=False,
         cascade="all, delete-orphan"
     )
 
@@ -579,7 +588,6 @@ class CommunityClaimUsage(db.Model):
     month = db.Column(db.Integer, nullable=False, index=True)
 
     claim_count = db.Column(db.Integer, nullable=False, default=0)
-
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     community = db.relationship("Community")

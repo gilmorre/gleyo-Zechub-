@@ -1,4 +1,49 @@
 <style>
+@property --edge-hi {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: rgba(255, 255, 255, 0.42);
+}
+@property --edge-lo {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: rgba(255, 255, 255, 0.05);
+}
+
+:root {
+  --edge-hi: rgba(255, 255, 255, 0.42);
+  --edge-lo: rgba(255, 255, 255, 0.05);
+  --edge-w: 1px;
+}
+
+@media (min-resolution: 2dppx) {
+  :root { --edge-w: 0.75px; }
+}
+
+/* Gradient edge (shared) */
+.profile-banner::before,
+.profile-card::before,
+.modal-backdrop-email::before,
+.btn.save::before,
+.delete-account-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: var(--edge-w);
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    var(--edge-hi) 0%,
+    var(--edge-lo) 28%,
+    var(--edge-lo) 72%,
+    var(--edge-hi) 100%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
 
 @media (min-width: 769px) {
 .profile-wrapper {
@@ -22,11 +67,117 @@
         display: none !important;
     }
 }
+/* =====================
+   BANNER (3:1 — recommended upload 1200×400)
+===================== */
 .profile-banner {
-  height: 120px;
-  background: linear-gradient(135deg, #303050, #1e1e2f);
-  border-radius: 17px;
   position: relative;
+  aspect-ratio: 3 / 1;
+  min-height: 120px;
+  border-radius: 30px;
+  background: #1a1a2a;
+}
+.profile-banner::before { z-index: 3; }
+
+.banner-media {
+  position: absolute;
+  inset: 0;
+  border-radius: 30px;
+  overflow: hidden;
+  isolation: isolate;
+
+  clip-path: inset(0 round 30px);
+  -webkit-clip-path: inset(0 round 30px);
+
+  -webkit-mask-image: -webkit-radial-gradient(white, black);
+  transform: translateZ(0);
+}
+
+.banner-art {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #25253d, #14141f);
+}
+.banner-art .blob {
+  position: absolute;
+  width: 60%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  filter: blur(38px);
+  opacity: .7;
+  mix-blend-mode: screen;
+  will-change: transform;
+}
+.banner-art .b1 { background: var(--b1, #6B5B95); left: -10%; top: -45%; animation: bannerDrift1 14s ease-in-out infinite alternate; }
+.banner-art .b2 { background: var(--b2, #92A8D1); right: -15%; top: 5%;  animation: bannerDrift2 18s ease-in-out infinite alternate; }
+.banner-art .b3 { background: var(--b3, #4888f0); left: 28%; bottom: -70%; width: 48%; animation: bannerDrift3 16s ease-in-out infinite alternate; }
+
+.banner-sheen {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 40%, rgba(255,255,255,.10) 50%, transparent 60%);
+  background-size: 250% 100%;
+  animation: bannerSheen 8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* uploaded banner */
+.banner-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  animation: bannerFade .6s ease both, bannerZoom 24s ease-in-out infinite alternate;
+}
+.profile-banner.has-banner .banner-art { display: none; }
+
+.banner-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,.35), transparent 55%);
+  pointer-events: none;
+}
+
+/* change-banner button */
+.banner-edit {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.18);
+  background: rgba(0,0,0,.38);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: opacity .25s ease, background .2s ease;
+}
+.banner-edit:hover { background: rgba(0,0,0,.55); }
+.banner-edit svg { width: 15px; height: 15px; }
+.banner-edit.loading { pointer-events: none; opacity: .7; }
+
+@media (min-width: 769px) {
+  .banner-edit { opacity: 0; }
+  .profile-banner:hover .banner-edit,
+  .banner-edit:focus-visible { opacity: 1; }
+}
+
+@keyframes bannerDrift1 { to { transform: translate(35%, 25%) scale(1.25); } }
+@keyframes bannerDrift2 { to { transform: translate(-40%, -15%) scale(.85); } }
+@keyframes bannerDrift3 { to { transform: translate(-30%, -20%) scale(1.3); } }
+@keyframes bannerSheen  { 0% { background-position: 150% 0; } 60%,100% { background-position: -50% 0; } }
+@keyframes bannerFade   { from { opacity: 0; filter: blur(8px); } to { opacity: 1; filter: blur(0); } }
+@keyframes bannerZoom   { from { transform: scale(1); } to { transform: scale(1.06); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .banner-art .blob, .banner-sheen, .banner-img { animation: none; }
 }
 
 .avatar {
@@ -40,6 +191,7 @@
   font-weight: 600;
   color: var(--text-main);
   border: 2px solid var(--border);
+  z-index: 4;
 }
 
 .avatar img {
@@ -92,16 +244,17 @@
 
 
 .profile-card {
+  position: relative;
   margin-top: 40px;
   background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 20px;
+  border: var(--edge-w) solid transparent;
+  border-radius: 30px;
+  padding: 22px 24px;
 }
 
 .profile-card.delete-card {
   padding: 14px 25px;
-  border-radius: 25px;
+  border-radius: 30px;
   cursor: pointer;
 }
 
@@ -130,7 +283,7 @@
   justify-content: space-between;
   padding: 12px 14px;
   padding-right: 3px !important;
-  border-radius: 13px;
+  border-radius: 16px;
   background: var(--bg-app);
 }
 
@@ -158,14 +311,35 @@
   border-radius: var(--radius);
 }
 
-.field-edit input {
+/* Inputs: gradient edge via layered backgrounds (inputs can't have ::before) */
+.field-edit input,
+.field-input-act {
   width: 100%;
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
   color: var(--text-main);
-    border-radius: 13px;
-    padding: 13px 16px;
+  border: var(--edge-w) solid transparent !important;
+  border-radius: 16px;
+  padding: 13px 16px;
   outline: none;
+  background:
+    linear-gradient(var(--bg-app), var(--bg-app)) padding-box,
+    linear-gradient(
+      135deg,
+      var(--edge-hi) 0%,
+      var(--edge-lo) 28%,
+      var(--edge-lo) 72%,
+      var(--edge-hi) 100%
+    ) border-box !important;
+  transition: --edge-hi .2s, --edge-lo .2s;
+}
+
+.field-edit input:focus,
+.field-edit input:focus-visible,
+.field-input-act:focus,
+.field-input-act:focus-visible {
+  --edge-hi: rgba(72, 136, 240, 0.9) !important;
+  --edge-lo: rgba(72, 136, 240, 0.2) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(72, 136, 240, 0.1) !important;
 }
 
 .field-actions {
@@ -176,6 +350,7 @@
 }
 
 .btn {
+  position: relative;
   border-radius: 13px;
   padding: 13px 16px;
   font-size: 13px;
@@ -191,7 +366,7 @@
 .btn.save {
   background: var(--bg-active);
   color: var(--text-main);
-  border: 1px solid var(--bg-active-border);
+  border: var(--edge-w) solid transparent;
 }
 
 
@@ -206,10 +381,6 @@
 
 
 .field-input-act{
-  width: 100%;
-  outline: none;
-  border-radius: 13px;
-  padding: 13px 16px;
   font-size: 14px !important;
 }
 
@@ -250,13 +421,14 @@
 
 
 .modal-backdrop-email {
+  position: relative;
   width: 100%;
   max-width: 420px;
   background: rgba(34, 34, 54, 0.448);
   backdrop-filter: blur(14px);
-  border: 0.9px solid var(--border);
-  border-radius: 16px;
-  padding: 20px;
+  border: var(--edge-w) solid transparent;
+  border-radius: 30px;
+  padding: 24px;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
 }
 
@@ -273,14 +445,17 @@
 
 
 .delete-account-btn {
+  position: relative;
   width: 100%;
   padding: 13px 16px;
-  border-radius: 13px;
+  border-radius: 16px;
   font-size: 14px;
   cursor: pointer;
   background: transparent;
   color: #ff6b6b;
-  border: 1px solid rgba(255, 90, 90, 0.45);
+  border: var(--edge-w) solid transparent;
+  --edge-hi: rgba(239, 68, 68, 0.85);
+  --edge-lo: rgba(239, 68, 68, 0.12);
 }
 
 .delete-account-btn:hover {
@@ -325,8 +500,9 @@
 
 .field-actions.action-buttons .save {
     background-color: #4888f0d8 !important;
-    border: none !important;
-
+    border: var(--edge-w) solid transparent !important;
+    --edge-hi: rgba(160, 200, 255, 0.85);
+    --edge-lo: rgba(160, 200, 255, 0.12);
 }
 
 .field-actions.action-buttons .save:hover {
@@ -387,7 +563,29 @@
 <div class="profile-wrapper">
 
     <!-- Banner -->
-    <div class="profile-banner">
+    <div class="profile-banner{% if user.banner_pic %} has-banner{% endif %}"
+         style="--b1: {{ bg_color }}; --b2: {{ text_color }}; --b3: #4888f0;">
+
+    <div class="banner-media">
+        <div class="banner-art" aria-hidden="true">
+            <i class="blob b1"></i><i class="blob b2"></i><i class="blob b3"></i>
+            <span class="banner-sheen"></span>
+        </div>
+        <img class="banner-img{% if not user.banner_pic %} hidden-from-view{% endif %}"
+             src="{{ user.banner_pic }}" alt="{{ user.username }} banner" />
+        <div class="banner-shade"></div>
+    </div>
+
+    <input type="file" id="bannerInput" accept="image/png,image/jpeg,image/jpg,image/webp" hidden />
+    <button type="button" class="banner-edit" id="bannerEditBtn" title="Recommended size: 1200×400 px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+            <rect x="3" y="5" width="18" height="14" rx="3"/>
+            <circle cx="9" cy="10.5" r="1.6"/>
+            <path d="M21 16l-5-5-8 8"/>
+        </svg>
+        Change banner
+    </button>
+
     <div class="avatar" style="background-color: {{ bg_color }}; color: {{ text_color }};">
         
         <img

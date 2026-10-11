@@ -1,210 +1,360 @@
-
-
 <title>Create Username</title>
 
 <style>
-  :root {
-    --bg-app: #0b0b12;
-    --bg-surface: #222236;
-    --bg-surface-lower: #222236e3;
-    --border: #2f2f4a;
-    --text-main: #e5e7eb;
-    --text-muted: #9ca3af;
-    --accent-color: #6366f1;
-    --radius: 14px;
+  @property --edge-hi {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: rgba(255, 255, 255, 0.42);
+  }
+  @property --edge-lo {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: rgba(255, 255, 255, 0.05);
   }
 
-  * { box-sizing: border-box; }
-
-  html {
-    background-color: var(--bg-app) !important;
-  }
-  html, body {
-    margin: 0;
-    padding: 0;
-    font-family: 'Outfit', sans-serif;
-    background: radial-gradient(circle at 30% 20%, #151528 0%, #0b0b12 60%);
-    color: var(--text-main);
-    height: 100dvh;
-    display: flex !important;
-    justify-content: center !important;
-    align-items: center !important;
+  .container.username-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     width: 100%;
-  }
-
-  ::selection {
-    background: #4effcd29; 
-    color: var(--text-main);        
-  }
-
-  ::-moz-selection {
-    background: #4effcd29; 
-    color: var(--text-main);        
-  }
-
-
-
-  .container {
-    width: 100%;
-    max-width: 100%;
-    padding: 48px 40px;
-    backdrop-filter: blur(20px);
+    max-width: 480px;
+    min-height: 100vh;
+    min-height: 100dvh;
+    margin: 0 auto;
+    padding: 40px 28px max(28px, env(safe-area-inset-bottom));
     text-align: center;
+    font-family: 'DM Sans', sans-serif;
+    animation: userIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
-  .error-text {
-    margin: 3px 0;
-    font-style: italic;
-    font-style: 12.5px;
-    color: #ff9b9b;
+  @keyframes userIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
   }
 
-  h1 {
-    margin: 0 0 16px;
+  .username-icon {
+    position: relative;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    margin: 0 auto 22px;
+    border: var(--edge-w, 1px) solid transparent;
+    color: #a5b4fc;
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.02)),
+      var(--bg-hover-hover-plain, #232339);
+    box-shadow:
+      0 10px 30px rgba(99, 102, 241, 0.18),
+      inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  }
+
+  .username-icon::before,
+  .username-rules::before {
+    content: "";
+    position: absolute;
+    inset: calc(var(--edge-w, 1px) * -1);
+    padding: var(--edge-w, 1px);
+    border-radius: inherit;
+    background: linear-gradient(
+      135deg,
+      var(--edge-hi, rgba(255, 255, 255, 0.42)) 0%,
+      var(--edge-lo, rgba(255, 255, 255, 0.05)) 28%,
+      var(--edge-lo, rgba(255, 255, 255, 0.05)) 72%,
+      var(--edge-hi, rgba(255, 255, 255, 0.42)) 100%
+    );
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  .username-title {
+    margin: 0 0 8px;
+    font-family: 'Syne', sans-serif;
     font-size: 28px;
     font-weight: 600;
     letter-spacing: -0.3px;
+    color: var(--text-main, #e5e7eb);
   }
 
-  .subtitle {
-    color: var(--text-muted);
+  .username-container .username-sub {
+    margin: 0 0 24px;
+    max-width: 360px;
+    font-family: 'DM Sans', sans-serif;
     font-size: 14px;
-    margin-bottom: 24px;
     line-height: 1.6;
+    color: var(--text-muted, #bbbfc7);
   }
 
-  .rules {
-    text-align: left;
-    font-size: 13px;
-    color: var(--text-muted);
-    margin-bottom: 24px;
-    line-height: 1.6;
-    background: rgba(255, 255, 255, 0.006);
-    padding: 18px 18px;
+  .username-rules {
+    position: relative;
+    width: 100%;
+    margin-bottom: 26px;
+    padding: 18px 20px;
+    border: var(--edge-w, 1px) solid transparent;
     border-radius: 22px;
-    border: 1px solid var(--border);
+    text-align: left;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--text-muted, #bbbfc7);
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.01)),
+      rgba(255, 255, 255, 0.012);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
   }
 
-  .rules strong {
-    color: var(--text-main);
-    opacity: 0.9;
+  .username-rules strong {
+    color: var(--text-main, #e5e7eb);
+    font-weight: 500;
   }
 
-  form {
+  .username-rules .rules-title {
+    display: block;
+    margin-bottom: 10px;
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-main, #e5e7eb);
+  }
+
+  .username-rules ul {
+    margin: 0 0 12px;
+    padding: 0;
+    list-style: none;
+  }
+
+  .username-rules li {
+    position: relative;
+    padding-left: 16px;
+  }
+
+  .username-rules li::before {
+    content: "";
+    position: absolute;
+    left: 2px;
+    top: 0.72em;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #a5b4fc;
+    opacity: 0.8;
+  }
+
+  .username-rules .rules-example code {
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12.5px;
+    color: var(--text-main, #e5e7eb);
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .username-form {
     display: flex;
     flex-direction: column;
-    gap: 16px;
-  }
-
-  input {
-    padding: 14px 16px;
-    border-radius: 16px;
-    border: 1px solid var(--border);
-    background: #1a1a2e;
-    color: var(--text-main);
-    font-size: 14px;
-    outline: none;
-    transition: all 0.2s ease;
-  }
-  input::placeholder {
-    color: var(--text-muted);
-    opacity: 0.9;
-    font-size: 14px;
-  }
-
-  input:focus {
-    border-color: var(--accent-color);
-  }
-
-  .helper-text {
-    font-size: 12px;
-    color: var(--text-muted);
-    margin-top: -6px;
-  }
-
-  button {
-    padding: 14px;
-    border-radius: 12px;
-    border: none;
-    background: var(--accent-color);
-    color: white;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-
-  button:hover {
-    transform: translateY(-1px);
-    opacity: 0.9;
-  }
-
-
-  #username-uppercase-error {
-    font-size: 13px;
-    color: #ff9b9b !important;  
-    margin: 0;
     width: 100%;
+  }
+
+  .user-fieldset {
+    position: relative;
+    margin: 0 0 20px;
+    padding: 0 14px 6px;
+    min-width: 0;
+    border-radius: 25px;
     text-align: left;
+    font-family: 'DM Sans', sans-serif;
+    border: var(--edge-w, 1px) solid transparent;
+    background:
+      linear-gradient(var(--field-fill, #11111c), var(--field-fill, #11111c)) padding-box,
+      linear-gradient(
+        135deg,
+        var(--edge-hi, rgba(255, 255, 255, 0.42)) 0%,
+        var(--edge-lo, rgba(255, 255, 255, 0.05)) 28%,
+        var(--edge-lo, rgba(255, 255, 255, 0.05)) 72%,
+        var(--edge-hi, rgba(255, 255, 255, 0.42)) 100%
+      ) border-box;
+    transition: --edge-hi 0.25s ease, --edge-lo 0.25s ease, margin 0.2s ease;
+  }
+
+  .user-fieldset legend {
+    margin-left: 6px;
+    padding: 0 4px;
+    width: auto;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13.5px;
+    color: #4e91fc;
+    background: linear-gradient(to bottom, transparent 44%, var(--field-fill, #11111c) 44%);
+    transition: color 0.2s ease;
+  }
+
+  .user-fieldset:hover {
+    --edge-hi: rgba(255, 255, 255, 0.6);
+  }
+
+  .user-fieldset.valid {
+    --edge-hi: rgba(255, 255, 255, 0.75);
+    --edge-lo: rgba(255, 255, 255, 0.12);
+  }
+
+  .user-fieldset:focus-within {
+    --edge-hi: #4285f4;
+    --edge-lo: rgba(255, 255, 255, 0.06);
+  }
+
+  .user-fieldset:focus-within legend {
+    color: #fff;
+  }
+
+  fieldset.user-fieldset.error,
+  fieldset.user-fieldset.error:hover,
+  fieldset.user-fieldset.error:focus-within {
+    --edge-hi: rgba(254, 41, 41, 0.95);
+    --edge-lo: rgba(255, 255, 255, 0.06);
+  }
+
+  fieldset.user-fieldset.error legend {
+    color: rgb(254, 41, 41);
+  }
+
+  #username-input {
+    display: block;
+    width: 100%;
+    height: 40px;
+    padding: 4px 8px;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    color: var(--text-main, #e5e7eb);
+    caret-color: #fff;
+  }
+
+  #username-input::placeholder {
+    font-size: 14px;
+    color: var(--text-muted, #bbbfc7);
+    opacity: 0.7;
+  }
+
+  .user-fieldset.error #username-input {
+    caret-color: rgb(254, 41, 41);
+  }
+
+  .username-container .error-text {
+    margin: -8px 0 18px 8px;
+    text-align: left;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13.5px;
+    font-style: normal;
+    color: rgb(254, 41, 41);
+    animation: errIn 0.2s ease both;
+  }
+
+  @keyframes errIn {
+    from { opacity: 0; transform: translateY(-3px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  #continueBtn {
+    width: 100%;
+    height: 48px;
+    margin-top: 2px;
+    border: none;
+    border-radius: 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--text-main, #e5e7eb);
+    background-color: var(--bg-hover-hover, #2a2a449c);
+    transition: all 0.2s ease;
+  }
+
+  #continueBtn.ready {
+    color: #fff;
+    background: var(--accent-color, #6366f1);
+  }
+
+  #continueBtn.ready:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px var(--accent-45, rgba(99, 102, 241, 0.45));
+  }
+
+  #continueBtn:active {
+    transform: translateY(0);
+  }
+
+  #continueBtn:disabled {
+    opacity: 0.7;
+    cursor: default;
+    pointer-events: none;
   }
 
   @media (max-width: 480px) {
-    html, body { align-items: center; height: 100dvh; }
-
-    .container {
-      padding: 32px 20px;
-      border-radius: 0;
+    .container.username-container {
+      padding: 32px 20px max(24px, env(safe-area-inset-bottom));
       background: transparent;
       border: none;
       box-shadow: none;
     }
+
+    .username-title {
+      font-size: 26px;
+    }
   }
 </style>
 
+<div class="container username-container">
 
-<div class="container">
-  <h1>Create your username</h1>
+  <div class="username-icon">
+    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="4"></circle>
+      <path d="M16 12v1.5a2.5 2.5 0 0 0 5 0V12a9 9 0 1 0-3.5 7.1"></path>
+    </svg>
+  </div>
 
-  <p class="subtitle">
-    Choose a unique username that represents you on Gleyo.  
+  <h1 class="username-title">Create your username</h1>
+
+  <p class="username-sub">
+    Choose a unique username that represents you on Gleyo.
     You can change it later from your settings.
   </p>
 
-  <div class="rules">
-    <strong>Username guidelines:</strong><br><br>
-    • Usernames are <strong style=" opacity: 0.9;">case-sensitive</strong> and must be lowercase<br>
-    • 3 to 20 characters long<br>
-    • Only letters (a–z), numbers (0–9), and underscores (_) allowed<br>
-    • No spaces or special characters<br><br>
-    Example: <strong style=" opacity: 0.9;">gleyo_user</strong>
+  <div class="username-rules">
+    <span class="rules-title">Username guidelines</span>
+    <ul>
+      <li>Usernames are <strong>case-sensitive</strong> and must be lowercase</li>
+      <li>3 to 20 characters long</li>
+      <li>Only letters (a–z), numbers (0–9), and underscores (_)</li>
+      <li>No spaces or special characters</li>
+    </ul>
+    <div class="rules-example">Example: <code>nickname</code></div>
   </div>
 
-  <form method="POST" action="/pick-username">
-      
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="username-form">
 
-    <input 
-      id="username-input" 
-      type="text" 
-      name="username"
-      placeholder="e.g. gleyo_user"
-      autocomplete="off"
-      minlength="3"
-      maxlength="20"
-      pattern="^[a-z0-9_]+$"
-      required
-    >
-
-
-    {% if error %}
-      <p class="error-text">{{ error }}</p>
-    {% endif %}
+    <fieldset class="user-fieldset" id="usernameFieldset">
+      <legend>Username</legend>
+      <input
+        id="username-input"
+        type="text"
+        placeholder="e.g. nickname"
+        autocomplete="off"
+        autocapitalize="none"
+        autocorrect="off"
+        spellcheck="false"
+        maxlength="20"
+      >
+    </fieldset>
 
     <p id="username-error" class="error-text" style="display:none;"></p>
 
-    <button type="submit" id="continueBtn">Continue</button>
-  </form>
-</div>
+    <button type="button" id="continueBtn">Continue</button>
+  </div>
 
- 
- 
+</div>

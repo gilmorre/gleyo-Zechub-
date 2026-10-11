@@ -1,6 +1,7 @@
 from backend.utils.instance import db
 from datetime import datetime
 
+
 class MessageAttachment(db.Model):
     __tablename__ = "message_attachments"
 
@@ -21,8 +22,8 @@ class MessageAttachment(db.Model):
     original_name = db.Column(db.String(255), nullable=False)
 
     file_size = db.Column(db.Integer)
+    width = db.Column(db.Integer, nullable=True)
+    height = db.Column(db.Integer, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     message = db.relationship("CommunityMessage", back_populates="attachments")
-
-

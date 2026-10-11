@@ -1,7 +1,20 @@
+@property --edge-hi {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: rgba(255, 255, 255, 0.42);
+}
+@property --edge-lo {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: rgba(255, 255, 255, 0.05);
+}
+
 :root {
   --bg-app: #0b0b12;
   --bg-surface: #222236;
   --bg-hover: #2a2a44;
+  --bg-hover-hover: #2a2a449c;
+  --bg-hover-hover-plain: #232339;
   --border: #2f2f4a;
   --border-light: #404060;
   --font-heading: 'Syne', sans-serif;
@@ -13,23 +26,42 @@
   --green: #22c55e;
   --radius: 14px;
   --active-choice-box: #2a2a44bb;
+
+  --edge-hi: rgba(255, 255, 255, 0.42);
+  --edge-lo: rgba(255, 255, 255, 0.05);
+  --edge-w: 1px;
+}
+
+@media (min-resolution: 2dppx) {
+  :root { --edge-w: 0.75px; }
 }
 
 * {
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
-  font-family: 'Outfit', sans-serif;
+  -webkit-text-size-adjust: 100% !important;
+  font-family: 'DM Sans', sans-serif;
   scrollbar-width: thin;
   scrollbar-color: rgba(140, 140, 140, 0.6) transparent;
+}
+
+::selection {
+  background: #4effcd29;
+  color: var(--text-main);
+}
+
+::-moz-selection {
+  background: #4effcd29;
+  color: var(--text-main);
 }
 
 html, body {
   margin: 0;
   padding: 0;
   height: 100%;
+  width: 100%;
   background: radial-gradient(circle at 30% 20%, #151528 0%, #0b0b12 60%);
   color: var(--text-main);
-  width: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -41,13 +73,11 @@ html, body {
   padding: 42px 34px;
 }
 
-
-
 @media (max-width: 768px) {
   html, body {
     width: 100% !important;
-
   }
+
   .royal-card-conatiner-init {
     padding: 32px 22px;
     border-radius: 0 !important;
@@ -55,8 +85,6 @@ html, body {
     border: 1px solid transparent !important;
     box-shadow: none !important;
   }
-
- 
 }
 
 .interger {
@@ -64,15 +92,41 @@ html, body {
   font-family: var(--font-heading) !important;
   font-size: 28px;
   font-weight: 600;
+  letter-spacing: -0.3px;
 }
 
 .subtext {
+  font-family: var(--font-body);
   font-size: 14px;
   color: var(--text-muted);
   margin-bottom: 24px;
   font-weight: 550;
 }
 
+/* GRADIENT EDGE RING (shared) */
+.choice-box::before,
+.secondary-btn::before {
+  content: "";
+  position: absolute;
+  inset: calc(var(--edge-w) * -1);
+  padding: var(--edge-w);
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    var(--edge-hi) 0%,
+    var(--edge-lo) 28%,
+    var(--edge-lo) 72%,
+    var(--edge-hi) 100%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+/* OPTION CARDS */
 .choice-wrapper {
   display: flex;
   flex-direction: column;
@@ -80,18 +134,25 @@ html, body {
   margin-bottom: 24px;
 }
 
-/* OPTION CARDS */
 .choice-box {
+  position: relative;
   padding: 18px;
-  border-radius: 15px;
-  border: 0.9px solid var(--border);
-  background: var(--bg-surface-timest);
+  border-radius: 20px;
+  border: var(--edge-w) solid transparent;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.01)),
+    var(--bg-surface-timest);
+  backdrop-filter: blur(18px) saturate(1.4);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background 0.25s ease, transform 0.2s ease, box-shadow 0.25s ease,
+              --edge-hi 0.25s ease, --edge-lo 0.25s ease;
 }
 
 .choice-box h3 {
   margin: 0 0 6px;
+  font-family: var(--font-body);
   font-size: 15px;
   font-weight: 550;
 }
@@ -99,19 +160,27 @@ html, body {
 .choice-box p {
   margin: 0;
   font-size: 13px;
+  line-height: 1.5;
   color: var(--text-muted);
-  font-family: var(--font-body)
+  font-family: var(--font-body);
 }
 
 .choice-box:hover {
-  border-color: var(--border-light);
+  --edge-hi: rgba(255, 255, 255, 0.75);
+  --edge-lo: rgba(255, 255, 255, 0.08);
   transform: translateY(-1px);
 }
 
 /* ACTIVE STATE */
 .choice-box.active {
-  border-color: var(--accent-color);
-  background: var(--active-choice-box);
+  --edge-hi: #818cf8;
+  --edge-lo: rgba(99, 102, 241, 0.18);
+  background:
+    linear-gradient(135deg, rgba(99, 102, 241, 0.16), rgba(99, 102, 241, 0.04)),
+    var(--active-choice-box);
+  box-shadow:
+    0 8px 28px rgba(99, 102, 241, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
 }
 
 /* PROGRESS */
@@ -124,12 +193,14 @@ html, body {
 .line {
   flex: 1;
   height: 4px;
-  background: var(--border);
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.06));
   border-radius: 4px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .line.active {
-  background: var(--accent-color);
+  background: linear-gradient(90deg, #818cf8, var(--accent-color));
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.5);
 }
 
 /* BUTTONS */
@@ -139,23 +210,28 @@ html, body {
 }
 
 .secondary-btn {
+  position: relative;
   flex: 1;
   height: 48px;
   border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: #232339;
+  border: var(--edge-w) solid transparent;
+  background: var(--bg-hover-hover-plain);
   color: var(--text-main);
   display: flex;
   align-items: center;
   justify-content: center;
+  font-family: var(--font-body);
   font-size: 14px;
   font-weight: 550;
   text-decoration: none;
-  transition: all 0.2s ease;
+  transition: background 0.2s ease, transform 0.2s ease,
+              --edge-hi 0.2s ease, --edge-lo 0.2s ease;
 }
 
 .secondary-btn:hover {
-  background: var(--bg-hover);
+  --edge-hi: rgba(255, 255, 255, 0.75);
+  --edge-lo: rgba(255, 255, 255, 0.08);
+  background: var(--bg-hover-hover);
   transform: translateY(-1px);
 }
 
@@ -166,13 +242,24 @@ html, body {
   border: none;
   background: var(--accent-color);
   color: white;
+  font-family: var(--font-body);
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  box-shadow:
+    0 6px 18px rgba(99, 102, 241, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
 .main-login-btn:hover {
+  background: #7477f5;
   transform: translateY(-1px);
+  box-shadow:
+    0 8px 22px rgba(99, 102, 241, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28);
 }
 
+.main-login-btn:active {
+  transform: translateY(0);
+}

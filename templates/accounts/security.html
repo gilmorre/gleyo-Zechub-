@@ -1,26 +1,39 @@
 <style>
-:root {
-  --radius: 18px;
+@property --edge-hi {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: rgba(255, 255, 255, 0.42);
 }
+@property --edge-lo {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: rgba(255, 255, 255, 0.05);
+}
+
+:root {
+  --radius: 30px;
+  --edge-hi: rgba(255, 255, 255, 0.253);
+  --edge-lo: rgba(255, 255, 255, 0.05);
+  --edge-w: 1px;
+}
+
+@media (min-resolution: 2dppx) {
+  :root { --edge-w: 0.75px; }
+}
+
 .security-tab {
   display: flex;
   flex-direction: column;
   gap: 24px;
-
   max-width: 520px;
   width: 100%;
   margin: 0 auto;
-  
   padding: 0 12px;
 }
 
-
-    .security-tab {
-        padding-top: 42px !important;
-    }
-
-/* Full width on mobile */
-
+.security-tab {
+  padding-top: 42px !important;
+}
 
 .section-title {
   font-size: 18px;
@@ -28,16 +41,38 @@
   color: var(--text-main);
 }
 
-/* ===============================
-   2FA TOGGLE CARD
-================================ */
+.security-row::before,
+.device-list::before,
+.device-item::before,
+.browser-avatar::before,
+.btn-danger-outline::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: var(--edge-w);
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    var(--edge-hi) 0%,
+    var(--edge-lo) 28%,
+    var(--edge-lo) 72%,
+    var(--edge-hi) 100%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
 .security-row {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   background: var(--bg-surface);
-  border: 1px solid var(--border);
+  border: var(--edge-w) solid transparent;
   border-radius: var(--radius);
   padding: 23px 20px;
 }
@@ -56,13 +91,10 @@
   color: var(--text-muted);
 }
 
-/* ===============================
-   TOGGLE SWITCH
-================================ */
 .toggle-switch {
   position: relative;
-  width: 46px;
-  height: 24px;
+  width: 58px;
+  height: 30px;
   flex-shrink: 0;
 }
 
@@ -73,22 +105,51 @@
 .toggle-slider {
   position: absolute;
   inset: 0;
-  background: var(--border);
+  background: rgba(120, 120, 128, 0.5);
   border-radius: 999px;
   cursor: pointer;
-  transition: background 0.25s ease;
+  transition: background 0.3s ease;
+}
+
+.toggle-slider::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: var(--edge-w);
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    var(--edge-hi) 0%,
+    var(--edge-lo) 28%,
+    var(--edge-lo) 72%,
+    var(--edge-hi) 100%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
 }
 
 .toggle-slider::before {
   content: "";
   position: absolute;
-  height: 18px;
-  width: 18px;
   left: 3px;
   top: 3px;
-  background: var(--toggle-knob);
-  border-radius: 50%;
-  transition: transform 0.25s ease;
+  width: 34px;
+  height: 24px;
+  background: #fff;
+  border-radius: 999px;
+  box-shadow:
+    0 3px 8px rgba(0, 0, 0, 0.35),
+    0 0 0 2px rgba(255, 255, 255, 0.16);
+  transition:
+    transform 0.4s cubic-bezier(0.34, 1.4, 0.64, 1),
+    width 0.25s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+.toggle-switch:active .toggle-slider::before {
+  width: 40px;
 }
 
 .toggle-switch input:checked + .toggle-slider {
@@ -96,41 +157,37 @@
 }
 
 .toggle-switch input:checked + .toggle-slider::before {
-  transform: translateX(23px);
-  outline: 1px solid var(--text-main);
-  outline-offset: 3px;
+  transform: translateX(18px);
 }
 
-/* ===============================
-   DEVICE LIST
-================================ */
+.toggle-switch:active input:checked + .toggle-slider::before {
+  transform: translateX(12px);
+}
+
 .device-list {
+  position: relative;
   background: var(--bg-surface);
-  border: 1px solid var(--border);
+  border: var(--edge-w) solid transparent;
   border-radius: var(--radius);
   padding: 18px;
 }
 
- 
-
-/* ===============================
-   DEVICE ITEM
-================================ */
 .device-item {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-
   padding: 14px;
   border-radius: 12px;
-  border: 1px solid var(--border);
+  border: var(--edge-w) solid transparent;
   background: var(--bg-app);
   margin-bottom: 12px;
 }
 
 .device-item.current {
-  border-color: var(--info-border);
+  --edge-hi: rgba(250, 204, 21, 0.65);
+  --edge-lo: rgba(250, 204, 21, 0.1);
   background: var(--info-bg);
 }
 
@@ -154,21 +211,16 @@
   color: #22c55e;
 }
 
-/* ===============================
-   BUTTONS (BASE)
-================================ */
 button {
   font-family: inherit;
 }
 
-/* Outline button */
-
-
- 
-
 .btn-danger-outline {
+  position: relative;
   background: transparent;
-  border: 1px solid #dc2626;
+  border: var(--edge-w) solid transparent;
+  --edge-hi: rgba(255, 90, 90, 0.85);
+  --edge-lo: rgba(255, 90, 90, 0.12);
   color: #dc2626;
   padding: 10px 14px;
   font-size: 13px;
@@ -180,21 +232,11 @@ button {
   background: rgba(220, 38, 38, 0.08);
 }
 
-
-
-
-
 .device-actions {
   display: flex;
   gap: 16px;
   flex-wrap: wrap;
 }
-
-
-
-
-
-
 
 @media (max-width: 480px) {
   .section-title {
@@ -213,13 +255,10 @@ button {
     gap: 12px;
   }
 
- 
-
   .device-actions {
     gap: 10px;
   }
 }
-
 
 .devices-name {
   display: flex;
@@ -227,21 +266,17 @@ button {
   gap: 12px;
 }
 
-
-
-
-
-.swiped-content{
-    z-index: 9999;
-    display: flex;
-    width: 100%;
-    min-width: 100%;
-    background: var(--bg-surface);
-    box-sizing: border-box !important;
-    overflow: hidden;
-    gap: 16px;
-    transform: translateX(0);
-    transition: transform 0.25s cubic-bezier(.2,.8,.2,1);
+.swiped-content {
+  z-index: 9999;
+  display: flex;
+  width: 100%;
+  min-width: 100%;
+  background: var(--bg-surface);
+  box-sizing: border-box !important;
+  overflow: hidden;
+  gap: 16px;
+  transform: translateX(0);
+  transition: transform 0.25s cubic-bezier(.2,.8,.2,1);
 }
 
 .session-card {
@@ -260,47 +295,42 @@ button {
   opacity: 1 !important;
 }
 
-
-
 .swipe-actions {
-    position: absolute;
-    right: 0;
-    background: #d11a1a; 
-    height: 100%;
-    width: 80%;
-    text-align: right;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 4;
-    border-bottom: 1px solid #d11a1a;
+  position: absolute;
+  right: 0;
+  background: #d11a1a;
+  height: 100%;
+  width: 80%;
+  text-align: right;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 4;
+  border-bottom: 1px solid #d11a1a;
 }
 
 .session-content {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    width: 100%;
-    min-width: 100%;
-    padding: 16px 0;
-    border-bottom: 1px solid var(--border);
-
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  min-width: 100%;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
 }
 
 .session-icon {
-    flex-shrink: 0;
-    margin-bottom: auto;
-    padding: 16px 0;
+  flex-shrink: 0;
+  margin-bottom: auto;
+  padding: 16px 0;
 }
 
-
-.delete-text{
-    position: absolute;
-    right: 0;
-    bottom: 38%;
-    padding-right: 30px;
+.delete-text {
+  position: absolute;
+  right: 0;
+  bottom: 38%;
+  padding-right: 30px;
 }
-
 
 .swipe-content {
   position: relative;
@@ -310,9 +340,7 @@ button {
   min-width: 100%;
   height: 100%;
   min-height: 100%;
-
 }
-
 
 .swipe-delete {
   background: transparent;
@@ -322,16 +350,12 @@ button {
   font-weight: 600;
 }
 
-
-
- 
-
 .browser-avatar {
   width: 48px;
   height: 48px;
   border-radius: 14px;
   background: var(--bg-app);
-  border: 1px solid var(--border);
+  border: var(--edge-w) solid transparent;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -343,7 +367,6 @@ button {
   height: 26px;
 }
 
-/* ONLINE STATUS */
 .status-dot {
   position: absolute;
   bottom: -2px;
@@ -358,10 +381,6 @@ button {
 .status-dot.online {
   background: #22c55e;
 }
-
-
-
- 
 
 .session-title {
   font-size: 14px;
@@ -379,47 +398,37 @@ button {
   color: var(--text-muted);
 }
 
-
 h4, h3 {
-    margin: 0;
-    padding: 0;
+  margin: 0;
+  padding: 0;
 }
 
-
-.Active-sec{
-    margin-bottom: 7px;
-}
- 
-
-.security-session-row{
-    display: flex;
-    margin: 0;
-    padding: 0;
-    flex-direction: column;
+.Active-sec {
+  margin-bottom: 7px;
 }
 
+.security-session-row {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  flex-direction: column;
+}
 
-
-
-
-
-.muted{
-    text-align: center;
-    font-size: 15px;
-    font-style: italic;
-    color: var(--text-muted);
+.muted {
+  text-align: center;
+  font-size: 15px;
+  font-style: italic;
+  color: var(--text-muted);
 }
 
 .qr-box {
   display: flex;
   justify-content: center;
   align-items: center;
-
-  padding: 0;           
-  width: 70% !important;      
-  min-width: 70% !important;      
-  border-radius: 16px;         
-
+  padding: 0;
+  width: 70% !important;
+  min-width: 70% !important;
+  border-radius: 16px;
   width: fit-content;
   margin: 16px auto 0;
   margin-top: 12px !important;
@@ -436,7 +445,7 @@ h4, h3 {
   height: 100% !important;
   display: block;
   shape-rendering: geometricPrecision;
-  border-radius: 10px; 
+  border-radius: 10px;
 }
 
 .hidden {
@@ -450,16 +459,11 @@ h4, h3 {
   color: #6c63ff;
   cursor: pointer;
 }
-
-
-</style> 
-
-
+</style>
 
 <div class="tab-content security-tab" id="security">
   <h3 class="section-title">Security</h3>
 
-  <!-- 2FA -->
   <div class="security-row">
     <div class="security-text">
       <h4>Two-Factor Authentication</h4>
@@ -467,8 +471,8 @@ h4, h3 {
     </div>
 
     <label class="toggle-switch">
-      <input 
-        type="checkbox" 
+      <input
+        type="checkbox"
         id="twofaToggle"
         {% if is_enabled %}checked{% endif %}
       >
@@ -476,7 +480,6 @@ h4, h3 {
     </label>
   </div>
 
-  <!-- CURRENT DEVICE -->
   <div class="security-session-row">
     <h4 class="Active-sec">This device</h4>
 
@@ -498,7 +501,6 @@ h4, h3 {
 
   </div>
 
-  <!-- OTHER SESSIONS -->
   <div class="security-session-row">
     <h4 class="Active-sec">Other active sessions</h4>
 
@@ -509,15 +511,3 @@ h4, h3 {
     </div>
   </div>
 </div>
-
-
-
-
-
-
-
-
-
-
-
-

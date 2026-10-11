@@ -1,136 +1,210 @@
 <style>
+@property --edge-hi {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: rgba(255, 255, 255, 0.42);
+}
+@property --edge-lo {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: rgba(255, 255, 255, 0.05);
+}
 
-  @media (min-width: 768px) {
+@media (min-width: 768px) {
 
-  .settings-card {
-    background: var(--bg-sidebar);
-    margin-top: 5%;
-    border-radius: var(--radius);
-    padding: 20px;
-    padding-top: 40px;
-    max-width: 520px;
-    color: var(--text-main);
+.settings-card {
+background: var(--bg-sidebar);
+margin-top: 5%;
+border-radius: var(--radius);
+padding: 20px;
+padding-top: 40px;
+max-width: 520px;
+color: var(--text-main);
   }
 
   }
 
-  @media (max-width: 768px) {
+@media (max-width: 768px) {
 
-  .settings-card {
-    background: var(--bg-sidebar);
-    margin-top: 5%;
-    border-radius: var(--radius);
-    padding: 20px 15px;
-    padding-top: 40px;
-    width: 100%;
+.settings-card {
+background: var(--bg-sidebar);
+margin-top: 5%;
+border-radius: var(--radius);
+padding: 20px 15px;
+padding-top: 40px;
+width: 100%;
 
-    color: var(--text-main);
+color: var(--text-main);
   }
 
   }
 
 
-  .settings-header {
-    margin-bottom: 28px;
+.settings-header {
+margin-bottom: 28px;
   }
 
-  .settings-header h3 {
-    margin: 0;
-    font-size: 19px;
-    font-weight: 600;
-    color: var(--text-main);
+.settings-header h3 {
+margin: 0;
+font-size: 19px;
+font-weight: 600;
+color: var(--text-main);
   }
 
-  .settings-subtitle {
-    margin-top: 8px;
-    font-size: 14.5px;
-    line-height: 1.5;
-    color: var(--text-muted);
+.settings-subtitle {
+margin-top: 8px;
+font-size: 14.5px;
+line-height: 1.5;
+color: var(--text-muted);
   }
 
-  /* SECTION */
-  .settings-section {
-    background: var(--bg-surface);
-    border-radius: 20px;
-    padding: 20px;
-    border: 1px solid var(--border);
+.settings-section {
+--edge-hi: rgba(255, 255, 255, 0.253);
+--edge-lo: rgba(255, 255, 255, 0.05);
+--edge-w: 1px;
+position: relative;
+background: var(--bg-surface);
+border-radius: 20px;
+padding: 20px;
+border: var(--edge-w) solid transparent;
   }
 
-  .automation-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 24px;
+@media (min-resolution: 2dppx) {
+.settings-section { --edge-w: 0.75px; }
   }
 
-  /* TEXT BLOCK */
-  .automation-info h4 {
-    margin: 0;
-    font-size: 16px;
-    font-weight: 500;
-    color: var(--text-main);
+.settings-section::before {
+content: "";
+position: absolute;
+inset: 0;
+padding: var(--edge-w);
+border-radius: inherit;
+background: linear-gradient(
+  135deg,
+  var(--edge-hi) 0%,
+  var(--edge-lo) 28%,
+  var(--edge-lo) 72%,
+  var(--edge-hi) 100%
+);
+-webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+-webkit-mask-composite: xor;
+mask-composite: exclude;
+pointer-events: none;
   }
 
-  .automation-info p {
-    margin: 8px 0 14px;
-    font-size: 14.5px;
-    line-height: 1.55;
-    color: var(--text-muted);
+.automation-row {
+display: flex;
+justify-content: space-between;
+align-items: flex-start;
+gap: 24px;
   }
 
-  .automation-list {
-    padding-left: 18px;
-    margin: 0;
-    font-size: 14px;
-    line-height: 1.6;
-    color: var(--text-muted);
+.automation-info h4 {
+margin: 0;
+font-size: 16px;
+font-weight: 500;
+color: var(--text-main);
   }
 
-  .automation-list li {
-    margin-bottom: 8px;
+.automation-info p {
+margin: 8px 0 14px;
+font-size: 14.5px;
+line-height: 1.55;
+color: var(--text-muted);
   }
 
-  .toggle-switch {
-    position: relative;
-    width: 46px;
-    height: 26px;
-    flex-shrink: 0;
-    margin-top: 4px;
+.automation-list {
+padding-left: 18px;
+margin: 0;
+font-size: 14px;
+line-height: 1.6;
+color: var(--text-muted);
   }
 
-  .toggle-switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
+.automation-list li {
+margin-bottom: 8px;
   }
 
-  .toggle-slider {
-    position: absolute;
-    cursor: pointer;
-    inset: 0;
-    background: var(--border);
-    border-radius: 999px;
-    transition: background 0.2s ease;
+.toggle-switch {
+--edge-hi: rgba(255, 255, 255, 0.253);
+--edge-lo: rgba(255, 255, 255, 0.05);
+--edge-w: 1px;
+position: relative;
+width: 58px;
+height: 30px;
+flex-shrink: 0;
+margin-top: 4px;
   }
 
-  .toggle-slider::before {
-    content: "";
-    position: absolute;
-    height: 20px;
-    width: 20px;
-    left: 3px;
-    top: 3px;
-    background: white;
-    border-radius: 50%;
-    transition: transform 0.2s ease;
+@media (min-resolution: 2dppx) {
+.toggle-switch { --edge-w: 0.75px; }
   }
 
-  .toggle-switch input:checked + .toggle-slider {
-    background: #4285f4;
+.toggle-switch input {
+display: none;
   }
 
-  .toggle-switch input:checked + .toggle-slider::before {
-    transform: translateX(20px);
+.toggle-slider {
+position: absolute;
+inset: 0;
+background: rgba(120, 120, 128, 0.5);
+border-radius: 999px;
+cursor: pointer;
+transition: background 0.3s ease;
+  }
+
+.toggle-slider::after {
+content: "";
+position: absolute;
+inset: 0;
+padding: var(--edge-w);
+border-radius: inherit;
+background: linear-gradient(
+  135deg,
+  var(--edge-hi) 0%,
+  var(--edge-lo) 28%,
+  var(--edge-lo) 72%,
+  var(--edge-hi) 100%
+);
+-webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+-webkit-mask-composite: xor;
+mask-composite: exclude;
+pointer-events: none;
+  }
+
+.toggle-slider::before {
+content: "";
+position: absolute;
+left: 3px;
+top: 3px;
+width: 34px;
+height: 24px;
+background: #fff;
+border-radius: 999px;
+box-shadow:
+  0 3px 8px rgba(0, 0, 0, 0.35),
+  0 0 0 2px rgba(255, 255, 255, 0.16);
+transition:
+  transform 0.4s cubic-bezier(0.34, 1.4, 0.64, 1),
+  width 0.25s cubic-bezier(0.34, 1.4, 0.64, 1);
+  }
+
+.toggle-switch:active .toggle-slider::before {
+width: 40px;
+  }
+
+.toggle-switch input:checked + .toggle-slider {
+background: #4285f4;
+  }
+
+.toggle-switch input:checked + .toggle-slider::before {
+transform: translateX(18px);
+  }
+
+.toggle-switch:active input:checked + .toggle-slider::before {
+transform: translateX(12px);
   }
 </style>
 
@@ -138,36 +212,36 @@
 
 <div class="settings-card">
 
-  <div class="settings-header">
-    <h3>Automation</h3>
-    <p class="settings-subtitle">
+<div class="settings-header">
+<h3>Automation</h3>
+<p class="settings-subtitle">
       Automatically trigger actions when key events happen in your community.
-    </p>
-  </div>
+</p>
+</div>
 
-  <div class="settings-section">
+<div class="settings-section">
 
-    <div class="automation-row">
-      <div class="automation-info">
-        <h4>Auto-post new quests to chat</h4>
-        <p>
+<div class="automation-row">
+<div class="automation-info">
+<h4>Auto-post new quests to chat</h4>
+<p>
           When enabled, every time a quest is published, it will be automatically
           announced in your community chat.
-        </p>
+</p>
 
-        <ul class="automation-list">
-          <li>Helps members discover new quests instantly</li>
-          <li>Keeps your chat active without manual posting</li>
-          <li>Message includes quest title and direct link</li>
-        </ul>
-      </div>
+<ul class="automation-list">
+<li>Helps members discover new quests instantly</li>
+<li>Keeps your chat active without manual posting</li>
+<li>Message includes quest title and direct link</li>
+</ul>
+</div>
 
-      <label class="toggle-switch">
-        <input type="checkbox" id="autoPostQuest">
-        <span class="toggle-slider"></span>
-      </label>
-    </div>
+<label class="toggle-switch">
+<input type="checkbox" id="autoPostQuest">
+<span class="toggle-slider"></span>
+</label>
+</div>
 
-  </div>
+</div>
 
 </div>

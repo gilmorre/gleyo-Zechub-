@@ -15,6 +15,7 @@ class Users(db.Model, UserMixin):
     password = db.Column(db.String(255), nullable=False)
     uuid = db.Column(db.String(36), unique=True, nullable=False, default=lambda: str(uuid.uuid4()))
     profile_pic = db.Column(db.String(255))
+    banner_pic = db.Column(db.String(500)) 
     username = db.Column(db.String(100), nullable=True)
 
     # Relationships

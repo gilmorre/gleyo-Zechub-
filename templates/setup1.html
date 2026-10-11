@@ -10,7 +10,249 @@
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,600;12..96,700&family=Lora:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
 
-<link rel="stylesheet" href="{{ url_for('static', filename='setup1.css') }}">
+<style>
+
+  @property --edge-hi {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: rgba(255, 255, 255, 0.42);
+  }
+  @property --edge-lo {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: rgba(255, 255, 255, 0.05);
+  }
+
+  :root {
+    --bg-app: #0b0b12;
+    --bg-hover-hover-plain: #232339;
+    --bg-hover-hover: #2a2a449c;
+    --accent-color: #6366f1;
+    --accent-45: color-mix(in srgb, var(--accent-color) 45%, transparent);
+    --accent-25: color-mix(in srgb, var(--accent-color) 25%, transparent);
+    --text-main: #e5e7eb;
+    --text-muted: #bbbfc7;
+    --green: #2ecc71;
+    --font-heading: 'Syne', sans-serif;
+    --font-body: 'DM Sans', sans-serif;
+
+    --edge-hi: rgba(255, 255, 255, 0.42);
+    --edge-lo: rgba(255, 255, 255, 0.05);
+    --edge-w: 1px;
+  }
+
+  @media (min-resolution: 2dppx) {
+    :root { --edge-w: 0.75px; }
+  }
+
+  * {
+    box-sizing: border-box;
+    font-family: var(--font-body);
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  *::-webkit-scrollbar {
+    display: none;
+  }
+
+  ::selection {
+    background: #4effcd29;
+    color: var(--text-main);
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    min-height: 100dvh;
+    background: radial-gradient(circle at 30% 20%, #151528 0%, #0b0b12 60%);
+    background-attachment: fixed;
+    color: var(--text-main);
+  }
+
+  body {
+    display: flex;
+    overflow-y: auto;
+  }
+
+  .setup-container {
+    width: 100%;
+    max-width: 520px;
+    margin: auto;
+    padding: 42px 34px;
+  }
+
+  .interger {
+    margin: 0 0 8px;
+    font-family: var(--font-heading);
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+  }
+
+  .subtext {
+    margin: 0 0 10px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-muted);
+  }
+
+  .fragment-title {
+    display: block;
+    margin: 30px 0 12px;
+    font-family: var(--font-heading);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-main);
+  }
+
+  .link-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .discord-btn,
+  .google-btn,
+  .linked-btn {
+    position: relative;
+    width: 100%;
+    height: 48px;
+    border-radius: 14px;
+    border: var(--edge-w) solid transparent;
+    background: var(--bg-hover-hover-plain);
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-size: 14px;
+    font-weight: 550;
+    text-decoration: none;
+    cursor: pointer;
+    outline: none;
+    transition: all 0.2s ease;
+  }
+
+  .discord-btn::before,
+  .google-btn::before,
+  .linked-btn::before {
+    content: "";
+    position: absolute;
+    inset: calc(var(--edge-w) * -1);
+    padding: var(--edge-w);
+    border-radius: inherit;
+    background: linear-gradient(
+      135deg,
+      var(--edge-hi) 0%,
+      var(--edge-lo) 28%,
+      var(--edge-lo) 72%,
+      var(--edge-hi) 100%
+    );
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  .discord-btn:hover,
+  .google-btn:hover {
+    --edge-hi: rgba(255, 255, 255, 0.75);
+    --edge-lo: rgba(255, 255, 255, 0.08);
+    background: var(--bg-hover-hover);
+    transform: translateY(-1px);
+  }
+
+  .discord-btn:focus-visible,
+  .google-btn:focus-visible,
+  .main-login-btn:focus-visible {
+    outline: 2px solid #a5b4fc;
+    outline-offset: 2px;
+  }
+
+  .linked-btn {
+    --edge-hi: rgba(46, 204, 113, 0.7);
+    --edge-lo: rgba(46, 204, 113, 0.1);
+    background: #10201a;
+    color: #8ef0b8;
+    cursor: default;
+  }
+
+  .linked-btn svg {
+    color: var(--green);
+  }
+
+  .progress-lines {
+    display: flex;
+    gap: 8px;
+    margin-top: 30px;
+  }
+
+  .progress-lines .line {
+    flex: 1;
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  .progress-lines .line.active {
+    background: var(--accent-color);
+  }
+
+  .main-login-btn {
+    --btn-fill: var(--accent-color);
+    --edge-hi: rgba(255, 255, 255, 0.6);
+    --edge-lo: rgba(255, 255, 255, 0.12);
+    width: 100%;
+    height: 48px;
+    margin-top: 20px;
+    border-radius: 14px;
+    border: var(--edge-w) solid transparent;
+    background:
+      linear-gradient(var(--btn-fill), var(--btn-fill)) padding-box,
+      linear-gradient(
+        135deg,
+        var(--edge-hi) 0%,
+        var(--edge-lo) 28%,
+        var(--edge-lo) 72%,
+        var(--edge-hi) 100%
+      ) border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    outline: none;
+    color: #fff;
+    transition: --edge-hi 0.2s ease, --edge-lo 0.2s ease,
+                transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .main-login-btn:hover {
+    --btn-fill: #7477f5;
+    --edge-hi: rgba(255, 255, 255, 0.9);
+    --edge-lo: rgba(255, 255, 255, 0.18);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px var(--accent-45);
+  }
+
+  .main-login-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 3px 10px var(--accent-25);
+  }
+
+  @media (max-width: 768px) {
+    .setup-container {
+      padding: 32px 22px;
+    }
+  }
+</style>
 
 </head>
 <body>
@@ -69,13 +311,12 @@
     </div>
 
     <a id="nextLink"
-       href="{{ url_for('next', community_slug=community_slug) }}" 
-       class="main-login-btn valid-email"  onclick="event.preventDefault(); navigateTo(this.href);">
+       href="{{ url_for('next', community_slug=community_slug) }}"
+       class="main-login-btn valid-email" onclick="event.preventDefault(); navigateTo(this.href);">
         Next
     </a>
 
 </div>
-
 
 </body>
 </html>

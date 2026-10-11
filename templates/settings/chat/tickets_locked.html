@@ -1,0 +1,14 @@
+<div style="max-width:520px;margin:60px auto;padding:0 15px;text-align:center;">
+  <h3 style="margin:0 0 10px;font-size:18px;font-weight:700;color:var(--text-main);">
+    Tickets are locked
+  </h3>
+  <p style="margin:0 0 22px;font-size:14px;line-height:1.5;color:var(--text-muted);">
+    Support tickets are part of community chat, which is available on the
+    Standard plan and above. You're currently on the {{ plan_label }} plan.
+  </p>
+  <button class="btn-upgrade"
+          style="padding:10px 18px;border-radius:15px;border:1px solid #4285f4;background:#4285f4;color:var(--text-main);cursor:pointer;font-size:14px;"
+          onclick="loadSettingsSection('/community/{{ community_slug }}/settings/billing')">
+    Upgrade plan
+  </button>
+</div>

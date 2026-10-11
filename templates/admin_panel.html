@@ -10,187 +10,270 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,600;12..96,700&family=Lora:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
 
   <style>
+    @property --edge-hi {
+      syntax: '<color>';
+      inherits: true;
+      initial-value: rgba(255, 255, 255, 0.42);
+    }
+    @property --edge-lo {
+      syntax: '<color>';
+      inherits: true;
+      initial-value: rgba(255, 255, 255, 0.05);
+    }
+
     :root {
       --bg-app: #0b0b12;
-      --bg-surface: #222236;
-      --bg-surface-active: rgba(28, 28, 43, 0.85);
-      --border: #2f2f4a;
-      --border-light: #404060;
+      --bg-btn: #232339;
+      --bg-btn-idle: #2a2a449c;
+      --field-fill: #11111c;
       --accent-color: #6366f1;
       --accent-45: color-mix(in srgb, var(--accent-color) 45%, transparent);
       --text-main: #e5e7eb;
-      --text-muted: #9aa0b4;
-      --red: #e74c3c;
-      --radius: 14px;
+      --text-muted: #bbbfc7;
       --font-heading: 'Syne', sans-serif;
       --font-body: 'DM Sans', sans-serif;
+
+      --edge-hi: rgba(255, 255, 255, 0.42);
+      --edge-lo: rgba(255, 255, 255, 0.05);
+      --edge-w: 1px;
     }
 
+    @media (min-resolution: 2dppx) {
+      :root { --edge-w: 0.75px; }
+    }
 
     * {
       box-sizing: border-box;
-      font-family: var(--font-body) !important;
       scrollbar-width: thin;
       scrollbar-color: rgba(140, 140, 140, 0.6) transparent;
       -webkit-text-size-adjust: 100% !important;
       -webkit-tap-highlight-color: transparent;
     }
 
-    h2, h4, .btn {
-      font-family: var(--font-heading) !important;
+    ::selection {
+      background: #4effcd29;
+      color: var(--text-main);
     }
-
 
     html, body {
       margin: 0;
       padding: 0;
       height: 100dvh;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
       font-family: var(--font-body);
       background: radial-gradient(circle at 30% 20%, #151528 0%, #0b0b12 60%);
       color: var(--text-main);
-      display: flex;
-      width: 100%;
-      justify-content: center;
-      align-items: center;
     }
 
-
-    .error-message {
-      font-size: 13px;
-      color: #ff9b9b !important;  
-      margin: 0;
-
-      display: none;
-      width: 100%;
-      text-align: left;
+    input, button {
+      font-family: inherit;
     }
-
-    .error-message.showed {
-      display: block !important;
-    }
-
 
     .container {
       width: 100%;
       max-width: 480px;
+      max-height: 100dvh;
+      overflow-y: auto;
       padding: 40px 32px;
       text-align: center;
+      animation: setupIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
     }
 
-    .website-init-stardarder {
-      font-size: 14px;
-      font-weight: 550;
-      width: 100%;
-      text-align: left;
-      margin: 0;
-      padding-left: 8px;
-      margin-bottom: 10px;
-      margin-top: 10px;
+    @keyframes setupIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
 
     h2 {
-      font-size: 26px;
-      margin-bottom: 10px;
-      font-weight: 700;
+      margin: 0 0 10px;
+      font-family: var(--font-heading);
+      font-size: 28px;
+      font-weight: 600;
       letter-spacing: -0.3px;
     }
 
     .sub-text {
-      font-size: 14px;
-      color: var(--text-muted);
       margin-bottom: 6px;
-    }
-
-    .hint {
-      font-size: 13px;
+      font-size: 14px;
+      line-height: 1.6;
       color: var(--text-muted);
-      margin-top: 10px;
     }
 
-    form {
-      margin-top: 28px;
+    .setup-form {
+      margin-top: 30px;
       text-align: left;
     }
 
-    h4 {
-      margin-bottom: 8px;
-      font-weight: 600;
+    .glass-field {
+      position: relative;
+      min-width: 0;
+      margin: 0 0 20px;
+      padding: 2px 12px 8px;
+      border-radius: 25px;
+      border: var(--edge-w) solid transparent;
+      background:
+        linear-gradient(var(--field-fill), var(--field-fill)) padding-box,
+        linear-gradient(
+          135deg,
+          var(--edge-hi) 0%,
+          var(--edge-lo) 28%,
+          var(--edge-lo) 72%,
+          var(--edge-hi) 100%
+        ) border-box;
+      transition: --edge-hi 0.25s ease, --edge-lo 0.25s ease;
     }
 
-    input[type="url"] {
+    .glass-field legend {
+      margin-left: 9px;
+      padding: 0 3px;
+      width: auto;
+      font-size: 13.5px;
+      color: #4e91fc;
+      background: linear-gradient(to bottom, transparent 44%, var(--field-fill) 44%);
+    }
+
+    .glass-field input {
       width: 100%;
-      height: 44px;
-      padding: 0 14px;
-      border-radius: var(--radius);
-      border: 1px solid var(--border);
-      background: var(--bg-surface);
-      color: var(--text-main);
-      font-size: 14px;
-      transition: all 0.2s ease;
+      height: 32px;
+      padding: 0 8px;
+      border: none;
       outline: none;
+      background: transparent;
+      color: var(--text-main);
+      caret-color: #fff;
+      font-size: 15px;
     }
 
-    input::placeholder {
+    .glass-field input::placeholder {
       font-size: 14px;
-      content: var(--text-muted);
+      color: var(--text-muted);
+      opacity: 0.9;
     }
 
-    input[type="url"]:focus {
-      border-color: var(--accent-color);
-      background: var(--bg-surface-active);
+    .glass-field:focus-within {
+      --edge-hi: #4285f4;
+      --edge-lo: rgba(255, 255, 255, 0.06);
+    }
+
+    .glass-field:focus-within legend {
+      color: #fff;
+    }
+
+    .glass-field.error {
+      --edge-hi: rgba(254, 41, 41, 0.95);
+      --edge-lo: rgba(255, 255, 255, 0.06);
+      margin-bottom: 4px;
+    }
+
+    .glass-field.error input {
+      caret-color: rgb(254, 41, 41);
+    }
+
+    .glass-field.error legend {
+      color: rgb(254, 41, 41);
     }
 
     .error-message {
-      font-size: 12px;
-      color: var(--red);
-      margin-top: 6px;
-      min-height: 16px;
+      display: none;
+      margin: 2px 0 20px 7px;
+      font-size: 14px;
+      color: rgb(254, 41, 41);
+      text-align: left;
+    }
+
+    .error-message.showed {
+      display: block;
+    }
+
+    .hint {
+      margin-top: 4px;
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--text-muted);
+      text-align: center;
     }
 
     .button-row {
       display: flex;
       gap: 10px;
-      margin-top: 24px;
+      margin-top: 26px;
     }
 
     .btn {
+      position: relative;
       flex: 1;
-      height: 40px;
-      border-radius: 10px;
-      font-size: 13px;
+      height: 48px;
+      border-radius: 14px;
+      font-size: 15px;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.2s ease;
-      border: none;
-    }
-
-    .btn-outline {
-      background: transparent;
-      border: 1px solid var(--border-light);
-      color: var(--text-main);
-      text-decoration: none;
       display: flex;
       align-items: center;
       justify-content: center;
+      text-decoration: none;
+    }
+
+    .btn-outline {
+      border: var(--edge-w) solid transparent;
+      background: var(--bg-btn);
+      color: var(--text-main);
+    }
+
+    .btn-outline::before {
+      content: "";
+      position: absolute;
+      inset: calc(var(--edge-w) * -1);
+      padding: var(--edge-w);
+      border-radius: inherit;
+      background: linear-gradient(
+        135deg,
+        var(--edge-hi) 0%,
+        var(--edge-lo) 28%,
+        var(--edge-lo) 72%,
+        var(--edge-hi) 100%
+      );
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
     }
 
     .btn-outline:hover {
-      background: rgba(255,255,255,0.04);
+      background: var(--bg-btn-idle);
+      transform: translateY(-1px);
+      --edge-hi: rgba(255, 255, 255, 0.75);
+      --edge-lo: rgba(255, 255, 255, 0.08);
     }
 
     .btn-primary {
-      background: var(--accent-color);
-      color: white;
+      border: none;
+      background: var(--bg-btn-idle);
+      color: var(--text-main);
     }
 
-    .btn-primary:hover {
-      transform: translateY(-1px);
+    .btn-primary.valid {
+      background: var(--accent-color);
+      color: #fff;
     }
- 
+
+    .btn-primary.valid:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px var(--accent-45);
+    }
+
+    .btn-primary:disabled {
+      cursor: default;
+      transform: none;
+    }
+
     @media (max-width: 480px) {
       .container {
         padding: 32px 20px;
@@ -206,15 +289,22 @@
     <div class="sub-text">Start building your community — we'll guide you.</div>
     <div class="sub-text">You can always update this later in Settings.</div>
 
+    <form class="setup-form" id="setupForm" novalidate>
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-      <h4 class="website-init-stardarder">Website</h4>
-      <input
-        id="website"
-        type="url"
-        name="website"
-        placeholder="https://yourcommunity.xyz"
-      >
+      <fieldset class="glass-field" id="websiteFieldset">
+        <legend id="websiteLegend">Website</legend>
+        <input
+          id="website"
+          type="url"
+          name="website"
+          inputmode="url"
+          autocomplete="off"
+          autocapitalize="off"
+          spellcheck="false"
+          placeholder="https://yourcommunity.xyz"
+        >
+      </fieldset>
 
       <div id="urlError" class="error-message"></div>
 
@@ -223,18 +313,16 @@
       </div>
 
       <div class="button-row">
-        <a href="{{ url_for('dashboard') }}" class="btn btn-outline"  onclick="event.preventDefault(); navigateTo(this.href);">Cancel</a>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-outline" onclick="event.preventDefault(); navigateTo(this.href);">Cancel</a>
 
-        <button
-          id="nextBtn"
-          type="submit" 
-          class="btn btn-primary">
+        <button id="nextBtn" type="submit" class="btn btn-primary">
           Next
         </button>
       </div>
+    </form>
   </div>
 
-  <script src="{{ url_for('static', filename='admin_panel.js') }}"  defer></script>
+  <script src="{{ url_for('static', filename='admin_panel.js') }}" defer></script>
 
 </body>
 </html>

@@ -1,6 +1,7 @@
 .vscode/
 migrations/
-
+# .gitignore
+backend/disposable_domains_cache.txt
 __pycache__/
 *.pyc
 *.pyo

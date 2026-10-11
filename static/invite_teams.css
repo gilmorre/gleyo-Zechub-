@@ -24,8 +24,6 @@
   margin-bottom: 25px !important;
 }
 
- 
-
 .team-controls {
   display: flex;
   flex-wrap: wrap;
@@ -33,7 +31,6 @@
   align-items: center;
   margin-bottom: 20px;
 }
-
 
 @media (max-width: 767px) {
 
@@ -44,13 +41,10 @@
  }
 }
 
-
-
 .team-search-box svg{
   flex-shrink: 0;
   width: 14px;
   height: 14px;
-
 }
 
 .team-search-box input {
@@ -98,7 +92,7 @@
 .team-members-list h3 {
   margin: 20px 0;
 }
-/* ===== ROW ===== */
+
 .team-member {
   display: flex;
   align-items: center;
@@ -108,7 +102,7 @@
 .team-member:not(:last-child) {
   margin-bottom: 28px;
 }
-/* ===== AVATAR ===== */
+
 .team-avatar {
   width: 40px;
   height: 40px;
@@ -130,21 +124,18 @@
   border-radius: 50%;
 }
 
-/* ===== CONTENT + ROLE WRAPPER ===== */
 .team-divide-up {
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 12px 0;          /* vertical spacing lives HERE */
+  padding: 12px 0;
 }
 
-/* ===== DIVIDER ===== */
 .team-member:not(:last-child) .team-divide-up {
   border-bottom: 0.9px solid var(--border);
 }
 
-/* ===== INFO ===== */
 .team-info {
   display: flex;
   flex-direction: column;
@@ -162,7 +153,6 @@
   margin-top: 2px;
 }
 
-/* ===== ROLE ===== */
 .team-role {
   position: relative;
   background: #2c2c41;
@@ -186,7 +176,6 @@
   transform: rotate(180deg);
 }
 
-/* ===== ROLE MENU ===== */
 .team-role-menu {
   display: none;
   position: absolute;
@@ -222,7 +211,6 @@
   background: rgba(255, 102, 102, 0.139);
 }
 
-/* ===== CREATOR ===== */
 .creator-role {
   cursor: not-allowed;
 }
@@ -232,7 +220,6 @@
   align-items: center;
 }
 
-/* ===== TOOLTIP ===== */
 .creator-role[data-tooltip]::after {
   content: attr(data-tooltip);
   position: absolute;
@@ -260,9 +247,8 @@
   margin-right: 8px;
   width: 20px;
   height: 20px;
-  flex-shrink: 0;  /* prevent image from shrinking */
+  flex-shrink: 0;
 }
-
 
 .team-filter {
     width: 36px;
@@ -277,7 +263,6 @@
     color: white;
     transition: transform 0.2s ease;
 }
- 
 
 .team-filter[data-tooltip] {
   position: relative;
@@ -297,11 +282,8 @@
   z-index: 99999;
 }
 
-
   .team-filter:hover {
     background: rgba(43, 43, 66, 0.712);
-
-
   }
 .team-role.open .team-role-filter {
   display: block;
@@ -316,23 +298,16 @@
 .team-role-filter div:hover {
   background: var(--bg-hover-hover);
 }
- 
- 
 
- 
 @media (min-width: 991px) {
 
 .team-container {
   max-width: 720px;
   margin: 40px auto;
   padding: 0  20px;
-
-  
 }
  
 }
-
-
 
 @media (max-width: 767px) {
 
@@ -352,14 +327,13 @@
     z-index: 9999;
   }
 
- 
   .team-search-box svg{
     width: 15px;
     height: 15px;
   }
 
   .input-style {
-    flex: 1;               /* input takes remaining space */
+    flex: 1;
     width: 100% !important;
   }
   .team-btn {
@@ -377,7 +351,6 @@
     margin-bottom: 10px;
   }
 
-   
   .team-filter {
     display: flex;          
     justify-content: center; 
@@ -410,7 +383,6 @@
 .invitee-email:focus{
   border: 1px solid #4285f4;
 }
-
 
 .invite-as{
   font-size: 13px ;
@@ -461,9 +433,6 @@
   width: fit-content;  
 }
 
-
-
-
 .invite-btn {
   font-size: 14px;
   margin-left: auto;
@@ -481,7 +450,6 @@
   padding: 12px 40px;
   border: none;
 }
- 
 
 .invite-btn.send {
   background: #4286f4d6 !important;
@@ -493,11 +461,10 @@
   background-color: #4286f4a0;
 }
 
-
 .invite-together {
   display: flex;
-  align-items: center; /* vertically center items */
-  gap: 8px; /* optional spacing between h3 and svg */
+  align-items: center;
+  gap: 8px;
 }
 
 .modal-close-icon {
@@ -507,18 +474,13 @@
 
   margin-left: auto;
   cursor: pointer;
-  transition: transform 0.2s ease; /* smooth scaling */
+  transition: transform 0.2s ease;
 }
 .modal-close-icon:hover {
-  transform: scale(16/14); /* grows from 14px → 16px */
+  transform: scale(16/14);
   background: #2f2f48;
   border-radius: 50%;
-
-
 }
-
-
-
 
 .spinner {
   width: 12px;
@@ -537,12 +499,8 @@
   100% { transform: rotate(360deg); }
 }
 
- 
- 
-
-
 .team-members-list.empty {
-  min-height: 0;    /* collapse when empty */
+  min-height: 0;
   height: auto !important;     
 }
 
@@ -593,8 +551,6 @@
 
 @media (max-width: 500px) {
 
- 
-
   .invite-user-dropdown {
     width: 100%;
   }
@@ -607,9 +563,7 @@
     transition: none;
   }
 
- 
 }
-
 
 .link-invite-box p {
   color: var(--text-muted);
@@ -626,15 +580,11 @@
   padding: 0;
 }
 
- 
 .modal-close-icon {
   width: 18px;
   height: 18px;
   cursor: pointer;
 }
-
-
- 
 
 .invite-user-select {
   display: flex;
@@ -703,8 +653,6 @@
   flex-shrink: 0;
 }
 
- 
-
 .modal-close-icon-link{
   width: 18px;
   height: 18px;
@@ -717,18 +665,15 @@
 
   margin-left: auto;
   cursor: pointer;
-  transition: transform 0.2s ease; /* smooth scaling */
+  transition: transform 0.2s ease;
 }
 
 .modal-close-icon-link:hover{
 
-  transform: scale(16/14); /* grows from 14px → 16px */
+  transform: scale(16/14);
   background: #2f2f48;
   border-radius: 50%;
 }
-/* Responsive for mobile */
-
-
 
 .spinner {
   width: 12px;
@@ -747,8 +692,6 @@
   100% { transform: rotate(360deg); }
 }
 
-
-
 .all-team-conatiner {
   margin-top: 20px;
   background: var(--bg-surface);
@@ -757,8 +700,51 @@
   padding: 20px;
 }
 
-
 .team-search-box-main.mob{
   border-bottom-left-radius: 17px;
   border-bottom-right-radius: 17px;
+}
+
+.team-limit-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(245, 165, 36, 0.1);
+  color: var(--text-main);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.team-limit-banner svg {
+  flex-shrink: 0;
+}
+
+.team-role-dropdown div.locked,
+.team-role-invite div.locked,
+.team-role-menu div.locked {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.team-role-dropdown div.locked::after,
+.team-role-invite div.locked::after,
+.team-role-menu div.locked::after {
+  content: "Upgrade";
+  font-size: 10px;
+  font-weight: 700;
+  color: #f5a524;
+}
+
+.team-role-dropdown div.locked:hover,
+.team-role-invite div.locked:hover,
+.team-role-menu div.locked:hover {
+  background: transparent;
 }

@@ -5,16 +5,22 @@ import os
 import re
 import json
 import time
+import io
 import random
 import string
 import smtplib
 import secrets
 import base64
+import math
+from calendar import monthrange 
 import uuid
 import redis
 import hashlib
 import asyncio
+from html import escape as html_escape
 import subprocess
+from PIL import Image, UnidentifiedImageError  
+from werkzeug.utils import secure_filename
 import threading
 import traceback
 import warnings
@@ -79,6 +85,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 # ─────────────────────────────────────────────────────────────
 from sqlalchemy import and_, or_, func, cast, Date, desc, distinct, case, event
 from sqlalchemy.orm import joinedload, aliased, scoped_session, sessionmaker
+from collections import defaultdict 
 from sqlalchemy.exc import IntegrityError
 
 # ─────────────────────────────────────────────────────────────
@@ -128,23 +135,44 @@ from web3 import Web3
 # ─────────────────────────────────────────────────────────────
 # INTERNAL — CORE
 # ─────────────────────────────────────────────────────────────
+
+from backend.utils.email_sender_func import send_email_code, is_disposable_email
 from backend.utils.instance import db, mail
 from backend.utils.utils import (
     has_role, check_banned, create_user_session,
-    get_latest_valid_sprint, is_safe_url,
+    get_latest_valid_sprint, is_safe_url, send_email,
     get_subquest_attempt_stats, csrf,
 )
 from backend.notifications.notifications import increment_review_notification
 from backend.utils.scheduler import check_and_update_invite_status
 from backend.quests.check_analytics import generate_all_insights
+from backend.auth.export import export_bp
 from backend.quests.invite_validation import invited_user_is_valid
-from backend.utils.upload_service import upload_async, send_push_notification_async, send_discord_message_async, send_quest_emails_async, send_mention_email_async, send_tip_email_async, send_xp_email_async
+from backend.utils.upload_service import upload_async, send_push_notification_async, send_discord_message_async, send_quest_emails_async, send_mention_email_async, send_tip_email_async, send_xp_email_async, upload_executor, _upload_single
 import backend.utils.ai_init as ai_init 
-
 # ─────────────────────────────────────────────────────────────
 # INTERNAL — BLUEPRINTS / OAUTH
 # ─────────────────────────────────────────────────────────────
 from backend.auth.googleOauth import google_bp
+from backend.auth.billing_stripe import (
+    BillingError,
+    STRIPE_PUBLISHABLE_KEY,
+    CLAIM_LIMITS,
+    get_active_subscription,
+    consume_claim,
+    get_billing_community,
+    resume_card_subscription,
+    cancel_card_subscription,
+    claims_open,
+    get_extra_left,
+    quest_packs_for_template,
+    create_plan_payment,
+    create_pack_payment,
+    is_ready,
+    subscription_payload,
+)
+from backend.communities.community_subscription_models import CommunitySubscription, EnterpriseRequest, CommunityPayment
+from backend.communities.community_claim_pack_models import CommunityExtraClaims, ClaimPackPurchase
 from backend.integrations.telegramAPI import telegram_bp
 from backend.integrations.twitterAPI import twitter_bp, get_live_followers_count, scrape_tweet_mentions, extract_handle_from_any_url, spawn_mention_match_for_handle, spawn_mention_match_for_new_tags
 from backend.integrations.discord_name import bp as discord_bp
@@ -154,6 +182,13 @@ from backend.integrations.twitter_task_checker import check_twitter_task_for_use
 from backend.integrations.tiktok_bp import tiktok_bp
 from backend.integrations.community_telegram import CommunityTelegramGroup
 from backend.auth.github import bp, check_if_starred, get_repo_forks
+from backend.auth.entitlements import (
+    FeatureLocked, TEAM_ROLES, check_can_add_team_member,
+    check_can_accept_team_invite, check_can_join, check_can_take_role, chat_locked,
+    team_is_full, user_is_on_team, limit, has_feature, require_feature,
+    plan_key, plan_label, check_can_add_emoji, FeatureLocked
+)
+from backend.promotions.twitter_promotion_models import TwitterPromotionRequest
 from backend.communities.community_twitter_bp import community_twitter_bp
 from backend.payments.wallet import ZecWithdrawalQueue
 from backend.utils.nozy_client import _nozy_sync, _nozy_send, fetch_nozy_balance, verify_zec_payment
@@ -245,7 +280,7 @@ from backend.communities.communitynotification import (
     CommunityNotificationSettings, PushSubscription,
     CategoryNotificationSettings, ChannelNotificationSettings,
 )
-from backend.chat.chat_channel import CommunityChannel, ChannelAllowedRole
+from backend.chat.chat_channel import CommunityChannel, ChannelAllowedRole, ChannelReadState, MessageMention
 from backend.chat.chat_category import CommunityCategory, CategoryAllowedRole
 from backend.chat.comm_message import CommunityMessage, ChannelSlowmodeState, PinnedMessage, MessageAudio
 from backend.chat.comm_attachment import MessageAttachment
@@ -320,7 +355,7 @@ else:
 app.config.update(
     SESSION_COOKIE_NAME="gleyo_session",
     SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_SECURE=False,
     SESSION_COOKIE_SAMESITE="Lax",
     MAX_CONTENT_LENGTH=5 * 1024 * 1024,
     MAIL_SERVER="smtp.gmail.com",
@@ -330,7 +365,7 @@ app.config.update(
     MAIL_PASSWORD=os.getenv("MAIL_PASS"),
     MAIL_DEFAULT_SENDER="florishisreal@gmail.com",
     REMEMBER_COOKIE_DURATION=timedelta(days=30),
-    REMEMBER_COOKIE_HTTPONLY=True,
+    REMEMBER_COOKIE_HTTPONLY=False,
     REMEMBER_COOKIE_SAMESITE="Lax",
     REMEMBER_COOKIE_SECURE=True
 )
@@ -382,6 +417,7 @@ app.register_blueprint(youtube_bp)
 app.register_blueprint(discord_bp)
 app.register_blueprint(tiktok_bp)
 app.register_blueprint(bp)
+app.register_blueprint(export_bp)
 app.register_blueprint(community_twitter_bp)
 app.register_blueprint(google_bp)
 app.register_blueprint(invite_progress_bp)
@@ -392,6 +428,12 @@ with app.app_context():
 
 start_bot_in_background(app) #---Start Discord Bot By Uncommenting (Option)----
 start_zec_worker(app)
+
+from backend.jobs.expire_subscriptions import init_subscription_jobs, schedule_subscription_expiry
+from backend.auth.billing_stripe import set_expiry_scheduler, set_wallet_debit
+
+set_expiry_scheduler(schedule_subscription_expiry)
+init_subscription_jobs(app, scheduler)
 
 ALLOWED_ROUTES = {
     # public
@@ -577,7 +619,6 @@ limiter = Limiter(get_remote_address, app=app)
 
 DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 BEARER_TOKEN = os.getenv("TWITTER_BEARER_TOKEN")
-RESEND_API_KEY = os.getenv("RESEND_API_KEY")
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 MAIL_USERNAME=os.getenv("MAIL_USER")
 MAIL_PASSWORD=os.getenv("MAIL_PASS")
@@ -602,7 +643,15 @@ NOZY_API_KEY = os.environ.get("NOZY_API_KEY")
 NOZY_WALLET_PASSWORD = os.getenv("NOZY_WALLET_PASSWORD")
 ZCASHD_FROM_ADDRESS = os.getenv("ZCASHD_FROM_ADDRESS")
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+RESEND_API_KEY = os.getenv("RESEND_API_KEY")
 resend.api_key = RESEND_API_KEY
+PROMO_EMAIL_TO = "faavour@gleyo.app"
+PROMO_COOLDOWN = timedelta(days=7)
+PROMO_MIN_LEAD_DAYS = 3
+PROMO_MAX_LEAD_DAYS = 90
+VALID_TYPES = {"sprint", "quest", "community", "other"}
+ADMIN_ROLES = {"admin"}
+
 @app.context_processor
 def inject_globals():
     return {
@@ -691,47 +740,6 @@ def normalize_uuid(value):
 
 
 
-def send_email(msg):
-    print(f"'Message',{msg}")
-    html_content = None
-    text_content = None
-
-    for part in msg.iter_parts():
-        if part.get_content_type() == "text/html":
-            html_content = part.get_content()
-        elif part.get_content_type() == "text/plain":
-            text_content = part.get_content()
-
-    params = {
-        "from": "Gleyo <noreply@gleyo.app>",
-        "to": [msg["To"]],
-        "subject": msg["Subject"],
-    }
-    if html_content:
-        params["html"] = html_content
-    if text_content:
-        params["text"] = text_content
-
-    if RESEND_API_KEY:
-        try:
-            resend.Emails.send(params)
-            print("EMAIL SENT SUCCESSFULLY (Resend)")
-            return
-        except Exception as e:
-            print("RESEND FAILED:", e, "— falling back to SMTP")
-    else:
-        print("No RESEND_API_KEY set — using SMTP")
-
-    try:
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-            server.starttls()
-            server.login(SMTP_USERNAME, SMTP_PASSWORD)
-            server.send_message(msg)
-        print("EMAIL SENT SUCCESSFULLY (SMTP fallback)")
-    except Exception as e:
-        print("SMTP FALLBACK FAILED:", e)
-
-
 @app.route("/api/search-communities")
 def search_communities():
     q = request.args.get("q", "").strip()
@@ -804,338 +812,7 @@ def search_communities():
     return jsonify(results)
 
     
-def send_email_code(email: str, code: str) -> None:
-    """Send OTP using HTML-styled EmailMessage."""
-    formatted_code = f"{code[:3]}&nbsp;{code[3:]}"
-    msg = EmailMessage()
-    msg["Subject"] = "Your Gleyo verification code"
-    msg["To"] = email
-
-
-    html_content = f"""
-        <!DOCTYPE html>
-        <html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
-        <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <meta name="color-scheme" content="light dark">
-        <meta name="supported-color-schemes" content="light dark">
-        <title>Your Verification Code</title>
-        <style>
-            * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-            body, table, td, a {{ -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }}
-            table, td {{ mso-table-lspace: 0pt; mso-table-rspace: 0pt; }}
-            img {{ border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic; }}
-            a {{ text-decoration: none; }}
-        
-            body {{
-            font-family: 'Georgia', 'Times New Roman', serif;
-            background-color: #f0ede8;
-            margin: 0;
-            padding: 0;
-            }}
-        
-            .email-wrapper {{
-            background-color: #f0ede8;
-            padding: 48px 16px;
-            }}
-        
-            .email-card {{
-            background-color: #faf8f5;
-            border-radius: 20px;
-            max-width: 520px;
-            margin: 0 auto;
-            overflow: hidden;
-            box-shadow: 0 4px 40px rgba(0,0,0,0.08);
-            }}
-        
-            .header {{
-            background-color: #1a1a18;
-            padding: 36px 48px 32px;
-            text-align: left;
-            }}
-        
-            .logo {{
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            }}
-        
-            .logo-mark {{
-            width: 36px;
-            height: 36px;
-            background: linear-gradient(135deg, #e8c97e, #c9973a);
-            border-radius: 10px;
-            display: inline-block;
-            }}
-        
-            .logo-name {{
-            font-family: 'Georgia', serif;
-            font-size: 18px;
-            font-weight: bold;
-            color: #faf8f5;
-            letter-spacing: 0.5px;
-            }}
-        
-            .body-content {{
-            padding: 48px 48px 40px;
-            }}
-        
-            .eyebrow {{
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 11px;
-            letter-spacing: 2.5px;
-            text-transform: uppercase;
-            color: #c9973a;
-            margin-bottom: 16px;
-            }}
-        
-            h1 {{
-            font-family: 'Georgia', 'Times New Roman', serif;
-            font-size: 30px;
-            font-weight: bold;
-            color: #1a1a18;
-            line-height: 1.25;
-            margin-bottom: 16px;
-            letter-spacing: -0.3px;
-            }}
-        
-            .intro {{
-            font-size: 15.5px;
-            color: #5c5a52;
-            line-height: 1.7;
-            margin-bottom: 36px;
-            }}
-        
-            .otp-block {{
-            background: #1a1a18;
-            border-radius: 16px;
-            padding: 32px 40px;
-            text-align: center;
-            margin-bottom: 32px;
-            position: relative;
-            overflow: hidden;
-            }}
-        
-            .otp-label {{
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 10.5px;
-            letter-spacing: 2.5px;
-            text-transform: uppercase;
-            color: #8a8880;
-            margin-bottom: 14px;
-            }}
-        
-            .otp-code {{
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 48px;
-            font-weight: bold;
-            letter-spacing: 14px;
-            color: #e8c97e;
-            line-height: 1;
-            margin-bottom: 18px;
-            text-indent: 14px;  
-            }}
-        
-            .otp-divider {{
-            width: 40px;
-            height: 1px;
-            background: rgba(255,255,255,0.1);
-            margin: 0 auto 14px;
-            }}
-        
-            .otp-expiry {{
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 11px;
-            letter-spacing: 1px;
-            color: #6a6860;
-            }}
-        
-            .otp-expiry span {{
-            color: #e8c97e;
-            }}
-        
-            .security-box {{
-            border: 1px solid #e8e4dc;
-            border-radius: 12px;
-            padding: 20px 24px;
-            margin-bottom: 32px;
-            display: flex;
-            gap: 14px;
-            align-items: flex-start;
-            background: #f5f2ed;
-            }}
-        
-            .security-icon {{
-            width: 20px;
-            height: 20px;
-            flex-shrink: 0;
-            margin-top: 1px;
-            }}
-        
-            .security-text {{
-            font-size: 13.5px;
-            color: #5c5a52;
-            line-height: 1.6;
-            }}
-        
-            .security-text strong {{
-            color: #1a1a18;
-            font-weight: 600;
-            }}
-        
-            .separator {{
-            height: 1px;
-            background: #e8e4dc;
-            margin: 0 0 32px;
-            }}
-        
-            .closing {{
-            font-size: 15px;
-            color: #5c5a52;
-            line-height: 1.7;
-            margin-bottom: 28px;
-            }}
-        
-            .closing strong {{ color: #1a1a18; }}
-        
-            .signature {{
-            font-family: 'Georgia', serif;
-            font-size: 14.5px;
-            color: #8a8880;
-            font-style: italic;
-            }}
-        
-            .footer {{
-            background: #f0ede8;
-            padding: 28px 48px;
-            border-top: 1px solid #e8e4dc;
-            }}
-        
-            .footer-text {{
-            font-size: 12px;
-            color: #9a9890;
-            line-height: 1.7;
-            text-align: center;
-            }}
-        
-            .footer-text a {{
-            color: #c9973a;
-            text-decoration: underline;
-            }}
-        
-            .footer-links {{
-            text-align: center;
-            margin-bottom: 14px;
-            }}
-        
-            .footer-links a {{
-            font-size: 12px;
-            color: #9a9890;
-            margin: 0 10px;
-            text-decoration: none;
-            border-bottom: 1px solid #d0ccc5;
-            padding-bottom: 1px;
-            }}
-        
-            @media (prefers-color-scheme: dark) {{
-            body, .email-wrapper {{ background-color: #111110 !important; }}
-        
-            .email-card {{ background-color: #1c1c1a !important; box-shadow: 0 4px 40px rgba(0,0,0,0.4) !important; }}
-        
-            .header {{ background-color: #0e0e0c !important; }}
-        
-            h1 {{ color: #f0ede8 !important; }}
-            .intro {{ color: #9a9890 !important; }}
-            .closing {{ color: #9a9890 !important; }}
-            .closing strong {{ color: #f0ede8 !important; }}
-        
-            .otp-block {{ background-color: #0e0e0c !important; border: 1px solid #2a2a28; }}
-        
-            .security-box {{ background: #252523 !important; border-color: #2e2e2c !important; }}
-            .security-text {{ color: #9a9890 !important; }}
-            .security-text strong {{ color: #f0ede8 !important; }}
-        
-            .separator {{ background: #2e2e2c !important; }}
-            .signature {{ color: #6a6860 !important; }}
-        
-            .footer {{ background: #161614 !important; border-top-color: #2e2e2c !important; }}
-            .footer-text {{ color: #6a6860 !important; }}
-            .footer-links a {{ color: #6a6860 !important; border-bottom-color: #3a3a38 !important; }}
-            }}
-        
-            @media only screen and (max-width: 540px) {{
-            .body-content {{ padding: 36px 28px 32px !important; }}
-            .header {{ padding: 28px 28px 24px !important; }}
-            .footer {{ padding: 24px 28px !important; }}
-            h1 {{ font-size: 24px !important; }}
-            .otp-code {{ font-size: 36px !important; letter-spacing: 10px !important; }}
-            .otp-block {{ padding: 28px 24px !important; }}
-            }}
-        </style>
-        </head>
-        <body>
-        <div class="email-wrapper">
-        <div class="email-card">
-        
-            <div class="header">
-            <div class="logo">
-                <div class="logo-mark"></div>
-                <span class="logo-name">Gleyo
-                </span>
-            </div>
-            </div>
-        
-            <div class="body-content">
-            <p class="eyebrow">Security Verification</p>
-            <h1>Your one-time<br>passcode is ready.</h1>
-            <p class="intro">
-                Hi there — we received a sign-in request for your account. Use the code below to complete verification. It's only valid for <strong>2 minutes</strong>.
-            </p>
-        
-            <div class="otp-block">
-                <p class="otp-label">Verification code</p>
-                <p class="otp-code">{formatted_code}</p>
-                <div class="otp-divider"></div>
-                <p class="otp-expiry">Expires in <span>2 minutes</span></p>
-            </div>
-        
-            <div class="security-box">
-                <svg class="security-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M10 2L3 5v5c0 4.07 2.97 7.87 7 8.93C14.03 17.87 17 14.07 17 10V5L10 2z" stroke="#c9973a" stroke-width="1.5" stroke-linejoin="round"/>
-                <path d="M10 9v4M10 7.5v.5" stroke="#c9973a" stroke-width="1.5" stroke-linecap="round"/>
-                </svg>
-                <p class="security-text">
-                <strong>Didn't request this?</strong> If you didn't try to sign in, you can safely ignore this email. Someone may have entered your email by mistake. Your account remains secure.
-                </p>
-            </div>
-        
-            <div class="separator"></div>
-        
-            <p class="closing">
-                For your security, never share this code with anyone — <strong>our team will never ask for it.</strong> This code is single-use and will expire automatically.
-            </p>
-            <p class="signature">— Gleyo</p>
-            </div>
-        
-            <div class="footer">
-
-            <p class="footer-text">
-                © {datetime.now().year} Gleyo
-            </p>
-            </div>
-        
-        </div>
-        </div>
-        </body>
-        </html>
-    """
-    
-    msg.add_alternative(html_content, subtype="html")
-
-    send_email(msg)
-    
+ 
 def send_email_verification_code(email: str, code: str) -> None:
     """Send OTP to VERIFY NEW EMAIL address."""
 
@@ -2287,15 +1964,11 @@ def load_user(user_id):
 # ─────────────────────────────────────────────
 
 
-@app.route('/login', methods=['GET', 'POST'])
+@app.route("/login", methods=["GET", "POST"])
 def login():
     messages = get_flashed_messages(with_categories=True)
-    print(messages)
-    flash_message = None
-    flash_category = None
+    flash_category, flash_message = messages[-1] if messages else (None, None)
 
-    if messages:
-        flash_category, flash_message = messages[-1]
     if current_user.is_authenticated:
         sid = session.get("sid")
 
@@ -2309,7 +1982,6 @@ def login():
             if user_session:
                 next_url = session.get("next")
 
-                # 🔥 BLOCK timezone redirect
                 if next_url and "/set_timezone" in next_url:
                     next_url = url_for("dashboard")
 
@@ -2318,14 +1990,13 @@ def login():
         logout_user()
         session.clear()
 
-    next_url = request.args.get('next')
+    next_url = request.args.get("next")
 
-    # 🔥 sanitize BEFORE saving
     if next_url and is_safe_url(next_url):
         if "/set_timezone" in next_url:
             next_url = url_for("dashboard")
 
-        session['next'] = next_url
+        session["next"] = next_url
 
     if request.headers.get("X-Partial"):
         return render_template(
@@ -2333,12 +2004,13 @@ def login():
             flash_message=flash_message,
             flash_category=flash_category
         )
-    
+
     return render_template(
         "login.html",
         flash_message=flash_message,
         flash_category=flash_category
     )
+
 
 @app.route("/create-account", methods=["GET", "POST"])
 def create_account():
@@ -2444,42 +2116,56 @@ def change_password(token):
 
 
 
+
+
+def _send_code_error(code: str, message: str, status: int = 400):
+    return jsonify({"error": code, "message": message}), status
+
+
 @app.route("/send-code", methods=["POST"])
 @csrf.exempt
 def send_code():
     email = request.form.get("box", "").strip().lower()
     next_url = request.form.get("next")
+    mode = request.form.get("mode", "login")  # "login" or "signup", sent by the JS
 
-    if not email:
-        flash("Email required", "error")
-        return redirect(url_for("login"))
+    if not email or "@" not in email:
+        return _send_code_error("invalid", "Email required")
 
     user = Users.query.filter_by(email=email).first()
 
     # 🚫 BLOCK PENDING / DELETED USERS
     if user and user.deletion_requested_at:
-        flash(
+        return _send_code_error(
+            "deleted",
             "This account is scheduled for deletion and cannot be accessed.",
-            "error"
+            403,
         )
-        return redirect(url_for("login"))
 
+    if not user:
+        # Logging in with an email that has no account
+        if mode == "login":
+            return _send_code_error(
+                "no_account",
+                "No account found with this email.",
+                404,
+            )
+        # Signing up with a temporary email
+        if is_disposable_email(email):
+            return _send_code_error(
+                "disposable",
+                "Disposable email addresses are not allowed. Please use a permanent email.",
+            )
 
     if next_url and is_safe_url(next_url):
         session["next"] = next_url
 
-    now = time.time()
-
     session["is_new"] = user is None
-    print("New code for")
     new_code_for(email)
     session["pending_email"] = email
-
-    session["code_sent_time"] = now
+    session["code_sent_time"] = time.time()
 
     return render_template("4_digit_code.html", email=email)
-
-
 
 
 
@@ -2924,6 +2610,8 @@ def verify_code():
     data = request.get_json() or {}
     code = (data.get("code") or "").strip()
 
+    print("SESSION:", dict(session), "| JSON:", request.get_data(as_text=True))
+
     email = session.get("pending_email")
 
     if not email:
@@ -2942,27 +2630,29 @@ def verify_code():
 
     user = Users.query.filter_by(email=email).first()
 
+    # NEW USER
+    # Frontend still needs to handle username selection.
     if not user:
         session["allow_username_pick"] = True
-        return jsonify({"redirect": url_for("pick_username")})
+        return jsonify({
+            "redirect": url_for("pick_username")
+        })
 
+    # EXISTING USER
     log_user_in(user)
     create_user_session(user)
 
     if DEMO_MODE and email == DEMO_EMAIL:
-        return jsonify({
-            "redirect": url_for("p_quest", community_slug=DEMO_COMMUNITY_SLUG),
-            "hard": True
-        })
+        return redirect(
+            url_for(
+                "p_quest",
+                community_slug=DEMO_COMMUNITY_SLUG
+            )
+        )
 
-    next_url = session.pop('next', None)
+    next_url = session.pop("next", None)
 
-    return jsonify({
-        "redirect": next_url or url_for("dashboard"),
-        "hard": True    
-    })
-
-
+    return redirect(next_url or url_for("dashboard"))
 
 
 
@@ -3251,6 +2941,73 @@ def save_avatar_when_done(future, user_id):
             print("❌ Background upload failed:", e)
 
 
+
+
+# ---------------------------------------------------------------
+# Image rules
+# ---------------------------------------------------------------
+ALLOWED_IMAGE_EXTS = {"png", "jpg", "jpeg", "webp"}
+IMAGE_MIMETYPES = {
+    "png": "image/png",
+    "jpg": "image/jpeg",
+    "jpeg": "image/jpeg",
+    "webp": "image/webp",
+}
+
+# Banner: the frontend crops to exactly 1200x400 (3:1) and sends WebP,
+# so these checks only exist to stop anyone bypassing the frontend.
+BANNER_MIN_W = 1200
+BANNER_MIN_H = 400
+BANNER_RATIO = 3.0
+BANNER_RATIO_TOLERANCE = 0.05          # ±5%
+BANNER_MAX_BYTES = 3 * 1024 * 1024     # 3 MB (a 1200x400 webp is normally < 500 KB)
+
+
+def _image_ext(file):
+    """Lower-case extension from the uploaded filename ('' if none)."""
+    name = secure_filename(file.filename or "")
+    return name.rsplit(".", 1)[-1].lower() if "." in name else ""
+
+
+def _validate_banner_bytes(file_bytes):
+    """
+    Returns (error_code, message) or (None, None) if the banner is fine.
+    Confirms it's a real image and that it's the right size / shape.
+    """
+    if len(file_bytes) > BANNER_MAX_BYTES:
+        return "banner_too_large", "Banner must be under 3MB."
+
+    try:
+        with Image.open(io.BytesIO(file_bytes)) as img:
+            img.verify()                       # integrity check
+        with Image.open(io.BytesIO(file_bytes)) as img:
+            width, height = img.size           # re-open: verify() invalidates the handle
+    except (UnidentifiedImageError, OSError, ValueError):
+        return "invalid_image_type", "That file isn't a valid image."
+
+    if width < BANNER_MIN_W or height < BANNER_MIN_H:
+        return (
+            "invalid_banner_dimensions",
+            f"Banner must be at least {BANNER_MIN_W}x{BANNER_MIN_H}px.",
+        )
+
+    ratio = width / height
+    if abs(ratio - BANNER_RATIO) > BANNER_RATIO * BANNER_RATIO_TOLERANCE:
+        return "invalid_banner_dimensions", "Banner must have a 3:1 shape (for example 1200x400)."
+
+    return None, None
+
+
+def _dispatch_upload(user_id, kind, file_bytes, ext):
+    """
+    Kick off an upload and return (storage_name, future).
+    kind is 'avatar' or 'banner' and becomes part of the storage path.
+    """
+    storage_name = f"users/{user_id}/{kind}/{uuid.uuid4()}.{ext}"
+    future = upload_to_supabase(file_bytes, storage_name, IMAGE_MIMETYPES[ext])
+    return storage_name, future
+
+
 @app.route("/api/account/profile", methods=["POST"])
 @login_required
 def update_profile():
@@ -3258,11 +3015,16 @@ def update_profile():
     logger.info("update_profile START user_id=%s", current_user.id)
 
     username = request.form.get("username")
-    file = request.files.get("avatar")
+    avatar_file = request.files.get("avatar")
+    banner_file = request.files.get("banner")
 
     updated_username = None
     updated_avatar_url = None
+    updated_banner_url = None
 
+    # -----------------------------------------------------------
+    # 1) Username
+    # -----------------------------------------------------------
     if username:
         username = username.strip().lower()
 
@@ -3282,7 +3044,7 @@ def update_profile():
 
             if existing:
                 logger.warning("update_profile REJECT user_id=%s reason=username_taken new_username=%s",
-                                current_user.id, username)
+                               current_user.id, username)
                 return jsonify({"error": "username_taken"}), 409
 
             current_user.username = username
@@ -3290,72 +3052,111 @@ def update_profile():
             logger.info("update_profile username_updated user_id=%s new_username=%s",
                         current_user.id, username)
 
-    if file and file.filename:
-        original_name = secure_filename(file.filename)
-        ext = original_name.rsplit(".", 1)[-1].lower()
+    # -----------------------------------------------------------
+    # 2) Validate BOTH images before uploading anything,
+    #    so a bad banner can't leave a half-applied update.
+    # -----------------------------------------------------------
+    avatar_bytes = avatar_ext = None
+    banner_bytes = banner_ext = None
 
-        if ext not in {"png", "jpg", "jpeg", "webp"}:
-            logger.warning("update_profile REJECT user_id=%s reason=invalid_image_type ext=%s",
-                            current_user.id, ext)
-            return jsonify({"error": "invalid_image_type"}), 400
+    if avatar_file and avatar_file.filename:
+        avatar_ext = _image_ext(avatar_file)
+        if avatar_ext not in ALLOWED_IMAGE_EXTS:
+            db.session.rollback()
+            logger.warning("update_profile REJECT user_id=%s reason=invalid_image_type kind=avatar ext=%s",
+                           current_user.id, avatar_ext)
+            return jsonify({"error": "invalid_image_type",
+                            "message": "Avatar must be a PNG, JPG or WebP image."}), 400
+        avatar_bytes = avatar_file.read()
 
-        avatar_uuid = str(uuid.uuid4())
-        storage_name = f"users/{current_user.id}/avatar/{avatar_uuid}.{ext}"
+    if banner_file and banner_file.filename:
+        banner_ext = _image_ext(banner_file)
+        if banner_ext not in ALLOWED_IMAGE_EXTS:
+            db.session.rollback()
+            logger.warning("update_profile REJECT user_id=%s reason=invalid_image_type kind=banner ext=%s",
+                           current_user.id, banner_ext)
+            return jsonify({"error": "invalid_image_type",
+                            "message": "Banner must be a PNG, JPG or WebP image."}), 400
 
-        file_bytes = file.read()
+        # read one byte past the limit so oversize files are caught without loading them fully
+        banner_bytes = banner_file.read(BANNER_MAX_BYTES + 1)
+        err_code, err_msg = _validate_banner_bytes(banner_bytes)
+        if err_code:
+            db.session.rollback()
+            logger.warning("update_profile REJECT user_id=%s reason=%s kind=banner size_bytes=%s",
+                           current_user.id, err_code, len(banner_bytes))
+            return jsonify({"error": err_code, "message": err_msg}), 400
 
-        logger.info("update_profile upload_dispatch user_id=%s storage_name=%s size_bytes=%s mimetype=%s",
-                    current_user.id, storage_name, len(file_bytes), file.mimetype)
+    # -----------------------------------------------------------
+    # 3) Dispatch uploads (run in parallel), then wait for each.
+    #    We wait for completion before responding so the frontend never
+    #    gets a "success" for an image that didn't actually save.
+    # -----------------------------------------------------------
+    uploads = {}   # kind -> (storage_name, future, started_at)
 
-        upload_start = time.monotonic()
-        future = upload_to_supabase(
-            file_bytes,
-            storage_name,
-            file.mimetype
-        )
+    if avatar_bytes is not None:
+        storage_name, future = _dispatch_upload(current_user.id, "avatar", avatar_bytes, avatar_ext)
+        logger.info("update_profile upload_dispatch user_id=%s kind=avatar storage_name=%s size_bytes=%s",
+                    current_user.id, storage_name, len(avatar_bytes))
+        uploads["avatar"] = (storage_name, future, time.monotonic())
 
-        # Wait for the upload to actually complete (built-in retries/backoff
-        # live inside upload_async) before responding. Returning early and
-        # updating the DB later in a background callback meant the frontend
-        # could get a "success" response before the avatar was actually
-        # saved — or never find out at all if the upload ultimately failed.
+    if banner_bytes is not None:
+        storage_name, future = _dispatch_upload(current_user.id, "banner", banner_bytes, banner_ext)
+        logger.info("update_profile upload_dispatch user_id=%s kind=banner storage_name=%s size_bytes=%s",
+                    current_user.id, storage_name, len(banner_bytes))
+        uploads["banner"] = (storage_name, future, time.monotonic())
+
+    failed = []   # kinds that failed, in order
+
+    for kind, (storage_name, future, started_at) in uploads.items():
         try:
             public_url = future.result()
-            upload_duration = time.monotonic() - upload_start
-            logger.info("update_profile upload_success user_id=%s duration_s=%.2f url=%s",
-                        current_user.id, upload_duration, public_url)
+            logger.info("update_profile upload_success user_id=%s kind=%s duration_s=%.2f url=%s",
+                        current_user.id, kind, time.monotonic() - started_at, public_url)
         except Exception as e:
-            upload_duration = time.monotonic() - upload_start
-            logger.error("update_profile upload_failed user_id=%s duration_s=%.2f error=%s",
-                         current_user.id, upload_duration, e)
-            if updated_username:
-                db.session.commit()
-            total_duration = time.monotonic() - request_start
-            logger.info("update_profile END (upload failed) user_id=%s total_duration_s=%.2f",
-                        current_user.id, total_duration)
-            return jsonify({
-                "error": "avatar_upload_failed",
-                "message": "Could not upload avatar, please try again.",
-                "username": updated_username
-            }), 502
+            failed.append(kind)
+            logger.error("update_profile upload_failed user_id=%s kind=%s duration_s=%.2f error=%s",
+                         current_user.id, kind, time.monotonic() - started_at, e)
+            continue
 
-        current_user.profile_pic = public_url
-        updated_avatar_url = public_url
+        if kind == "avatar":
+            current_user.profile_pic = public_url
+            updated_avatar_url = public_url
+        else:
+            current_user.banner_pic = public_url
+            updated_banner_url = public_url
 
-    if updated_username or updated_avatar_url:
+    # -----------------------------------------------------------
+    # 4) Commit whatever succeeded
+    # -----------------------------------------------------------
+    if updated_username or updated_avatar_url or updated_banner_url:
         db.session.commit()
 
     total_duration = time.monotonic() - request_start
-    logger.info("update_profile END user_id=%s total_duration_s=%.2f username_updated=%s avatar_updated=%s",
-                current_user.id, total_duration, bool(updated_username), bool(updated_avatar_url))
+
+    if failed:
+        logger.info("update_profile END (partial/failed) user_id=%s failed=%s total_duration_s=%.2f",
+                    current_user.id, failed, total_duration)
+        first = failed[0]
+        return jsonify({
+            "error": f"{first}_upload_failed",
+            "message": f"Could not upload {' and '.join(failed)}, please try again.",
+            # what DID save, so the frontend can sync if it wants to
+            "username": updated_username,
+            "avatar_url": updated_avatar_url,
+            "banner_url": updated_banner_url,
+        }), 502
+
+    logger.info("update_profile END user_id=%s total_duration_s=%.2f username_updated=%s avatar_updated=%s banner_updated=%s",
+                current_user.id, total_duration, bool(updated_username),
+                bool(updated_avatar_url), bool(updated_banner_url))
 
     return jsonify({
         "success": True,
         "username": updated_username,
-        "avatar_url": updated_avatar_url
+        "avatar_url": updated_avatar_url,
+        "banner_url": updated_banner_url,
     })
-
-
 
 
 
@@ -4921,22 +4722,22 @@ def get_subquest_description(slug, quest_uuid, subquest_uuid):
     })
 
 
-
-
 @app.route("/api/community/<slug>/settings/general", methods=["POST"])
 @login_required
 def update_community_general(slug):
-    # 🔹 find community
+    request_start = time.monotonic()
+
     community = Community.query.filter_by(slug=slug).first_or_404()
 
-    # 🔐 admin guard
     if not has_role(current_user.id, community.id, "admin"):
         flash("You are not an admin of this community.", "error")
         return jsonify({"error": "forbidden"}), 403
 
+    logger.info("update_community_general START user_id=%s community_id=%s",
+                current_user.id, community.id)
+
     updated = False
 
-    # ---------- TEXT FIELDS ----------
     name = request.form.get("name")
     website = request.form.get("website")
     about = request.form.get("about")
@@ -4958,55 +4759,121 @@ def update_community_general(slug):
         community.blockchain = blockchain
         updated = True
 
-    # ---------- LOGO UPLOAD (SUPABASE – SAME PATTERN AS EMOJI) ----------
-    file = request.files.get("logo")
-    if file:
-        if not file.mimetype.startswith("image/"):
-            return jsonify({"error": "invalid_file_type"}), 400
+    # (so a bad banner can't leave a half-applied update)
+    logo_file = request.files.get("logo")
+    banner_file = request.files.get("banner")
 
-        original_name = secure_filename(file.filename)
-        ext = original_name.rsplit(".", 1)[-1].lower()
-        logo_uuid = str(uuid.uuid4())
+    logo_bytes = logo_ext = None
+    banner_bytes = banner_ext = None
 
-        storage_name = f"{community.id}/logos/{logo_uuid}.{ext}"
-        file_bytes = file.read()
+    if logo_file and logo_file.filename:
+        logo_ext = _image_ext(logo_file)
+        if logo_ext not in ALLOWED_IMAGE_EXTS:
+            db.session.rollback()
+            logger.warning("update_community_general REJECT community_id=%s reason=invalid_image_type kind=logo ext=%s",
+                           community.id, logo_ext)
+            return jsonify({"error": "invalid_image_type",
+                            "message": "Logo must be a PNG, JPG or WebP image."}), 400
+        logo_bytes = logo_file.read()
 
-        # 🚀 async upload
-        future = upload_to_supabase(
-            file_bytes,
-            storage_name,
-            file.mimetype
-        )
+    if banner_file and banner_file.filename:
+        banner_ext = _image_ext(banner_file)
+        if banner_ext not in ALLOWED_IMAGE_EXTS:
+            db.session.rollback()
+            logger.warning("update_community_general REJECT community_id=%s reason=invalid_image_type kind=banner ext=%s",
+                           community.id, banner_ext)
+            return jsonify({"error": "invalid_image_type",
+                            "message": "Banner must be a PNG, JPG or WebP image."}), 400
 
-        community_id = community.id  # ✅ capture BEFORE thread
+        banner_bytes = banner_file.read(BANNER_MAX_BYTES + 1)
+        err_code, err_msg = _validate_banner_bytes(banner_bytes)
+        if err_code:
+            db.session.rollback()
+            logger.warning("update_community_general REJECT community_id=%s reason=%s kind=banner size_bytes=%s",
+                           community.id, err_code, len(banner_bytes))
+            return jsonify({"error": err_code, "message": err_msg}), 400
 
-        def callback(f):
-            save_community_logo_when_done(f, community_id)
+    uploads = {} 
+    
+    if logo_bytes is not None:
+        storage_name = f"{community.id}/logos/{uuid.uuid4()}.{logo_ext}"
+        future = upload_to_supabase(logo_bytes, storage_name, IMAGE_MIMETYPES[logo_ext])
+        logger.info("update_community_general upload_dispatch community_id=%s kind=logo storage_name=%s size_bytes=%s",
+                    community.id, storage_name, len(logo_bytes))
+        uploads["logo"] = (storage_name, future, time.monotonic())
 
-        future.add_done_callback(callback)
+    if banner_bytes is not None:
+        storage_name = f"{community.id}/banners/{uuid.uuid4()}.{banner_ext}"
+        future = upload_to_supabase(banner_bytes, storage_name, IMAGE_MIMETYPES[banner_ext])
+        logger.info("update_community_general upload_dispatch community_id=%s kind=banner storage_name=%s size_bytes=%s",
+                    community.id, storage_name, len(banner_bytes))
+        uploads["banner"] = (storage_name, future, time.monotonic())
 
+    logo_url = None
+    banner_url = None
+    failed = []
+
+    for kind, (storage_name, future, started_at) in uploads.items():
+        try:
+            public_url = future.result()
+            logger.info("update_community_general upload_success community_id=%s kind=%s duration_s=%.2f url=%s",
+                        community.id, kind, time.monotonic() - started_at, public_url)
+        except Exception as e:
+            failed.append(kind)
+            logger.error("update_community_general upload_failed community_id=%s kind=%s duration_s=%.2f error=%s",
+                         community.id, kind, time.monotonic() - started_at, e)
+            continue
+
+        if kind == "logo":
+            community.logo_path = public_url
+            logo_url = public_url
+        else:
+            community.banner_pic = public_url
+            banner_url = public_url
         updated = True
 
+    if updated:
+        db.session.commit()
 
-    if not updated:
-        return jsonify({"status": "no_changes"}), 200
-
-    db.session.commit()
-
-    return jsonify({
-        "status": "success",
+    payload = {
         "community": {
             "name": community.name,
             "website": community.website,
             "about": community.about,
             "blockchain": community.blockchain,
-            "logo_url": None,
+            "logo_url": logo_url,       
+            "banner_url": banner_url,
         }
-    }), 200
+    }
+
+    total = time.monotonic() - request_start
+
+    if failed:
+        logger.info("update_community_general END (partial/failed) community_id=%s failed=%s total_duration_s=%.2f",
+                    community.id, failed, total)
+        payload.update({
+            "error": f"{failed[0]}_upload_failed",
+            "message": f"Could not upload {' and '.join(failed)}, please try again.",
+        })
+        return jsonify(payload), 502
+
+    if not updated:
+        return jsonify({"status": "no_changes"}), 200
+
+    logger.info("update_community_general END community_id=%s total_duration_s=%.2f logo=%s banner=%s",
+                community.id, total, bool(logo_url), bool(banner_url))
+
+    payload["status"] = "success"
+    return jsonify(payload), 200
 
 
+@app.route("/billing/wallet-balance", methods=["GET"])
+def wallet_balance():
+    community_id = request.args.get("community_id")  
 
-
+    time.sleep(1.5)   
+    
+    return jsonify({"balance": 70}) 
 
 @app.route("/api/create-passcode", methods=["POST"])
 @login_required
@@ -5681,6 +5548,12 @@ def generate_invite_code_route(community_slug):
     inviter_user_id = current_user.id
     inviter_username = current_user.username
 
+    if role in TEAM_ROLES:
+        try:
+            check_can_add_team_member(community)
+        except FeatureLocked as e:
+            return jsonify({"success": False, "error": e.message, "upgrade": True}), 403
+
     security = CommunitySecurity.query.filter_by(community_id=community.id).first()
     is_private = security.private_community if security else False
     invite_permission = security.invite_permission if security else "members"
@@ -5718,8 +5591,9 @@ def generate_invite_code_route(community_slug):
         "success": True,
         "code": code_to_return,
         "role": role,
-        "is_limited": is_limited  
+        "is_limited": is_limited
     })
+
 
 @app.route("/api/toggle_theme", methods=["POST"])
 @login_required
@@ -5797,13 +5671,14 @@ def send_email_fm(msg):
 
 
 @app.route("/community/<string:community_slug>/send_invite", methods=["POST"])
+@login_required
 def send_invite(community_slug):
     community = Community.query.filter_by(slug=community_slug).first_or_404()
+
+    if not has_role(current_user.id, community.id, "admin"):
+        return jsonify({"success": False, "error": "forbidden"}), 403
+
     data = request.get_json()
-
-    current_user_id = data.get("current_user_id")
-    current_user = Users.query.get_or_404(current_user_id)
-
     emails_raw = data.get("emails", "")
     role = data.get("role", "Member").capitalize()
 
@@ -5811,9 +5686,14 @@ def send_invite(community_slug):
     if not emails:
         return jsonify({"success": False, "error": "No valid emails provided"}), 400
 
+    if role.lower() in TEAM_ROLES:
+        try:
+            check_can_add_team_member(community, adding=len(emails))
+        except FeatureLocked as e:
+            return jsonify({"success": False, "error": e.message, "upgrade": True}), 403
+
     sent_emails = []
 
-    # Check for existing code for this community + role + any email
     existing_code = LimitedCode.query.filter(
         LimitedCode.community_id == community.id,
         LimitedCode.role == role,
@@ -5821,15 +5701,11 @@ def send_invite(community_slug):
     ).first()
 
     if existing_code and existing_code.is_valid:
-        # Reuse the existing valid code
         code_to_use = existing_code.code
-
-        # Merge new emails
         existing_emails = set(e.strip().lower() for e in (existing_code.emails or "").split(",") if e)
         existing_code.emails = ",".join(existing_emails.union(set(emails)))
         db.session.commit()
     else:
-        # Create a new code (either none exists or previous one expired)
         new_code = LimitedCode(
             community_id=community.id,
             role=role,
@@ -5837,13 +5713,12 @@ def send_invite(community_slug):
             max_uses=len(emails),
             inviter_user_id=current_user.id,
             inviter_username=current_user.username,
-            expires_at=datetime.utcnow() + timedelta(days=7)  # optional expiration
+            expires_at=datetime.utcnow() + timedelta(days=7)
         )
         db.session.add(new_code)
         db.session.commit()
         code_to_use = new_code.code
 
-    # Send emails
     for email in emails:
         msg = Message(
             subject=f"{current_user.username} invited you to {community.name}",
@@ -5880,22 +5755,20 @@ def invite_team(community_slug):
     user = current_user
     user_communities = get_user_communities(user.id)
 
-    # ✅ Fetch community
     community = Community.query.filter_by(slug=community_slug).first()
     if not community:
         abort(404)
-    
     user_id = current_user.id if current_user.is_authenticated else None
 
     if not has_role(user_id, community.id, "admin"):
         flash("Only admins can access this page.", "error")
         return redirect(url_for("p_quest", community_slug=community.slug))
-    
+
     members = (
         db.session.query(CommunityUserRole, Users)
         .join(Users, CommunityUserRole.user_id == Users.id)
         .filter(CommunityUserRole.community_id == community.id)
-        .limit(20)   # 🔥 LIMIT HERE
+        .limit(20)
         .all()
     )
     total_members = (
@@ -5903,13 +5776,9 @@ def invite_team(community_slug):
         .filter_by(community_id=community.id)
         .count()
     )
-    # Format member data
+
     member_data = []
     for role_entry, member in members:
-
-
-
-
         member_data.append({
             "id": member.id,
             "username": member.username,
@@ -5920,17 +5789,21 @@ def invite_team(community_slug):
             "is_creator": (member.id == community.created_by_id)
         })
 
+    team_locked = team_is_full(community)
+    team_cap = limit(community, "team_members")
+
     if request.headers.get("X-Partial"):
         return render_template(
             "invite_team.html",
             user=user,
             community=community,
             total_members=total_members,
-            members=member_data
+            members=member_data,
+            team_locked=team_locked,
+            team_cap=team_cap
         )
-    
     total_xp = get_total_xp(user.id, community.id)
-    level_data = get_level(total_xp)  
+    level_data = get_level(total_xp)
     latest_sprint = get_latest_valid_sprint(community.id)
     return render_template(
         'your_community.html',
@@ -5939,10 +5812,10 @@ def invite_team(community_slug):
         community_tuples=user_communities,
         latest_sprint=latest_sprint,
         community=community,
-        members=member_data
+        members=member_data,
+        team_locked=team_locked,
+        team_cap=team_cap
     )
-
-
 
 def format_count(n: int | None) -> str:
     """Format large numbers into k / M / B suffixes."""
@@ -6026,19 +5899,16 @@ def partnerships(community_slug):
     user = current_user
     user_communities = get_user_communities(user.id)
 
-    
     community = Community.query.filter_by(slug=community_slug).first()
     if not community:
         abort(404)
-    
     user_id = current_user.id if current_user.is_authenticated else None
 
     if not has_role(user_id, community.id, "admin"):
         flash("Only admins can access this page.", "error")
         return redirect(url_for("dashboard"))
-    
-    is_premium = community.is_paid 
-    
+
+    is_premium = has_feature(community, "partnerships")
     has_ever_unlocked = CommunityRequest.query.filter_by(
         from_community_id=community.id
     ).count() > 0
@@ -6051,9 +5921,9 @@ def partnerships(community_slug):
             is_premium=is_premium,
             has_ever_unlocked=has_ever_unlocked
         )
-    
+
     total_xp = get_total_xp(user.id, community.id)
-    level_data = get_level(total_xp)  
+    level_data = get_level(total_xp)
     latest_sprint = get_latest_valid_sprint(community.id)
     return render_template(
         'your_community.html',
@@ -6064,8 +5934,7 @@ def partnerships(community_slug):
         latest_sprint=latest_sprint,
         is_premium=is_premium,
         has_ever_unlocked=has_ever_unlocked,
-    )
-
+    ) 
 
 
 @app.route('/<community_slug>/rewards')
@@ -8199,6 +8068,7 @@ def user_recent_activity(community_slug, username):
     })
 
 
+
 @app.route("/save_subquest_state", methods=["POST"])
 @login_required
 def save_subquest_state():
@@ -9000,31 +8870,45 @@ def handle_disconnect():
 @app.route("/send_request", methods=["POST"])
 @login_required
 def send_request():
-    data = request.get_json()
-    from_id = int(data.get("from_community_id"))
-    to_id = int(data.get("to_community_id"))
-    print(from_id)
-    print(to_id)
+    data = request.get_json() or {}
 
-    # 🚫 Self-request prevention
+    try:
+        from_id = int(data.get("from_community_id"))
+        to_id = int(data.get("to_community_id"))
+    except (TypeError, ValueError):
+        return jsonify({"error": "Invalid community"}), 400
+
     if from_id == to_id:
         return jsonify({"error": "Cannot send request to the same community"}), 400
 
     from_comm = Community.query.get(from_id)
     to_comm = Community.query.get(to_id)
 
-    # 🧩 Check existing same-direction request
+    if not from_comm or not to_comm:
+        return jsonify({"error": "Community not found"}), 404
+
+    if not has_role(current_user.id, from_comm.id, "admin"):
+        return jsonify({"error": "Unauthorized"}), 403
+
+    try:
+        require_feature(from_comm, "partnerships", "Partnerships")
+    except FeatureLocked as e:
+        return jsonify({"error": e.message, "upgrade": True}), 403
+
+    try:
+        require_feature(to_comm, "partnerships", "Partnerships")
+    except FeatureLocked:
+        return jsonify({"error": "This community can't receive partnership requests"}), 403
+
     existing = CommunityRequest.query.filter_by(
         from_community_id=from_id,
         to_community_id=to_id
     ).first()
 
     if existing:
-        # 🌀 Instead of error — just update & reuse existing record
         if existing.status in ["pending", "accepted"]:
             return jsonify({"error": "Request already sent"}), 400
 
-        # Reactivate or refresh declined/rejected ones
         existing.status = "pending"
         existing.created_at = datetime.utcnow()
         existing.from_community_name = from_comm.name
@@ -9044,10 +8928,8 @@ def send_request():
             room=f"chat_{to_id}"
         )
 
-        print(f"♻️ Reused and updated existing request {existing.id}")
         return jsonify({"message": "Request updated and re-sent"}), 200
 
-    # 🔄 Handle reverse-direction (to_id → from_id)
     reverse = CommunityRequest.query.filter_by(
         from_community_id=to_id,
         to_community_id=from_id
@@ -9061,9 +8943,7 @@ def send_request():
         else:
             db.session.delete(reverse)
             db.session.commit()
-            print(f"🗑️ Removed old reverse request {reverse.id}")
 
-    # 🆕 Safe to create a new one
     has_sent_before = CommunityRequest.query.filter_by(from_community_id=from_id).count() > 0
     new_req = CommunityRequest(
         from_community_id=from_id,
@@ -9091,13 +8971,10 @@ def send_request():
         room=f"chat_{to_id}"
     )
 
-    print(f"📨 Created or updated request {new_req.id} from {from_id} → {to_id}")
-
     return jsonify({
         "message": "Request sent successfully",
         "first_time": not has_sent_before
     })
-
 
 @app.route("/community_request/<int:req_id>/action", methods=["POST"])
 @login_required
@@ -9559,30 +9436,36 @@ def team_invite(community_slug, limited_code):
     if not code_entry.is_valid:
         return "Invitation code expired", 403
 
-    # Email check
     if code_entry.emails:
         allowed_emails = [e.strip().lower() for e in code_entry.emails.split(",")]
         if not current_user.is_authenticated or current_user.email.lower() not in allowed_emails:
             flash("Your email is not authorized to use this invite.", "error")
             return redirect(url_for("p_quest", community_slug=community.slug))
 
-    # ✅ Store invite info in session
+    role = code_entry.role.lower()
+    if role not in TEAM_ROLES:
+        return "This invite is only for Admins, Editors or Reviewers.", 403
+
+    try:
+        check_can_accept_team_invite(
+            community,
+            current_user.id if current_user.is_authenticated else None
+        )
+    except FeatureLocked as e:
+        flash(e.message, "error")
+        return redirect(url_for("p_quest", community_slug=community.slug))
+
     session["invite_flag"] = True
     session["inviter_user_id"] = code_entry.inviter_user_id
     session["inviter_username"] = code_entry.inviter_username
-    session["invite_role"] = code_entry.role.lower() 
+    session["invite_role"] = role
     session["invite_code"] = code_entry.code
 
-    # Redirect based on role
-    role = code_entry.role.lower()
     if role == "admin":
         return redirect(url_for("me_look", community_slug=community.slug))
-    elif role == "editor":
+    if role == "editor":
         return redirect(url_for("quest", community_slug=community.slug))
-    elif role == "reviewer":
-        return redirect(url_for("reviews", community_slug=community.slug))
-    else:
-        return "This invite is only for Admins or Editors.", 403
+    return redirect(url_for("reviews", community_slug=community.slug))
 
 def get_user_role(user_id, community_id):
     role_entry = CommunityUserRole.query.filter_by(
@@ -11273,141 +11156,6 @@ def get_subquests_only(community_slug):
 
 
 
-@app.route("/<string:community_slug>/accept_invite/<string:limited_code>", methods=["POST"])
-@login_required
-def accept_invite(community_slug, limited_code):
-
-    user = current_user
-    community = Community.query.filter_by(slug=community_slug).first_or_404()
-
-    code_entry = LimitedCode.query.filter_by(
-        code=limited_code,
-        community_id=community.id
-    ).first_or_404(description="Invalid invite code")
-
-    if not code_entry.is_valid:
-        return jsonify({"success": False, "message": "Invitation code expired"}), 403
-
-
-    # Email restriction
-    if code_entry.emails:
-        allowed_emails = [e.strip().lower() for e in code_entry.emails.split(",")]
-        if user.email.lower() not in allowed_emails:
-            return jsonify({"success": False, "message": "Your email is not authorized to use this invite."}), 403
-
-
-    role_order = {'member': 0, 'reviewer': 1, 'editor': 2, 'admin': 3}
-    invite_role = code_entry.role.lower()
-
-
-    existing_role = CommunityUserRole.query.filter_by(
-        user_id=user.id,
-        community_id=community.id
-    ).first()
-
-
-    upgrade_needed = False
-    is_new_member = False   # ⭐ track first join
-
-
-    if existing_role:
-
-        # role upgrade only
-        if role_order[invite_role] > role_order.get(existing_role.role, 0):
-            existing_role.role = invite_role
-            upgrade_needed = True
-
-    else:
-
-        # ⭐ first time joining community
-        existing_role = CommunityUserRole(
-            user_id=user.id,
-            community_id=community.id,
-            role=invite_role
-        )
-
-        db.session.add(existing_role)
-
-        upgrade_needed = True
-        is_new_member = True   # ⭐ THIS IS JOIN
-
-
-    # ⭐ Create join event only for new member
-    if is_new_member:
-        join_event = CommunityMembershipEvent(
-            user_id=user.id,
-            community_id=community.id,
-            event_type="join"
-        )
-        db.session.add(join_event)
-
-    role = existing_role.role
-
-    if role == "admin":
-        redirect_url = url_for("me_look", community_slug=community.slug)
-
-    elif role == "editor":
-        redirect_url = url_for("quest", community_slug=community.slug)
-
-    elif role == "reviewer":
-        redirect_url = url_for("reviews", community_slug=community.slug)
-
-    else:
-        redirect_url = url_for("me_look", community_slug=community.slug)
-
-    if upgrade_needed:
-
-        db.session.commit()
-
-        code_entry.use()
-
-        for key in [
-            "invite_flag",
-            "invite_role",
-            "invite_code",
-            "inviter_user_id",
-            "inviter_username"
-        ]:
-            session.pop(key, None)
-
-
-
-
-        return jsonify({
-            "success": True,
-            "message": f"You are now a {code_entry.role} in {community.name}!",
-            "community": {
-                "slug": community.slug,
-                "name": community.name,
-                "logo": (
-                    url_for("static", filename=community.logo_path)
-                    if community.logo_path else None
-                ),
-                "redirect": redirect_url
-            }
-        })
-
-
-
-    else:
-
-        for key in [
-            "invite_flag",
-            "invite_role",
-            "invite_code",
-            "inviter_user_id",
-            "inviter_username"
-        ]:
-            session.pop(key, None)
-
-
-        return jsonify({
-            "success": False,
-            "message": f"You already have an equal or higher role ({existing_role.role}) in this community."
-        }), 400
-
-
-
 @app.route('/api/community/<slug>/comments', methods=['GET'])
 def get_community_comments(slug):
     # 1️⃣ Get the community
@@ -12315,98 +12063,169 @@ def load_settings_context(community_slug):
 
 
 
+# =====================================================================
+# app.py — REPLACE your enterprise / billing routes block with this.
+# Uses the real global `scheduler` directly, exactly like publish_subquest.
+# =====================================================================
 
-@app.route("/enterprise/<slug>/<interval>", methods=["GET", "POST"])
+
+def save_expiry_job(community):
+    """
+    Save (or move) the persistent one-shot job that puts this community back on
+    Free when its paid plan ends. Same pattern as publish_subquest scheduling
+    expire_one_subquest. Same job id + replace_existing=True, so calling it
+    again after a renewal/upgrade just moves the job to the new date.
+    """
+    sub = get_active_subscription(community)
+    if not sub or not sub.expires_at:
+        return
+
+    from backend.jobs.expire_subscriptions import expire_one_subscription
+
+    run_date = sub.expires_at
+    if run_date.tzinfo is None:
+        run_date = run_date.replace(tzinfo=timezone.utc)  # expires_at is stored as naive UTC
+
+    job = scheduler.add_job(
+        func=expire_one_subscription,
+        trigger="date",
+        run_date=run_date,
+        args=[community.id],
+        id=f"expire_subscription_{community.id}",
+        replace_existing=True,
+        misfire_grace_time=None,
+    )
+    logger.info(
+        "🗓️ Scheduled plan expiry for community %s (%s) at %s UTC — job_id=%s",
+        community.id, sub.plan, run_date.isoformat(), job.id
+    ) 
+
+EMAIL_RE = re.compile(r'^[^\s@]+@[^\s@]+\.[^\s@]{2,}$')
+
+
+@app.route("/enterprise/<slug>/<interval>", methods=["GET"])
 def enterprise(slug, interval):
     community = Community.query.filter_by(slug=slug).first_or_404()
-    community_id = community.id   
+    return render_template("enterprise.html", community=community, interval=interval)
 
-    if request.method == "POST":
-        company = request.form.get("company")
-        website = request.form.get("website")
-        fullname = request.form.get("fullname")
-        email = request.form.get("email")
-        phone = request.form.get("phone")
-        requirements = request.form.get("requirements")
-        budget = request.form.get("budget")
 
+@app.route("/api/enterprise/<slug>/<interval>", methods=["POST"])
+def api_enterprise(slug, interval):
+    community = Community.query.filter_by(slug=slug).first()
+    if not community:
+        return jsonify(success=False, error="Community not found"), 404
+
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify(success=False, error="Invalid request body"), 400
+
+    def clean(key, limit):
+        return str(data.get(key) or "").strip()[:limit]
+
+    company = clean("company", 255)
+    website = clean("website", 255)
+    fullname = clean("fullname", 150)
+    email = clean("email", 255)
+    phone = clean("phone", 50)
+    requirements = clean("requirements", 5000)
+    budget = clean("budget", 100)
+    interval = interval[:20]
+
+    if website and not re.match(r'^https?://', website, re.I):
+        website = "https://" + website
+
+    errors = {}
+    if not company:
+        errors["company"] = "Please fill in this field"
+    if not website or "." not in website:
+        errors["website"] = "Enter a valid website, like acme.com"
+    if not fullname:
+        errors["fullname"] = "Please fill in this field"
+    if not email or not EMAIL_RE.match(email):
+        errors["email"] = "Enter a valid email address"
+    if not requirements:
+        errors["requirements"] = "Please fill in this field"
+
+    if errors:
+        return jsonify(success=False, errors=errors), 422
+
+    try:
         ref_code = generate_reference()
 
         request_entry = EnterpriseRequest(
-            community_id=community_id, 
+            community_id=community.id,
             company=company,
             website=website,
             fullname=fullname,
             email=email,
-            phone=phone,
+            phone=phone or None,
             requirements=requirements,
-            budget=budget,
+            budget=budget or None,
+            interval=interval,
             reference_code=ref_code
         )
         db.session.add(request_entry)
 
-        existing_payment = CommunityPayment.query.filter_by(
-            community_id=community_id,
+        payment = CommunityPayment.query.filter_by(
+            community_id=community.id,
             plan="enterprise",
             interval=interval
         ).first()
 
-        if not existing_payment:
-            enterprise_payment = CommunityPayment(
-                community_id=community_id,   # ✅ still saving ID
+        if not payment:
+            payment = CommunityPayment(
+                community_id=community.id,
                 plan="enterprise",
                 interval=interval,
                 stripe_session_id=None,
                 status="pending"
             )
-            db.session.add(enterprise_payment)
-            request_entry.payment = enterprise_payment
+            db.session.add(payment)
 
+        request_entry.payment = payment
         db.session.commit()
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception("Enterprise request failed")
+        return jsonify(success=False, error="Could not save your request. Please try again."), 500
 
-
+    try:
         msg = EmailMessage()
         msg["Subject"] = f"New Enterprise Request from {company}"
         msg["From"] = "Gleyo <noreply@gleyo.app>"
-        msg["To"] = "florishisreal@gmail.com"
+        msg["To"] = "partnerships@gleyo.app"
 
         html_content = f"""
         <html>
         <body style="font-family:Arial, sans-serif; line-height:1.5;">
             <h2>Enterprise Plan Request</h2>
             <ul>
-                <li><strong>Reference Code:</strong> {ref_code}</li>
-                <li><strong>Community ID:</strong> {community_id}</li>
-                <li><strong>Interval:</strong> {interval}</li>
-                <li><strong>Company:</strong> {company}</li>
-                <li><strong>Website:</strong> {website}</li>
-                <li><strong>Full Name:</strong> {fullname}</li>
-                <li><strong>Email:</strong> {email}</li>
-                <li><strong>Phone:</strong> {phone}</li>
-                <li><strong>Requirements:</strong> {requirements}</li>
-                <li><strong>Budget:</strong> {budget}</li>
+                <li><strong>Reference Code:</strong> {html_escape(ref_code)}</li>
+                <li><strong>Community ID:</strong> {community.id}</li>
+                <li><strong>Interval:</strong> {html_escape(interval)}</li>
+                <li><strong>Company:</strong> {html_escape(company)}</li>
+                <li><strong>Website:</strong> {html_escape(website)}</li>
+                <li><strong>Full Name:</strong> {html_escape(fullname)}</li>
+                <li><strong>Email:</strong> {html_escape(email)}</li>
+                <li><strong>Phone:</strong> {html_escape(phone) or "—"}</li>
+                <li><strong>Requirements:</strong> {html_escape(requirements)}</li>
+                <li><strong>Budget:</strong> {html_escape(budget) or "—"}</li>
             </ul>
         </body>
         </html>
         """
+        msg.set_content(f"New enterprise request {ref_code} from {company}")
         msg.add_alternative(html_content, subtype="html")
-
         send_email(msg)
+    except Exception:
+        current_app.logger.exception("Enterprise request email failed")
 
-        # After sending email
-        return render_template(
-            "enterprise.html",
-            success=True,
-            reference_code=ref_code,
-            community=community,
-            interval=interval
-        )
+    return jsonify(success=True, reference_code=ref_code), 201
 
 
-    # GET request
-    return render_template("enterprise.html", community=community, interval=interval)
-
-
+@app.errorhandler(BillingError)
+def handle_billing_error(e):
+    return jsonify(success=False, message=e.message), e.code
 
 
 @app.route("/community/<community_slug>/settings/billing")
@@ -12414,22 +12233,230 @@ def enterprise(slug, interval):
 @community_not_deleted()
 def settings_billing(community_slug):
     ctx = load_settings_context(community_slug)
-
     community = ctx["community"]
+    wallet = community.wallet
 
-    wallet = community.wallet  
+    context = {
+        "community": community,
+        "wallet": wallet,
+        "stripe_publishable_key": STRIPE_PUBLISHABLE_KEY,
+        "subscription": get_active_subscription(community),
+        "quest_packs": quest_packs_for_template(),
+        "extra_left": get_extra_left(community),
+        "pack_valid_text": None,
+    }
 
     if request.headers.get("X-Partial"):
-        return render_template("settings/billing.html", wallet=wallet, community=ctx["community"])
+        return render_template("settings/billing.html", **context)
 
-    return render_template(
-        "community_settings.html",
-        community=ctx["community"],
-        wallet=wallet,
-        community_slug=community_slug
+    return render_template("community_settings.html", community_slug=community_slug, **context)
+
+
+@app.route("/billing/stripe/create-subscription", methods=["POST"])
+@login_required
+def stripe_create_subscription():
+    data = request.get_json(force=True)
+    community = get_billing_community(data.get("community_id"), current_user)
+    result = create_plan_payment(community, data.get("plan"), data.get("interval"))
+    return jsonify(
+        client_secret=result["client_secret"],
+        amount_cents=result["amount_cents"],
+        mode=result["mode"],
     )
 
 
+@app.route("/billing/stripe/create-pack-intent", methods=["POST"])
+@login_required
+def stripe_create_pack_intent():
+    data = request.get_json(force=True)
+    community = get_billing_community(data.get("community_id"), current_user)
+    result = create_pack_payment(community, data.get("pack"))
+    return jsonify(
+        client_secret=result["client_secret"],
+        amount_cents=result["amount_cents"],
+        mode=result["mode"],
+    )
+
+
+@app.route("/billing/status")
+@login_required
+def billing_status():
+    a = request.args
+    community = get_billing_community(a.get("community_id"), current_user)
+    ready = is_ready(community, a.get("type"), a.get("plan"), a.get("interval"),
+                     a.get("payment_intent"), a.get("mode"))
+
+    # 💾 payment confirmed -> save the "back to Free" job right here in the route
+    # (extra-quest packs don't change the plan, so skip them)
+    if ready and a.get("type") != "quests":
+        try:
+            db.session.refresh(community)
+            save_expiry_job(community)
+        except Exception:
+            logger.exception("could not save plan expiry job for community %s", community.id)
+
+    return jsonify(
+        ready=ready,
+        subscription=subscription_payload(community) if ready else None,
+        extra_left=get_extra_left(community) if ready else None,
+    )
+
+
+# =====================================================================
+# ALSO: in your existing /billing/pay-with-wallet route (not in what you
+# pasted), right after the wallet payment succeeds and activate_plan /
+# apply_upgrade has run, add exactly this (skip it for pack purchases):
+#
+#     try:
+#         db.session.refresh(community)
+#         save_expiry_job(community)
+#     except Exception:
+#         logger.exception("could not save plan expiry job for community %s", community.id)
+# =====================================================================
+def _promo_context(community):
+    """Everything the Twitter promotion card needs, so Jinja can enforce the 1 week wait."""
+    ctx = {
+        "twitter_promotion": has_feature(community, "twitter_promotion"),
+        "sprints": [],
+        "promo_next_allowed": None,   
+        "promo_next_label": None,     
+        "promo_days_left": None,      
+    }
+ 
+    if ctx["twitter_promotion"]:
+        now = datetime.utcnow() 
+        ctx["sprints"] = (
+            Sprint.query
+            .filter(
+                Sprint.community_id == community.id,
+                or_(Sprint.end_date.is_(None), Sprint.end_date >= now),
+            )
+            .order_by(Sprint.start_date.desc())
+            .all()
+        )
+ 
+        ends = _cooldown_ends(community.id)
+        if ends:
+            ctx["promo_next_allowed"] = ends.isoformat() + "Z"
+            ctx["promo_next_label"] = _ordinal_date(ends)
+            ctx["promo_days_left"] = max(math.ceil((ends - now).total_seconds() / 86400), 1)
+ 
+    return ctx
+ 
+ 
+@app.route("/community/<community_slug>/settings/subscription")
+@login_required
+@community_not_deleted()
+def settings_subcription(community_slug):
+    ctx = load_settings_context(community_slug)
+    community = ctx["community"]
+    wallet = community.wallet
+ 
+    now = datetime.utcnow()
+    sub = get_active_subscription(community)
+    plan_name = sub.plan if sub else "free"
+    claim_limit = CLAIM_LIMITS.get(plan_name, CLAIM_LIMITS["free"])
+ 
+    usage = CommunityClaimUsage.query.filter_by(
+        community_id=community.id,
+        year=now.year,
+        month=now.month
+    ).first()
+    claim_count = usage.claim_count if usage else 0
+    claim_percent = min(round((claim_count / claim_limit) * 100, 1), 100) if claim_limit else 0
+ 
+    if sub:
+        reset_at = _next_reset(sub, now)
+        paid_date = sub.paid_at.strftime("%b %d, %Y")
+        expires_date = sub.expires_at.strftime("%b %d, %Y")
+        days_left = max(math.ceil((sub.expires_at - now).total_seconds() / 86400), 0)
+    else:
+        reset_at = datetime(now.year, now.month, monthrange(now.year, now.month)[1])
+        paid_date = expires_date = days_left = None
+ 
+    context = {
+        "community": community,
+        "wallet": wallet,
+        "subscription": sub,
+        "plan_name": plan_name,
+        "paid_date": paid_date,
+        "expires_date": expires_date,
+        "days_left": days_left,
+        "claim_count": claim_count,
+        "claim_limit": claim_limit,
+        "claim_percent": claim_percent,
+        "extra_left": get_extra_left(community),
+        "reset_date": reset_at.strftime("%b %d, %Y"),
+        **_promo_context(community),
+    }
+ 
+    if request.headers.get("X-Partial"):
+        return render_template("/settings/subscription.html", **context)
+ 
+    return render_template(
+        "community_settings.html",
+        community_slug=community_slug,
+        **context
+    )
+
+@app.route("/billing/cancel-subscription", methods=["POST"])
+@login_required
+def billing_cancel_subscription():
+    data = request.get_json(force=True)
+    community = get_billing_community(data.get("community_id"), current_user)
+ 
+    sub = get_active_subscription(community)
+    if not sub:
+        raise BillingError("You don't have an active plan.")
+    if sub.status == "canceled":
+        raise BillingError("Your subscription is already set to end.")
+ 
+    if sub.payment_method == "card" and sub.stripe_subscription_id:
+        # Tells Stripe cancel_at_period_end=True (no refund, no new charge),
+        # sets status="canceled", and moves the expiry job (no grace period anymore).
+        cancel_card_subscription(community)
+    else:
+        # Wallet plan: nothing to cancel on Stripe. Just stop the 24h-before wallet renewal.
+        sub.auto_renew_wallet = False
+        sub.status = "canceled"
+        sub.canceled_at = datetime.utcnow()
+        db.session.commit()
+        save_expiry_job(community)  
+ 
+    db.session.refresh(community)
+    return jsonify(
+        success=True,
+        message="Your subscription has been cancelled.",
+        subscription=subscription_payload(community),
+    )
+ 
+ 
+@app.route("/billing/resume-subscription", methods=["POST"])
+@login_required
+def billing_resume_subscription():
+    data = request.get_json(force=True)
+    community = get_billing_community(data.get("community_id"), current_user)
+ 
+    sub = get_active_subscription(community)
+    if not sub or sub.status != "canceled" or sub.expires_at <= datetime.utcnow():
+        raise BillingError("There's nothing to resume.")
+ 
+    if sub.payment_method == "card" and sub.stripe_subscription_id:
+        resume_card_subscription(community)     
+    else:
+        sub.auto_renew_wallet = True
+        sub.status = "active"
+        sub.canceled_at = None
+        db.session.commit()
+        save_expiry_job(community)           
+ 
+    db.session.refresh(community)
+    return jsonify(
+        success=True,
+        message="Your subscription will renew as normal.",
+        subscription=subscription_payload(community),
+    )
+ 
 
 @app.route("/community/<community_slug>/settings/general", methods=["GET", "POST"])
 @login_required
@@ -12454,10 +12481,261 @@ def settings_general(community_slug):
         community_slug=community_slug
     )
 
+ 
+ 
+# ---------------------------------------------------------------------------
+# helpers
+# ---------------------------------------------------------------------------
+def _fail(message, status=400, **extra):
+    return jsonify({"success": False, "message": message, **extra}), status
+ 
+ 
+def _ordinal_date(d):
+    day = d.day
+    suffix = "th" if 11 <= day % 100 <= 13 else {1: "st", 2: "nd", 3: "rd"}.get(day % 10, "th")
+    return f"{day}{suffix} of {d.strftime('%B %Y')}"
+ 
+ 
+def _clean(value, max_len):
+    """Trim, collapse newlines (header safe) and cap the length."""
+    if value is None:
+        return None
+    value = re.sub(r"\s+", " ", str(value)).strip()
+    return value[:max_len] or None
+ 
+ 
+def _to_date(value):
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, date):
+        return value
+    return None
+ 
+ 
+def _can_manage(community):
+    if community.created_by_id == current_user.id:
+        return True
+    role = CommunityUserRole.query.filter_by(
+        community_id=community.id, user_id=current_user.id, banned=False
+    ).first()
+    return bool(role and (role.role or "").lower() in ADMIN_ROLES)
+ 
+ 
+def _load_sprint(community, sprint_uuid):
+    return Sprint.query.filter_by(uuid=sprint_uuid, community_id=community.id).first()
+ 
+ 
+def _last_request(community_id):
+    """Latest request that counts toward the cooldown (failed emails don't count)."""
+    return (
+        TwitterPromotionRequest.query
+        .filter(
+            TwitterPromotionRequest.community_id == community_id,
+            TwitterPromotionRequest.status != "email_failed",
+        )
+        .order_by(TwitterPromotionRequest.created_at.desc())
+        .first()
+    )
+ 
+ 
+def _cooldown_ends(community_id):
+    last = _last_request(community_id)
+    if not last:
+        return None
+    ends = last.created_at + PROMO_COOLDOWN
+    return ends if ends > datetime.utcnow() else None
+ 
+ 
+def _what_to_promote(req):
+    if req.type == "sprint":
+        return f"Sprint: {req.sprint_title or req.sprint_uuid}"
+    if req.type == "quest":
+        return f"Quest: {req.quest}"
+    if req.type == "other":
+        return f"Other: {req.other}"
+    return "The whole community"
+ 
+ 
+def _build_email(req):
+    rows = [
+        ("Community", f"{req.community_name} ({req.community_slug})"),
+        ("Plan", req.plan),
+        ("Requested by", req.username or "N/A"),
+        ("User email", req.user_email),
+        ("X handle", f"@{req.x_handle}" if req.x_handle else "Not provided"),
+        ("Promote", _what_to_promote(req)),
+        ("Preferred date", _ordinal_date(req.preferred_date)),
+        ("Post message", req.message or "Not provided"),
+        ("Submitted", req.created_at.strftime("%Y-%m-%d %H:%M UTC")),
+        ("Request ID", req.uuid),
+    ]
 
+    text = "New Twitter promotion request\n\n" + "\n".join(f"{k}: {v}" for k, v in rows)
+    text += "\n\nConfirm the final date with the user by email."
 
+    html_rows = "".join(
+        f"<tr><td style='padding:6px 14px 6px 0;color:#666;vertical-align:top'>{html_escape(k)}</td>"
+        f"<td style='padding:6px 0;white-space:pre-wrap'>{html_escape(str(v))}</td></tr>"
+        for k, v in rows
+    )
+    html_body = (
+        "<div style='font-family:Arial,sans-serif;font-size:14px;color:#111'>"
+        "<h2 style='margin:0 0 12px'>New Twitter promotion request</h2>"
+        f"<table style='border-collapse:collapse'>{html_rows}</table>"
+        "<p style='margin-top:16px'>Confirm the final date with the user by email.</p>"
+        "</div>"
+    )
 
+    msg = EmailMessage()
+    msg["To"] = PROMO_EMAIL_TO
+    msg["Subject"] = f"Twitter promotion request: {req.community_name}"[:200]
+    msg.set_content(text)
+    msg.add_alternative(html_body, subtype="html")
+    return msg
 
+@app.route("/billing/twitter-promotion", methods=["POST"])
+@login_required
+def submit_twitter_promotion():
+    data = request.get_json(silent=True) or {}
+
+    try:
+        community_id = int(data.get("community_id"))
+    except (TypeError, ValueError):
+        return _fail("Community not found.", 404)
+
+    community = (
+        Community.query.filter_by(id=community_id).with_for_update().first()
+    )
+    if not community:
+        db.session.rollback()
+        return _fail("Community not found.", 404)
+
+    if not _can_manage(community):
+        db.session.rollback()
+        return _fail("Only the community owner or an admin can request a promotion.", 403)
+
+    try:
+        require_feature(community, "twitter_promotion", "twitter promotion")
+    except BillingError as e:
+        db.session.rollback()
+        return _fail(getattr(e, "message", str(e)), 403)
+
+    # ---- 1 week cooldown ----
+    ends = _cooldown_ends(community.id)
+    if ends:
+        db.session.rollback()
+        return _fail(
+            f"Your next promotion request opens on {_ordinal_date(ends)}.",
+            429,
+            next_allowed_at=ends.isoformat() + "Z",
+            next_allowed_label=_ordinal_date(ends),
+        )
+
+    # ---- validate input (mirrors the frontend rules) ----
+    promo_type = (data.get("type") or "").strip().lower()
+    if promo_type not in VALID_TYPES:
+        db.session.rollback()
+        return _fail("Choose what you want to promote.")
+
+    sprint = None
+    quest = other = None
+
+    if promo_type == "sprint":
+        sprint_uuid = _clean(data.get("sprint_uuid"), 36)
+        if not sprint_uuid:
+            db.session.rollback()
+            return _fail("Choose which sprint to promote.")
+        sprint = _load_sprint(community, sprint_uuid)
+        if not sprint:
+            db.session.rollback()
+            return _fail("That sprint was not found in this community.")
+    elif promo_type == "quest":
+        quest = _clean(data.get("quest"), 200)
+        if not quest:
+            db.session.rollback()
+            return _fail("Add the quest name or link.")
+    elif promo_type == "other":
+        other = _clean(data.get("other"), 200)
+        if not other:
+            db.session.rollback()
+            return _fail("Describe what we should promote.")
+
+    try:
+        preferred = datetime.strptime(str(data.get("preferred_date") or ""), "%Y-%m-%d").date()
+    except ValueError:
+        db.session.rollback()
+        return _fail("Pick a preferred date.")
+
+    today = datetime.utcnow().date()
+    # 1 day of slack on the minimum because the user's local date can be a day behind UTC
+    earliest = today + timedelta(days=PROMO_MIN_LEAD_DAYS - 1)
+    latest = today + timedelta(days=PROMO_MAX_LEAD_DAYS + 1)
+    if preferred < earliest:
+        db.session.rollback()
+        return _fail(f"Pick a date at least {PROMO_MIN_LEAD_DAYS} days from today.")
+    if preferred > latest:
+        db.session.rollback()
+        return _fail(f"Pick a date within the next {PROMO_MAX_LEAD_DAYS} days.")
+
+    if sprint is not None:
+        sprint_end = _to_date(getattr(sprint, "end_date", None))
+        if sprint_end and preferred > sprint_end:
+            db.session.rollback()
+            return _fail("The date must be on or before the sprint ends.")
+
+    message = (data.get("message") or "").strip()
+    if len(message) > 280:
+        db.session.rollback()
+        return _fail("Keep the post message under 280 characters.")
+
+    x_handle = (data.get("x_handle") or "").strip().lstrip("@")
+    if x_handle and not re.fullmatch(r"[A-Za-z0-9_]{1,15}", x_handle):
+        db.session.rollback()
+        return _fail("That X handle doesn't look right.")
+
+    req = TwitterPromotionRequest(
+        community_id=community.id,
+        user_id=current_user.id,
+        user_email=current_user.email,
+        username=current_user.username,
+        community_name=community.name,
+        community_slug=community.slug,
+        plan=plan_key(community),
+        type=promo_type,
+        sprint_uuid=sprint.uuid if sprint else None,
+        sprint_title=getattr(sprint, "title", None) if sprint else None,
+        quest=quest,
+        other=other,
+        preferred_date=preferred,
+        message=message or None,
+        x_handle=x_handle or None,
+        status="pending",
+    )
+    db.session.add(req)
+    db.session.commit()
+
+    sent = False
+    try:
+        sent = bool(send_email(_build_email(req)))
+    except Exception as e:
+        print("PROMO EMAIL ERROR:", e)
+
+    req.status = "sent" if sent else "email_failed"
+    db.session.commit()
+
+    if not sent:
+        return _fail("We couldn't send your request right now. Please try again in a moment.", 502)
+
+    # when the next request is allowed (the frontend locks the button until then)
+    next_allowed = req.created_at + PROMO_COOLDOWN
+
+    return jsonify({
+        "success": True,
+        "message": "Request received. We'll confirm the final date by email.",
+        "request_id": req.uuid,
+        "next_allowed_at": next_allowed.isoformat() + "Z",
+        "next_allowed_label": _ordinal_date(next_allowed),
+    })
 
 @app.route("/community/<community_slug>/settings/security", methods=["GET", "POST"])
 @login_required
@@ -12483,10 +12761,7 @@ def settings_security(community_slug):
         community=ctx["community"],
         community_slug=community_slug
     )
-
-
-
-MAX_EMOJIS_PER_COMMUNITY = 60
+ 
 
 
 def save_emoji_when_done(future, emoji_id):
@@ -12507,70 +12782,91 @@ def save_emoji_when_done(future, emoji_id):
             print("❌ Emoji upload failed:", e)
 
 
+ALLOWED_EMOJI_EXTS = {"png", "jpg", "jpeg", "gif", "svg", "webp"}
+MAX_EMOJI_BYTES = 256 * 1024
+
+EMOJI_CONTENT_TYPES = {
+    "png": "image/png",
+    "jpg": "image/jpeg",
+    "jpeg": "image/jpeg",
+    "gif": "image/gif",
+    "webp": "image/webp",
+    "svg": "image/svg+xml",
+}
+
+
 @app.route("/api/communities/<community_slug>/emojis", methods=["POST"])
 @login_required
 @community_not_deleted()
 def upload_community_emoji(community_slug):
     ctx = load_settings_context(community_slug)
-    community = ctx["community"]
 
-    # 🔒 HARD LIMIT CHECK (BLOCK 61st EMOJI)
+    # lock the community row so two simultaneous uploads can't both pass the limit check
+    community = (
+        Community.query.filter_by(id=ctx["community"].id).with_for_update().first()
+    )
+
+    file = request.files.get("emoji")
+    if not file or not file.filename:
+        db.session.rollback()
+        return jsonify({"error": "missing_file"}), 400
+
+    original_name = secure_filename(file.filename)
+    ext = original_name.rsplit(".", 1)[-1].lower() if "." in original_name else ""
+    if ext not in ALLOWED_EMOJI_EXTS:
+        db.session.rollback()
+        return jsonify({
+            "error": "invalid_file_type",
+            "message": "Emojis must be PNG, JPG, GIF, WebP or SVG."
+        }), 400
+
+    file_bytes = file.read()
+    file_size = len(file_bytes)
+    if file_size > MAX_EMOJI_BYTES:
+        db.session.rollback()
+        return jsonify({
+            "error": "file_too_large",
+            "message": "Emoji files must be 256 KB or smaller."
+        }), 413
+
+    # plan-based limit (Free 0, Standard 10, Pro 35, Enterprise 65)
     emoji_count = (
         db.session.query(CommunityEmoji)
         .filter_by(community_id=community.id)
         .count()
     )
 
-    if emoji_count >= MAX_EMOJIS_PER_COMMUNITY:
+    try:
+        check_can_add_emoji(community, emoji_count)
+    except FeatureLocked as e:
+        db.session.rollback()
         return jsonify({
             "error": "emoji_limit_reached",
-            "message": f"Maximum of {MAX_EMOJIS_PER_COMMUNITY} emojis allowed."
-        }), 409
+            "message": e.message,
+            "limit": limit(community, "custom_emojis"),
+            "count": emoji_count,
+        }), 403
 
-    file = request.files.get("emoji")
-    if not file:
-        return jsonify({"error": "missing_file"}), 400
-
-    # backend-generated emoji name
     name = generate_next_emoji_name(community.id)
-
-    # ORIGINAL NAME (same as attachments)
-    original_name = secure_filename(file.filename)
-    ext = original_name.rsplit(".", 1)[-1].lower()
-
     emoji_uuid = str(uuid.uuid4())
-
-    # ✅ SAME SHAPE AS ATTACHMENTS
     storage_name = f"{community.id}/emojis/{emoji_uuid}.{ext}"
-
-    # ✅ SAME READ PATTERN
-    file_bytes = file.read()
-    file_size = len(file_bytes)
-
-    future = upload_to_supabase(
-        file_bytes,
-        storage_name,
-        file.mimetype
-    )
 
     emoji = CommunityEmoji(
         uuid=emoji_uuid,
         community_id=community.id,
         name=name,
-        image_path=None,   
+        image_path=None,
         created_by_id=current_user.id
     )
 
     db.session.add(emoji)
-    db.session.flush()
-    db.session.commit()   
+    db.session.commit()
 
-    emoji_id = emoji.id  
-
-    def callback(f):
-        save_emoji_when_done(f, emoji_id)
-
-    future.add_done_callback(callback)
+    emoji_id = emoji.id
+ 
+    content_type = EMOJI_CONTENT_TYPES[ext]
+    future = upload_executor.submit(_upload_single, file_bytes, storage_name, content_type)
+    future.add_done_callback(lambda f: save_emoji_when_done(f, emoji_id))
 
     return jsonify({
         "id": emoji.id,
@@ -12673,6 +12969,18 @@ def settings_chat_emojis(community_slug):
     ctx = load_settings_context(community_slug)
     community = ctx["community"]
 
+    emoji_limit = limit(community, "custom_emojis")
+
+    if not emoji_limit:
+        locked_ctx = {
+            "community": community,
+            "community_slug": community_slug,
+            "plan_label": plan_label(community),
+        }
+        if request.headers.get("X-Partial"):
+            return render_template("settings/chat/emojis_locked.html", **locked_ctx)
+        return render_template("community_settings.html", **locked_ctx)
+
     emojis = (
         CommunityEmoji.query
         .options(joinedload(CommunityEmoji.created_by))
@@ -12684,41 +12992,29 @@ def settings_chat_emojis(community_slug):
     emoji_list = []
     for emoji in emojis:
         uploader = emoji.created_by
-
         emoji_list.append({
             "id": emoji.id,
             "uuid": emoji.uuid,
             "name": emoji.name,
             "image_url": emoji.image_path,
             "created_at": emoji.created_at,
-
-            # uploader info
-            "uploaded_by": (
-                uploader.username
-                if uploader else "Unknown"
-            ),
+            "uploaded_by": uploader.username if uploader else "Unknown",
             "uploaded_by_avatar": resolve_user_avatar(uploader),
         })
 
     template_ctx = {
         "community": community,
+        "community_slug": community_slug,
+        "plan_label": plan_label(community),
         "emojis": emoji_list,
         "emoji_count": len(emoji_list),
-        "emoji_limit": 60,
+        "emoji_limit": emoji_limit,
     }
 
     if request.headers.get("X-Partial"):
-        return render_template(
-            "settings/chat/emojis.html",
-            **template_ctx
-        )
+        return render_template("settings/chat/emojis.html", **template_ctx)
 
-    return render_template(
-        "community_settings.html",
-        community_slug=community_slug,
-        **template_ctx
-    )
-
+    return render_template("community_settings.html", **template_ctx)
 
 @app.route("/api/community/<community_slug>/emojis", methods=["GET"])
 @login_required
@@ -12747,12 +13043,70 @@ def api_get_emojis(community_slug):
             "uploaded_by_avatar": resolve_user_avatar(uploader),
         })
 
-    return jsonify({
+    try:
+        online_count = get_online_count_for_community(community.id)
+    except Exception:
+        online_count = None  # never break the emoji list because of the counter
+
+    resp = jsonify({
         "emojis": emoji_list,
-        "count": len(emoji_list)
+        "count": len(emoji_list),
+        "online_count": online_count
     })
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
 
 
+
+def _get_community_or_404(community_slug):
+    """Light lookup: only checks the community exists. No admin/role guard."""
+    return Community.query.filter_by(slug=community_slug).first_or_404()
+
+
+def _serialize_emojis(community):
+    emojis = (
+        CommunityEmoji.query
+        .options(joinedload(CommunityEmoji.created_by))
+        .filter_by(community_id=community.id)
+        .order_by(CommunityEmoji.created_at.asc())
+        .all()
+    )
+
+    emoji_list = []
+    for emoji in emojis:
+        uploader = emoji.created_by
+        emoji_list.append({
+            "id": emoji.id,
+            "uuid": emoji.uuid,
+            "name": emoji.name,
+            "image_url": emoji.image_path,
+            "uploaded_by": uploader.username if uploader else "Unknown",
+            "uploaded_by_avatar": resolve_user_avatar(uploader),
+        })
+    return emoji_list
+
+
+@app.route("/api/community/<community_slug>/chat-emojis", methods=["GET"])
+@login_required
+@community_not_deleted()
+def api_get_chat_emojis(community_slug):
+    community = _get_community_or_404(community_slug) 
+    emoji_list = _serialize_emojis(community)
+    locked = chat_locked(community.id)
+    if locked:
+        return locked
+    try:
+        online_count = get_online_count_for_community(community.id)
+    except Exception:
+        online_count = None   
+
+    resp = jsonify({
+        "emojis": emoji_list,
+        "count": len(emoji_list),
+        "online_count": online_count
+    })
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
 
 @app.route("/community/<community_slug>/settings/integrations/automation")
 @login_required
@@ -13293,19 +13647,21 @@ def toggle_webhook_event(webhook_id):
 
 @app.route("/api/community/webhooks", methods=["POST"])
 @login_required
-@community_not_deleted()
 def save_webhook_url():
+    print("pass")
+
     user = current_user
     data = request.get_json() or {}
 
     community_slug = data.get("community_slug")
     endpoint_url = data.get("endpoint_url")
-
+    print(community_slug)
+    print(endpoint_url)
     if not community_slug or not endpoint_url:
         return jsonify({"error": "missing_fields"}), 400
 
     community = Community.query.filter_by(slug=community_slug).first_or_404()
-
+    print("pass")
     # 🔒 Admin check
     if not has_role(user.id, community.id, "admin"):
         abort(403)
@@ -13362,56 +13718,51 @@ def regenerate_webhook_secret(webhook_id):
     })
 
 
-@app.route("/community/<community_slug>/settings/subscription")
-@login_required
-@community_not_deleted()
-def settings_subcription(community_slug):
-    ctx = load_settings_context(community_slug)
-    community = ctx["community"]
-    wallet = community.wallet
 
-    now = datetime.utcnow()
-    claim_limit = 5000
+CLAIM_LIMITS = {"free": 200, "standard": 1000, "plus": 4000, "enterprise": None}
 
-    usage = CommunityClaimUsage.query.filter_by(
-        community_id=community.id,
-        year=now.year,
-        month=now.month
-    ).first()
 
-    claim_count = usage.claim_count if usage else 0
-    claim_percent = min(round((claim_count / claim_limit) * 100, 1), 100)
+def _add_months(dt, months):
+    """dt + N calendar months, clamping the day (Jan 31 + 1 month = Feb 28/29)."""
+    y, m = divmod(dt.month - 1 + months, 12)
+    y += dt.year
+    m += 1
+    return dt.replace(year=y, month=m, day=min(dt.day, monthrange(y, m)[1]))
 
-    from calendar import monthrange
-    last_day = monthrange(now.year, now.month)[1]
-    reset_date = datetime(now.year, now.month, last_day).strftime("%b %d, %Y")
 
+def _next_reset(sub, now):
+    """When the monthly claim counter resets for a paid plan.
+    Monthly plan: at expiry. Yearly plan: claims are per month, so on each
+    monthly anniversary of the day they paid."""
+    if sub.interval == "monthly":
+        return sub.expires_at
+    anchor = sub.current_period_start or sub.paid_at
+    n = 1
+    nxt = _add_months(anchor, n)
+    while nxt <= now:
+        n += 1
+        nxt = _add_months(anchor, n)
+    return min(nxt, sub.expires_at)
+
+
+def chat_locked_template(community, community_slug, template, extra=None):
+    """Returns a rendered locked page if chat is locked, else None."""
+    from flask import request, render_template
+
+    if has_feature(community, "community_chat"):
+        return None
+
+    ctx = {
+        "community": community,
+        "community_slug": community_slug,
+        "plan_label": plan_label(community),
+        **(extra or {}),
+    }
     if request.headers.get("X-Partial"):
-        return render_template(
-            "/settings/subscription.html",
-            community=community,
-            wallet=wallet,
-            claim_count=claim_count,
-            claim_limit=claim_limit,
-            claim_percent=claim_percent,
-            reset_date=reset_date
-        )
-    return render_template(
-        "community_settings.html",
-        community=community,
-        community_slug=community_slug,
-        wallet=wallet,
-        claim_count=claim_count,
-        claim_limit=claim_limit,
-        claim_percent=claim_percent,
-        reset_date=reset_date
-    )
+        return render_template(template, **ctx)
+    return render_template("community_settings.html", **ctx)
 
-
-
-
-
-
+    
 @app.route("/community/<community_slug>/settings/chat/moderation")
 @login_required
 @community_not_deleted()
@@ -13419,27 +13770,28 @@ def settings_chat_moderations(community_slug):
     ctx = load_settings_context(community_slug)
     community = ctx["community"]
 
-    
+    locked = chat_locked_template(
+        community, community_slug,
+        "settings/chat/moderation_locked.html",
+        extra={"interaction_settings": None},
+    )
+    if locked:
+        return locked
+
     interaction_settings = CommunityInteractionSettings.query.filter_by(
         community_id=community.id
     ).first()
 
+    template_ctx = {
+        "community": community,
+        "community_slug": community_slug,
+        "interaction_settings": interaction_settings,
+    }
+
     if request.headers.get("X-Partial"):
-        return render_template(
-            "settings/chat/moderation.html",
-            community=community,
-            interaction_settings=interaction_settings,
-        )
+        return render_template("settings/chat/moderation.html", **template_ctx)
 
-    return render_template(
-        "community_settings.html",
-        community=community,
-        community_slug=community_slug,
-        interaction_settings=interaction_settings,
-    )
-
-
-
+    return render_template("community_settings.html", **template_ctx)
 
 
 @app.route("/api/community/<community_slug>/role-colors")
@@ -13491,6 +13843,20 @@ def settings_chat_tickets(community_slug):
     ctx = load_settings_context(community_slug)
 
     community = ctx["community"]
+
+    # 🔒 locked on plans without community chat
+    if not has_feature(community, "community_chat"):
+        locked_ctx = {
+            "community": community,
+            "community_slug": community_slug,
+            "plan_label": plan_label(community),
+            "ticket_settings": None,
+            "remaining_hours": None,
+        }
+        if request.headers.get("X-Partial"):
+            return render_template("settings/chat/tickets_locked.html", **locked_ctx)
+        return render_template("community_settings.html", **locked_ctx)
+
     ticket_settings = community.ticket_settings
 
     remaining_hours = None
@@ -13504,21 +13870,17 @@ def settings_chat_tickets(community_slug):
         delta = ticket_settings.disabled_until - datetime.utcnow()
         remaining_hours = max(0, int(delta.total_seconds() // 3600))
 
-    if request.headers.get("X-Partial"):
-        return render_template(
-            "settings/chat/tickets.html",
-            community=community,
-            ticket_settings=ticket_settings,
-            remaining_hours=remaining_hours   # ✅ YOU MISSED THIS
-        )
+    template_ctx = {
+        "community": community,
+        "community_slug": community_slug,
+        "ticket_settings": ticket_settings,
+        "remaining_hours": remaining_hours,
+    }
 
-    return render_template(
-        "community_settings.html",
-        community=community,
-        ticket_settings=ticket_settings,
-        community_slug=community_slug,
-        remaining_hours=remaining_hours
-    )
+    if request.headers.get("X-Partial"):
+        return render_template("settings/chat/tickets.html", **template_ctx)
+
+    return render_template("community_settings.html", **template_ctx)
 
 
 @app.route("/community/<community_slug>/settings/integrations")
@@ -13735,7 +14097,6 @@ def get_online_count_for_community(community_id):
 @login_required
 @community_not_deleted()
 def analytics(community_slug):
-
     user = current_user
     community = Community.query.filter_by(slug=community_slug).first_or_404()
 
@@ -13744,13 +14105,11 @@ def analytics(community_slug):
             return jsonify({"error": "Unauthorized"}), 403
         return redirect(url_for("dashboard"))
 
-    is_premium = community.is_paid
+    is_premium = has_feature(community, "analytics")
 
     online_count = get_online_count_for_community(community.id)
 
-    # ---------- PARTIAL ----------
     if request.headers.get("X-Partial"):
-
         template = "analytics.html" if is_premium else "index.html"
 
         return render_template(
@@ -13761,7 +14120,6 @@ def analytics(community_slug):
             online_count=online_count
         )
 
-    # ---------- FULL ----------
     total_xp = get_total_xp(user.id, community.id)
     level_data = get_level(total_xp)
 
@@ -13774,7 +14132,6 @@ def analytics(community_slug):
         online_count=online_count,
         community_tuples=get_user_communities(user.id)
     )
-
 
 
 
@@ -20288,7 +20645,6 @@ def join_community_mapper(community_slug):
     invitation_code = data.get("invitation_code")
     is_limited = request.args.get("private") is not None
 
-    # 1️⃣ Check if already member
     existing_role = CommunityUserRole.query.filter_by(
         user_id=current_user.id,
         community_id=community.id
@@ -20297,7 +20653,11 @@ def join_community_mapper(community_slug):
     if existing_role:
         return jsonify({"message": "Already a member"}), 200
 
-    # community security settings
+    try:
+        check_can_join(community)
+    except FeatureLocked as e:
+        return jsonify({"error": e.message, "community_full": True}), 403
+
     security = CommunitySecurity.query.filter_by(community_id=community.id).first()
     is_private = bool(security and security.private_community)
     admins_only = bool(
@@ -20313,7 +20673,6 @@ def join_community_mapper(community_slug):
         if not invitation_code:
             return jsonify({"error": "Missing invitation code"}), 400
 
-        # lock the row so concurrent joins can't both slip past max_uses
         limited_code = LimitedCode.query.filter_by(
             code=invitation_code,
             community_id=community.id
@@ -20325,10 +20684,8 @@ def join_community_mapper(community_slug):
         if not limited_code.is_valid:
             return jsonify({"error": "Invite code expired or already used"}), 410
 
-        # always member on the limited/private path — code's stored role is ignored
         role_to_assign = "member"
 
-        # tally usage — raises if it somehow got invalidated between checks
         try:
             limited_code.use()
         except ValueError:
@@ -20345,10 +20702,7 @@ def join_community_mapper(community_slug):
         db.session.add(log)
 
     elif invitation_code:
-        # ---- PUBLIC / PERSONAL CODE FLOW ----
         if admins_only:
-            # private community + admins_only => personal InvitationCode is never accepted,
-            # only LimitedCode (is_limited branch above) can get someone in
             return jsonify({"error": "This community only accepts invites from admins"}), 403
 
         invite_code = InvitationCode.query.filter_by(
@@ -20375,12 +20729,9 @@ def join_community_mapper(community_slug):
             db.session.add(log)
 
     elif admins_only:
-        # no code at all, but private + admins_only => can't join without a LimitedCode
         return jsonify({"error": "This community only accepts invites from admins"}), 403
 
     elif is_private:
-        # private but not admins_only (invite_permission == "members") — still needs *some*
-        # invitation_code, personal or limited, to get in
         return jsonify({"error": "This is a private community and requires an invite"}), 403
 
     new_role = CommunityUserRole(
@@ -20425,6 +20776,134 @@ def join_community_mapper(community_slug):
         "invite_code": new_invite.code
     }), 200
 
+
+@app.route("/<string:community_slug>/accept_invite/<string:limited_code>", methods=["POST"])
+@login_required
+def accept_invite(community_slug, limited_code):
+
+    user = current_user
+    community = Community.query.filter_by(slug=community_slug).first_or_404()
+
+    code_entry = LimitedCode.query.filter_by(
+        code=limited_code,
+        community_id=community.id
+    ).first_or_404(description="Invalid invite code")
+
+    if not code_entry.is_valid:
+        return jsonify({"success": False, "message": "Invitation code expired"}), 403
+
+    if code_entry.emails:
+        allowed_emails = [e.strip().lower() for e in code_entry.emails.split(",")]
+        if user.email.lower() not in allowed_emails:
+            return jsonify({"success": False, "message": "Your email is not authorized to use this invite."}), 403
+
+    role_order = {'member': 0, 'reviewer': 1, 'editor': 2, 'admin': 3}
+    invite_role = code_entry.role.lower()
+
+    existing_role = CommunityUserRole.query.filter_by(
+        user_id=user.id,
+        community_id=community.id
+    ).first()
+
+    upgrade_needed = False
+    is_new_member = False
+
+    if existing_role:
+
+        if role_order[invite_role] > role_order.get(existing_role.role, 0):
+            try:
+                check_can_take_role(community, user.id, invite_role, is_new_member=False)
+            except FeatureLocked as e:
+                return jsonify({"success": False, "message": e.message, "upgrade": True}), 403
+
+            existing_role.role = invite_role
+            upgrade_needed = True
+
+    else:
+        try:
+            check_can_take_role(community, user.id, invite_role, is_new_member=True)
+        except FeatureLocked as e:
+            return jsonify({"success": False, "message": e.message, "upgrade": True}), 403
+
+        existing_role = CommunityUserRole(
+            user_id=user.id,
+            community_id=community.id,
+            role=invite_role
+        )
+
+        db.session.add(existing_role)
+
+        upgrade_needed = True
+        is_new_member = True
+
+    if is_new_member:
+        join_event = CommunityMembershipEvent(
+            user_id=user.id,
+            community_id=community.id,
+            event_type="join"
+        )
+        db.session.add(join_event)
+
+    role = existing_role.role
+
+    if role == "admin":
+        redirect_url = url_for("me_look", community_slug=community.slug)
+
+    elif role == "editor":
+        redirect_url = url_for("quest", community_slug=community.slug)
+
+    elif role == "reviewer":
+        redirect_url = url_for("reviews", community_slug=community.slug)
+
+    else:
+        redirect_url = url_for("me_look", community_slug=community.slug)
+
+    if upgrade_needed:
+
+        db.session.commit()
+
+        code_entry.use()
+
+        for key in [
+            "invite_flag",
+            "invite_role",
+            "invite_code",
+            "inviter_user_id",
+            "inviter_username"
+        ]:
+            session.pop(key, None)
+
+        return jsonify({
+            "success": True,
+            "message": f"You are now a {code_entry.role} in {community.name}!",
+            "community": {
+                "slug": community.slug,
+                "name": community.name,
+                "logo": (
+                    url_for("static", filename=community.logo_path)
+                    if community.logo_path else None
+                ),
+                "redirect": redirect_url
+            }
+        })
+
+    else:
+
+        for key in [
+            "invite_flag",
+            "invite_role",
+            "invite_code",
+            "inviter_user_id",
+            "inviter_username"
+        ]:
+            session.pop(key, None)
+
+        return jsonify({
+            "success": False,
+            "message": f"You already have an equal or higher role ({existing_role.role}) in this community."
+        }), 400
+
+    
 @app.route('/<community_slug>/quest')
 def p_quest(community_slug):
 
@@ -21843,6 +22322,8 @@ def check_telegram_task_for_user(user, task):
         "error": "Join the Telegram group to claim this task"
     }
 
+CLAIM_LIMIT_MESSAGE = "This community has used all of its claims for now. Please check back later."
+
 @app.route("/claim/<int:subquest_id>", methods=["POST"])
 @login_required
 @csrf.exempt
@@ -21851,8 +22332,6 @@ def claim_subquest(subquest_id):
     user = current_user
     session = db.session
     print("passed session")
-
-
 
     subquest = db.session.get(Subquest, subquest_id)
 
@@ -21863,20 +22342,15 @@ def claim_subquest(subquest_id):
         }), 404
 
     print("pass subquest filter")
-    
 
     community = subquest.quest.community
     community_id = subquest.quest.community_id
-
 
     if not community:
         return jsonify({
             "success": False,
             "message": "This community no longer exists."
         }), 404
-
- 
-
 
     # ==============================
     # 3) Membership check
@@ -21888,7 +22362,6 @@ def claim_subquest(subquest_id):
             "toast": f"Join the {community.name} community to claim this quest."
         }), 403
 
-
     # ==============================
     # 4) Ban check
     # ==============================
@@ -21899,6 +22372,18 @@ def claim_subquest(subquest_id):
             "toast": "You are banned from this community and cannot claim Quests."
         }), 403
 
+    # ==============================
+    # 4b) 🔒 COMMUNITY CLAIM LIMIT (fast guard)
+    # locked community = plan quota + extra claims all used up
+    # enterprise is never locked
+    # ==============================
+
+    if not claims_open(community):
+        return jsonify({
+            "success": False,
+            "error_code": "MAX_CLAIM_REACHED",
+            "toast": CLAIM_LIMIT_MESSAGE
+        }), 403
 
     # ==============================
     # 5) Recurrence check
@@ -21911,7 +22396,6 @@ def claim_subquest(subquest_id):
             "error_code": "RECURRENCE_BLOCKED",
             "toast": f"You have already claimed this {subquest.recurrence.lower()} subquest"
         }), 400
-
 
     # ==============================
     # 6) 🔒 ATOMIC RESERVATION (DB LEVEL)
@@ -21946,15 +22430,12 @@ def claim_subquest(subquest_id):
                 "cooldown_until": cooldown.isoformat()
             }), 400
 
-
-
     if not can_claim_subquest(session, subquest_id):
         return jsonify({
             "success": False,
             "error_code": "MAX_CLAIM_REACHED",
             "toast": "Max number of claims reached"
         }), 400
-
 
     tasks = Task.query.filter_by(subquest_id=subquest_id).all()
     is_coin_holder_vote_quest = any(t.type == "coin_holder_vote" for t in tasks)
@@ -21976,10 +22457,27 @@ def claim_subquest(subquest_id):
                 "toast": "Voting has ended for this quest."
             }), 400
 
+    # ==============================
+    # 6b) 💳 SPEND ONE COMMUNITY CLAIM (plan quota -> extra claims)
+    # Done BEFORE anything is written so a rejected claim leaves no trace.
+    # Not committed here: it commits together with the rest at the end,
+    # and rolls back with everything else if something crashes.
+    # Enterprise = unlimited, nothing is counted.
+    # When the last claim is spent, extra is wiped and the community locks.
+    # ==============================
+    try:
+        consume_claim(community, 1, commit=False)
+    except BillingError as e:
+        return jsonify({
+            "success": False,
+            "error_code": "MAX_CLAIM_REACHED",
+            "toast": e.message
+        }), e.code
+
     subquest_completion = SubquestCompletion(
         user_id=user.id,
         subquest_id=subquest.id,
-        status="processing",  
+        status="processing",
         attempts=1,
         started_at=utcnow()
     )
@@ -21997,13 +22495,11 @@ def claim_subquest(subquest_id):
         )
         db.session.add(run)
 
-
     db.session.add(subquest_completion)
-    db.session.flush() 
+    db.session.flush()
     subquest_rewards = []
 
     subquest_rewards = list(subquest.rewards)
-
 
     def parse_answers():
         try:
@@ -22026,11 +22522,9 @@ def claim_subquest(subquest_id):
     twitter_reply_answers = parse_json_field("twitter_reply_answers")
     poll_answers        = parse_json_field("poll_answers")
     poll_other_answers  = parse_json_field("poll_other_answers")
-    puzzle_answers      = parse_json_field("puzzle_answers") 
+    puzzle_answers      = parse_json_field("puzzle_answers")
     visit_link_answers  = parse_json_field("visit_link_answers")
     coin_holder_vote_answers = parse_json_field("coin_holder_vote_answers")
-
-
 
     errors = {}
     failed_inputs = {}
@@ -22048,7 +22542,6 @@ def claim_subquest(subquest_id):
         optionscale_answer = optionscale_answers.get(str(task.id))
         poll_answer = poll_answers.get(str(task.id))
         other_answer = poll_other_answers.get(str(task.id))
-
 
         # --- VALIDATION ---
         if task.type == "quiz":
@@ -22079,7 +22572,7 @@ def claim_subquest(subquest_id):
                     "subscribed": True,
                     "channel_name": res.get("channel_name", "Unknown Channel")
                 }
-            else: 
+            else:
                 if res.get("error_type") == "HTML":
                     errors[task.id] = {
                         "type": "HTML",
@@ -22105,7 +22598,6 @@ def claim_subquest(subquest_id):
             else:
                 errors[task.id] = res.get("error", "Join the Telegram group to claim this task")
                 failed_inputs[task.id] = {"telegram": "not joined"}
-
 
         elif task.type == "twitter":
             reply_url = twitter_reply_answers.get(str(task.id))
@@ -22217,7 +22709,6 @@ def claim_subquest(subquest_id):
                 "other": other_answer
             }
 
-
         elif task.type == "invite":
             from backend.quests.invite_validation import invited_user_is_valid
 
@@ -22252,7 +22743,7 @@ def claim_subquest(subquest_id):
                     db.session.add(log)
 
                 cleaned_input["invite"] = {
-                    "invited_count": len(to_consume),  
+                    "invited_count": len(to_consume),
                     "required": required_invites,
                     "consumed": len(to_consume)
                 }
@@ -22260,10 +22751,9 @@ def claim_subquest(subquest_id):
                 is_valid = False
                 errors[task.id] = f"Invite {required_invites - len(valid_logs)} more friends who meet the requirement to claim."
                 cleaned_input["invite"] = {
-                    "invited_count": len(valid_logs), 
+                    "invited_count": len(valid_logs),
                     "required": required_invites
                 }
-
 
         elif task.type == "visit-link":
             is_valid = True
@@ -22279,7 +22769,6 @@ def claim_subquest(subquest_id):
                 "image": user_answer_from_frontend.get("image") or preview.get("image"),
             }
 
-
         elif task.type == "partnership":
             allowed, error_message, community_name = user_in_community(task)
 
@@ -22294,7 +22783,6 @@ def claim_subquest(subquest_id):
                 errors[task.id] = error_message or "Join the community to claim this task"
                 is_valid = False
                 failed_inputs[task.id] = {"partnership": "not joined or banned"}
-
 
         elif task.type == "coin_holder_vote":
 
@@ -22405,7 +22893,6 @@ def claim_subquest(subquest_id):
                         "amount": str(vote_amount),
                     }
 
-
         # inside for task in tasks loop
         elif task.type == "p.o.h":
             # Re-run validation before allowing claim
@@ -22465,7 +22952,6 @@ def claim_subquest(subquest_id):
             require_fork = task.config.get("fork", False)
             require_star = task.config.get("star", False)
 
-
             is_valid = True
 
             cleaned_input["github"] = {
@@ -22487,7 +22973,6 @@ def claim_subquest(subquest_id):
                     is_valid = False
                     errors[task.id] = error or f"Star {repo_path} before claiming"
                     failed_inputs[task.id] = {"github": "star_required"}
-
 
         elif task.type == "file-upload":
 
@@ -22560,8 +23045,6 @@ def claim_subquest(subquest_id):
             # ✅ store placeholder
             cleaned_input["files"] = uploaded_file_refs
 
-
-
         # --- Cleanup inputs ---
         for k, v in {
             "task_answer": task_answer,
@@ -22575,7 +23058,7 @@ def claim_subquest(subquest_id):
 
         # --- Store attempt history ---
         instant_success_types = [
-            "discord", "youtube", "quiz", "twitter", "partnership_quest", "partnership","Visit link","p.o.h", "github",
+            "discord", "youtube", "quiz", "twitter", "partnership_quest", "partnership", "Visit link", "p.o.h", "github",
             "invite", "poll", "Optionscale(numbers)", "Optionscale(star)", "coin_holder_vote", "puzzle"
         ]
 
@@ -22598,7 +23081,6 @@ def claim_subquest(subquest_id):
             user_input=cleaned_input,
         ))
 
-
         # --- Add persistent cooldown for failed tasks ---
 
         if is_valid:
@@ -22620,11 +23102,6 @@ def claim_subquest(subquest_id):
             })
         else:
             all_success = False
-  
-  
-
-
-
 
     if not all_success:
         cooldown_delta = Subquest.parse_cooldown(subquest.cooldown)
@@ -22659,7 +23136,6 @@ def claim_subquest(subquest_id):
             ))
 
             print(f"⏳ Cooldown applied until {cooldown_until}")
-
 
     assigned_rewards = []
 
@@ -22708,9 +23184,7 @@ def claim_subquest(subquest_id):
                     subquest_completion=subquest_completion,
                     base_xp_amount=int(xp_amount)
                 )
-      
-      
-        
+
             # ==============================
             # 💰 COMMIT ZEC TO UserBalance
             # ==============================
@@ -22796,7 +23270,7 @@ def claim_subquest(subquest_id):
                 print(f"✅ Credited {amount} {token} to user {user.id} for completing {subquest.name} — released {amount_zatoshi} zatoshi from locked balance")
         else:
             subquest_completion.status = "pending"
-            subquest_completion.assigned_rewards = []  
+            subquest_completion.assigned_rewards = []
             increment_review_notification(subquest.quest.community_id)
             print("All tasks success but requires review → SubquestCompletion marked PENDING")
 
@@ -22804,8 +23278,6 @@ def claim_subquest(subquest_id):
         subquest_completion.status = "failed"
         subquest_completion.assigned_rewards = []  # no rewards for failed
         print("Not all tasks succeeded → SubquestCompletion marked FAILED")
-
-
 
     existing_review = TaskReview.query.filter_by(
         subquest_completion_id=subquest_completion.id,
@@ -22830,7 +23302,6 @@ def claim_subquest(subquest_id):
         else:
             pending_reward = []
 
-
         review = TaskReview(
             user_id=user.id,
             reviewed_by=None,
@@ -22845,16 +23316,14 @@ def claim_subquest(subquest_id):
         )
         db.session.add(review)
         print(f"Created single TaskReview with status {review_status} for user {user.id}")
-    increment_community_claim_usage(
-        db.session,
-        community_id=subquest.quest.community_id
-    )
+
+    # ❌ REMOVED: increment_community_claim_usage(...)
+    # The claim is now spent (and limit-checked) earlier by consume_claim().
 
     # --- Finalize ---
     db.session.commit()
     if newly_tracked_handles:
         spawn_mention_match_for_new_tags(newly_tracked_handles)
-
 
     role_rewards_to_assign = []
     for reward in assigned_rewards:
@@ -22880,15 +23349,11 @@ def claim_subquest(subquest_id):
                 "community_id": reward.get("community_id")
             })
 
- 
     for r in role_rewards_to_assign:
         if not r.get("role") and not r.get("role_id"):
             print(f"❌ Skipping invalid role reward: {r}")
             continue
         give_discord_role(user.id, r, community_id=subquest.quest.community_id)
-
-
-
 
     updated_max_claimed_count = get_max_claim_count(subquest_id)
 
@@ -22943,10 +23408,7 @@ def claim_subquest(subquest_id):
             "max_claim": subquest.max_claim
         }
 
-
         return jsonify(response_payload)
-
-
 
 
 @app.route("/validate_poh", methods=["GET"])
@@ -23819,7 +24281,22 @@ def create_sprint_ajax(community_slug):
         return jsonify({"message": "Something went wrong. Please try again."}), 500
 
 
+@app.route("/api/<community_slug>/export-info", methods=["GET"])
+@login_required
+def export_info(community_slug):
+    community = Community.query.filter_by(slug=community_slug).first_or_404()
 
+    # Only the team (admin/editor/reviewer) can export
+    if not user_is_on_team(community, current_user.id):
+        return jsonify(message="You don't have permission to export."), 403
+
+    cap = limit(community, "export_max_members")   
+
+    return jsonify(
+        plan=plan_key(community),
+        plan_label=plan_label(community),
+        max_export=cap,
+    )
 
 @app.route('/sprint_create', methods=['GET', 'POST'])
 @login_required
@@ -25100,7 +25577,11 @@ def enable_community_tickets():
     community = Community.query.filter_by(slug=community_slug).first()
     if not community:
         return jsonify({"error": "community_not_found"}), 404
-
+    
+    locked = chat_locked(community.id)
+    if locked:
+        return locked
+    
     if not has_role(current_user.id, community.id, "admin"):
         return jsonify({"error": "permission_denied"}), 403
 
@@ -25352,6 +25833,9 @@ def edit_comm_message():
         if blocked:
             return blocked
         
+    locked = chat_locked(community_id)
+    if locked:
+        return locked      
     # 5️⃣ SLOWMODE CHECK (SAME AS SEND)
     state = None
     if channel and channel.slowmode_seconds >= 1:
@@ -25621,7 +26105,48 @@ def resolve_attachment_type(mimetype: str) -> str:
         return "audio"
     return "file"
 
+ 
+def _clean_dim(value):
+    try:
+        v = int(value)
+    except (TypeError, ValueError):
+        return None
+    return v if 1 <= v <= 20000 else None
 
+
+def parse_client_dims(raw):
+    try:
+        data = json.loads(raw or "[]")
+    except (TypeError, ValueError):
+        return []
+    if not isinstance(data, list):
+        return []
+    out = []
+    for item in data:
+        item = item if isinstance(item, dict) else {}
+        out.append((_clean_dim(item.get("width")), _clean_dim(item.get("height"))))
+    return out
+
+
+def get_media_dims(file_bytes, file_type, client_dim=None):
+    if file_type == "image":
+        try:
+            with Image.open(io.BytesIO(file_bytes)) as img:
+                w, h = img.size
+                try:
+                    orientation = img.getexif().get(274)
+                except Exception:
+                    orientation = None
+                if orientation in (5, 6, 7, 8):
+                    w, h = h, w
+            return w, h
+        except Exception:
+            return client_dim or (None, None)
+
+    if file_type == "video":
+        return client_dim or (None, None)
+
+    return None, None
 
 
 def handle_message_attachments(
@@ -25630,16 +26155,16 @@ def handle_message_attachments(
     message_id: int,
     community_id: int,
     channel_id: int | None = None,
-    ticket_id: int | None = None
+    ticket_id: int | None = None,
+    client_dims=None
 ):
-
     attachments = []
+    client_dims = client_dims or []
 
-    for file in files:
+    for i, file in enumerate(files):
         if not file:
             continue
 
-        # ORIGINAL NAME (FOR UI)
         original_name = secure_filename(file.filename)
 
         ext = original_name.rsplit(".", 1)[-1].lower()
@@ -25650,9 +26175,12 @@ def handle_message_attachments(
         else:
             raise ValueError("Attachment must belong to channel or ticket")
 
-
         file_bytes = file.read()
         file_size = len(file_bytes)
+        file_type = resolve_attachment_type(file.mimetype)
+
+        cd = client_dims[i] if i < len(client_dims) else None
+        w, h = get_media_dims(file_bytes, file_type, cd)
 
         future = upload_to_supabase(
             file_bytes,
@@ -25664,9 +26192,11 @@ def handle_message_attachments(
         attachment = MessageAttachment(
             message_id=message_id,
             file_url=public_url,
-            original_name=original_name,   # ✅ HERE
-            file_type=resolve_attachment_type(file.mimetype),
-            file_size=file_size
+            original_name=original_name,
+            file_type=file_type,
+            file_size=file_size,
+            width=w,
+            height=h
         )
 
         db.session.add(attachment)
@@ -25674,8 +26204,7 @@ def handle_message_attachments(
 
     return attachments
 
- 
-
+    
 @app.route("/api/comm_message/audio", methods=["POST"])
 @login_required
 @csrf.exempt
@@ -25692,10 +26221,12 @@ def comm_message_audio():
     duration_str = data.get("duration", "0:00")
     client_id = data.get("client_id")
 
-
-
     if not community_id:
         return jsonify({"error": "Missing community"}), 400
+
+    locked = chat_locked(community_id)
+    if locked:
+        return locked
 
     if not channel_uuid and not ticket_uuid:
         return jsonify({"error": "Missing channel_uuid or ticket_uuid"}), 400
@@ -25705,10 +26236,14 @@ def comm_message_audio():
 
     if not audio_file:
         return jsonify({"error": "Missing audio"}), 400
-    
+
+    community = Community.query.get(community_id)
+    if not community:
+        return jsonify({"error": "Community not found"}), 404
+
     channel = None
     ticket = None
- 
+
     if channel_uuid:
         channel = CommunityChannel.query.filter_by(
             uuid=channel_uuid,
@@ -25716,7 +26251,6 @@ def comm_message_audio():
         ).first()
 
         if not channel:
-            print("Channel not found")
             return jsonify({"error": "Channel not found"}), 404
 
     elif ticket_uuid:
@@ -25727,10 +26261,10 @@ def comm_message_audio():
 
         if not ticket:
             return jsonify({"error": "Ticket not found"}), 404
+
         blocked = ensure_ticket_is_open(ticket)
         if blocked:
             return blocked
-    community = Community.query.get(community_id)
 
     if ticket:
         blocked = ensure_ticket_actions_allowed(ticket)
@@ -25738,24 +26272,20 @@ def comm_message_audio():
             return blocked
 
     if channel:
-        if not ensure_channel_chat_permission(
-            current_user.id,
-            community_id,
-            channel
-        ):  
-            print("Permission denied")
+        if not ensure_channel_chat_permission(current_user.id, community_id, channel):
             return jsonify({"error": "permission_denied"}), 403
 
-    now = datetime.now(timezone.utc)
+    now = datetime.utcnow()
+
     user_role = CommunityUserRole.query.filter_by(
         user_id=current_user.id,
         community_id=community_id,
         banned=False
     ).first()
- 
+
     sender_role = user_role.role if user_role else "member"
     is_creator = community.created_by_id == current_user.id
-    
+
     if channel:
         blocked = ensure_channel_interactions_allowed(
             user_id=current_user.id,
@@ -25766,8 +26296,6 @@ def comm_message_audio():
         if blocked:
             return blocked
 
-    
-    # 2️⃣ Slowmode check
     state = None
     if channel and channel.slowmode_seconds >= 1:
         state = ChannelSlowmodeState.query.filter_by(
@@ -25777,12 +26305,8 @@ def comm_message_audio():
 
         if state and now < state.cooldown_ends_at:
             remaining = int((state.cooldown_ends_at - now).total_seconds())
-            return jsonify({
-                "error": "slowmode",
-                "remaining": remaining
-            }), 429
+            return jsonify({"error": "slowmode", "remaining": remaining}), 429
 
-    # 3️⃣ Reply
     reply_to = None
     if reply_to_uuid:
         q = CommunityMessage.query.filter_by(uuid=reply_to_uuid)
@@ -25794,7 +26318,6 @@ def comm_message_audio():
 
         reply_to = q.first()
 
-    # 4️⃣ Create message
     message = CommunityMessage(
         channel_id=channel.id if channel else None,
         ticket_id=ticket.id if ticket else None,
@@ -25806,8 +26329,6 @@ def comm_message_audio():
     )
     db.session.add(message)
 
-
-    # 5️⃣ Slowmode update
     if channel and channel.slowmode_seconds >= 1:
         cooldown_end = now + timedelta(seconds=channel.slowmode_seconds)
 
@@ -25825,31 +26346,22 @@ def comm_message_audio():
 
     db.session.commit()
 
-    # 6️⃣ Parse duration (mm:ss → seconds)
     try:
         m, s = duration_str.split(":")
         duration_sec = int(m) * 60 + int(s)
     except Exception:
         duration_sec = 0
 
-    # 7️⃣ Upload to Supabase
     ext = audio_file.filename.rsplit(".", 1)[-1].lower()
     storage_name = f"audio/{community_id}/{message.id}/{uuid.uuid4()}.{ext}"
 
     audio_bytes = audio_file.read()
-    audio_size = len(audio_bytes) 
+    audio_size = len(audio_bytes)
     audio_file.seek(0)
 
-    future = upload_to_supabase(
-        audio_bytes,
-        storage_name,
-        audio_file.mimetype
-    )
-
+    future = upload_to_supabase(audio_bytes, storage_name, audio_file.mimetype)
     audio_url = future.result()
 
-
-    # 8️⃣ Save audio metadata
     audio = MessageAudio(
         message_id=message.id,
         audio_url=audio_url,
@@ -25860,11 +26372,28 @@ def comm_message_audio():
 
     db.session.add(audio)
     db.session.commit()
+
     notified_user_ids = set()
     cooldown_ends_at = None
     if channel and channel.slowmode_seconds >= 1:
         cooldown_ends_at = state.cooldown_ends_at.isoformat()
-  
+
+    # 👈 moved UP so the reply block can use subs_map
+    members = (
+        db.session.query(CommunityUserRole)
+        .filter_by(community_id=community_id, banned=False)
+        .all()
+    )
+
+    user_ids = [m.user_id for m in members]
+
+    subs = PushSubscription.query.filter(
+        PushSubscription.user_id.in_(user_ids)
+    ).all()
+
+    subs_map = {}
+    for sub in subs:
+        subs_map.setdefault(sub.user_id, []).append(sub)
 
     if channel and reply_to:
         replied_user_id = reply_to.user_id
@@ -25877,35 +26406,20 @@ def comm_message_audio():
                 channel.id
             )
 
-            send_reply_notification = False
-
-            # ❌ HARD BLOCK
-            if level == "none":
-                send_reply_notification = False
-
-            elif level == "all":
-                send_reply_notification = True
-
-
-            if send_reply_notification:
+            if level == "all":
                 notified_user_ids.add(replied_user_id)
 
                 base_url = "https://gleyo.app"
 
                 if channel.category:
                     target_url = (
-                        f"{base_url}/chat/"
-                        f"{community.slug}/"
-                        f"{channel.category.uuid}/"
-                        f"{channel.uuid}/"
-                        f"{message.uuid}"
+                        f"{base_url}/chat/{community.slug}/"
+                        f"{channel.category.uuid}/{channel.uuid}/{message.uuid}"
                     )
                 else:
                     target_url = (
-                        f"{base_url}/chat/"
-                        f"{community.slug}/"
-                        f"{channel.uuid}/"
-                        f"{message.uuid}"
+                        f"{base_url}/chat/{community.slug}/"
+                        f"{channel.uuid}/{message.uuid}"
                     )
 
                 user_subs = subs_map.get(replied_user_id, [])
@@ -25922,39 +26436,16 @@ def comm_message_audio():
                             "category_uuid": channel.category.uuid if channel.category else None,
                             "type": "reply",
                             "message_uuid": message.uuid,
-                            "message_kind": "audio"   # 🔥 optional but future-proof
+                            "message_kind": "audio"
                         }
                     )
 
-    members = (
-        db.session.query(CommunityUserRole)
-        .filter_by(
-            community_id=community_id,
-            banned=False
-        )
-        .all()
-    )
-
-    user_ids = [m.user_id for m in members]
-
-    # 🔥 2. Fetch ALL subscriptions in ONE query
-    subs = PushSubscription.query.filter(
-        PushSubscription.user_id.in_(user_ids)
-    ).all()
-
-    # 🔥 3. Group by user_id
-    subs_map = {}
-    for sub in subs:
-        subs_map.setdefault(sub.user_id, []).append(sub)
     if channel:
         for member in members:
             user_id = member.user_id
 
-            # ❌ skip sender
             if user_id == current_user.id:
                 continue
-
-            # ❌ skip users already notified
             if user_id in notified_user_ids:
                 continue
 
@@ -25965,11 +26456,9 @@ def comm_message_audio():
                 channel.id
             )
 
-            # only ALL receives broadcast
             if level != "all":
                 continue
 
-            # 🔥 get user's subscriptions (NO DB QUERY HERE)
             user_subs = subs_map.get(user_id, [])
             if not user_subs:
                 continue
@@ -25978,21 +26467,15 @@ def comm_message_audio():
 
             if channel.category:
                 target_url = (
-                    f"{base_url}/chat/"
-                    f"{community.slug}/"
-                    f"{channel.category.uuid}/"
-                    f"{channel.uuid}/"
-                    f"{message.uuid}"
+                    f"{base_url}/chat/{community.slug}/"
+                    f"{channel.category.uuid}/{channel.uuid}/{message.uuid}"
                 )
             else:
                 target_url = (
-                    f"{base_url}/chat/"
-                    f"{community.slug}/"
-                    f"{channel.uuid}/"
-                    f"{message.uuid}"
+                    f"{base_url}/chat/{community.slug}/"
+                    f"{channel.uuid}/{message.uuid}"
                 )
 
-            # 🔥 pass subs instead of user_id
             send_push_notification_async(
                 subs=user_subs,
                 title=f"{community.name} • New message in #{channel.name}",
@@ -26009,7 +26492,6 @@ def comm_message_audio():
             )
 
             notified_user_ids.add(user_id)
-    room = f"community_{community_id}"
 
     author = build_author_payload(
         user=current_user,
@@ -26017,6 +26499,10 @@ def comm_message_audio():
         sender_role=sender_role,
         is_creator=is_creator
     )
+
+    reply_preview = None
+    if reply_to:
+        reply_preview = build_reply_previews([reply_to.id], community).get(reply_to.id)
 
     audio_payload = {
         "type": "audio",
@@ -26026,15 +26512,25 @@ def comm_message_audio():
         "wave_height": wave_height,
     }
 
+    target_link = build_message_link(
+        community=community, channel=channel, ticket=ticket, message=message
+    )
+
     payload = {
         "uuid": message.uuid,
         "channel_uuid": channel.uuid if channel else None,
         "ticket_uuid": ticket.uuid if ticket else None,
         "community_id": community_id,
+        "community_name": community.name,
+        "community_logo": community.logo_path,
         "content": None,
+        "sender_name": current_user.username,
+        "link": target_link,
+        "message_kind": "voice",
         "created_at": message.created_at.isoformat(),
 
         "reply_to": reply_to.uuid if reply_to else None,
+        "reply_preview": reply_preview,
         "is_mention": False,
 
         **flatten_author(author),
@@ -26044,34 +26540,17 @@ def comm_message_audio():
         "files": [],
         "audio": audio_payload,
 
+        "mentions": [],
+
         "is_sender": True
     }
 
     if channel:
-        # 🌍 PUBLIC CHANNEL MESSAGE
-        socketio.emit(
-            "community_notification",
-            payload,
-            room=f"community_{community_id}"
-        )
+        socketio.emit("community_notification", payload, room=f"community_{community_id}")
 
     elif ticket:
-        # 🎫 TICKET MESSAGE (PRIVATE)
-
-        # staff
-        socketio.emit(
-            "community_notification",
-            payload,
-            room=f"community_staff_{community_id}"
-        )
-
-        # owner
-        socketio.emit(
-            "community_notification",
-            payload,
-            room=f"user_{ticket.user_id}"
-        )
-
+        socketio.emit("community_notification", payload, room=f"community_staff_{community_id}")
+        socketio.emit("community_notification", payload, room=f"user_{ticket.user_id}")
 
     return jsonify({
         "ok": True,
@@ -26085,13 +26564,11 @@ def comm_message_audio():
             "audio_size": audio_size,
             "user_id": current_user.id,
             "created_at": message.created_at.isoformat(),
-            "sender_role": sender_role,      
-            "is_creator": is_creator      
+            "sender_role": sender_role,
+            "is_creator": is_creator
         },
         "cooldown_ends_at": cooldown_ends_at
-
     }), 201
-
 
 
 
@@ -26264,9 +26741,11 @@ def flatten_author(author: dict):
 def serialize_attachment(a):
     return {
         "url": a.file_url,
-        "name": a.original_name,   # ✅ THIS IS WHAT YOU WANT
+        "name": a.original_name,  
         "type": a.file_type,
-        "size": a.file_size
+        "size": a.file_size,
+        "width": a.width,
+        "height": a.height
     }
 
 def build_message_link(community, channel=None, ticket=None, message=None):
@@ -26296,9 +26775,151 @@ def build_message_link(community, channel=None, ticket=None, message=None):
             f"{message.uuid}"
         )
 
-    return None
+    return None 
+
+COMMUNITY_LINK_RE = re.compile(
+    r"https?://([^/\s?#]+)/([A-Za-z0-9_-]+)(?:/quest)?/?(?![\w/-])"
+)
+MAX_LINK_PREVIEWS_PER_MESSAGE = 3
 
 
+def _allowed_link_hosts():
+    # gleyo.app in prod, plus whatever host this request came from
+    # (127.0.0.1:8000, localhost:5000, ngrok, etc.) so dev just works
+    return {"gleyo.app", "www.gleyo.app", request.host.lower()}
+
+
+def extract_community_links(text, allowed_hosts=None):
+    if not text:
+        return []
+    allowed_hosts = allowed_hosts or _allowed_link_hosts()
+
+    links, seen = [], set()
+    for m in COMMUNITY_LINK_RE.finditer(text):
+        host, slug = m.group(1).lower(), m.group(2)
+        if host not in allowed_hosts or slug in seen:
+            continue
+        seen.add(slug)
+        links.append({"slug": slug, "url": m.group(0)})
+        if len(links) >= MAX_LINK_PREVIEWS_PER_MESSAGE:
+            break
+    return links
+
+
+def _serialize_community_preview(community, member_count):
+    about = (community.about or "").strip()
+    if len(about) > 160:
+        about = about[:157].rstrip() + "..."
+    return {
+        "community_id": community.id,
+        "slug": community.slug,
+        "name": community.name,
+        "logo": community.logo_path,
+        "banner": community.banner_pic,
+        "about": about,
+        "member_count": member_count,
+    }
+
+
+def build_link_previews(contents):
+    """
+    contents: list of message texts.
+    Returns a list (same order) of lists of preview dicts.
+    One query for communities + one for member counts, however many messages.
+    """
+    hosts = _allowed_link_hosts()
+    links_per_text = [extract_community_links(c, hosts) for c in contents]
+
+    slugs = {l["slug"] for links in links_per_text for l in links}
+    if not slugs:
+        return [[] for _ in contents]
+
+    communities = Community.query.filter(Community.slug.in_(slugs)).all()
+    if not communities:
+        return [[] for _ in contents]
+
+    counts = dict(
+        db.session.query(
+            CommunityUserRole.community_id,
+            func.count(CommunityUserRole.id)
+        )
+        .filter(
+            CommunityUserRole.community_id.in_([c.id for c in communities]),
+            CommunityUserRole.banned == False
+        )
+        .group_by(CommunityUserRole.community_id)
+        .all()
+    )
+
+    by_slug = {
+        c.slug: _serialize_community_preview(c, counts.get(c.id, 0))
+        for c in communities
+    }
+
+    return [
+        [{**by_slug[l["slug"]], "url": l["url"]} for l in links if l["slug"] in by_slug]
+        for links in links_per_text
+    ]
+
+
+@app.route("/api/community/preview/<slug>", methods=["GET"])
+@login_required
+def community_preview(slug):
+    community = Community.query.filter_by(slug=slug).first()
+    if not community:
+        return jsonify({"ok": False, "error": "not_found"}), 404
+
+    member_count = (
+        db.session.query(func.count(CommunityUserRole.id))
+        .filter_by(community_id=community.id, banned=False)
+        .scalar()
+    ) or 0
+
+    return jsonify({
+        "ok": True,
+        "preview": _serialize_community_preview(community, member_count)
+    }), 200
+
+@app.route("/api/channel/read", methods=["POST"])
+@login_required
+@csrf.exempt
+def mark_channel_read():
+    data = request.get_json(force=True)
+
+    locked = chat_locked(data.get("community_id"))
+    if locked:
+        return locked
+
+    channel = CommunityChannel.query.filter_by(
+        uuid=data.get("channel_uuid"),
+        community_id=data.get("community_id")
+    ).first_or_404()
+
+    latest_id = (
+        db.session.query(func.max(CommunityMessage.id))
+        .filter(CommunityMessage.channel_id == channel.id)
+        .scalar() or 0
+    )
+
+    state = ChannelReadState.query.filter_by(
+        user_id=current_user.id, channel_id=channel.id
+    ).first()
+
+    if not state:
+        db.session.add(ChannelReadState(
+            user_id=current_user.id,
+            channel_id=channel.id,
+            last_read_message_id=latest_id
+        ))
+    elif latest_id > state.last_read_message_id:
+        state.last_read_message_id = latest_id
+
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+
+    return jsonify({"ok": True})
 
 
 @app.route("/api/comm_message", methods=["POST"])
@@ -26307,6 +26928,7 @@ def build_message_link(community, channel=None, ticket=None, message=None):
 def comm_message():
     data = request.form
     files = request.files.getlist("files")
+    client_dims = parse_client_dims(data.get("file_dims"))
     community_id = data.get("community_id")
 
     client_id = data.get("client_id")
@@ -26321,49 +26943,36 @@ def comm_message():
     if not isinstance(frontend_mentions, list):
         frontend_mentions = []
 
- 
     parsed_mentions = extract_mentions_from_text(content)
- 
-   
+
     mentions = {
         m.strip().lower()
         for m in frontend_mentions
         if isinstance(m, str) and m.strip()
     } | parsed_mentions
 
-    print("\n====== 🧪 NEW MESSAGE DEBUG ======")
-    print("👤 sender:", current_user.id)
-    print("💬 content:", content)
-    print("📩 reply_to_uuid:", reply_to_uuid)
-    print("🏷 frontend_mentions:", frontend_mentions)
-    print("🧠 parsed_mentions:", parsed_mentions)
-    print("✅ final mentions:", mentions)
-    print("🎛 admin_action:", is_admin_action)
-    
-
     if not community_id:
-        print(community_id)
         return jsonify({"error": "Missing community"}), 400
 
+    locked = chat_locked(community_id)
+    if locked:
+        return locked
+
     if not channel_uuid and not ticket_uuid:
-        print("Missing channel_uuid or ticket_uuid")
         return jsonify({"error": "Missing channel_uuid or ticket_uuid"}), 400
 
     if channel_uuid and ticket_uuid:
-        print("Provide only one target")
         return jsonify({"error": "Provide only one target"}), 400
 
-
     if not content and not files:
-        print("Empty file")
         return jsonify({"error": "Empty message"}), 400
 
+    community = Community.query.get(community_id)
+    if not community:
+        return jsonify({"error": "Community not found"}), 404
 
-    
     channel = None
     ticket = None
-    target_type = None
-    target_uuid = None
 
     if channel_uuid:
         channel = CommunityChannel.query.filter_by(
@@ -26372,15 +26981,7 @@ def comm_message():
         ).first()
 
         if not channel:
-            print("error: Channel not found")
             return jsonify({"error": "Channel not found"}), 404
-
-        target_type = "channel"
-        target_uuid = channel.uuid
-
-
-
-
 
     elif ticket_uuid:
         ticket = CommunityTicket.query.filter_by(
@@ -26389,13 +26990,11 @@ def comm_message():
         ).first()
 
         if not ticket:
-            print("error: Ticket not found")
             return jsonify({"error": "Ticket not found"}), 404
+
         blocked = ensure_ticket_is_open(ticket)
         if blocked:
             return blocked
-        target_type = "ticket"
-        target_uuid = ticket.uuid
 
     if channel:
         blocked = ensure_channel_interactions_allowed(
@@ -26418,13 +27017,11 @@ def comm_message():
         if blocked:
             return blocked
 
-    community = Community.query.get(community_id)
     if ticket:
         blocked = ensure_ticket_actions_allowed(ticket)
         if blocked:
             return blocked
 
-   
     user_role = CommunityUserRole.query.filter_by(
         user_id=current_user.id,
         community_id=community_id,
@@ -26434,18 +27031,11 @@ def comm_message():
     sender_role = user_role.role if user_role else "member"
     is_creator = community.created_by_id == current_user.id
 
-    
     if channel:
-        if not ensure_channel_chat_permission(
-            current_user.id,
-            community_id,
-            channel
-        ):
-            print("Permission denied")
-            return jsonify({"error: permission_denied"}), 403
+        if not ensure_channel_chat_permission(current_user.id, community_id, channel):
+            return jsonify({"error": "permission_denied"}), 403
 
     now = datetime.utcnow()
-
 
     state = None
     if channel and channel.slowmode_seconds >= 1:
@@ -26456,15 +27046,10 @@ def comm_message():
 
         if state and now < state.cooldown_ends_at:
             remaining = int((state.cooldown_ends_at - now).total_seconds())
-            return jsonify({
-                "error": "slowmode",
-                "remaining": remaining
-            }), 429
+            return jsonify({"error": "slowmode", "remaining": remaining}), 429
 
-  
     reply_to = None
     if reply_to_uuid:
-        print("🔁 Looking for reply_to:", reply_to_uuid)
         q = CommunityMessage.query.filter_by(uuid=reply_to_uuid)
 
         if channel:
@@ -26473,8 +27058,7 @@ def comm_message():
             q = q.filter_by(ticket_id=ticket.id)
 
         reply_to = q.first()
-        print("🔁 reply_to found:", reply_to.id if reply_to else None)
-        print("🔁 reply_to user:", reply_to.user_id if reply_to else None)
+
     is_mention = frontend_is_mention if reply_to else False
 
     message = CommunityMessage(
@@ -26483,12 +27067,10 @@ def comm_message():
         user_id=current_user.id,
         content=content,
         reply_to_id=reply_to.id if reply_to else None,
-        is_mention=is_mention, 
+        is_mention=is_mention,
         created_at=now
     )
     db.session.add(message)
-
-
 
     if channel and channel.slowmode_seconds >= 1:
         cooldown_end = now + timedelta(seconds=channel.slowmode_seconds)
@@ -26506,25 +27088,32 @@ def comm_message():
             state.cooldown_ends_at = cooldown_end
 
     db.session.commit()
+
     if files:
         handle_message_attachments(
             files=files,
             message_id=message.id,
             community_id=community_id,
             channel_id=channel.id if channel else None,
-            ticket_id=ticket.id if ticket else None
+            ticket_id=ticket.id if ticket else None,
+            client_dims=client_dims
         )
         db.session.commit()
+
     attachments = (
         db.session.query(MessageAttachment)
         .filter_by(message_id=message.id)
         .all()
     )
+
+    link_previews = build_link_previews([content])[0]
+
     notified_user_ids = set()
+    mentioned_ids = set()          # 👈 NEW: people who get a red badge
+
     cooldown_ends_at = None
     if channel and channel.slowmode_seconds >= 1:
         cooldown_ends_at = state.cooldown_ends_at.isoformat()
-
 
     members = (
         db.session.query(CommunityUserRole)
@@ -26542,16 +27131,16 @@ def comm_message():
     for sub in subs:
         subs_map.setdefault(sub.user_id, []).append(sub)
 
-    print("🧪 DEBUG subs_map:", {k: len(v) for k, v in subs_map.items()})
-
-
-
-
-
+    # ---------------- REPLY NOTIFICATION ----------------
     if channel and reply_to:
         replied_user_id = reply_to.user_id
 
         if replied_user_id != current_user.id:
+
+            # 👈 NEW: a reply with the mention toggle ON counts as a mention badge
+            if is_mention:
+                mentioned_ids.add(replied_user_id)
+
             level = resolve_notification_level(
                 replied_user_id,
                 community_id,
@@ -26561,30 +27150,17 @@ def comm_message():
 
             send_reply_notification = False
 
-            # ❌ HARD BLOCK
             if level == "none":
                 send_reply_notification = False
-
-            # ✅ ALL → always notify on reply
             elif level == "all":
                 send_reply_notification = True
-
-            # ✅ MENTIONS → only if explicitly mentioned
             elif level == "mentions":
                 matched_users = db.session.query(Users).filter(
                     db.func.lower(Users.username).in_(mentions)
                 ).all()
-
-                print("👀 mention matched users:", [u.username for u in matched_users])
-                if any(
-                    replied_user_id == u.id
-                    for u in db.session.query(Users)
-                    .filter(db.func.lower(Users.username).in_(mentions))
-                    .all()
-                ):
+                if any(replied_user_id == u.id for u in matched_users):
                     send_reply_notification = True
-            print("📣 send_reply_notification:", send_reply_notification)
-            print("📣 mentions considered:", mentions)
+
             if send_reply_notification:
                 notified_user_ids.add(replied_user_id)
 
@@ -26592,19 +27168,15 @@ def comm_message():
 
                 if channel.category:
                     target_url = (
-                        f"{base_url}/chat/"
-                        f"{community.slug}/"
-                        f"{channel.category.uuid}/"
-                        f"{channel.uuid}/"
-                        f"{message.uuid}"
+                        f"{base_url}/chat/{community.slug}/"
+                        f"{channel.category.uuid}/{channel.uuid}/{message.uuid}"
                     )
                 else:
                     target_url = (
-                        f"{base_url}/chat/"
-                        f"{community.slug}/"
-                        f"{channel.uuid}/"
-                        f"{message.uuid}"
+                        f"{base_url}/chat/{community.slug}/"
+                        f"{channel.uuid}/{message.uuid}"
                     )
+
                 user_subs = subs_map.get(replied_user_id, [])
 
                 if user_subs:
@@ -26622,12 +27194,7 @@ def comm_message():
                         }
                     )
 
-
-
-
-
-
-
+    # ---------------- @MENTIONS ----------------
     if channel and mentions:
         mention_names = {
             m.strip().lower()
@@ -26646,9 +27213,8 @@ def comm_message():
             )
 
             for user in mentioned_users:
-                print(f"\n📌 Mention → {user.username} (ID: {user.id})")
                 if user.id == current_user.id:
-                    continue  # ❌ self mention
+                    continue
 
                 member = CommunityUserRole.query.filter_by(
                     user_id=user.id,
@@ -26657,7 +27223,9 @@ def comm_message():
                 ).first()
 
                 if not member:
-                    continue  # ❌ not in community
+                    continue
+
+                mentioned_ids.add(user.id)      # 👈 NEW
 
                 level = resolve_notification_level(
                     user.id,
@@ -26666,7 +27234,6 @@ def comm_message():
                     channel.id
                 )
 
-                # ❌ mentions blocked
                 if level not in ("mentions", "all"):
                     continue
 
@@ -26674,23 +27241,18 @@ def comm_message():
 
                 if channel.category:
                     target_url = (
-                        f"{base_url}/chat/"
-                        f"{community.slug}/"
-                        f"{channel.category.uuid}/"
-                        f"{channel.uuid}/"
-                        f"{message.uuid}"
+                        f"{base_url}/chat/{community.slug}/"
+                        f"{channel.category.uuid}/{channel.uuid}/{message.uuid}"
                     )
                 else:
                     target_url = (
-                        f"{base_url}/chat/"
-                        f"{community.slug}/"
-                        f"{channel.uuid}/"
-                        f"{message.uuid}"
+                        f"{base_url}/chat/{community.slug}/"
+                        f"{channel.uuid}/{message.uuid}"
                     )
+
                 user_subs = subs_map.get(user.id, [])
                 if user_subs:
                     send_push_notification_async(
-
                         subs=user_subs,
                         title=f"{community.name} • Mention in #{channel.name}",
                         body=content,
@@ -26716,17 +27278,13 @@ def comm_message():
 
                 notified_user_ids.add(user.id)
 
-
-
+    # ---------------- BROADCAST PUSH (level = all) ----------------
     if channel:
         for member in members:
             user_id = member.user_id
 
-            # ❌ skip sender
             if user_id == current_user.id:
                 continue
-
-            # ❌ skip users already notified
             if user_id in notified_user_ids:
                 continue
 
@@ -26737,11 +27295,9 @@ def comm_message():
                 channel.id
             )
 
-            # only ALL receives broadcast
             if level != "all":
                 continue
 
-            # 🔥 get user's subscriptions (NO DB QUERY HERE)
             user_subs = subs_map.get(user_id, [])
             if not user_subs:
                 continue
@@ -26750,25 +27306,19 @@ def comm_message():
 
             if channel.category:
                 target_url = (
-                    f"{base_url}/chat/"
-                    f"{community.slug}/"
-                    f"{channel.category.uuid}/"
-                    f"{channel.uuid}/"
-                    f"{message.uuid}"
+                    f"{base_url}/chat/{community.slug}/"
+                    f"{channel.category.uuid}/{channel.uuid}/{message.uuid}"
                 )
             else:
                 target_url = (
-                    f"{base_url}/chat/"
-                    f"{community.slug}/"
-                    f"{channel.uuid}/"
-                    f"{message.uuid}"
+                    f"{base_url}/chat/{community.slug}/"
+                    f"{channel.uuid}/{message.uuid}"
                 )
 
-            # 🔥 pass subs instead of user_id
             send_push_notification_async(
                 subs=user_subs,
                 title=f"{community.name} • New message in #{channel.name}",
-                body = content if content else "📎 Sent an attachment",
+                body=content if content else "📎 Sent an attachment",
                 data={
                     "url": target_url,
                     "community_slug": community.slug,
@@ -26776,14 +27326,26 @@ def comm_message():
                     "category_uuid": channel.category.uuid if channel.category else None,
                     "type": "message",
                     "message_uuid": message.uuid,
-                    "message_kind": "audio"
+                    "message_kind": "text"
                 }
             )
 
             notified_user_ids.add(user_id)
-  
 
-    room = f"community_{community_id}"
+    # ---------------- 👈 NEW: SAVE MENTION ROWS ----------------
+    if channel and mentioned_ids:
+        try:
+            db.session.add_all([
+                MessageMention(
+                    message_id=message.id,
+                    user_id=uid,
+                    channel_id=channel.id
+                )
+                for uid in mentioned_ids
+            ])
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
 
     author = build_author_payload(
         user=current_user,
@@ -26792,14 +27354,13 @@ def comm_message():
         is_creator=is_creator
     )
 
+    reply_preview = None
+    if reply_to:
+        reply_preview = build_reply_previews([reply_to.id], community).get(reply_to.id)
 
     target_link = build_message_link(
-        community=community,
-        channel=channel,
-        ticket=ticket,
-        message=message
+        community=community, channel=channel, ticket=ticket, message=message
     )
-
 
     payload = {
         "uuid": message.uuid,
@@ -26811,8 +27372,9 @@ def comm_message():
         "content": message.content,
         "sender_name": current_user.username,
         "created_at": message.created_at.isoformat(),
-        "link": target_link,  
+        "link": target_link,
         "reply_to": reply_to.uuid if reply_to else None,
+        "reply_preview": reply_preview,
         "is_mention": is_mention,
         "client_id": client_id,
 
@@ -26821,36 +27383,19 @@ def comm_message():
         "reactions": [],
         "files": [serialize_attachment(a) for a in attachments],
         "audio": None,
+        "link_previews": link_previews,
+
+        "mentions": list(mentioned_ids),     
 
         "is_sender": True
     }
 
     if channel:
-        # 🌍 PUBLIC CHANNEL MESSAGE
-        socketio.emit(
-            "community_notification",
-            payload,
-            room=f"community_{community_id}"
-        )
+        socketio.emit("community_notification", payload, room=f"community_{community_id}")
 
     elif ticket:
-        # 🎫 TICKET MESSAGE (PRIVATE)
-
-        # staff
-        socketio.emit(
-            "community_notification",
-            payload,
-            room=f"community_staff_{community_id}"
-        )
-
-        # owner
-        socketio.emit(
-            "community_notification",
-            payload,
-            room=f"user_{ticket.user_id}"
-        )
-    print("\n✅ FINAL notified_user_ids:", notified_user_ids)
-    print("====== END DEBUG ======\n")
+        socketio.emit("community_notification", payload, room=f"community_staff_{community_id}")
+        socketio.emit("community_notification", payload, room=f"user_{ticket.user_id}")
 
     return jsonify({
         "ok": True,
@@ -26862,10 +27407,9 @@ def comm_message():
             "user_id": current_user.id,
             "content": message.content,
             "created_at": message.created_at.isoformat(),
-
-
-            "sender_role": sender_role,      
-            "is_creator": is_creator      
+            "link_previews": link_previews,
+            "sender_role": sender_role,
+            "is_creator": is_creator
         },
         "cooldown_ends_at": cooldown_ends_at
     }), 201
@@ -26891,9 +27435,77 @@ def can_access_channel(user_role, channel):
         return True  # fully public
 
     return user_role in effective_roles
+ 
+_typing_last = {}  
 
+@socketio.on("typing")
+def on_typing(data):
+    if not current_user.is_authenticated:
+        return
 
+    try:
+        community_id = int(data.get("community_id"))
+    except (TypeError, ValueError):
+        return
 
+    channel_uuid = normalize_uuid(data.get("channel_uuid"))
+    ticket_uuid = normalize_uuid(data.get("ticket_uuid"))
+    is_typing = bool(data.get("is_typing", True))
+
+    if bool(channel_uuid) == bool(ticket_uuid):  # need exactly one
+        return
+
+    target = channel_uuid or ticket_uuid
+
+    # light rate limit (only throttle "start" events, always let "stop" through)
+    now = time.time()
+    key = (current_user.id, target)
+    if is_typing and now - _typing_last.get(key, 0) < 1.5:
+        return
+    _typing_last[key] = now
+
+    member = CommunityUserRole.query.filter_by(
+        user_id=current_user.id, community_id=community_id, banned=False
+    ).first()
+    if not member:
+        return
+
+    payload = {
+        "community_id": community_id,
+        "channel_uuid": channel_uuid,
+        "ticket_uuid": ticket_uuid,
+        "user_id": current_user.id,
+        "username": current_user.username,
+        "is_typing": is_typing,
+    }
+
+    if channel_uuid:
+        channel = CommunityChannel.query.filter_by(
+            uuid=channel_uuid, community_id=community_id
+        ).first()
+        if not channel:
+            return
+        if not ensure_channel_chat_permission(current_user.id, community_id, channel):
+            return
+
+        socketio.emit("typing_update", payload,
+                      room=f"community_{community_id}", skip_sid=request.sid)
+
+    else:
+        ticket = CommunityTicket.query.filter_by(
+            uuid=ticket_uuid, community_id=community_id
+        ).first()
+        if not ticket:
+            return
+
+        is_staff = member.role in ("admin", "editor")
+        if not is_staff and ticket.user_id != current_user.id:
+            return
+
+        socketio.emit("typing_update", payload,
+                      room=f"community_staff_{community_id}", skip_sid=request.sid)
+        socketio.emit("typing_update", payload,
+                      room=f"user_{ticket.user_id}", skip_sid=request.sid)
 
 
 @app.route("/api/pin-message", methods=["POST"])
@@ -27039,15 +27651,37 @@ def unpin_message():
 
 
 
-@app.route("/api/community/mentionables", methods=["GET"])
+DEBUG_MENTION_SEARCH = True
+
+def _escape_like(s: str) -> str:
+    # "_" is a LIKE wildcard and is allowed in usernames, so escape it
+    return s.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
+@app.route("/api/community/mentionables/search", methods=["GET"])
 @login_required
-@csrf.exempt
-def get_community_mentionables():
+def search_community_mentionables():
+    t0 = time.perf_counter()
+
     community_id = request.args.get("community_id", type=int)
+    q = (request.args.get("q") or "").strip().lower()
+    limit = min(request.args.get("limit", 25, type=int), 50)
+
     if not community_id:
         return jsonify({"error": "missing_community_id"}), 400
 
-    users = (
+    if q and not re.fullmatch(r"[a-z0-9_.]{1,64}", q):
+        return jsonify({"users": [], "has_more": False})
+
+    is_member = db.session.query(CommunityUserRole.id).filter(
+        CommunityUserRole.user_id == current_user.id,
+        CommunityUserRole.community_id == community_id,
+        CommunityUserRole.banned.is_(False),
+    ).first()
+    if not is_member:
+        return jsonify({"error": "forbidden"}), 403
+
+    query = (
         db.session.query(
             Users.id,
             Users.username,
@@ -27060,31 +27694,41 @@ def get_community_mentionables():
             and_(
                 CommunityUserRole.user_id == Users.id,
                 CommunityUserRole.community_id == community_id,
-                CommunityUserRole.banned.is_(False)
-            )
+                CommunityUserRole.banned.is_(False),
+            ),
         )
-        # 🔥 join extra role definition
         .outerjoin(
             CommunityExtraRole,
             and_(
                 CommunityExtraRole.community_id == community_id,
-                CommunityExtraRole.name == CommunityUserRole.role
-            )
+                CommunityExtraRole.name == CommunityUserRole.role,
+            ),
         )
-        # 🔥 FIXED: match either core role OR extra role
         .outerjoin(
             CommunityRoleStyle,
             and_(
                 CommunityRoleStyle.community_id == community_id,
                 or_(
                     CommunityRoleStyle.role_key == CommunityUserRole.role,
-                    CommunityRoleStyle.extra_role_id == CommunityExtraRole.id
-                )
-            )
+                    CommunityRoleStyle.extra_role_id == CommunityExtraRole.id,
+                ),
+            ),
         )
-        .order_by(Users.username.asc())
-        .all()
     )
+
+    if q:
+        query = query.filter(
+            func.lower(Users.username).like(_escape_like(q) + "%", escape="\\")
+        )
+
+    rows = query.order_by(Users.username.asc()).limit(limit + 1).all()
+
+    has_more = len(rows) > limit
+    rows = rows[:limit]
+
+    if DEBUG_MENTION_SEARCH:
+        print(f"[mention_search] q={q!r} -> {len(rows)} rows, has_more={has_more} "
+              f"({(time.perf_counter() - t0) * 1000:.1f} ms)", flush=True)
 
     return jsonify({
         "users": [
@@ -27096,15 +27740,13 @@ def get_community_mentionables():
                     if u.profile_pic
                     else "https://i.pravatar.cc/100?img=3"
                 ),
-                # 🔥 THIS IS THE KEY
                 "user_color": u.role_color or "#ff0481",
                 "role": u.role,
             }
-            for u in users
-        ]
+            for u in rows
+        ],
+        "has_more": has_more,
     })
-
-
 
 
 
@@ -27144,6 +27786,10 @@ def create_channel():
 
     next_position = (last_position or 0) + 1
 
+    locked = chat_locked(community_id)
+    if locked:
+        return locked
+    
     channel = CommunityChannel(
         name=name,
         community_id=community_id,
@@ -27225,7 +27871,9 @@ def create_ticket():
         )
         .first()
     )
-
+    locked = chat_locked(community_id)
+    if locked:
+        return locked
     if existing:
         return jsonify({
             "error": "ticket_already_open",
@@ -27309,7 +27957,10 @@ def get_my_tickets():
         .order_by(CommunityTicket.created_at.desc())
         .all()
     )
-
+    locked = chat_locked(community_id)
+    if locked:
+        return locked
+    
     def serialize(t):
         return {
             "id": t.id,
@@ -27358,7 +28009,11 @@ def get_admin_tickets():
 
     if not role or role.role not in ("admin", "editor"):
         return jsonify({"error": "permission_denied"}), 403
-
+    
+    locked = chat_locked(community_id)
+    if locked:
+        return locked
+    
     # -------------------------------
     # 📦 FETCH ALL COMMUNITY TICKETS
     # -------------------------------
@@ -27442,6 +28097,9 @@ def close_ticket():
     if ticket.status == "closed":
         return jsonify({"error": "ticket_already_closed"}), 400
 
+    locked = chat_locked(community_id)
+    if locked:
+        return locked
     # -------------------------------
     # 🔒 PERMISSION CHECK
     # -------------------------------
@@ -27613,14 +28271,232 @@ def resolve_avatar(profile_pic):
     if profile_pic.startswith("http://") or profile_pic.startswith("https://"):
         return profile_pic
 
-    # assume uploads path (served by nginx / flask / CDN)
-    return f"/{profile_pic.lstrip('/')}"
+    return f"/{profile_pic.lstrip('/')}" 
 
 
+TOKEN_NAME_RE = re.compile(r"^[A-Za-z0-9_.]{1,64}$")
+MAX_TOKENS = 200
+
+def _clean_names(values):
+    if not isinstance(values, list):
+        return []
+    out = set()
+    for v in values[:MAX_TOKENS]:
+        if isinstance(v, str) and TOKEN_NAME_RE.match(v):
+            out.add(v.lower())
+    return list(out)
 
 
+@app.route("/api/community/resolve_tokens", methods=["POST"])
+@login_required
+def resolve_tokens():
+    data = request.get_json(silent=True) or {}
+    community_id = data.get("community_id")
+    if not isinstance(community_id, int):
+        return jsonify({"error": "missing_community_id"}), 400
+
+    # only members of the community can resolve names
+    is_member = db.session.query(CommunityUserRole.id).filter(
+        CommunityUserRole.user_id == current_user.id,
+        CommunityUserRole.community_id == community_id,
+        CommunityUserRole.banned.is_(False),
+    ).first()
+    if not is_member:
+        return jsonify({"error": "forbidden"}), 403
+
+    mention_names = _clean_names(data.get("mentions"))
+    emoji_names = _clean_names(data.get("emojis"))
+
+    mentions_out = {}
+    if mention_names:
+        rows = (
+            db.session.query(
+                Users.id,
+                Users.username,
+                CommunityUserRole.role.label("role"),
+                CommunityRoleStyle.color.label("role_color"),
+            )
+            .join(
+                CommunityUserRole,
+                and_(
+                    CommunityUserRole.user_id == Users.id,
+                    CommunityUserRole.community_id == community_id,
+                    CommunityUserRole.banned.is_(False),
+                ),
+            )
+            .outerjoin(
+                CommunityExtraRole,
+                and_(
+                    CommunityExtraRole.community_id == community_id,
+                    CommunityExtraRole.name == CommunityUserRole.role,
+                ),
+            )
+            .outerjoin(
+                CommunityRoleStyle,
+                and_(
+                    CommunityRoleStyle.community_id == community_id,
+                    or_(
+                        CommunityRoleStyle.role_key == CommunityUserRole.role,
+                        CommunityRoleStyle.extra_role_id == CommunityExtraRole.id,
+                    ),
+                ),
+            )
+            .filter(func.lower(Users.username).in_(mention_names))
+            .all()
+        )
+        for u in rows:
+            mentions_out[u.username.lower()] = {
+                "id": u.id,
+                "username": u.username,
+                "color": u.role_color or "#ff0481",
+                "role": u.role,
+            }
+
+    emojis_out = {}
+    if emoji_names:
+        rows = (
+            CommunityEmoji.query
+            .filter(
+                CommunityEmoji.community_id == community_id,
+                func.lower(CommunityEmoji.name).in_(emoji_names),
+            )
+            .all()
+        )
+        for e in rows:
+            emojis_out[e.name.lower()] = {
+                "name": e.name,
+                "image_url": e.image_path,
+            }
+
+    return jsonify({"mentions": mentions_out, "emojis": emojis_out})
+
+REPLY_PREVIEW_MAX = 140
+DEFAULT_COLOR = "#4285f4"
 
 
+def load_role_context(community_id):
+    """role_map (user_id -> role) and role_color_map (role -> color)."""
+    role_map = {
+        r.user_id: r.role
+        for r in db.session.query(
+            CommunityUserRole.user_id, CommunityUserRole.role
+        ).filter_by(community_id=community_id)
+    }
+
+    styles = CommunityRoleStyle.query.filter_by(community_id=community_id).all()
+    extra_roles = {
+        r.id: r.name
+        for r in CommunityExtraRole.query.filter_by(community_id=community_id).all()
+    }
+
+    role_color_map = {}
+    for s in styles:
+        if s.role_key:
+            role_color_map[s.role_key] = s.color
+        elif s.extra_role_id:
+            name = extra_roles.get(s.extra_role_id)
+            if name:
+                role_color_map[name] = s.color
+
+    return role_map, role_color_map
+
+
+def build_reply_previews(reply_ids, community):
+    """
+    {replied_message_id: preview_dict}
+    Colour/role come from build_author_payload, the same source the
+    live socket messages use, so the reply header always matches.
+    """
+    reply_ids = {i for i in reply_ids if i}
+    if not reply_ids:
+        return {}
+
+    community_id = community.id
+    creator_id = community.created_by_id
+    bot_user_id = get_bot_user().id
+
+    replied = CommunityMessage.query.filter(
+        CommunityMessage.id.in_(reply_ids)
+    ).all()
+
+    users = {
+        u.id: u
+        for u in Users.query.filter(
+            Users.id.in_({r.user_id for r in replied})
+        ).all()
+    }
+
+    role_map = {
+        r.user_id: r.role
+        for r in db.session.query(
+            CommunityUserRole.user_id, CommunityUserRole.role
+        ).filter(
+            CommunityUserRole.community_id == community_id,
+            CommunityUserRole.user_id.in_(list(users.keys()) or [0]),
+        )
+    }
+
+    with_files = {
+        row[0]
+        for row in db.session.query(MessageAttachment.message_id)
+        .filter(MessageAttachment.message_id.in_(reply_ids))
+        .distinct()
+        .all()
+    }
+    with_audio = {
+        row[0]
+        for row in db.session.query(MessageAudio.message_id)
+        .filter(MessageAudio.message_id.in_(reply_ids))
+        .all()
+    }
+
+    # one author payload per unique user (not per message)
+    author_cache = {}
+
+    def author_info(user):
+        if user.id not in author_cache:
+            payload = flatten_author(
+                build_author_payload(
+                    user=user,
+                    community_id=community_id,
+                    sender_role=role_map.get(user.id, "member"),
+                    is_creator=(user.id == creator_id),
+                )
+            )
+            author_cache[user.id] = payload
+        return author_cache[user.id]
+
+    previews = {}
+    for r in replied:
+        if r.is_deleted:
+            previews[r.id] = {"uuid": r.uuid, "is_deleted": True}
+            continue
+
+        author = users.get(r.user_id)
+        text = (r.content or "").strip()
+
+        if len(text) > REPLY_PREVIEW_MAX:
+            text = text[:REPLY_PREVIEW_MAX].rstrip() + "…"
+        if not text:
+            if r.id in with_audio:
+                text = "🎙️ Voice message"
+            elif r.id in with_files:
+                text = "📎 Attachment"
+
+        info = author_info(author) if author else {}
+
+        previews[r.id] = {
+            "uuid": r.uuid,
+            "is_deleted": False,
+            "user_id": r.user_id,
+            "username": author.username if author else "User",
+            "avatar": resolve_avatar(author.profile_pic) if author else None,
+            "user_color": info.get("user_color") or DEFAULT_COLOR,
+            "content": text,
+            "is_bot": r.user_id == bot_user_id,
+        }
+
+    return previews
 
 @app.route("/api/messages/fetch", methods=["POST"])
 @login_required
@@ -27631,220 +28507,156 @@ def get_comm_messages():
         return jsonify({"error": "Invalid JSON"}), 400
 
     community_id = data.get("community_id")
-
     channel_uuid = normalize_uuid(data.get("channel_uuid"))
     ticket_uuid = normalize_uuid(data.get("ticket_uuid"))
     after = data.get("after")
     before = data.get("before")
-    limit = int(data.get("limit", 10))
+
+    try:
+        limit = max(1, min(int(data.get("limit", 10)), 50))
+    except (TypeError, ValueError):
+        limit = 10
 
     if not community_id:
-        print(community_id)
         return jsonify({"error": "community_id_required"}), 400
-
     if not channel_uuid and not ticket_uuid:
-        print("Missing data")
         return jsonify({"error": "channel_or_ticket_required"}), 400
-
     if channel_uuid and ticket_uuid:
-        print("Only one context")
         return jsonify({"error": "only_one_context_allowed"}), 400
 
     community = db.session.get(Community, community_id)
-
     if not community:
-        print("community not found")
         return jsonify({"error": "Community not found"}), 404
-
-    creator_id = community.created_by_id
-
 
     channel = None
     ticket = None
 
     if channel_uuid:
         channel = CommunityChannel.query.filter_by(
-            uuid=channel_uuid,
-            community_id=community_id
+            uuid=channel_uuid, community_id=community_id
         ).first()
-
         if not channel:
-            print("channel not found")
             return jsonify({"error": "Channel not found"}), 404
-
-    if ticket_uuid:
+    else:
         ticket = CommunityTicket.query.filter_by(
-            uuid=ticket_uuid,
-            community_id=community_id
+            uuid=ticket_uuid, community_id=community_id
         ).first()
-
         if not ticket:
-            print("ticket not found")
             return jsonify({"error": "Ticket not found"}), 404
 
     query = CommunityMessage.query.filter_by(is_deleted=False)
+    query = query.filter_by(channel_id=channel.id) if channel else query.filter_by(ticket_id=ticket.id)
 
-    if channel:
-        query = query.filter_by(channel_id=channel.id)
-
-    if ticket:
-        query = query.filter_by(ticket_id=ticket.id)
     has_more = True
-
-    bot_user = get_bot_user()
 
     if after:
         try:
-            after_dt = datetime.fromisoformat(after)
-
-            messages = (
-                query
-                .filter(CommunityMessage.created_at > after_dt)
-                .order_by(CommunityMessage.created_at.asc())
-                .all()
-            )
-
-        except Exception:
+            after_dt = _parse_cursor(after)
+        except ValueError:
             return jsonify({"error": "invalid_after"}), 400
-        
-    elif before:
-         
-        
-        before_dt = datetime.fromisoformat(before)
 
         messages = (
-            query
-            .filter(CommunityMessage.created_at < before_dt)
+            query.filter(CommunityMessage.created_at > after_dt)
+            .order_by(CommunityMessage.created_at.asc())
+            .all()
+        )
+
+    elif before:
+        try:
+            before_dt = _parse_cursor(before)
+        except ValueError:
+            return jsonify({"error": "invalid_before"}), 400
+
+        messages = (
+            query.filter(CommunityMessage.created_at < before_dt)
             .order_by(CommunityMessage.created_at.desc())
             .limit(limit)
             .all()
         )
         has_more = len(messages) == limit
-
         messages = list(reversed(messages))
 
     else:
         messages = (
-            query
-            .order_by(CommunityMessage.created_at.desc())
+            query.order_by(CommunityMessage.created_at.desc())
             .limit(25)
             .all()
         )
-
         messages = list(reversed(messages))
 
-    pinned_rows = []
-
+    pins_payload = []
     if channel:
         pinned_rows = (
             db.session.query(PinnedMessage)
             .join(CommunityMessage)
-            .filter(
-                PinnedMessage.channel_id == channel.id
-            )
+            .filter(PinnedMessage.channel_id == channel.id)
             .order_by(PinnedMessage.pinned_at.asc())
             .all()
         )
+        for p in pinned_rows:
+            pins_payload.append({
+                "message_uuid": p.message.uuid,
+                "channel_uuid": channel_uuid,
+                "pinned_at": p.pinned_at.isoformat(),
+                "username": p.pinned_by.username if p.pinned_by else "Unknown",
+            })
+
+    return jsonify({
+        "ok": True,
+        "messages": serialize_messages(messages, community),
+        "pins": pins_payload,
+        "has_more": has_more,
+    }), 200
+ 
+
+SEARCH_PAGE_SIZE = 20
 
 
-    role_map = {
-        r.user_id: r.role
-        for r in db.session.query(
-            CommunityUserRole.user_id,
-            CommunityUserRole.role
-        ).filter_by(community_id=community_id)
-    }
+def _escape_like(s: str) -> str:
+    return s.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
-    # 🔥 LOAD ROLE COLORS FOR COMMUNITY
-    DEFAULT_COLOR = "#5865f2"
 
-    # 🔥 load all styles
-    styles = CommunityRoleStyle.query.filter_by(
-        community_id=community_id
-    ).all()
+def serialize_messages(messages, community):
+    if not messages:
+        return []
 
-    # 🔥 load extra roles
-    extra_roles = {
-        r.id: r.name
-        for r in CommunityExtraRole.query.filter_by(
-            community_id=community_id
-        ).all()
-    }
+    community_id = community.id
+    creator_id = community.created_by_id
+    bot_user = get_bot_user()
 
-    # 🔥 build unified role → color map
-    role_color_map = {}
+    role_map, role_color_map = load_role_context(community_id)
 
-    for s in styles:
-        if s.role_key:
-            # core role
-            role_color_map[s.role_key] = s.color
-        elif s.extra_role_id:
-            # extra role → resolve name
-            role_name = extra_roles.get(s.extra_role_id)
-            if role_name:
-                role_color_map[role_name] = s.color
+    msg_ids = [m.id for m in messages]
+    reaction_rows = (
+        db.session.query(
+            MessageReaction.message_id,
+            MessageReaction.emoji,
+            func.count(MessageReaction.id),
+            func.sum(case((MessageReaction.user_id == current_user.id, 1), else_=0)),
+        )
+        .filter(MessageReaction.message_id.in_(msg_ids))
+        .group_by(MessageReaction.message_id, MessageReaction.emoji)
+        .all()
+    )
+    reactions_by_msg = defaultdict(list)
+    for mid, emoji, count, me in reaction_rows:
+        reactions_by_msg[mid].append(
+            {"emoji": emoji, "count": count, "reacted_by_me": bool(me)}
+        )
 
-    
+    previews_per_message = build_link_previews([m.content for m in messages])
+
+    reply_previews = build_reply_previews(
+        {m.reply_to_id for m in messages if m.reply_to_id},
+        community
+    )
 
     payload = []
-    pins_payload = []
-
-
-    for m in messages:
-        audio_payload = None
-        files = [
-            {
-                "url": a.file_url,
-                "type": a.file_type,
-                "size": a.file_size,
-                
-            }
-            for a in m.attachments
-        ]
-
+    for idx, m in enumerate(messages):
         sender_role = role_map.get(m.user_id, "member")
+        is_bot_msg = m.user_id == bot_user.id
 
-        user_color = role_color_map.get(
-            sender_role,
-            DEFAULT_COLOR
-        )
-
-        reaction_rows = (
-            db.session.query(
-                MessageReaction.emoji,
-                func.count(MessageReaction.id).label("count"),
-                func.sum(
-                    case(
-                        (MessageReaction.user_id == current_user.id, 1),
-                        else_=0
-                    )
-                ).label("me")
-            )
-            .filter(MessageReaction.message_id == m.id)
-            .group_by(MessageReaction.emoji)
-            .all()
-        )
-
-
-        reactions = [
-            {
-                "emoji": emoji,
-                "count": count,
-                "reacted_by_me": bool(me)
-            }
-            for emoji, count, me in reaction_rows
-        ]
-
-        files = [
-            {
-                "url": a.file_url,
-                "type": a.file_type,
-                "size": a.file_size,
-                "name": a.original_name 
-            }
-            for a in m.attachments
-        ]
-
+        audio_payload = None
         if m.audio:
             audio_payload = {
                 "url": m.audio.audio_url,
@@ -27852,49 +28664,300 @@ def get_comm_messages():
                 "wave_height": m.audio.wave_height,
                 "duration_sec": m.audio.duration_sec,
                 "audio_size": m.audio.audio_size,
-                "created_at": m.audio.created_at.isoformat()
+                "created_at": m.audio.created_at.isoformat(),
             }
+
+        rp = reply_previews.get(m.reply_to_id) if m.reply_to_id else None
 
         payload.append({
             "uuid": m.uuid,
             "user_id": m.user_id,
             "is_sender": m.user_id == current_user.id,
             "is_creator": m.user_id == creator_id,
-            "sender_role": role_map.get(m.user_id, "member"),
-            "is_mention": m.is_mention, 
+            "sender_role": sender_role,
+            "is_mention": m.is_mention,
             "username": m.user.username,
             "avatar": resolve_avatar(m.user.profile_pic),
             "is_deleted": m.is_deleted,
-            "user_color": user_color,
+            "user_color": role_color_map.get(sender_role, DEFAULT_COLOR),
             "content": m.content,
             "is_edited": m.is_edited,
             "created_at": m.created_at.isoformat(),
-            "reply_to": m.reply_to.uuid if m.reply_to else None,
-            "is_bot": m.user_id == bot_user.id,  
+            "reply_to": rp["uuid"] if rp else None,
+            "reply_preview": rp,
+            "is_bot": is_bot_msg,
             "forwarded_from": m.forwarded_from.uuid if m.forwarded_from else None,
-            "reactions": reactions,
-            "files": files,
-            "audio": audio_payload 
+            "reactions": reactions_by_msg.get(m.id, []),
+            "files": [
+                {
+                    "url": a.file_url,
+                    "type": a.file_type,
+                    "size": a.file_size,
+                    "name": a.original_name,
+                    "width": a.width,
+                    "height": a.height,
+                }
+                for a in m.attachments
+            ],
+            "audio": audio_payload,
+            "link_previews": [] if is_bot_msg else previews_per_message[idx],
         })
 
+    return payload
 
-    for p in pinned_rows:
-        pins_payload.append({
-            "message_uuid": p.message.uuid,
-            "channel_uuid": channel_uuid,
-            "pinned_at": p.pinned_at.isoformat(),
-            "username": p.pinned_by.username if p.pinned_by else "Unknown"
-        })
+@app.route("/api/messages/search", methods=["POST"])
+@login_required
+def search_comm_messages():
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({"error": "Invalid JSON"}), 400
 
+    community_id = data.get("community_id")
+    channel_uuid = normalize_uuid(data.get("channel_uuid"))
+    q = (data.get("q") or "").strip()[:200]
+    from_username = (data.get("from_user") or "").strip().lstrip("@")[:64]
+    before = data.get("before")
+
+    try:
+        limit = max(1, min(int(data.get("limit", SEARCH_PAGE_SIZE)), 30))
+    except (TypeError, ValueError):
+        limit = SEARCH_PAGE_SIZE
+
+    if not community_id:
+        return jsonify({"error": "community_id_required"}), 400
+    if not channel_uuid:
+        return jsonify({"error": "channel_required"}), 400
+    if not q and not from_username:
+        return jsonify({"error": "query_required"}), 400
+
+    community = db.session.get(Community, community_id)
+    if not community:
+        return jsonify({"error": "Community not found"}), 404
+
+    channel = CommunityChannel.query.filter_by(
+        uuid=channel_uuid, community_id=community_id
+    ).first()
+    if not channel:
+        return jsonify({"error": "Channel not found"}), 404
+
+    # TODO: plug in your real membership / private-channel permission check here.
+
+    query = CommunityMessage.query.filter_by(is_deleted=False, channel_id=channel.id)
+
+    if from_username:
+        # NOTE: model is `Users`, not `User`
+        author = Users.query.filter(
+            func.lower(Users.username) == from_username.lower()
+        ).first()
+        if not author:
+            return jsonify({
+                "ok": True, "messages": [], "has_more": False, "next_before": None
+            }), 200
+        query = query.filter(CommunityMessage.user_id == author.id)
+
+    if q:
+        query = query.filter(
+            CommunityMessage.content.ilike(f"%{_escape_like(q)}%", escape="\\")
+        )
+
+    if before:
+        try:
+            before_dt = datetime.fromisoformat(str(before).replace("Z", ""))
+        except ValueError:
+            return jsonify({"error": "invalid_before"}), 400
+        query = query.filter(CommunityMessage.created_at < before_dt)
+
+    rows = (
+        query.order_by(CommunityMessage.created_at.desc(), CommunityMessage.id.desc())
+        .limit(limit + 1)
+        .all()
+    )
+    has_more = len(rows) > limit
+    rows = rows[:limit]
 
     return jsonify({
         "ok": True,
-        "messages": payload,
-        "pins": pins_payload,
-        "has_more": has_more 
+        "messages": serialize_messages(rows, community),
+        "has_more": has_more,
+        "next_before": rows[-1].created_at.isoformat() if rows else None,
     }), 200
 
 
+# ------------------------------------------------------------------
+# Message context: jump to any message (search hit, reply preview,
+# message link) without reloading the page.
+#
+#   { around: <message uuid>, before_count, after_count }
+#       -> N older + the target + N newer
+#   { after: <iso>, limit }
+#       -> next page of newer messages (used while scrolling down
+#          from an old window back toward the present)
+#
+# Older pages keep using /api/messages/fetch with `before`.
+# ------------------------------------------------------------------
+CONTEXT_DEFAULT = 15
+CONTEXT_MAX = 50
+
+
+def _clamp_int(value, default, lo, hi):
+    try:
+        return max(lo, min(int(value), hi))
+    except (TypeError, ValueError):
+        return default
+
+
+def _parse_cursor(value):
+    return datetime.fromisoformat(str(value).replace("Z", ""))
+
+
+def _ctx_fail(status, error, **info):
+    """DEBUG: print why /api/messages/context rejected the request, then return it."""
+    print(f"[context] FAIL {status} {error} | {info}")
+    return jsonify({"error": error}), status
+
+
+@app.route("/api/messages/context", methods=["POST"])
+@login_required
+@csrf.exempt
+def get_message_context():
+    data = request.get_json(silent=True)
+    print(f"[context] ENTER raw_json={data!r} content_type={request.content_type!r}")
+
+    if not data:
+        return _ctx_fail(400, "Invalid JSON", content_type=request.content_type)
+
+    community_id = data.get("community_id")
+    raw_channel = data.get("channel_uuid")
+    raw_ticket = data.get("ticket_uuid")
+    raw_around = data.get("around")
+
+    channel_uuid = normalize_uuid(raw_channel)
+    ticket_uuid = normalize_uuid(raw_ticket)
+    around = normalize_uuid(raw_around)
+    after = data.get("after")
+
+    print(
+        "[context] PARSED "
+        f"community_id={community_id!r} "
+        f"channel raw={raw_channel!r} -> {channel_uuid!r} | "
+        f"ticket raw={raw_ticket!r} -> {ticket_uuid!r} | "
+        f"around raw={raw_around!r} -> {around!r} | "
+        f"after={after!r}"
+    )
+
+    if not community_id:
+        return _ctx_fail(400, "community_id_required")
+    if not channel_uuid and not ticket_uuid:
+        return _ctx_fail(
+            400, "channel_or_ticket_required",
+            raw_channel=raw_channel, raw_ticket=raw_ticket
+        )
+    if channel_uuid and ticket_uuid:
+        return _ctx_fail(
+            400, "only_one_context_allowed",
+            channel_uuid=channel_uuid, ticket_uuid=ticket_uuid
+        )
+    if not around and not after:
+        return _ctx_fail(
+            400, "around_or_after_required",
+            raw_around=raw_around, normalized_around=around
+        )
+
+    community = db.session.get(Community, community_id)
+    if not community:
+        return _ctx_fail(404, "Community not found", community_id=community_id)
+
+    query = CommunityMessage.query.filter_by(is_deleted=False)
+
+    if channel_uuid:
+        channel = CommunityChannel.query.filter_by(
+            uuid=channel_uuid, community_id=community_id
+        ).first()
+        if not channel:
+            return _ctx_fail(
+                404, "Channel not found",
+                channel_uuid=channel_uuid, community_id=community_id
+            )
+        query = query.filter_by(channel_id=channel.id)
+    else:
+        ticket = CommunityTicket.query.filter_by(
+            uuid=ticket_uuid, community_id=community_id
+        ).first()
+        if not ticket:
+            return _ctx_fail(
+                404, "Ticket not found",
+                ticket_uuid=ticket_uuid, community_id=community_id
+            )
+        query = query.filter_by(ticket_id=ticket.id)
+
+    # TODO: plug in your real membership / private-channel permission check here.
+
+    # ---- newer page ------------------------------------------------
+    if after and not around:
+        limit = _clamp_int(data.get("limit"), 20, 1, CONTEXT_MAX)
+        try:
+            after_dt = _parse_cursor(after)
+        except ValueError:
+            return _ctx_fail(400, "invalid_after", after=after)
+
+        rows = (
+            query.filter(CommunityMessage.created_at > after_dt)
+            .order_by(CommunityMessage.created_at.asc(), CommunityMessage.id.asc())
+            .limit(limit + 1)
+            .all()
+        )
+        has_more_after = len(rows) > limit
+        rows = rows[:limit]
+
+        print(f"[context] OK newer-page rows={len(rows)} has_more_after={has_more_after}")
+
+        return jsonify({
+            "ok": True,
+            "messages": serialize_messages(rows, community),
+            "has_more_after": has_more_after,
+        }), 200
+
+    # ---- window around a message -----------------------------------
+    before_count = _clamp_int(data.get("before_count"), CONTEXT_DEFAULT, 0, CONTEXT_MAX)
+    after_count = _clamp_int(data.get("after_count"), CONTEXT_DEFAULT, 0, CONTEXT_MAX)
+
+    target = query.filter(CommunityMessage.uuid == around).first()
+    if not target:
+        return _ctx_fail(404, "Message not found", around=around)
+
+    older = (
+        query.filter(CommunityMessage.created_at < target.created_at)
+        .order_by(CommunityMessage.created_at.desc(), CommunityMessage.id.desc())
+        .limit(before_count + 1)
+        .all()
+    )
+    has_more_before = len(older) > before_count
+    older = list(reversed(older[:before_count]))
+
+    newer = (
+        query.filter(CommunityMessage.created_at > target.created_at)
+        .order_by(CommunityMessage.created_at.asc(), CommunityMessage.id.asc())
+        .limit(after_count + 1)
+        .all()
+    )
+    has_more_after = len(newer) > after_count
+    newer = newer[:after_count]
+
+    rows = older + [target] + newer
+
+    print(
+        f"[context] OK window target={target.uuid} older={len(older)} "
+        f"newer={len(newer)} has_more_before={has_more_before} "
+        f"has_more_after={has_more_after}"
+    )
+
+    return jsonify({
+        "ok": True,
+        "messages": serialize_messages(rows, community),
+        "target_uuid": target.uuid,
+        "has_more_before": has_more_before,
+        "has_more_after": has_more_after,
+    }), 200
 
 @app.route("/api/channel/delete", methods=["POST"])
 @login_required
@@ -27915,6 +28978,10 @@ def delete_channel():
         community_id=community_id
     ).first()
 
+    locked = chat_locked(community_id)
+    if locked:
+        return locked
+    
     if not channel:
         return jsonify({"error": "Channel not found"}), 404
 
@@ -27991,7 +29058,9 @@ def get_reaction_users(message_uuid):
 @csrf.exempt
 def update_channel():
     data = request.json
-
+    locked = chat_locked(data.get("community_id"))
+    if locked:
+        return locked
     channel = CommunityChannel.query.filter_by(
         uuid=data["channel_uuid"],
         community_id=data["community_id"]
@@ -28129,14 +29198,13 @@ def react_to_message():
     channel_uuid = data.get("channel_uuid")
     ticket_uuid = data.get("ticket_uuid")
 
-    if not message_uuid or not emoji:
+    if not message_uuid or not emoji or not isinstance(emoji, str) or len(emoji) > 64:
         return jsonify({"error": "Invalid payload"}), 400
 
     message = CommunityMessage.query.filter_by(uuid=message_uuid).first()
     if not message:
         return jsonify({"error": "Message not found"}), 404
 
-    # 🔐 CONTEXT VALIDATION (FAST + SAFE)
     if message.channel_id:
         if not channel_uuid or not message.channel or message.channel.uuid != channel_uuid:
             return jsonify({"error": "Channel context mismatch"}), 400
@@ -28146,7 +29214,14 @@ def react_to_message():
     else:
         return jsonify({"error": "Message has no context"}), 400
 
-    # 🔁 TOGGLE REACTION
+    channel = message.channel
+    ticket = message.ticket
+
+    community_id = (
+        channel.community_id if channel
+        else ticket.community_id
+    )
+
     existing = MessageReaction.query.filter_by(
         message_id=message.id,
         user_id=current_user.id,
@@ -28157,6 +29232,20 @@ def react_to_message():
         db.session.delete(existing)
         action = "removed"
     else:
+        if emoji.startswith("custom_"):
+            raw_id = emoji[len("custom_"):]
+            if not raw_id.isdigit():
+                return jsonify({"error": "Invalid custom emoji"}), 400
+
+            custom = CommunityEmoji.query.filter_by(
+                id=int(raw_id),
+                community_id=community_id
+            ).first()
+            if not custom:
+                return jsonify({"error": "Unknown custom emoji"}), 400
+        elif not emoji.startswith("emoji_u"):
+            return jsonify({"error": "Invalid emoji"}), 400
+
         db.session.add(MessageReaction(
             message_id=message.id,
             user_id=current_user.id,
@@ -28166,25 +29255,14 @@ def react_to_message():
 
     db.session.commit()
 
-    # 🔢 AUTHORITATIVE COUNT
     total = (
         MessageReaction.query
         .filter_by(message_id=message.id, emoji=emoji)
         .count()
     )
 
-    # 🧠 CONTEXT RESOLUTION
-    channel = message.channel
-    ticket = message.ticket
-
-    community_id = (
-        channel.community_id if channel
-        else ticket.community_id
-    )
-
     room = f"community_{community_id}"
 
-    # 🔥 SOCKET EMIT (CHANNEL OR TICKET SAFE)
     socketio.emit(
         "message_reaction_update",
         {
@@ -28205,8 +29283,6 @@ def react_to_message():
         "action": action,
         "count": total
     }), 200
-
-
  
 
 
@@ -28253,23 +29329,91 @@ def get_user_color_for_community(user_id, community_id, role_key):
 
 
 
+COMMUNITY_PAGE_SIZE = 15
+
+
 @app.route("/api/my-communities", methods=["GET"])
 @login_required
 @csrf.exempt
 def get_my_communities():
+    try:
+        limit = max(1, min(int(request.args.get("limit", COMMUNITY_PAGE_SIZE)), 30))
+    except (TypeError, ValueError):
+        limit = COMMUNITY_PAGE_SIZE
 
-    # ---- MEMBER COUNT SUBQUERY ----
+    try:
+        offset = max(0, int(request.args.get("offset", 0)))
+    except (TypeError, ValueError):
+        offset = 0
+
+    include_id = request.args.get("include", type=int)
+
+    # ---------- 1. which communities are on this page ----------
+    page_rows = (
+        db.session.query(Community.id)
+        .join(CommunityUserRole, Community.id == CommunityUserRole.community_id)
+        .filter(
+            CommunityUserRole.user_id == current_user.id,
+            CommunityUserRole.banned.is_(False)
+        )
+        .order_by(Community.name.asc(), Community.id.asc())
+        .offset(offset)
+        .limit(limit + 1)
+        .all()
+    )
+
+    has_more = len(page_rows) > limit
+    ids = [r[0] for r in page_rows[:limit]]
+    next_offset = offset + len(ids)
+
+    if include_id and offset == 0 and include_id not in ids:
+        is_member = (
+            db.session.query(CommunityUserRole.id)
+            .filter(
+                CommunityUserRole.user_id == current_user.id,
+                CommunityUserRole.community_id == include_id,
+                CommunityUserRole.banned.is_(False)
+            )
+            .first()
+        )
+        if is_member:
+            ids.append(include_id)
+
+    me = None
+    if offset == 0:
+        me = {
+            "username": current_user.username,
+            "userid": current_user.id,
+            "avatar": current_user.profile_pic
+        }
+
+    if not ids:
+        return jsonify({
+            "me": me,
+            "communities": [],
+            "role_map": {},
+            "notification_map": {"community": {}, "category": {}, "channel": {}},
+            "unread_map": {},
+            "has_more": False,
+            "next_offset": next_offset
+        })
+
+    id_set = set(ids)
+
+    # ---------- 2. full data, only for those communities ----------
     member_count_subq = (
         db.session.query(
             CommunityUserRole.community_id.label("community_id"),
             func.count(CommunityUserRole.id).label("member_count")
         )
-        .filter(CommunityUserRole.banned.is_(False))
+        .filter(
+            CommunityUserRole.banned.is_(False),
+            CommunityUserRole.community_id.in_(ids)
+        )
         .group_by(CommunityUserRole.community_id)
         .subquery()
     )
 
-    # ---- MAIN QUERY ----
     rows = (
         db.session.query(
             Community,
@@ -28278,18 +29422,9 @@ def get_my_communities():
             CommunityChannel,
             CommunityUserRole.role
         )
-        .join(
-            CommunityUserRole,
-            Community.id == CommunityUserRole.community_id
-        )
-        .outerjoin(
-            member_count_subq,
-            Community.id == member_count_subq.c.community_id
-        )
-        .outerjoin(
-            CommunityCategory,
-            CommunityCategory.community_id == Community.id
-        )
+        .join(CommunityUserRole, Community.id == CommunityUserRole.community_id)
+        .outerjoin(member_count_subq, Community.id == member_count_subq.c.community_id)
+        .outerjoin(CommunityCategory, CommunityCategory.community_id == Community.id)
         .outerjoin(
             CommunityChannel,
             db.and_(
@@ -28298,25 +29433,42 @@ def get_my_communities():
             )
         )
         .filter(
+            Community.id.in_(ids),
             CommunityUserRole.user_id == current_user.id,
             CommunityUserRole.banned.is_(False)
         )
         .order_by(
             Community.name.asc(),
+            Community.id.asc(),
             CommunityCategory.position.asc().nullslast(),
             CommunityChannel.position.asc().nullslast()
         )
         .all()
     )
 
+    slow_states = {
+        s.channel_id: s
+        for s in (
+            db.session.query(ChannelSlowmodeState)
+            .join(CommunityChannel, ChannelSlowmodeState.channel_id == CommunityChannel.id)
+            .filter(
+                ChannelSlowmodeState.user_id == current_user.id,
+                CommunityChannel.community_id.in_(ids)
+            )
+            .all()
+        )
+    }
 
-    # ---- BUILD TREE ----
+    def cooldown_of(channel_id):
+        s = slow_states.get(channel_id)
+        return s.cooldown_ends_at.isoformat() if s else None
+
     communities_map = {}
 
     for community, member_count, category, channel, my_role in rows:
 
         if community.id not in communities_map:
-            settings = community.ticket_settings  # relationship
+            settings = community.ticket_settings
 
             tickets_disabled = False
             disable_mode = None
@@ -28329,11 +29481,9 @@ def get_my_communities():
                     settings.disabled_until.isoformat()
                     if settings.disabled_until else None
                 )
-            # 🔥 COMPUTE FIRST (OUTSIDE DICT)
+
             my_color = get_user_color_for_community(
-                current_user.id,
-                community.id,
-                my_role
+                current_user.id, community.id, my_role
             )
 
             communities_map[community.id] = {
@@ -28341,6 +29491,7 @@ def get_my_communities():
                 "name": community.name,
                 "slug": community.slug,
                 "logo": community.logo_path,
+                "banner": community.banner_pic,
                 "creator_id": community.created_by_id,
                 "creator_username": community.creator.username,
                 "is_creator": current_user.id == community.created_by_id,
@@ -28348,7 +29499,7 @@ def get_my_communities():
                 "is_paid": community.is_paid,
                 "categories": {},
                 "my_role": my_role,
-                "my_color": my_color,   # ✅ USED HERE
+                "my_color": my_color,
                 "uncategorized_channels": [],
                 "tickets": {
                     "disabled": tickets_disabled,
@@ -28359,8 +29510,6 @@ def get_my_communities():
 
         community_entry = communities_map[community.id]
 
-
-        # ---- CATEGORY + CHANNEL ----
         if category:
             categories = community_entry["categories"]
 
@@ -28376,82 +29525,55 @@ def get_my_communities():
                 }
 
             if channel:
-                # 🔥 fetch slowmode state for THIS USER + CHANNEL
-                state = (
-                    db.session.query(ChannelSlowmodeState)
-                    .filter_by(
-                        user_id=current_user.id,
-                        channel_id=channel.id
-                    )
-                    .first()
-                )
-
                 categories[category.id]["channels"].append({
                     "id": channel.id,
                     "uuid": channel.uuid,
-                    "category_uuid": category.uuid, 
+                    "category_uuid": category.uuid,
                     "name": channel.name,
                     "topic": channel.topic,
                     "is_private": channel.is_private,
                     "slowmode_seconds": channel.slowmode_seconds,
-                    "cooldown_ends_at": (
-                        state.cooldown_ends_at.isoformat()
-                        if state else None
-                    ),
+                    "cooldown_ends_at": cooldown_of(channel.id),
                     "allowed_roles": get_channel_allowed_roles(channel.id),
                     "position": channel.position,
                     "created_at": channel.created_at.isoformat()
                 })
 
-    # ---- FETCH UNCATEGORIZED CHANNELS ----
-    for community_id, community_entry in communities_map.items():
-        uncategorized = (
-            db.session.query(CommunityChannel)
-            .filter(
-                CommunityChannel.community_id == community_id,
-                CommunityChannel.category_id.is_(None)
-            )
-            .order_by(CommunityChannel.position.asc())
-            .all()
+    uncategorized = (
+        db.session.query(CommunityChannel)
+        .filter(
+            CommunityChannel.community_id.in_(ids),
+            CommunityChannel.category_id.is_(None)
         )
+        .order_by(CommunityChannel.position.asc())
+        .all()
+    )
 
-        for ch in uncategorized:
-            state = (
-                db.session.query(ChannelSlowmodeState)
-                .filter_by(
-                    user_id=current_user.id,
-                    channel_id=ch.id
-                )
-                .first()
-            )
+    for ch in uncategorized:
+        entry = communities_map.get(ch.community_id)
+        if not entry:
+            continue
 
-            community_entry["uncategorized_channels"].append({
-                "id": ch.id,
-                "uuid": ch.uuid,
-                "name": ch.name,
-                "topic": ch.topic,
-                "is_private": ch.is_private,
-                "slowmode_seconds": ch.slowmode_seconds,
-                "cooldown_ends_at": (
-                    state.cooldown_ends_at.isoformat()
-                    if state else None
-                ),
-                "allowed_roles": get_channel_allowed_roles(ch.id), 
-                "position": ch.position,
-                "created_at": ch.created_at.isoformat()
-            })
+        entry["uncategorized_channels"].append({
+            "id": ch.id,
+            "uuid": ch.uuid,
+            "name": ch.name,
+            "topic": ch.topic,
+            "is_private": ch.is_private,
+            "slowmode_seconds": ch.slowmode_seconds,
+            "cooldown_ends_at": cooldown_of(ch.id),
+            "allowed_roles": get_channel_allowed_roles(ch.id),
+            "position": ch.position,
+            "created_at": ch.created_at.isoformat()
+        })
 
-    # ---- FINALIZE ----
     result = []
     for community in communities_map.values():
         community["categories"] = list(community["categories"].values())
         result.append(community)
 
-    role_map = {
-        c["id"]: c["my_role"]
-        for c in communities_map.values()
-    }
-    # ---- COMMUNITY NOTIFICATION SETTINGS ----
+    role_map = {c["id"]: c["my_role"] for c in communities_map.values()}
+
     community_notifs = {
         s.community_id: {
             "message_level": s.message_level,
@@ -28462,12 +29584,12 @@ def get_my_communities():
             "mute_duration": s.mute_duration_seconds,
             "notify_reward_payout": s.notify_reward_payout
         }
-        for s in CommunityNotificationSettings.query.filter_by(
-            user_id=current_user.id
+        for s in CommunityNotificationSettings.query.filter(
+            CommunityNotificationSettings.user_id == current_user.id,
+            CommunityNotificationSettings.community_id.in_(ids)
         ).all()
     }
 
-# ---- CATEGORY NOTIFICATION SETTINGS ----
     category_notifs = {
         s.category.uuid: {
             "notification_level": s.notification_level,
@@ -28476,9 +29598,9 @@ def get_my_communities():
         for s in CategoryNotificationSettings.query.filter_by(
             user_id=current_user.id
         ).all()
+        if s.category and s.category.community_id in id_set
     }
 
-    # ---- CHANNEL NOTIFICATION SETTINGS ----
     channel_notifs = {
         s.channel.uuid: {
             "notification_level": s.notification_level,
@@ -28487,26 +29609,102 @@ def get_my_communities():
         for s in ChannelNotificationSettings.query.filter_by(
             user_id=current_user.id
         ).all()
+        if s.channel and s.channel.community_id in id_set
     }
 
+    # ---------- 3. UNREAD + MENTION COUNTS (one grouped query each) ----------
+    channels = (
+        db.session.query(CommunityChannel.id, CommunityChannel.uuid)
+        .filter(CommunityChannel.community_id.in_(ids))
+        .all()
+    )
+    channel_ids = [c.id for c in channels]
+    uuid_by_id = {c.id: c.uuid for c in channels}
+
+    unread_map = {}
+
+    if channel_ids:
+        latest = dict(
+            db.session.query(CommunityMessage.channel_id, func.max(CommunityMessage.id))
+            .filter(CommunityMessage.channel_id.in_(channel_ids))
+            .group_by(CommunityMessage.channel_id)
+            .all()
+        )
+
+        have = {
+            r[0] for r in db.session.query(ChannelReadState.channel_id).filter(
+                ChannelReadState.user_id == current_user.id,
+                ChannelReadState.channel_id.in_(channel_ids)
+            ).all()
+        }
+
+        # first time this user sees a channel: start it as "all read"
+        missing = [cid for cid in channel_ids if cid not in have]
+        if missing:
+            try:
+                db.session.add_all([
+                    ChannelReadState(
+                        user_id=current_user.id,
+                        channel_id=cid,
+                        last_read_message_id=latest.get(cid, 0)
+                    )
+                    for cid in missing
+                ])
+                db.session.commit()
+            except IntegrityError:
+                db.session.rollback()
+
+        rs_join = db.and_(
+            ChannelReadState.channel_id == CommunityMessage.channel_id,
+            ChannelReadState.user_id == current_user.id
+        )
+
+        for cid, n in (
+            db.session.query(CommunityMessage.channel_id, func.count(CommunityMessage.id))
+            .join(ChannelReadState, rs_join)
+            .filter(
+                CommunityMessage.channel_id.in_(channel_ids),
+                CommunityMessage.user_id != current_user.id,
+                CommunityMessage.is_deleted.is_(False),
+                CommunityMessage.id > ChannelReadState.last_read_message_id
+            )
+            .group_by(CommunityMessage.channel_id)
+            .all()
+        ):
+            unread_map.setdefault(uuid_by_id[cid], {"unread": 0, "mentions": 0})["unread"] = min(n, 100)
+
+        for cid, n in (
+            db.session.query(MessageMention.channel_id, func.count(MessageMention.id))
+            .join(
+                ChannelReadState,
+                db.and_(
+                    ChannelReadState.channel_id == MessageMention.channel_id,
+                    ChannelReadState.user_id == current_user.id
+                )
+            )
+            .filter(
+                MessageMention.user_id == current_user.id,
+                MessageMention.channel_id.in_(channel_ids),
+                MessageMention.message_id > ChannelReadState.last_read_message_id
+            )
+            .group_by(MessageMention.channel_id)
+            .all()
+        ):
+            unread_map.setdefault(uuid_by_id[cid], {"unread": 0, "mentions": 0})["mentions"] = min(n, 100)
+
     return jsonify({
-        "me": {
-            "username": current_user.username,
-            "userid": current_user.id,
-            "avatar": current_user.profile_pic
-        },
+        "me": me,
         "communities": result,
         "role_map": role_map,
-
-        # 🔔 NOTIFICATION MAPS
         "notification_map": {
             "community": community_notifs,
             "category": category_notifs,
             "channel": channel_notifs
-        }
+        },
+        "unread_map": unread_map,
+        "has_more": has_more,
+        "next_offset": next_offset
     })
-
-
 
 def update_community_notifications(user_id, data):
     community_id = data["community_id"]
@@ -28734,7 +29932,9 @@ def delete_comm_message():
 
     is_sender_creator = message.user_id == community.created_by_id
     is_me_creator = current_user.id == community.created_by_id
-
+    locked = chat_locked(community.id)
+    if locked:
+        return locked
     # =============================
     # 🔐 AUTHORIZATION
     # =============================
@@ -29178,6 +30378,7 @@ class UserAdmin(BaseAdmin):
         'id',
         'uuid',
         'email',
+        'banner_pic',
         'username',
         'admin_display_name',
         'latest_twitter_username',
@@ -29196,6 +30397,7 @@ class UserAdmin(BaseAdmin):
         'latest_twitter_username': 'Latest Twitter Handle',
         'latest_discord_username': 'Latest Discord Handle',
         'deletion_requested_at': 'Deleted At',
+        'banner_pic': 'Banner Pic',
         'latest_youtube_handle': 'Latest YouTube Handle',
         'profile_pic': 'Profile Picture',
     }
@@ -29311,7 +30513,9 @@ class CommunityAdmin(BaseAdmin):
         'about',
         'invite_limit_per_month',
         'logo',
+        'banner_pic',
         'is_paid',
+        'claims_locked',
         'created_at',
         'deletion_requested_at',
         'delete_at',
@@ -29327,7 +30531,9 @@ class CommunityAdmin(BaseAdmin):
         'website': 'Website',
         'about': 'About',
         'logo': 'Logo',
+        'banner_pic': 'Banner',
         'is_paid': 'Has Paid',
+        'claims_locked': 'claims_locked',
         'deletion_requested_at': 'Deletion Requested At',
         'delete_at': 'Scheduled Delete At',
     }
@@ -30619,7 +31825,7 @@ Once your ZEC transaction is detected and verified, your request will be process
 If you have any questions, reply to this email.
 
 Thanks,  
-Gilmore
+Abraham - Gleyo
 """)
 
     # HTML version (clickable dotted underline link)
@@ -31269,15 +32475,7 @@ class TaskReviewHistoryAdmin(BaseAdmin):
     column_searchable_list = ("comment",)
     can_view_details = True
     can_export = True
-    column_default_sort = ("created_at", True)
-
-
-
-
-# ============================================================
-# ✅ BASEVIEW  Admin
-# ============================================================
-
+    column_default_sort = ("created_at", True) 
 
 
 
@@ -31357,10 +32555,11 @@ class MessageReactionAdmin(BaseAdmin):
 class MessageAttachmentAdmin(BaseAdmin):
     column_list = (
         "id", "message", "file_type", "original_name",
-        "file_url", "file_size", "created_at"
+        "file_url", "file_size", "width", "height", "created_at"
     )
 
     column_filters = ("file_type",)
+
 
 class ChannelSlowmodeStateAdmin(BaseAdmin):
     column_list = (
@@ -32900,7 +34099,100 @@ class InboxNotificationAdmin(BaseAdmin):
     can_view_details = True
 
 
+class CommunitySubscriptionAdmin(BaseAdmin):
 
+    can_create = True
+    can_edit = True
+    can_delete = True
+
+    column_list = (
+        "id",
+        "community",
+        "plan",
+        "interval",
+        "status",
+        "payment_method",
+        "amount_cents",
+        "paid_at",
+        "expires_at",
+        "cancel_at_period_end",
+        "auto_renew_wallet",
+        "renewal_notice_for",
+        "stripe_subscription_id",
+        "created_at",
+    )
+
+    column_labels = {
+        "id": "ID",
+        "community": "Community",
+        "plan": "Plan",
+        "interval": "Billing",
+        "status": "Status",
+        "payment_method": "Paid With",
+        "amount_cents": "Amount (cents)",
+        "currency": "Currency",
+        "stripe_subscription_id": "Stripe Subscription",
+        "last_invoice_id": "Last Invoice",
+        "started_at": "Started At",
+        "paid_at": "Paid At",
+        "current_period_start": "Period Start",
+        "expires_at": "Expires At",
+        "canceled_at": "Canceled At",
+        "cancel_at_period_end": "Cancel at Period End",
+        "auto_renew_wallet": "Wallet Auto-Renew",
+        "renewal_notice_for": "Renewal Notice For",
+        "created_at": "Created At",
+        "updated_at": "Updated At",
+    }
+
+    column_searchable_list = (
+        "community.name",
+        "plan",
+        "stripe_subscription_id",
+    )
+
+    column_filters = (
+        "community",
+        "plan",
+        "interval",
+        "status",
+        "payment_method",
+        "cancel_at_period_end",
+        "auto_renew_wallet",
+        "paid_at",
+        "expires_at",
+        "renewal_notice_for",
+    )
+
+    column_default_sort = ("expires_at", True)
+
+    form_columns = (
+        "community",
+        "plan",
+        "interval",
+        "status",
+        "amount_cents",
+        "currency",
+        "payment_method",
+        "stripe_subscription_id",
+        "last_invoice_id",
+        "started_at",
+        "paid_at",
+        "current_period_start",
+        "expires_at",
+        "canceled_at",
+        "cancel_at_period_end",
+        "auto_renew_wallet",
+        "renewal_notice_for",
+    )
+
+    form_ajax_refs = {
+        "community": {
+            "fields": ("name",),
+        },
+    }
+
+    can_view_details = True
 
 
 class ReviewNotificationAdmin(BaseAdmin):
@@ -33256,6 +34548,394 @@ class AdminXPActionAdmin(BaseAdmin):
     can_view_details = True
 
 
+
+class CommunityExtraClaimsAdmin(BaseAdmin):
+
+    can_create = True
+    can_edit = True
+    can_delete = True
+
+    column_list = (
+        "id",
+        "community",
+        "balance",
+        "total_purchased",
+        "updated_at",
+    )
+
+    column_filters = (
+        "community",
+        "updated_at",
+    )
+
+    column_searchable_list = (
+        "community.name",
+    )
+
+    column_default_sort = ("balance", True)
+
+    form_columns = (
+        "community",
+        "balance",
+        "total_purchased",
+    )
+
+    form_ajax_refs = {
+        "community": {
+            "fields": ("name",),
+        },
+    }
+
+    column_labels = {
+        "id": "ID",
+        "community": "Community",
+        "balance": "Extra Quests Left",
+        "total_purchased": "Total Purchased",
+        "updated_at": "Last Updated",
+    }
+
+    can_view_details = True
+
+
+class ClaimPackPurchaseAdmin(BaseAdmin):
+
+    can_create = False
+    can_edit = False
+    can_delete = False
+
+    column_list = (
+        "id",
+        "community",
+        "pack_id",
+        "quests",
+        "amount_cents",
+        "payment_method",
+        "ref",
+        "created_at",
+    )
+
+    column_filters = (
+        "community",
+        "pack_id",
+        "payment_method",
+        "created_at",
+    )
+
+    column_searchable_list = (
+        "community.name",
+        "ref",
+    )
+
+    column_default_sort = ("created_at", True)
+
+    column_labels = {
+        "id": "ID",
+        "community": "Community",
+        "pack_id": "Pack",
+        "quests": "Quests",
+        "amount_cents": "Amount (cents)",
+        "payment_method": "Method",
+        "ref": "Reference",
+        "created_at": "Purchased At",
+    }
+
+    can_view_details = True
+
+class TwitterPromotionRequestAdmin(BaseAdmin):
+ 
+    can_create = False
+    can_edit = False
+    # Deleting a row also clears that community's 1 week cooldown
+    can_delete = True
+    can_view_details = True
+ 
+    column_list = (
+        "id",
+        "community_name",
+        "username",
+        "user_email",
+        "type",
+        "preferred_date",
+        "x_handle",
+        "plan",
+        "status",
+        "created_at",
+    )
+ 
+    column_details_list = (
+        "id",
+        "uuid",
+        "community_id",
+        "community_name",
+        "community_slug",
+        "plan",
+        "user_id",
+        "username",
+        "user_email",
+        "type",
+        "sprint_uuid",
+        "sprint_title",
+        "quest",
+        "other",
+        "preferred_date",
+        "message",
+        "x_handle",
+        "status",
+        "created_at",
+    )
+ 
+    column_filters = (
+        "type",
+        "status",
+        "plan",
+        "preferred_date",
+        "created_at",
+    )
+ 
+    column_searchable_list = (
+        "community_name",
+        "community_slug",
+        "username",
+        "user_email",
+        "x_handle",
+    )
+ 
+    column_default_sort = ("created_at", True)
+ 
+    column_labels = {
+        "id": "ID",
+        "uuid": "Request ID",
+        "community_name": "Community",
+        "community_slug": "Slug",
+        "username": "Username",
+        "user_email": "Email",
+        "type": "Promote",
+        "sprint_uuid": "Sprint UUID",
+        "sprint_title": "Sprint",
+        "preferred_date": "Preferred Date",
+        "x_handle": "X Handle",
+        "created_at": "Submitted At",
+    }
+
+
+class CommunityPaymentAdmin(BaseAdmin):
+
+    can_create = False
+    can_edit = True
+    can_delete = True
+    can_view_details = True
+
+    column_list = (
+        "id",
+        "community",
+        "plan",
+        "interval",
+        "status",
+        "stripe_session_id",
+        "created_at",
+    )
+
+    column_filters = (
+        "community",
+        "plan",
+        "interval",
+        "status",
+        "created_at",
+    )
+
+    column_searchable_list = (
+        "community.name",
+        "stripe_session_id",
+    )
+
+    column_default_sort = ("created_at", True)
+
+    form_columns = (
+        "community",
+        "plan",
+        "interval",
+        "status",
+        "stripe_session_id",
+    )
+
+    form_ajax_refs = {
+        "community": {
+            "fields": ("name",),
+        },
+    }
+
+    column_labels = {
+        "id": "ID",
+        "community": "Community",
+        "plan": "Plan",
+        "interval": "Interval",
+        "status": "Status",
+        "stripe_session_id": "Stripe Session",
+        "created_at": "Created At",
+    }
+
+
+class EnterpriseRequestAdmin(BaseAdmin):
+
+    can_create = False
+    can_edit = True
+    can_delete = True
+    can_view_details = True
+
+    column_list = (
+        "id",
+        "reference_code",
+        "community",
+        "company",
+        "fullname",
+        "email",
+        "interval",
+        "status",
+        "created_at",
+    )
+
+    column_details_list = (
+        "id",
+        "reference_code",
+        "community",
+        "payment",
+        "interval",
+        "company",
+        "website",
+        "fullname",
+        "email",
+        "phone",
+        "requirements",
+        "budget",
+        "status",
+        "created_at",
+    )
+
+    column_filters = (
+        "community",
+        "interval",
+        "status",
+        "created_at",
+    )
+
+    column_searchable_list = (
+        "reference_code",
+        "company",
+        "website",
+        "fullname",
+        "email",
+        "community.name",
+    )
+
+    column_default_sort = ("created_at", True)
+
+    form_columns = (
+        "status",
+    )
+
+    column_labels = {
+        "id": "ID",
+        "reference_code": "Reference",
+        "community": "Community",
+        "payment": "Payment",
+        "interval": "Interval",
+        "company": "Company",
+        "website": "Website",
+        "fullname": "Full Name",
+        "email": "Email",
+        "phone": "Phone",
+        "requirements": "Requirements",
+        "budget": "Budget",
+        "status": "Status",
+        "created_at": "Submitted At",
+    }
+
+
+class ChannelReadStateAdmin(BaseAdmin):
+
+    can_create = False
+    can_edit = True
+    can_delete = True
+    can_view_details = True
+
+    column_list = (
+        "id",
+        "user",
+        "channel",
+        "last_read_message_id",
+        "updated_at",
+    )
+
+    column_filters = (
+        "channel",
+        "updated_at",
+    )
+
+    column_searchable_list = (
+        "user.username",
+        "user.email",
+        "channel.name",
+    )
+
+    column_default_sort = ("updated_at", True)
+
+    form_columns = (
+        "user",
+        "channel",
+        "last_read_message_id",
+    )
+
+    form_ajax_refs = {
+        "user": {
+            "fields": ("username", "email"),
+        },
+        "channel": {
+            "fields": ("name",),
+        },
+    }
+
+    column_labels = {
+        "id": "ID",
+        "user": "User",
+        "channel": "Channel",
+        "last_read_message_id": "Last Read Message ID",
+        "updated_at": "Updated At",
+    }
+
+
+class MessageMentionAdmin(BaseAdmin):
+
+    can_create = False
+    can_edit = False
+    can_delete = True
+    can_view_details = True
+
+    column_list = (
+        "id",
+        "message_id",
+        "user",
+        "channel_id",
+    )
+
+    column_filters = (
+        "channel_id",
+        "message_id",
+    )
+
+    column_searchable_list = (
+        "user.username",
+        "user.email",
+    )
+
+    column_default_sort = ("id", True)
+
+    column_labels = {
+        "id": "ID",
+        "message_id": "Message ID",
+        "user": "Mentioned User",
+        "channel_id": "Channel ID",
+    }
+
 admin.add_view(UserAdmin(Users, db.session))
 admin.add_view(UserTwoFactorAdmin(UserTwoFactor, db.session))
 admin.add_view(UserSessionAdmin(UserSession, db.session))
@@ -33313,6 +34993,7 @@ admin.add_view(AdminXPActionAdmin(AdminXPAction, db.session))
 admin.add_view(CommunityUserXPAdmin(CommunityUserXP, db.session))
 admin.add_view(SprintUserXPAdmin(SprintUserXP, db.session))
 admin.add_view(PaymentAdmin(Payment, db.session))
+admin.add_view(CommunitySubscriptionAdmin(CommunitySubscription, db.session))
 admin.add_view(BugReportAdmin(BugReport, db.session))
 admin.add_view(UserCommunityFabStateAdmin(UserCommunityFabState, db.session))
 admin.add_view(CommunityOnlineStatusAdmin(CommunityOnlineStatus, db.session))
@@ -33335,7 +35016,7 @@ admin.add_view(
 admin.add_view(CommunityTicketAdmin(CommunityTicket, db.session))
 
 admin.add_view(MessageAudioAdmin(MessageAudio, db.session))
-
+admin.add_view(TwitterPromotionRequestAdmin(TwitterPromotionRequest, db.session))
 admin.add_view(
     CommunityRoleStyleAdmin(
         CommunityRoleStyle,
@@ -33359,7 +35040,8 @@ admin.add_view(
 )
 admin.add_view(PinnedMessageAdmin(PinnedMessage, db.session))
 admin.add_view(CommunityEmojiAdmin(CommunityEmoji, db.session))
-
+admin.add_view(CommunityExtraClaimsAdmin(CommunityExtraClaims, db.session))
+admin.add_view(ClaimPackPurchaseAdmin(ClaimPackPurchase, db.session))
 admin.add_view(CommunityNotificationSettingsAdmin(
     CommunityNotificationSettings, db.session
 ))
@@ -33370,7 +35052,10 @@ admin.add_view(CommunityExtraRoleAdmin(CommunityExtraRole, db.session))
 admin.add_view(CommunityUserExtraRoleAdmin(CommunityUserExtraRole, db.session))
 admin.add_view(ZecWalletAdmin(ZecWallet, db.session))
 admin.add_view(ZecAuthSessionAdmin(ZecAuthSession, db.session))
-
+admin.add_view(CommunityPaymentAdmin(CommunityPayment, db.session))
+admin.add_view(ChannelReadStateAdmin(ChannelReadState, db.session))
+admin.add_view(MessageMentionAdmin(MessageMention, db.session))
+admin.add_view(EnterpriseRequestAdmin(EnterpriseRequest, db.session))
 
 @app.errorhandler(404)
 def page_not_found(e):
@@ -33448,4 +35133,4 @@ if __name__ == "__main__":
     )
     scheduler.start()
 
-    socketio.run(app, host="0.0.0.0", port=8000)
+    socketio.run(app, host="0.0.0.0", port=8000, debug=True)

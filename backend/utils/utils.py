@@ -7,11 +7,22 @@ from flask import session, request
 import pycountry
 from urllib.parse import urljoin
 from datetime import datetime, timedelta
+import base64
+import html
 from urllib.parse import urlparse
 import os, uuid, requests, geocoder, geoip2 
 from sqlalchemy import func
 from backend.utils.instance import db
+import smtplib
+import resend
 from flask_wtf import CSRFProtect
+
+SMTP_HOST = "smtp.gmail.com"
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USERNAME = os.getenv("SMTP_USERNAME")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
+RESEND_API_KEY = os.getenv("RESEND_API_KEY")
+resend.api_key = RESEND_API_KEY
 
 csrf = CSRFProtect()
 def has_role(user_id, community_id, required_role):
@@ -425,3 +436,56 @@ def create_user_session(user):
     db.session.add(s)
     db.session.commit()
 
+def send_email(msg):
+    html_content = None
+    text_content = None
+    attachments = []
+
+    # walk() goes through nested multipart/alternative too, unlike iter_parts()
+    for part in msg.walk():
+        if part.is_multipart():
+            continue
+
+        if part.get_content_disposition() == "attachment":
+            payload = part.get_payload(decode=True) or b""
+            attachments.append({
+                "filename": part.get_filename() or "attachment",
+                "content": base64.b64encode(payload).decode("ascii"),
+            })
+        elif part.get_content_type() == "text/html" and html_content is None:
+            html_content = part.get_content()
+        elif part.get_content_type() == "text/plain" and text_content is None:
+            text_content = part.get_content()
+
+    params = {
+        "from": "Gleyo <noreply@gleyo.app>",
+        "to": [msg["To"]],
+        "subject": msg["Subject"],
+    }
+    if html_content:
+        params["html"] = html_content
+    if text_content:
+        params["text"] = text_content
+    if attachments:
+        params["attachments"] = attachments
+
+    if RESEND_API_KEY:
+        try:
+            resend.Emails.send(params)
+            print("EMAIL SENT SUCCESSFULLY (Resend)")
+            return True
+        except Exception as e:
+            print("RESEND FAILED:", e, "— falling back to SMTP")
+    else:
+        print("No RESEND_API_KEY set — using SMTP")
+
+    try:
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+            server.starttls()
+            server.login(SMTP_USERNAME, SMTP_PASSWORD)
+            server.send_message(msg)   # sends the attachment as-is
+        print("EMAIL SENT SUCCESSFULLY (SMTP fallback)")
+        return True
+    except Exception as e:
+        print("SMTP FALLBACK FAILED:", e)
+        return False

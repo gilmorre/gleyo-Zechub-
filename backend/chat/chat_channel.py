@@ -91,3 +91,34 @@ class ChannelAllowedRole(db.Model):
         "CommunityChannel",
         backref=db.backref("allowed_roles", cascade="all, delete-orphan")
     )
+
+
+class ChannelReadState(db.Model):
+    __tablename__ = "channel_read_states"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    channel_id = db.Column(db.Integer, db.ForeignKey("community_channels.id", ondelete="CASCADE"), nullable=False)
+    last_read_message_id = db.Column(db.Integer, nullable=False, default=0)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = db.relationship("Users")
+    channel = db.relationship("CommunityChannel")
+
+    __table_args__ = (db.UniqueConstraint("user_id", "channel_id", name="uq_read_user_channel"),)
+
+
+class MessageMention(db.Model):
+    __tablename__ = "message_mentions"
+
+    id = db.Column(db.Integer, primary_key=True)
+    message_id = db.Column(db.Integer, db.ForeignKey("community_messages.id", ondelete="CASCADE"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    channel_id = db.Column(db.Integer, nullable=False)
+
+    user = db.relationship("Users")
+
+    __table_args__ = (
+        db.UniqueConstraint("message_id", "user_id", name="uq_mention_msg_user"),
+        db.Index("ix_mention_user_channel_msg", "user_id", "channel_id", "message_id"),
+    )

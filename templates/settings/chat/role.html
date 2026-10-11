@@ -1,7 +1,51 @@
 <style>
+@property --edge-hi {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: rgba(255, 255, 255, 0.42);
+}
+@property --edge-lo {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: rgba(255, 255, 255, 0.05);
+}
+
+:root {
+  --edge-hi: rgba(255, 255, 255, 0.253);
+  --edge-lo: rgba(255, 255, 255, 0.05);
+  --edge-w: 1px;
+}
+
+@media (min-resolution: 2dppx) {
+  :root { --edge-w: 0.75px; }
+}
+
+/* ---------- Gradient "echo" edge (same as security tab) ---------- */
+.roles-list::before,
+.btn-create-role::before,
+.color-picker::before,
+.ac-panel::before,
+.crm-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: var(--edge-w);
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    var(--edge-hi) 0%,
+    var(--edge-lo) 28%,
+    var(--edge-lo) 72%,
+    var(--edge-hi) 100%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
 /* PANEL */
-
-
 @media (min-width: 768px) {
   .roles-panel {
     background: var(--bg-sidebar);
@@ -11,7 +55,6 @@
     min-width: 520px;
   }
 }
-
 
 @media (max-width: 768px) {
   .roles-panel {
@@ -44,10 +87,11 @@
 }
 
 .btn-create-role {
+  position: relative;
   margin-top: 8px;
   width: fit-content;
   background: var(--bg-active);
-  border: 1px solid var(--bg-active-border);
+  border: var(--edge-w) solid transparent;
   color: var(--text-main);
   padding: 8px 14px;
   border-radius: 10px;
@@ -57,6 +101,16 @@
 
 .btn-create-role:hover {
   background: var(--bg-hover);
+}
+
+/* ROLES LIST CARD */
+.roles-list {
+  position: relative;
+  margin-top: 40px;
+  background: var(--bg-surface);
+  border-radius: 20px;
+  padding: 20px 6px;
+  border: var(--edge-w) solid transparent;
 }
 
 /* TABLE */
@@ -136,24 +190,21 @@
   padding-right: 20px;
 }
 
-
-.uitent{
+.uitent {
   position: relative;
   left: -9px;
 }
 
-
 .roles-table td:last-child .role-color {
   justify-content: flex-end;
 }
-
 
 /* COLOR PICKER POPOVER */
 .color-picker {
   position: absolute;
   z-index: 1000;
   background: var(--bg-surface);
-  border: 1px solid var(--border);
+  border: var(--edge-w) solid transparent;
   border-radius: 12px;
   padding: 10px;
   display: grid;
@@ -178,8 +229,6 @@
   transform: scale(1.1);
 }
 
-
-
 .color-swatch-svg {
   display: flex;
   border: none !important;
@@ -191,34 +240,30 @@
   color: var(--text-muted);
 }
 
-.color-swatch-svg svg{
+.color-swatch-svg svg {
   width: 20px;
   flex-shrink: 0;
   height: 20px;
-
 }
+
 .color-swatch-svg:hover {
   color: var(--text-main);
   background: var(--bg-active);
 }
 
-
-
-/* ===== MODAL ROOT ===== */
+/* ===== ADVANCED COLOR MODAL ===== */
 .advanced-color-modal {
   position: fixed;
   inset: 0;
   z-index: 9999;
 }
 
-/* ===== DARK TRANSPARENT OVERLAY ===== */
 .ac-overlay {
   position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.65);
 }
 
-/* ===== FLOATING GLASS PANEL (NEVER FULLSCREEN) ===== */
 .ac-panel {
   position: absolute;
   inset: 0;
@@ -229,7 +274,7 @@
 
   background: rgba(34, 34, 54, 0.448);
   backdrop-filter: blur(5px);
-  border: 0.9px solid var(--border);
+  border: var(--edge-w) solid transparent;
 
   border-radius: 16px;
   padding: 18px;
@@ -237,15 +282,11 @@
   display: flex;
   flex-direction: column;
 
-  /* subtle glass border + shadow */
-  border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow:
     0 20px 60px rgba(0, 0, 0, 0.45),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
-
-/* ===== HEADER (ADMIN VERY HIGH & CENTERED) ===== */
 .ac-header {
   display: flex;
   justify-content: center;
@@ -272,57 +313,31 @@
   caret-color: currentColor;
 }
 
-
-
-/* focus ring */
 .ac-role:focus {
-  box-shadow: 0 0 0 2px
-    color-mix(in srgb, currentColor 30%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, currentColor 30%, transparent);
 }
 
-/* disabled (system roles) */
 .ac-role:disabled {
   opacity: 0.65;
   cursor: default;
 }
 
-
-
-
-/* ===== BODY (PUSH PICKER TO BOTTOM) ===== */
 .ac-body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end; /* 🔥 KEY PART */
+  justify-content: flex-end;
   gap: 14px;
 }
 
-/* ===== PICKER ===== */
 .ac-sv {
+  position: relative;
+  touch-action: none;
   height: 180px;
   border-radius: 10px;
   background:
     linear-gradient(to top, black, transparent),
     linear-gradient(to right, white, transparent);
-}
-
-.ac-hue {
-  height: 14px;
-  margin-top: 10px;
-  border-radius: 999px;
-  background: linear-gradient(
-    to right,
-    red, yellow, lime, cyan, blue, magenta, red
-  );
-}
-
-
-
-
-.ac-sv {
-  position: relative;
-  touch-action: none;
 }
 
 .ac-sv-cursor {
@@ -338,6 +353,13 @@
 .ac-hue {
   position: relative;
   touch-action: none;
+  height: 14px;
+  margin-top: 10px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    red, yellow, lime, cyan, blue, magenta, red
+  );
 }
 
 .ac-hue-cursor {
@@ -350,18 +372,6 @@
   transform: translate(-8px, -50%);
 }
 
-
-
-/* ===== HEX INPUT ===== */
-.ac-hex {
-  background: var(--bg-hover);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 8px;
-  font-family: monospace;
-}
-
-/* ===== FOOTER (ONLY CANCEL) ===== */
 .ac-footer {
   display: flex;
   justify-content: space-between;
@@ -387,26 +397,19 @@
   cursor: pointer;
 }
 
-
-
-
-
-
-/* ===== CREATE ROLE MODAL ROOT ===== */
+/* ===== CREATE ROLE MODAL ===== */
 .create-role-modal {
   position: fixed;
   inset: 0;
   z-index: 9999;
 }
 
-/* overlay */
 .crm-overlay {
   position: absolute;
   inset: 0;
   background: rgba(0,0,0,.6);
 }
 
-/* modal panel — DESKTOP DEFAULT */
 .crm-panel {
   position: absolute;
   inset: 0;
@@ -417,7 +420,7 @@
 
   background: rgba(34, 34, 54, 0.448);
   backdrop-filter: blur(14px);
-  border: 0.9px solid var(--border);
+  border: var(--edge-w) solid transparent;
   border-radius: 14px;
   padding: 18px;
 
@@ -428,47 +431,17 @@
   gap: 16px;
 }
 
-
-
 @media (max-width: 640px) {
-
- 
-
   .crm-overlay {
-    position: absolute;
-    inset: 0;
-    background: transparent !important;
+    background: var(--bg-surface);
   }
-  
+
   .crm-panel {
-    position: absolute;
-    inset: 0;
-    margin: auto;
-
-    width: min(420px, 92vw);
-    max-height: min(520px, 90vh);
     top: 20px;
-
-    background: rgba(34, 34, 54, 0.448);
     backdrop-filter: blur(18px);
-    border: 0.9px solid var(--border);
-    border-radius: 14px;
-    padding: 18px;
-
-    box-shadow: 0 20px 60px rgba(0,0,0,.5);
-
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-  .crm-overlay {
-    background: var(--bg-surface); /* full-screen feel */
   }
 }
 
-
-
-/* header */
 .crm-header {
   display: flex;
   justify-content: space-between;
@@ -489,7 +462,6 @@
   color: var(--text-muted);
 }
 
-/* body */
 .crm-body {
   display: flex;
   flex-direction: column;
@@ -512,7 +484,6 @@
   color: var(--text-main);
 }
 
-/* role color row */
 .crm-color-row {
   display: flex;
   align-items: center;
@@ -527,50 +498,51 @@
   border: 1px solid var(--border);
 }
 
-.crm-color-hex {
-  font-family: monospace;
-  background: var(--bg-hover);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 8px;
-  width: 90px;
-}
-
-/* footer */
 .crm-footer {
   display: flex;
   justify-content: flex-end;
   margin-top: 10px;
 }
 
-
-.crm-color-hex, .ac-hex {
-  background-color: rgba(34, 34, 54, 0.566) !important;
+/* ---------- Inputs: gradient edge via padding-box / border-box ---------- */
+.crm-role-name,
+.crm-color-hex,
+.ac-hex {
+  --edge-hi: rgba(255, 255, 255, 0.42);
+  --edge-lo: rgba(255, 255, 255, 0.05);
+  --field-fill: var(--bg-app);
+  font-family: monospace;
+  color: var(--text-main);
+  outline: none;
   padding: 12px 15px !important;
   border-radius: 15px !important;
-  border: 0.9px solid var(--border) !important;
-
+  border: var(--edge-w) solid transparent !important;
+  background:
+    linear-gradient(var(--field-fill), var(--field-fill)) padding-box,
+    linear-gradient(
+      135deg,
+      var(--edge-hi) 0%,
+      var(--edge-lo) 28%,
+      var(--edge-lo) 72%,
+      var(--edge-hi) 100%
+    ) border-box !important;
+  transition: --edge-hi 0.25s ease, --edge-lo 0.25s ease;
 }
 
 .crm-role-name {
-  background-color: rgba(34, 34, 54, 0.566) !important;
-  padding: 12px 15px !important;
-  border-radius: 15px !important;
+  font-family: inherit;
   margin-bottom: 14px !important;
-  border: 0.9px solid var(--border) !important;
 }
 
-.crm-role-name:focus, .crm-color-hex:focus, .ac-hex:focusa {
-  border-color: #4285f4 !important;
+.crm-color-hex {
+  width: 90px;
 }
- 
 
-.roles-list{
-  margin-top: 40px;
-  background: var(--bg-surface);
-  border-radius: 20px;
-  padding: 20px 6px;
-  border: 1px solid var(--border);
+.crm-role-name:focus,
+.crm-color-hex:focus,
+.ac-hex:focus {
+  --edge-hi: #4285f4;
+  --edge-lo: rgba(255, 255, 255, 0.06);
 }
 </style>
 
@@ -582,7 +554,7 @@
       <h3>Roles</h3>
       <p>Create and manage community roles</p>
     </div>
-    <button class="btn-create-role" style="display: flex; gap: 10px;">
+    <button type="button" class="btn-create-role" style="display: flex; gap: 10px;">
       <svg fill="currentColor" width="14" height="14" style="position: relative; top: 1px;" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
         <path d="M228,128a12,12,0,0,1-12,12H140v76a12,12,0,0,1-24,0V140H40a12,12,0,0,1,0-24h76V40a12,12,0,0,1,24,0v76h76A12,12,0,0,1,228,128Z"/>
       </svg>
@@ -593,4 +565,3 @@
   <div class="roles-list"></div>
 
 </div>
-

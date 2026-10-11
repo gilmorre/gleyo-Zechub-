@@ -2,148 +2,233 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 
   <title>404 — Lost in Gleyo</title>
 
   <style>
+    @property --edge-hi {
+      syntax: '<color>';
+      inherits: true;
+      initial-value: rgba(255, 255, 255, 0.42);
+    }
+    @property --edge-lo {
+      syntax: '<color>';
+      inherits: true;
+      initial-value: rgba(255, 255, 255, 0.05);
+    }
+
+    :root {
+      --edge-hi: rgba(255, 255, 255, 0.42);
+      --edge-lo: rgba(255, 255, 255, 0.05);
+      --edge-w: 1px;
+      --accent-color: #6366f1;
+      --accent-45: rgba(99, 102, 241, 0.45);
+      --text-main: #e5e7eb;
+      --text-muted: #bbbfc7;
+      --glass-plain: #232339;
+    }
+
+    @media (min-resolution: 2dppx) {
+      :root { --edge-w: 0.75px; }
+    }
+
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
-      font-family: 'Syne', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    ::selection {
+      background: #4effcd29;
+      color: var(--text-main);
+    }
+
+    html, body {
+      width: 100%;
+      min-height: 100vh;
+      min-height: 100dvh;
     }
 
     body {
-      height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
+      padding: 20px;
+      font-family: 'DM Sans', sans-serif;
       background: radial-gradient(circle at 30% 20%, #151528 0%, #0b0b12 60%);
-      color: #fff;
+      color: var(--text-main);
     }
 
     .container {
+      position: relative;
+      width: 100%;
+      max-width: 480px;
+      padding: 40px 32px 32px;
       text-align: center;
-      max-width: 520px;
-      padding: 20px;
-      animation: fadeIn 0.6s ease;
+      border: var(--edge-w) solid transparent;
+      border-radius: 28px;
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.015)),
+        rgba(20, 20, 40, 0.35);
+      backdrop-filter: blur(22px) saturate(1.5);
+      -webkit-backdrop-filter: blur(22px) saturate(1.5);
+      box-shadow:
+        0 20px 60px rgba(99, 102, 241, 0.14),
+        inset 0 1px 0 rgba(255, 255, 255, 0.12);
+      animation: fadeIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
     }
 
-    /* Mascot */
+    .container::before,
+    .btn::before {
+      content: "";
+      position: absolute;
+      inset: calc(var(--edge-w) * -1);
+      padding: var(--edge-w);
+      border-radius: inherit;
+      background: linear-gradient(
+        135deg,
+        var(--edge-hi) 0%,
+        var(--edge-lo) 28%,
+        var(--edge-lo) 72%,
+        var(--edge-hi) 100%
+      );
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+    }
+
     .mascot {
-      width: 220px;
-      max-width: 80%;
-      margin-bottom: 20px;
+      width: 200px;
+      max-width: 70%;
+      margin-bottom: 14px;
       opacity: 0.95;
       animation: float 4s ease-in-out infinite;
+      user-select: none;
+      -webkit-user-select: none;
     }
 
-    /* Title */
     .code {
+      font-family: 'Syne', sans-serif;
       font-size: 80px;
       font-weight: 800;
+      line-height: 1.05;
       letter-spacing: -2px;
-      background: linear-gradient(90deg, #c9e566, #61dafb);
+      background: linear-gradient(90deg, #a5b4fc, #61dafb);
       -webkit-background-clip: text;
+      background-clip: text;
       -webkit-text-fill-color: transparent;
     }
 
     h1 {
-      font-size: 28px;
       margin-top: 10px;
-      font-weight: 700;
+      font-family: 'Syne', sans-serif;
+      font-size: 26px;
+      font-weight: 600;
+      letter-spacing: -0.3px;
     }
 
     p {
-      margin-top: 10px;
-      color: #bbb;
-      font-size: 16px;
-      line-height: 1.5;
+      margin: 10px auto 0;
+      max-width: 360px;
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--text-muted);
     }
 
-    /* Actions */
     .actions {
-      margin-top: 30px;
       display: flex;
       flex-direction: column;
       gap: 12px;
+      margin-top: 28px;
     }
 
     .btn {
-      padding: 14px;
-      border-radius: 10px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      height: 48px;
+      border: var(--edge-w) solid transparent;
+      border-radius: 14px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
       font-weight: 600;
       text-decoration: none;
-      transition: all 0.25s ease;
-      display: block;
+      transition: all 0.2s ease;
+    }
+
+    .btn svg {
+      width: 17px;
+      height: 17px;
+      flex-shrink: 0;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .btn:hover {
+      --edge-hi: rgba(255, 255, 255, 0.75);
+      --edge-lo: rgba(255, 255, 255, 0.08);
+      transform: translateY(-1px);
+    }
+
+    .btn:active {
+      transform: translateY(0);
     }
 
     .primary {
-      background: #c9e566;
-      color: #111;
+      color: #fff;
+      background: var(--accent-color);
+      box-shadow: 0 6px 18px var(--accent-45);
     }
 
     .primary:hover {
-      background: #b7d954;
-      transform: translateY(-2px);
+      box-shadow: 0 8px 24px var(--accent-45);
     }
 
     .secondary {
-      border: 1px solid #2a2a3a;
-      color: #ccc;
+      color: var(--text-main);
+      background: var(--glass-plain);
     }
 
     .secondary:hover {
-      background: #1a1a2a;
+      background: #2a2a449c;
       color: #fff;
     }
 
-    .quick-links {
-      margin-top: 25px;
-      font-size: 14px;
-      color: #888;
-    }
-
-    .quick-links a {
-      color: #61dafb;
-      text-decoration: none;
-      margin: 0 8px;
-    }
-
-    .quick-links a:hover {
-      text-decoration: underline;
-    }
-
-    /* Animations */
     @keyframes float {
-      0%, 100% { transform: translateY(0px); }
-      50% { transform: translateY(-8px); }
+      0%, 100% { transform: translateY(0); }
+      50%      { transform: translateY(-8px); }
     }
 
     @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(10px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
 
     @media (max-width: 500px) {
+      .container {
+        padding: 32px 22px 26px;
+        border-radius: 26px;
+      }
+
       .code {
-        font-size: 60px;
+        font-size: 64px;
       }
 
       h1 {
         font-size: 22px;
       }
     }
-
   </style>
 </head>
 
@@ -161,14 +246,14 @@
 
     <div class="actions">
       <a href="/" class="btn primary">Go to Dashboard</a>
-      <a href="/quest/explore" class="btn secondary">Explore Quests</a>
-    </div>
 
-    <div class="quick-links">
-      Need help?
-      <a href="/help">Help Center</a>
-      •
-      <a href="/chat/gleyo">Contact</a>
+      <a href="mailto:favour@gleyo.app?subject=Need%20help%20with%20Gleyo" class="btn secondary">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <rect x="3" y="5" width="18" height="14" rx="3"></rect>
+          <path d="m3.5 7.5 8.5 6 8.5-6"></path>
+        </svg>
+        Email support
+      </a>
     </div>
 
   </div>

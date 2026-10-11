@@ -1,488 +1,798 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Enterprise Request Form</title>
-<style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <link rel="shortcut icon" href="https://zupdpwnloewdkjqsymdm.supabase.co/storage/v1/object/public/uploads/communities/7/logos/511f4996-5748-4f1f-b74c-5d5c33f7124c.png">
 
-*{
-  font-family: 'Outfit', sans-serif !important;
+    <title>Gleyo enterprise request</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="description" content="Request a custom Gleyo Enterprise plan for your community.">
 
-  
-}
-  body {
-    background: #1e1e2f;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-    margin: 0;
-  }
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='heritic.css') }}?v=8">
 
-::selection {
-  background: #4effcd29; 
-  color: var(--text-main);        
-}
+    <style>
+        .top-right a {
+            font-family: 'DM Sans', sans-serif;
+        }
 
-::-moz-selection {
-  background: #4effcd29; 
-  color: var(--text-main);        
-}
-  .form-container {
-    background: #252538;
-    border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    width: 100%;
-    max-width: 520px;
-    padding: 50px 40px;
-    color: #e0e0e0;
-    text-align: center;
-    position: relative;
-  }
+        .enterprise-head {
+            margin-bottom: 26px;
+        }
 
+        .enterprise-head p {
+            margin: 6px 0 0;
+        }
 
-input[type="email"]:valid {
-  border: 1px solid green;
-}
+        .stepper {
+            margin-bottom: 28px;
+        }
 
-   
-  h2 {
-    text-align: center;
-    margin-bottom: 25px;
-    color: #f5f5f5;
-    font-weight: 700;
-  }
+        .stepper-bar {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+        }
 
-  .step { display: none; animation: fadeIn 0.4s ease-in; }
-  .step.active { display: block; }
+        .stepper-bar span {
+            height: 4px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.1);
+            transition: background 0.35s ease;
+        }
 
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px);} to { opacity: 1; transform: translateY(0);} }
+        .stepper-bar span.on {
+            background: linear-gradient(90deg, #6366f1, #8b5cf6);
+        }
 
-  .input-group { margin-bottom: 20px; text-align: left; }
-  .input-group label { display: block; font-weight: 600; margin-bottom: 6px; color: #cfcfe8; }
-  .input-group input, .input-group textarea, .input-group select {
-    width: 100%; box-sizing: border-box; padding: 12px 16px; border: 1px solid #3a3a5a; border-radius: 10px; resize: none;
-    font-size: 14px; background: #2a2a44; color: #e0e0e0; transition: border-color 0.3s, box-shadow 0.3s;
-  }
-  .input-group input:focus, .input-group textarea:focus, .input-group select:focus {
-    border-color: #7c3aed; box-shadow: 0 0 6px #7c3aed44; outline: none;
-  }
+        .stepper-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 12.5px;
+            color: var(--text-muted);
+        }
 
-  .buttons { display: flex; justify-content: space-between; margin-top: 20px; }
-  .buttons button {
-    background-color: #7c3aed; color: white; border: none; padding: 12px 22px;
-    font-size: 14px; border-radius: 10px; cursor: pointer; transition: background 0.3s, transform 0.2s;
-  } 
-  .buttons button:hover { background-color: #5e22b0; transform: translateY(-2px); }
-  .buttons button[disabled] { cursor: not-allowed; }
+        .stepper-meta #stepTitle {
+            font-weight: 500;
+            color: var(--text-main);
+        }
 
-  .progressbar { display: flex; justify-content: space-between; margin-bottom: 35px; counter-reset: step; }
-  .progress-step {
-    position: relative; text-align: center; flex: 1; font-size: 12px; color: #8888aa;
-  }
-  .progress-step::before {
-    counter-increment: step; content: counter(step); width: 32px; height: 32px; line-height: 32px;
-    border: 2px solid #55557a; display: block; text-align: center; margin: 0 auto 8px auto;
-    border-radius: 50%; background-color: #2a2a44; color: #e0e0e0; font-weight: 600;
-  }
-  .progress-step.active::before, .progress-step.completed::before {
-    border-color: #7c3aed; background-color: #7c3aed; color: white;
-  }
-  .progress-step::after {
-    content: ''; position: absolute; width: 100%; height: 2px; background-color: #55557a;
-    top: 16px; left: -50%; z-index: -1;
-  }
-  .progress-step:first-child::after { content: none; }
-  .progress-step.completed::after { background-color: #7c3aed; }
+        .step {
+            display: none;
+        }
 
-  .error-message { color: #ff6b6b; font-size: 13px; margin-top: 4px; display: none; }
+        .step.active {
+            display: block;
+            animation: stepIn 0.35s ease both;
+        }
 
-  .success-message { display: none; flex-direction: column; align-items: center; justify-content: center; animation: fadeIn 0.5s ease-in-out; height: 100%; }
-  .success-message h2 { font-size: 28px; color: #00ff7f; margin-bottom: 10px; }
-  .success-message p { font-size: 18px; color: #e0e0e0; }
-  .success-icon img { width: 100px; height: 100px; margin-bottom: 20px; animation: bounce 1s infinite; }
-  @keyframes bounce { 0%, 20%, 50%, 80%, 100% { transform: translateY(0); } 40% { transform: translateY(-20px); } 60% { transform: translateY(-10px); } }
+        @keyframes stepIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
 
-.back-btned{
-  background-color: #33334b !important;
-}
+        .field {
+            margin-bottom: 16px;
+        }
 
-/* Loading state */
-/* already have this block – keep it */
-#submitBtn.loading {
-  cursor: wait;
-  color: transparent;            /* hide text */
-  pointer-events: none;
-  position: relative;
-}
-#submitBtn.loading::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 11px;
-  height: 11px;
-  margin: -9px 0 0 -9px;
-  border: 3px solid #fff;
-  border-radius: 50%;
-  border-top-color: transparent;
-  animation: spin 0.8s linear infinite;
-}
+        .field .email-fieldset {
+            margin: 0;
+            min-width: 0;
+        }
 
-#submitBtn.loading > * {
-  visibility: hidden;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
+        .field .email-fieldset.error {
+            margin-bottom: 0 !important;
+        }
 
-/* make whole page show progress while submitting */
-body.busy, body.busy * { cursor: wait !important; }
+        .field .email-fieldset input,
+        .field .email-fieldset textarea {
+            display: block;
+            width: 100%;
+            padding: 4px 8px 8px;
+            border: none;
+            outline: none;
+            background: transparent;
+            color: var(--text-main);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 15px;
+            caret-color: #fff;
+        }
 
-/* Works in Chrome, Edge, Safari */
-::-webkit-scrollbar {
-  width: 10px;
-}
+        .field .email-fieldset.error input,
+        .field .email-fieldset.error textarea {
+            caret-color: rgb(254, 41, 41);
+        }
 
-::-webkit-scrollbar-track {
-  background: #f0f0f0;  /* scrollbar track */
-}
+        .field .email-fieldset input::placeholder,
+        .field .email-fieldset textarea::placeholder {
+            font-size: 14px;
+            color: var(--text-muted);
+            opacity: 0.7;
+        }
 
-::-webkit-scrollbar-thumb {
-  background: #888;      /* scrollbar handle */
-  border-radius: 5px;
-}
+        .field .email-fieldset textarea {
+            min-height: 104px;
+            resize: none;
+            line-height: 1.5;
+            scrollbar-width: thin;
+            scrollbar-color: #3a3a5a transparent;
+        }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #555;      /* hover effect */
-}
+        .field .email-fieldset input:-webkit-autofill {
+            -webkit-text-fill-color: var(--text-main);
+            box-shadow: 0 0 0 1000px var(--field-fill) inset;
+            transition: background-color 9999s ease-in-out 0s;
+        }
 
-/* Works in Firefox */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: #888 #f0f0f0;
-}
+        .field .email-fieldset.area {
+            border-radius: 22px;
+        }
 
+        .field-error {
+            margin: 6px 0 0 10px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px;
+            color: rgb(254, 41, 41);
+        }
 
-  @media (max-width: 800px) {
-    .form-container {
-      background: #252538;
-      border-radius: 16px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-      width: 100%;
-      box-sizing: border-box;
-      padding: 40px 14px !important;
-      color: #e0e0e0;
-      text-align: center;
-      position: relative;
-    }
+        .field-error:empty {
+            display: none;
+        }
 
+        .submit-error {
+            margin: 12px 0 0;
+            text-align: center;
+        }
 
-  }
+        .optional {
+            color: var(--text-muted);
+            font-size: 12px;
+        }
 
-#reviewList {
-  list-style: none;
-  padding: 0;
-  margin: 20px 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  text-align: left;
-}
+        .step-actions {
+            margin-top: 24px;
+        }
 
-#reviewList li {
-  background: linear-gradient(135deg, #2a2a44 0%, #252538 100%);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 10px;
-  padding: 14px 16px;
-  display: flex;
-  color: #ddd;
-  line-height: 1.4;
-  font-size: 15px;
-  transition: background 0.3s, transform 0.2s;
-  gap: 4px;
-}
+        .step-actions .main-login-btn {
+            position: relative;
+            margin-top: 0;
+        }
 
-#reviewList li strong {
-  color: #9b8aff;
-  font-weight: 600;
-}
+        .main-login-btn:hover {
+            transform: translateY(-1px);
+        }
 
-#reviewList li span {
-  display: block;
-  color: #f1f1f1;
-  word-break: break-word;
-  white-space: pre-wrap;
-}
+        .main-login-btn.loading {
+            color: transparent;
+            pointer-events: none;
+            cursor: wait;
+        }
 
+        .main-login-btn.loading::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 18px;
+            height: 18px;
+            margin: -9px 0 0 -9px;
+            border: 2.5px solid #fff;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
 
-#reviewList li:hover {
-  background: #333355;
-  transform: translateY(-2px);
-}
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
 
+        body.busy, body.busy * {
+            cursor: wait !important;
+        }
 
+        .review-intro {
+            margin: 0 0 16px;
+        }
 
+        .review-card {
+            position: relative;
+            border: var(--edge-w) solid transparent;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.03);
+            overflow: hidden;
+        }
 
+        .review-card::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            padding: var(--edge-w);
+            border-radius: inherit;
+            background: linear-gradient(
+                135deg,
+                var(--edge-hi) 0%,
+                var(--edge-lo) 28%,
+                var(--edge-lo) 72%,
+                var(--edge-hi) 100%
+            );
+            -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+        }
 
- 
- 
+        .review-row {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 14px 18px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
 
- 
-#requirements::-webkit-scrollbar {
-  width: 10px;
-}
+        .review-row:last-child {
+            border-bottom: none;
+        }
 
-#requirements::-webkit-scrollbar-track {
-  background: #858484;  
-  border-radius: 8px;
-}
+        .review-text {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            min-width: 0;
+        }
 
-#requirements::-webkit-scrollbar-thumb {
-  background: #27273a;  
-  border-radius: 8px;
-  border: 2px solid #b1afaf;  
-}
+        .review-label {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
 
-#requirements::-webkit-scrollbar-thumb:hover {
-  background: #a0a0a0; 
-}
+        .review-value {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 14.5px;
+            color: var(--text-main);
+            word-break: break-word;
+            white-space: pre-wrap;
+        }
 
- 
-#requirements {
-  scrollbar-width: thin;
-  scrollbar-color: #bdbdbd #27273a;
-}
+        .review-edit {
+            flex-shrink: 0;
+            padding: 2px 0;
+            border: none;
+            background: none;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 12.5px;
+            font-weight: 500;
+            color: #a5b4fc;
+            cursor: pointer;
+        }
 
- 
- 
+        .review-edit:hover {
+            color: #fff;
+        }
 
-</style>
+        .success-view {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding-top: 8px;
+            animation: stepIn 0.5s ease both;
+        }
 
+        .success-view[hidden] {
+            display: none;
+        }
+
+        .success-view img {
+            width: 96px;
+            height: 96px;
+            margin-bottom: 22px;
+            animation: floaty 3s ease-in-out infinite;
+        }
+
+        @keyframes floaty {
+            0%, 100% { transform: translateY(0); }
+            50%      { transform: translateY(-8px); }
+        }
+
+        .success-view h1 {
+            margin-bottom: 10px;
+        }
+
+        .ref-code {
+            margin: 6px 0 18px;
+            padding: 10px 18px;
+            border-radius: 999px;
+            background: rgba(99, 102, 241, 0.16);
+            font-family: 'DM Mono', ui-monospace, monospace;
+            font-size: 15px;
+            letter-spacing: 0.04em;
+            color: #fff;
+        }
+
+        .success-view .main-login-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+        }
+
+        .hero-points {
+            list-style: none;
+            margin: 14px 0 0;
+            padding: 0;
+            display: grid;
+            gap: 8px;
+        }
+
+        .hero-points li {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13.5px;
+            color: rgba(255, 255, 255, 0.85);
+        }
+
+        .hero-points svg {
+            flex-shrink: 0;
+            width: 14px;
+            height: 14px;
+            color: #7fd9a2;
+        }
+    </style>
 </head>
-<div class="form-container" id="formContainer">
+<body>
 
-  <form id="enterpriseForm" method="POST" novalidate
-      action="{{ url_for('enterprise', slug=community.slug, interval=interval) }}">
-    <input type="hidden" name="community_id" value="{{ community.id }}">
+<div class="auth-split">
 
-          <!-- Success message -->
-      {% if success %}
-      <div class="success-message" id="successMessage" style="display:flex;">
-        <div class="success-icon">
-          <img src="{{ url_for('static', filename='request.png') }}" alt="request" class="request" loading="lazy" decoding="async"/>
-        </div>
-        <h2>Request Submitted!</h2>
-        <p>In review for Reference code: <strong>{{ reference_code }}</strong>. We will contact you soon.</p>
-      </div>
-      {% else %}
-      <h2>Enterprise Plan Request</h2>
-      <div class="progressbar">
-        <div class="progress-step active">Company Info</div>
-        <div class="progress-step">Contact Info</div>
-        <div class="progress-step">Requirements</div>
-        <div class="progress-step">Review</div>
-      </div>
+    <div class="auth-left">
+        <div class="login-container" id="innerconntect">
+            <div class="container">
 
-      <!-- Step 1 -->
-      <div class="step active">
-        <div class="input-group">
-          <label for="company">Company Name</label>
-          <input type="text" id="company" name="company" required>
-        </div>
-        <div class="input-group">
-          <label for="website">Website</label>
-          <input type="url" id="website" name="website" required>
-        </div>
-        <div class="buttons">
-          <button type="button" onclick="nextStep()">Next</button>
-        </div>
-      </div>
+                <div class="authen-thingserrrs">
+                    <div class="nav-slot">
+                        <a href="/" id="logo-link">
+                            <img class="ajystable-imagesinit" src="https://zupdpwnloewdkjqsymdm.supabase.co/storage/v1/object/public/uploads/communities/7/logos/511f4996-5748-4f1f-b74c-5d5c33f7124c.png">
+                        </a>
+                        <button type="button" id="backBtn" class="back-btn-header">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M15 18l-6-6 6-6"/>
+                            </svg>
+                            Back
+                        </button>
+                    </div>
+                    <div class="top-right">
+                        <a href="#" onclick="history.back(); return false;">Back to plans</a>
+                    </div>
+                </div>
 
-      <!-- Step 2 -->
-      <div class="step">
-        <div class="input-group">
-          <label for="fullname">Full Name</label>
-          <input type="text" id="fullname" name="fullname" required>
-        </div>
-        <div class="input-group">
-          <label for="email">Email</label>
-          <input type="email" id="email" name="email" required>
-        </div>
-        <div class="input-group">
-          <label for="phone">Phone</label>
-          <input type="tel" id="phone" name="phone">
-        </div>
-        <div class="buttons">
-          <button type="button" class="back-btned" onclick="prevStep()">Back</button>
-          <button type="button" onclick="nextStep()">Next</button>
-        </div>
-      </div>
+                <div id="auth-content">
+                    <div class="royal-card-conatiner-init">
 
-      <!-- Step 3 -->
-      <div class="step">
-        <div class="input-group">
-          <label for="requirements">Your Requirements / Notes</label>
-          <textarea id="requirements" name="requirements" rows="4" required></textarea>
-        </div>
-        <div class="input-group">
-          <label for="budget">Budget (Optional)</label>
-          <input type="text" id="budget" name="budget">
-        </div>
-        <div class="buttons">
-          <button type="button" class="back-btned" onclick="prevStep()">Back</button>
-          <button type="button" onclick="nextStep()">Next</button>
-        </div>
-      </div>
+                        <div class="success-view" id="successView" hidden>
+                            <img src="{{ url_for('static', filename='request.png') }}" alt="Request submitted" loading="lazy" decoding="async">
+                            <h1 class="interger">Request submitted</h1>
+                            <p>Your reference code</p>
+                            <div class="ref-code" id="refCode"></div>
+                            <p style="margin-bottom: 24px;">Our team is reviewing your request and will contact you soon.</p>
+                            <a href="/" class="main-login-btn valid-email">Back to Gleyo</a>
+                        </div>
 
-      <!-- Step 4 -->
-      <div class="step">
-        <h3>Review your information</h3>
-        <p>Please make sure your details are correct before submission.</p>
-        <ul id="reviewList"></ul>
-        <div class="buttons">
-          <button type="button" class="back-btned" onclick="prevStep()">Back</button>
-          <button type="submit" id="submitBtn" >Submit Request</button>
+                        <div id="formView">
+
+                            <div class="enterprise-head">
+                                <h1 class="interger">Enterprise request</h1>
+                                <p>Tell us what you need and we'll put together a plan for your community.</p>
+                            </div>
+
+                            <div class="stepper" aria-label="Progress">
+                                <div class="stepper-bar">
+                                    <span class="on"></span>
+                                    <span></span>
+                                    <span></span>
+                                    <span></span>
+                                </div>
+                                <div class="stepper-meta">
+                                    <span id="stepCount">Step 1 of 4</span>
+                                    <span id="stepTitle">Company info</span>
+                                </div>
+                            </div>
+
+                            <form id="enterpriseForm" novalidate
+                                  data-api="{{ url_for('api_enterprise', slug=community.slug, interval=interval) }}">
+
+                                <div class="step active">
+                                    <div class="field">
+                                        <fieldset class="email-fieldset">
+                                            <legend>Company name</legend>
+                                            <input type="text" id="company" name="company" required autocomplete="organization" placeholder="Acme Inc.">
+                                        </fieldset>
+                                        <p class="field-error" aria-live="polite"></p>
+                                    </div>
+                                    <div class="field">
+                                        <fieldset class="email-fieldset">
+                                            <legend>Website</legend>
+                                            <input type="url" id="website" name="website" required autocomplete="url" placeholder="acme.com">
+                                        </fieldset>
+                                        <p class="field-error" aria-live="polite"></p>
+                                    </div>
+                                    <div class="step-actions">
+                                        <button type="button" class="main-login-btn valid-email next-btn" onclick="nextStep()">Next</button>
+                                    </div>
+                                </div>
+
+                                <div class="step">
+                                    <div class="field">
+                                        <fieldset class="email-fieldset">
+                                            <legend>Full name</legend>
+                                            <input type="text" id="fullname" name="fullname" required autocomplete="name" placeholder="James Carter">
+                                        </fieldset>
+                                        <p class="field-error" aria-live="polite"></p>
+                                    </div>
+                                    <div class="field">
+                                        <fieldset class="email-fieldset">
+                                            <legend>Email</legend>
+                                            <input type="email" id="email" name="email" required autocomplete="email" placeholder="james@acme.com">
+                                        </fieldset>
+                                        <p class="field-error" aria-live="polite"></p>
+                                    </div>
+                                    <div class="field">
+                                        <fieldset class="email-fieldset">
+                                            <legend>Phone <span class="optional">(optional)</span></legend>
+                                            <input type="tel" id="phone" name="phone" autocomplete="tel" placeholder="+1 555 000 0000">
+                                        </fieldset>
+                                        <p class="field-error" aria-live="polite"></p>
+                                    </div>
+                                    <div class="step-actions">
+                                        <button type="button" class="main-login-btn valid-email next-btn" onclick="nextStep()">Next</button>
+                                    </div>
+                                </div>
+
+                                <div class="step">
+                                    <div class="field">
+                                        <fieldset class="email-fieldset area">
+                                            <legend>Your requirements</legend>
+                                            <textarea id="requirements" name="requirements" rows="4" required placeholder="Tell us about your community, expected volume and anything you need."></textarea>
+                                        </fieldset>
+                                        <p class="field-error" aria-live="polite"></p>
+                                    </div>
+                                    <div class="field">
+                                        <fieldset class="email-fieldset">
+                                            <legend>Budget <span class="optional">(optional)</span></legend>
+                                            <input type="text" id="budget" name="budget" placeholder="e.g. $500 / month">
+                                        </fieldset>
+                                        <p class="field-error" aria-live="polite"></p>
+                                    </div>
+                                    <div class="step-actions">
+                                        <button type="button" class="main-login-btn valid-email next-btn" onclick="nextStep()">Next</button>
+                                    </div>
+                                </div>
+
+                                <div class="step">
+                                    <p class="review-intro">Check your details before you send the request.</p>
+                                    <div class="review-card" id="reviewList"></div>
+                                    <div class="step-actions">
+                                        <button type="submit" id="submitBtn" class="main-login-btn valid-email">Submit request</button>
+                                        <p class="field-error submit-error" id="submitError" aria-live="polite"></p>
+                                    </div>
+                                </div>
+
+                            </form>
+
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
         </div>
-      </div>
+    </div>
 
+    <aside class="auth-right" aria-hidden="true">
+        <div class="auth-hero" style="--hero-img: url('https://images.unsplash.com/photo-1758518726775-70e538b0d46e?w=1600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8YnVzaW5lc3MlMjBwYXJ0bmVyc2hpcHxlbnwwfHwwfHx8MA%3D%3D');">
+            <div class="auth-hero-caption">
+                <h2>Built for communities at scale</h2>
+                <p>Get a plan shaped around your community, with direct support from our team.</p>
+                <ul class="hero-points">
+                    <li>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+                        Unlimited claimed quests
+                    </li>
+                    <li>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+                        Dedicated account manager
+                    </li>
+                    <li>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+                        Pay with crypto
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </aside>
 
-      {% endif %}
-  </form>
 </div>
-
 
 <script>
 const form = document.getElementById('enterpriseForm');
 const steps = document.querySelectorAll('.step');
-const progressSteps = document.querySelectorAll('.progress-step');
+const bars = document.querySelectorAll('.stepper-bar span');
+const stepCount = document.getElementById('stepCount');
+const stepTitle = document.getElementById('stepTitle');
+const logoLink = document.getElementById('logo-link');
+const backBtn = document.getElementById('backBtn');
 const submitBtn = document.getElementById('submitBtn');
+const submitError = document.getElementById('submitError');
+const reviewList = document.getElementById('reviewList');
+const formView = document.getElementById('formView');
+const successView = document.getElementById('successView');
+const refCode = document.getElementById('refCode');
+const nextBtns = document.querySelectorAll('.next-btn');
+const titles = ['Company info', 'Contact details', 'Your requirements', 'Review & submit'];
+const fieldSteps = { company: 0, website: 0, fullname: 1, email: 1, phone: 1, requirements: 2, budget: 2 };
 let currentStep = 0;
+let editing = false;
 
-function showStep(n) {
-  steps.forEach((step, i) => {
-    step.classList.toggle('active', i === n);
-    if (progressSteps[i]) {
-      progressSteps[i].classList.toggle('active', i === n);
-      progressSteps[i].classList.toggle('completed', i < n);
-    }
-  });
+function showStep(n, focus) {
+  steps.forEach((step, i) => step.classList.toggle('active', i === n));
+  bars.forEach((bar, i) => bar.classList.toggle('on', editing || i <= n));
+  stepCount.textContent = editing ? 'Editing' : 'Step ' + (n + 1) + ' of ' + steps.length;
+  stepTitle.textContent = titles[n];
+  nextBtns.forEach(btn => { btn.textContent = editing ? 'Save changes' : 'Next'; });
+  logoLink.classList.toggle('hiding', n > 0 || editing);
+  backBtn.classList.toggle('showing', n > 0 || editing);
+  if (focus) {
+    const first = steps[n].querySelector('input, textarea');
+    if (first) first.focus({ preventScroll: true });
+  }
+}
+
+function goTo(n, edit) {
+  currentStep = n;
+  editing = !!edit;
+  if (n === steps.length - 1) buildReview();
+  showStep(n, true);
 }
 
 function nextStep() {
-  const currentFields = steps[currentStep].querySelectorAll('input[required], textarea[required]');
+  const fields = steps[currentStep].querySelectorAll('input[required], textarea[required]');
   let valid = true;
+  let firstBad = null;
 
-  currentFields.forEach(field => {
-    if (!validateField(field)) {
+  fields.forEach(field => {
+    if (!validateField(field, true)) {
       valid = false;
-      field.focus();
+      if (!firstBad) firstBad = field;
     }
   });
 
-  if (!valid) return;
+  if (!valid) {
+    firstBad.focus();
+    return;
+  }
 
-  if (currentStep < steps.length - 1) {
-    currentStep++;
-    if (currentStep === steps.length - 1) populateReview();
-    showStep(currentStep);
+  if (editing) {
+    goTo(steps.length - 1);
+  } else if (currentStep < steps.length - 1) {
+    goTo(currentStep + 1);
   }
 }
 
 function prevStep() {
-  if (currentStep > 0) {
-    currentStep--;
-    showStep(currentStep);
+  if (editing) {
+    goTo(steps.length - 1);
+  } else if (currentStep > 0) {
+    goTo(currentStep - 1);
   }
 }
-function populateReview() {
-  const review = document.getElementById('reviewList');
-  review.innerHTML = `
-    <li><strong>Company:</strong> <span>${form.company.value}</span></li>
-    <li><strong>Website:</strong> <span>${form.website.value}</span></li>
-    <li><strong>Full Name:</strong> <span>${form.fullname ? form.fullname.value : ''}</span></li>
-    <li><strong>Email:</strong> <span>${form.email ? form.email.value : ''}</span></li>
-    <li><strong>Phone:</strong> <span>${form.phone ? form.phone.value : ''}</span></li>
-    <li><strong>Requirements:</strong> <span>${form.requirements ? form.requirements.value : ''}</span></li>
-    <li><strong>Budget:</strong> <span>${form.budget ? form.budget.value : ''}</span></li>
-  `;
+
+function setError(field, message) {
+  const wrap = field.closest('.field');
+  const fieldset = wrap.querySelector('.email-fieldset');
+  const legend = fieldset.querySelector('legend');
+  const error = wrap.querySelector('.field-error');
+
+  if (message) {
+    fieldset.classList.add('error');
+    legend.classList.add('error-legend');
+    error.textContent = message;
+  } else {
+    fieldset.classList.remove('error');
+    legend.classList.remove('error-legend');
+    error.textContent = '';
+  }
 }
 
+function validateField(field, finalize) {
+  let value = field.value.trim();
 
-showStep(currentStep);
-
-form.addEventListener("submit", (e) => {
-  if (submitBtn) {
-    submitBtn.classList.add("loading");
-    submitBtn.setAttribute("aria-busy", "true");
-    submitBtn.disabled = true;
-  }
-  document.body.classList.add("busy");
-});
-
-// 🔹 Live validation
-form.querySelectorAll('input[required], textarea[required]').forEach(field => {
-  field.addEventListener('input', () => validateField(field));
-  field.addEventListener('blur', () => validateField(field));
-});
-
-function validateField(field) {
-  let error = field.nextElementSibling && field.nextElementSibling.classList.contains('error-message')
-    ? field.nextElementSibling : null;
-
-  // Empty check
-  if (!field.value.trim()) {
-    if (!error) {
-      error = document.createElement('div');
-      error.className = 'error-message';
-      field.parentNode.appendChild(error);
-    }
-    error.innerText = 'Please fill in this field';
-    error.style.display = 'block';
+  if (!value) {
+    setError(field, 'Please fill in this field');
     return false;
   }
 
-  // Email check
-  if (field.type === 'email' && !field.value.includes('@')) {
-    if (!error) {
-      error = document.createElement('div');
-      error.className = 'error-message';
-      field.parentNode.appendChild(error);
-    }
-    error.innerText = 'Email must contain @';
-    error.style.display = 'block';
+  if (field.type === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value)) {
+    setError(field, 'Enter a valid email address');
     return false;
   }
 
-  // URL check
   if (field.type === 'url') {
+    if (finalize && !/^https?:\/\//i.test(value)) {
+      value = 'https://' + value;
+      field.value = value;
+    }
+    const candidate = /^https?:\/\//i.test(value) ? value : 'https://' + value;
     try {
-      new URL(field.value);
+      const url = new URL(candidate);
+      if (!url.hostname.includes('.')) throw new Error('invalid');
     } catch (e) {
-      if (!error) {
-        error = document.createElement('div');
-        error.className = 'error-message';
-        field.parentNode.appendChild(error);
-      }
-      error.innerText = 'Please enter a valid website URL (e.g. https://example.com)';
-      error.style.display = 'block';
+      setError(field, 'Enter a valid website, like acme.com');
       return false;
     }
   }
 
-  // ✅ If valid → hide error
-  if (error) error.style.display = 'none';
+  setError(field, '');
   return true;
 }
 
-// 🔹 Prevent Enter/Go from skipping steps
-form.addEventListener("keydown", function(e) {
-  if (e.key === "Enter") {
-    e.preventDefault();
-    if (currentStep < steps.length - 1) {
-      nextStep();
-    } else {
-      form.requestSubmit();
+function buildReview() {
+  const rows = [
+    ['Company name', form.company.value, 0],
+    ['Website', form.website.value, 0],
+    ['Full name', form.fullname.value, 1],
+    ['Email', form.email.value, 1],
+    ['Phone', form.phone.value, 1],
+    ['Requirements', form.requirements.value, 2],
+    ['Budget', form.budget.value, 2]
+  ];
+
+  reviewList.innerHTML = '';
+
+  rows.forEach(([label, value, step]) => {
+    const row = document.createElement('div');
+    row.className = 'review-row';
+
+    const text = document.createElement('div');
+    text.className = 'review-text';
+
+    const labelEl = document.createElement('span');
+    labelEl.className = 'review-label';
+    labelEl.textContent = label;
+
+    const valueEl = document.createElement('span');
+    valueEl.className = 'review-value';
+    valueEl.textContent = value.trim() || '—';
+
+    text.append(labelEl, valueEl);
+
+    const edit = document.createElement('button');
+    edit.type = 'button';
+    edit.className = 'review-edit';
+    edit.textContent = 'Edit';
+    edit.addEventListener('click', () => goTo(step, true));
+
+    row.append(text, edit);
+    reviewList.appendChild(row);
+  });
+}
+
+function setBusy(on) {
+  submitBtn.classList.toggle('loading', on);
+  submitBtn.disabled = on;
+  document.body.classList.toggle('busy', on);
+  if (on) {
+    submitBtn.setAttribute('aria-busy', 'true');
+  } else {
+    submitBtn.removeAttribute('aria-busy');
+  }
+}
+
+function showSuccess(code) {
+  refCode.textContent = code;
+  formView.hidden = true;
+  successView.hidden = false;
+  backBtn.classList.remove('showing');
+  logoLink.classList.remove('hiding');
+}
+
+function applyServerErrors(errors) {
+  let earliest = null;
+
+  Object.keys(errors).forEach(name => {
+    const field = form.elements[name];
+    if (!field) return;
+    setError(field, errors[name]);
+    const step = fieldSteps[name];
+    if (earliest === null || step < earliest) earliest = step;
+  });
+
+  if (earliest !== null) goTo(earliest, true);
+}
+
+async function submitRequest() {
+  const payload = {
+    company: form.company.value.trim(),
+    website: form.website.value.trim(),
+    fullname: form.fullname.value.trim(),
+    email: form.email.value.trim(),
+    phone: form.phone.value.trim(),
+    requirements: form.requirements.value.trim(),
+    budget: form.budget.value.trim()
+  };
+
+  submitError.textContent = '';
+  setBusy(true);
+
+  try {
+    const res = await fetch(form.dataset.api, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+      },
+      credentials: 'same-origin',
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (res.ok && data.success) {
+      showSuccess(data.reference_code);
+      return;
     }
+
+    if (data.errors) {
+      applyServerErrors(data.errors);
+    } else {
+      submitError.textContent = data.error || 'Something went wrong. Please try again.';
+    }
+  } catch (err) {
+    submitError.textContent = 'Network error. Check your connection and try again.';
+  }
+
+  setBusy(false);
+}
+
+backBtn.addEventListener('click', prevStep);
+
+form.querySelectorAll('input[required], textarea[required]').forEach(field => {
+  field.addEventListener('input', () => {
+    if (field.closest('.field').querySelector('.email-fieldset').classList.contains('error')) {
+      validateField(field, false);
+    }
+  });
+  field.addEventListener('blur', () => {
+    if (field.value.trim()) validateField(field, true);
+  });
+});
+
+form.addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'BUTTON') return;
+  e.preventDefault();
+  if (currentStep < steps.length - 1) {
+    nextStep();
+  } else {
+    form.requestSubmit();
   }
 });
+
+form.addEventListener('submit', e => {
+  e.preventDefault();
+  if (submitBtn.disabled) return;
+  submitRequest();
+});
+
+showStep(currentStep, false);
 </script>
+
+</body>
+</html>

@@ -13,11 +13,23 @@
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
 
 <style>
+
+  @property --edge-hi {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: rgba(255, 255, 255, 0.42);
+  }
+  @property --edge-lo {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: rgba(255, 255, 255, 0.05);
+  }
+
   :root {
     --bg-app: #0b0b12;
-    --bg-surface: #222236;
-    --bg-surface-lower: #191929;
     --bg-hover: #2a2a44;
+    --bg-hover-hover-plain: #232339;
+    --bg-hover-hover: #2a2a449c;
     --border: #2f2f4a;
     --border-light: #404060;
     --accent-color: #6366f1;
@@ -25,19 +37,26 @@
     --accent-25: color-mix(in srgb, var(--accent-color) 25%, transparent);
     --text-main: #e5e7eb;
     --text-muted: #bbbfc7;
-    --green: #2ecc71;
     --red: #e74c3c;
-    --radius: 14px;
+    --radius: 16px;
     --font-heading: 'Syne', sans-serif;
     --font-body: 'DM Sans', sans-serif;
+
+    --edge-hi: rgba(255, 255, 255, 0.42);
+    --edge-lo: rgba(255, 255, 255, 0.05);
+    --edge-w: 1px;
+    --field-fill: #11111c;
   }
 
+  @media (min-resolution: 2dppx) {
+    :root { --edge-w: 0.75px; }
+  }
 
   * {
     box-sizing: border-box;
     font-family: var(--font-body) !important;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(140, 140, 140, 0.6) transparent;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
     -webkit-tap-highlight-color: transparent;
   }
 
@@ -68,7 +87,6 @@
     height: 97dvh;
   }
 
-
   .main-it-minner {
     padding: 30px;
     height: 100%;
@@ -96,23 +114,48 @@
 
   input,
   textarea,
-  select {
-    width: 100%;
-    padding: 14px 14px;
-    border-radius: 15px;
-    border: 0.9px solid var(--border);
-    background: var(--bg-surface-lower);
-    color: var(--text-main);
-    font-size: 14px;
-    outline: none;
-    transition: all 0.2s ease;
+  select,
+  .zcash-badge,
+  .btn-outline {
+    border: var(--edge-w) solid transparent;
+    background:
+      linear-gradient(var(--field-fill), var(--field-fill)) padding-box,
+      linear-gradient(
+        135deg,
+        var(--edge-hi) 0%,
+        var(--edge-lo) 28%,
+        var(--edge-lo) 72%,
+        var(--edge-hi) 100%
+      ) border-box;
+    transition: --edge-hi 0.25s ease, --edge-lo 0.25s ease,
+                background-color 0.2s ease, transform 0.2s ease;
+  }
+
+  input:hover,
+  textarea:hover,
+  select:hover,
+  .btn-outline:hover {
+    --edge-hi: rgba(255, 255, 255, 0.75);
+    --edge-lo: rgba(255, 255, 255, 0.08);
   }
 
   input:focus,
   textarea:focus,
   select:focus {
-    border-color: var(--accent-color);
-    background: var(--bg-surface);
+    --edge-hi: #4285f4;
+    --edge-lo: rgba(255, 255, 255, 0.06);
+  }
+
+  input,
+  textarea,
+  select {
+    width: 100%;
+    padding: 14px 16px;
+    border-radius: 18px;
+    color: var(--text-main);
+    font-size: 14px;
+    outline: none;
+    caret-color: #fff;
   }
 
   textarea {
@@ -120,37 +163,56 @@
     min-height: 110px;
   }
 
+  select {
+    min-height: 10px !important;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--text-muted);
+    font-size: 14px;
+    opacity: 0.8;
+  }
+
   .hint {
     font-size: 12px;
     color: var(--text-muted);
-    margin-top: 6px;
+    margin-top: 8px;
+    text-align: left;
   }
 
   .upload-box {
-    width: 100%;
-    height: 150px;
-    border: 1px dashed var(--border-light);
-    border-radius: var(--radius);
+    width: clamp(130px, 45%, 230px);
+    aspect-ratio: 1 / 1;
+    margin: 0;
+    border-radius: 22px;
     display: flex;
     justify-content: center;
     align-items: center;
+    text-align: center;
+    padding: 12px;
     cursor: pointer;
     color: var(--text-muted);
+    font-size: 13px;
     position: relative;
-    background: var(--bg-surface-lower);
-    transition: 0.2s ease;
+    overflow: hidden;
+    border: 0.9px dashed rgba(255, 255, 255, 0.35);
+    background: var(--field-fill);
+    transition: border-color 0.2s ease, background-color 0.2s ease;
   }
 
   .upload-box:hover {
     border-color: var(--accent-color);
-    background: var(--bg-hover);
+    background: #161625;
   }
 
   .preview-img {
     position: absolute;
-    max-height: 100%;
-    max-width: 100%;
+    inset: 10px;
+    width: calc(100% - 20px);
+    height: calc(100% - 20px);
     object-fit: contain;
+    border-radius: 14px;
     display: none;
   }
 
@@ -158,49 +220,47 @@
     position: absolute;
     top: 8px;
     right: 8px;
-    font-size: 14px;
-    cursor: pointer;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
     display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    cursor: pointer;
+    background: rgba(0, 0, 0, 0.55);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    z-index: 2;
+  }
+
+  .remove-btn:hover {
+    background: rgba(255, 0, 0, 0.25);
   }
 
   .error-box {
     background: rgba(231, 76, 60, 0.08);
     color: var(--red);
     padding: 10px 14px;
-    border-radius: 10px;
+    border-radius: 12px;
     margin-top: 10px;
     font-size: 13px;
   }
 
-  ::-webkit-scrollbar {
-    width: 4px;         
-    height: 4px;         
+  .error-box:empty {
+    display: none;
   }
 
-
-  ::-webkit-scrollbar-track {
-    background: transparent; 
+  *::-webkit-scrollbar {
+    display: none;
   }
 
-  
-  ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);  
-    border-radius: 10px;
-  }
-
-
-  ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.4);
-  }
-  
   .zcash-badge {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 14px;
-    border-radius: 15px;
-    border: 0.9px solid var(--border);
-    background: var(--bg-surface-lower);
+    padding: 14px 16px;
+    border-radius: 18px;
     color: var(--text-main);
     font-size: 14px;
   }
@@ -212,24 +272,32 @@
 
   .button-row {
     display: flex;
-    gap: 10px;
+    gap: 12px;
     margin-top: 28px;
   }
 
   .btn {
     flex: 1;
-    height: 40px;
-    border-radius: 10px;
+    height: 44px;
+    border-radius: 24px;
     font-weight: 600;
-    font-size: 13px;
+    font-size: 14px;
     cursor: pointer;
     border: none;
     transition: 0.2s ease;
   }
 
   .btn-outline {
-    background: transparent;
-    border: 1px solid var(--border);
+    border: var(--edge-w) solid transparent;
+    background:
+      linear-gradient(var(--bg-hover-hover-plain), var(--bg-hover-hover-plain)) padding-box,
+      linear-gradient(
+        135deg,
+        var(--edge-hi) 0%,
+        var(--edge-lo) 28%,
+        var(--edge-lo) 72%,
+        var(--edge-hi) 100%
+      ) border-box;
     color: var(--text-main);
     display: flex;
     align-items: center;
@@ -238,15 +306,32 @@
   }
 
   .btn-outline:hover {
-    background: var(--bg-hover);
+    transform: translateY(-1px);
   }
 
   .btn-primary {
-    background: var(--accent-color);
+    --btn-fill: #3f7fe8;
+    --edge-hi: rgba(255, 255, 255, 0.6);
+    --edge-lo: rgba(255, 255, 255, 0.12);
+    border: var(--edge-w) solid transparent;
+    background:
+      linear-gradient(var(--btn-fill), var(--btn-fill)) padding-box,
+      linear-gradient(
+        135deg,
+        var(--edge-hi) 0%,
+        var(--edge-lo) 28%,
+        var(--edge-lo) 72%,
+        var(--edge-hi) 100%
+      ) border-box;
     color: white;
+    transition: --edge-hi 0.25s ease, --edge-lo 0.25s ease,
+                transform 0.2s ease, box-shadow 0.2s ease;
   }
 
   .btn-primary:hover {
+    --btn-fill: #3a76db;
+    --edge-hi: rgba(255, 255, 255, 0.9);
+    --edge-lo: rgba(255, 255, 255, 0.18);
     transform: translateY(-1px);
     box-shadow: 0 6px 18px var(--accent-45);
   }
@@ -254,6 +339,11 @@
   .btn-primary:active {
     transform: translateY(0);
     box-shadow: 0 3px 10px var(--accent-25);
+  }
+
+  .btn:disabled {
+    opacity: 0.75;
+    cursor: default;
   }
 
   ::selection {
@@ -265,30 +355,17 @@
     .container {
       padding: 0;
       border-radius: 0 !important;
-      width: 100% !important;  
+      width: 100% !important;
       background-color: transparent !important;
       border: 1px solid transparent !important;
       box-shadow: none !important;
     }
 
-  .main-it-minner {
-    padding: 32px 14px !important;
-    width: 100% !important;  
-    min-width: 100% !important;  
-  }
-  }
-
-
-  input::placeholder,
-  textarea::placeholder {
-    color: var(--text-muted);
-    font-size: 14px;
-    opacity: 0.8;
-  }
-
-
-  select {
-    min-height: 10px !important;
+    .main-it-minner {
+      padding: 32px 14px !important;
+      width: 100% !important;
+      min-width: 100% !important;
+    }
   }
 </style>
 </head>
@@ -298,52 +375,45 @@
 <div class="container">
   <div class="main-it-minner">
 
-
     <h2>Hello, {{ user.username }} — start building your community</h2>
     <p>Let people know more about your community.</p>
     <p>You can always update this later in Settings.</p>
 
+    <h4>Upload your community logo</h4>
 
-      <h4>Upload your community logo</h4>
-
-      <div id="uploadBox" class="upload-box">
-        Click to upload logo
-        <img id="previewImg" class="preview-img" alt="Preview">
-        <div id="removeBtn" class="remove-btn">❌</div>
-      </div>
-
-      {% if logo_error %}
-        <div class="error-box">{{ logo_error }}</div>
-      {% endif %}
-
-      <p class="hint">Recommended size: 200 × 200 px (max 1 MB)</p>
-
-      <input id="fileInput" name="logo" type="file" accept="image/*" hidden>
-
-      <h4>Name</h4>
-      <input type="text" name="name" placeholder="Your community name" required>
-
-      <h4>About</h4>
-      <textarea name="about" placeholder="Tell us more about your community"></textarea>
-
-      <h4>Network</h4>
-      <div class="zcash-badge">
-        <svg width="18" height="18" viewBox="-5 -10 110 135" fill="currentColor" stroke="currentColor" style="position: relative; top: 2px">
-          <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
-        </svg>
-        <span>Zcash (ZEC) · Shielded</span>
-      </div>
-
-      <div class="button-row">
-        <a href="{{ url_for('admin_panel') }}" class="btn btn-outline"  onclick="event.preventDefault(); navigateTo(this.href);">Back</a>
-        <button id="createBtn" class="btn btn-primary" style="display: flex; align-items: center; justify-content: center">Create Community</button>
-      </div>
+    <div id="uploadBox" class="upload-box">
+      <span class="upload-text">Click to upload logo</span>
+      <img id="previewImg" class="preview-img" alt="Preview">
+      <div id="removeBtn" class="remove-btn">✕</div>
     </div>
 
+    <p class="hint">Recommended size: 200 × 200 px (max 1 MB)</p>
 
+    <input id="fileInput" name="logo" type="file" accept="image/*" hidden>
 
+    <div class="error-box">{% if logo_error %}{{ logo_error }}{% endif %}</div>
+
+    <h4>Name</h4>
+    <input type="text" name="name" placeholder="Your community name" required>
+
+    <h4>About</h4>
+    <textarea name="about" placeholder="Tell us more about your community"></textarea>
+
+    <h4>Network</h4>
+    <div class="zcash-badge">
+      <svg width="18" height="18" viewBox="-5 -10 110 135" fill="currentColor" stroke="currentColor" style="position: relative; top: 2px">
+        <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
+      </svg>
+      <span>Zcash (ZEC) · Shielded</span>
+    </div>
+
+    <div class="button-row">
+      <a href="{{ url_for('admin_panel') }}" class="btn btn-outline" onclick="event.preventDefault(); navigateTo(this.href);">Back</a>
+      <button id="createBtn" class="btn btn-primary" style="display: flex; align-items: center; justify-content: center">Create Community</button>
+    </div>
+
+  </div>
 </div>
-
 
 <script>
   const uploadBox = document.getElementById('uploadBox');
@@ -351,30 +421,32 @@
   const removeBtn = document.getElementById('removeBtn');
   const previewImg = document.getElementById('previewImg');
   const uploadText = uploadBox.querySelector('.upload-text');
+  const errorBox = document.querySelector('.error-box');
   const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute("content");
 
   const IsloadingInit = `
-  <svg xmlns="["http://www.w3.org/2000/svg"" http://www.w3.org/2000/svg"] viewBox="0 0 200 200" width="20" height="20"><radialGradient id="a11" cx=".66" fx=".66" cy=".3125" fy=".3125" gradientTransform="scale(1.5)"><stop offset="0" stop-color="currentColor" stop-opacity="0"></stop><stop offset=".2" stop-color="currentColor" stop-opacity=".3"></stop><stop offset=".4" stop-color="currentColor" stop-opacity=".6"></stop><stop offset=".7" stop-color="currentColor" stop-opacity=".9"></stop><stop offset="1" stop-color="currentColor"></stop></radialGradient><circle transform-origin="center" fill="none" stroke="url(#a11)" stroke-width="20" stroke-linecap="round" stroke-dasharray="200 1000" stroke-dashoffset="0" cx="100" cy="100" r="70"><animateTransform type="rotate" attributeName="transform" calcMode="spline" dur="1" values="0;360" keyTimes="0;1" keySplines="0 0 1 1" repeatCount="indefinite"></animateTransform></circle><circle transform-origin="center" fill="none" opacity=".2" stroke="currentColor" stroke-width="20" stroke-linecap="round" cx="100" cy="100" r="70"></circle></svg>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="20" height="20"><radialGradient id="a11" cx=".66" fx=".66" cy=".3125" fy=".3125" gradientTransform="scale(1.5)"><stop offset="0" stop-color="currentColor" stop-opacity="0"></stop><stop offset=".2" stop-color="currentColor" stop-opacity=".3"></stop><stop offset=".4" stop-color="currentColor" stop-opacity=".6"></stop><stop offset=".7" stop-color="currentColor" stop-opacity=".9"></stop><stop offset="1" stop-color="currentColor"></stop></radialGradient><circle transform-origin="center" fill="none" stroke="url(#a11)" stroke-width="20" stroke-linecap="round" stroke-dasharray="200 1000" stroke-dashoffset="0" cx="100" cy="100" r="70"><animateTransform type="rotate" attributeName="transform" calcMode="spline" dur="1" values="0;360" keyTimes="0;1" keySplines="0 0 1 1" repeatCount="indefinite"></animateTransform></circle><circle transform-origin="center" fill="none" opacity=".2" stroke="currentColor" stroke-width="20" stroke-linecap="round" cx="100" cy="100" r="70"></circle></svg>
   `;
+
+  function showError(msg) {
+    errorBox.textContent = msg;
+  }
 
   const CreateBtnner = document.getElementById("createBtn");
   CreateBtnner.addEventListener("click", async () => {
 
     const name = document.querySelector('input[name="name"]').value.trim();
     const about = document.querySelector('textarea[name="about"]').value.trim();
-    const fileInput = document.getElementById("fileInput");
 
-    const errorBox = document.querySelector(".error-box");
-
-    if (errorBox) errorBox.textContent = "";
+    showError("");
 
     if (!name) {
-      if (errorBox) errorBox.textContent = "Name is required";
+      showError("Name is required");
       return;
     }
 
     if (!fileInput.files[0]) {
-      if (errorBox) errorBox.textContent = "Logo is required";
+      showError("Logo is required");
       return;
     }
 
@@ -400,7 +472,7 @@
       const data = await res.json();
 
       if (!res.ok) {
-        if (errorBox) errorBox.textContent = data.error || "Something went wrong";
+        showError(data.error || "Something went wrong");
         CreateBtnner.innerHTML = originalText;
         CreateBtnner.disabled = false;
         return;
@@ -410,12 +482,11 @@
 
     } catch (err) {
       console.error(err);
-      if (errorBox) errorBox.textContent = "Network error";
+      showError("Network error");
       CreateBtnner.innerHTML = originalText;
       CreateBtnner.disabled = false;
     }
   });
-
 
   uploadBox.addEventListener('click', () => fileInput.click());
 
@@ -429,36 +500,23 @@
       return;
     }
 
-    const url = URL.createObjectURL(file);
-
-    // ✅ Use the <img> instead of background-image
-    previewImg.src = url;
+    previewImg.src = URL.createObjectURL(file);
     previewImg.style.display = 'block';
     uploadText.style.display = 'none';
-    removeBtn.style.display = 'block';
+    removeBtn.style.display = 'flex';
   });
 
   removeBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     fileInput.value = '';
-    previewImg.src = '';
+    previewImg.removeAttribute('src');
     previewImg.style.display = 'none';
     uploadText.style.display = 'block';
     removeBtn.style.display = 'none';
   });
-
-  const createBtn = document.getElementById('createBtn');
-  if (createBtn) {
-    createBtn.addEventListener('click', (event) => {
-      if (!fileInput.value) {
-        alert('Please upload a logo before continuing.');
-        event.preventDefault();
-      }
-    });
-  }
 </script>
 
-  <script src="{{ url_for('static', filename='form-guard.js') }}"  defer></script>
+<script src="{{ url_for('static', filename='form-guard.js') }}" defer></script>
 
 </body>
 </html>

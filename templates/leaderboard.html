@@ -1133,6 +1133,108 @@ body.no-scroll {
   transition: opacity 0.2s;
   pointer-events: none;
 }
+
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid #e5e7eb19;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.export-btn:hover { background: rgba(255,255,255,0.14); }
+
+/* ---------- EXPORT MODAL (extras on top of modal-glass) ---------- */
+.export-loading {
+  display: flex;
+  justify-content: center;
+  padding: 28px 0;
+}
+.export-spinner {
+  width: 26px;
+  height: 26px;
+  border: 3px solid var(--border);
+  border-top-color: var(--text-main);
+  border-radius: 50%;
+  animation: exportSpin 0.7s linear infinite;
+}
+@keyframes exportSpin { to { transform: rotate(360deg); } }
+
+.modal-input.invalid { border-color: #ff5a5a; }
+
+.export-counter {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  text-align: right;
+  margin-top: 6px;
+}
+.export-counter.over { color: #ff5a5a; }
+
+.export-error {
+  font-size: 12.5px !important;
+  color: #ff5a5a;
+  margin: 8px 0 0;
+}
+
+.export-input {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 6px;
+  padding: 13px 15px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--text-main);
+  background: var(--bg-app-export);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  outline: none;
+  transition: border-color 0.2s ease;
+  -moz-appearance: textfield;
+}
+.export-input::placeholder { color: var(--text-muted); font-size: 13px;}
+.export-input:focus { border-color: var(--accent-color); }
+.export-input.invalid { border-color: #ff5a5a; }
+
+.export-input::-webkit-outer-spin-button,
+.export-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.modal-actions.push-downer.export button{
+  padding: 8px 23px;
+  border-radius: 16px !important;
+}
+
+#exportCancelBtn {
+  background-color: #25253b !important;
+  border: 0.9px solid var(--border);
+}
+
+#exportCancelBtn:hover {
+  background-color: var(--bg-surface-lighter);
+}
+
+#exportConfirmBtn {
+  background-color: #4286f4e4 !important;
+}
+
+#exportConfirmBtn:hover {
+  background-color: #3a75d3;
+}
 </style>
 {# --- CREATE STATE HOLDERS --- #}
 {% set ns = namespace(live=None, upcoming=None) %}
@@ -1175,7 +1277,18 @@ body.no-scroll {
 
         <div class="info-content">
           <div class="contain-container" style="margin: 0;">
-            <h1 id="previewTitle" class="sprint-title">All Time</h1>
+            <div class="title-row" style="width: 100%; justify-content: space-between;">
+              <h1 id="previewTitle" class="sprint-title">All Time</h1>
+
+              {% if can_manage_sprints %}
+              <button type="button" id="exportBtn" class="export-btn" data-scope="all">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M5.25589 16C3.8899 15.0291 3 13.4422 3 11.6493C3 9.20008 4.8 6.9375 7.5 6.5C8.34694 4.48637 10.3514 3 12.6893 3C15.684 3 18.1317 5.32251 18.3 8.25C19.8893 8.94488 21 10.6503 21 12.4969C21 14.0582 20.206 15.4339 19 16.2417M12 21V11M12 21L9 18M12 21L15 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Export
+              </button>
+              {% endif %}
+            </div>
           </div>
 
           <div class="participants-meta">

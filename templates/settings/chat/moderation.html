@@ -1,4 +1,15 @@
 <style>
+  @property --edge-hi {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: rgba(255, 255, 255, 0.42);
+  }
+  @property --edge-lo {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: rgba(255, 255, 255, 0.05);
+  }
+
   @media (min-width: 768px) {
 
   .channel-permission-card {
@@ -38,6 +49,10 @@
   }
 
   .permission-list {
+    --edge-hi: rgba(255, 255, 255, 0.253);
+    --edge-lo: rgba(255, 255, 255, 0.05);
+    --edge-w: 1px;
+    position: relative;
     margin-top: 20px;
     display: flex;
     flex-direction: column;
@@ -46,7 +61,31 @@
     background: var(--bg-surface);
     border-radius: 20px;
     padding: 20px;
-    border: 1px solid var(--border);
+    border: var(--edge-w) solid transparent;
+  }
+
+  @media (min-resolution: 2dppx) {
+    .permission-list { --edge-w: 0.75px; }
+  }
+
+  .permission-list::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: var(--edge-w);
+    border-radius: inherit;
+    background: linear-gradient(
+      135deg,
+      var(--edge-hi) 0%,
+      var(--edge-lo) 28%,
+      var(--edge-lo) 72%,
+      var(--edge-hi) 100%
+    );
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
   }
 
   .permission-row {
@@ -72,36 +111,71 @@
   }
 
   .toggle-switch-mod {
+    --edge-hi: rgba(255, 255, 255, 0.253);
+    --edge-lo: rgba(255, 255, 255, 0.05);
+    --edge-w: 1px;
     position: relative;
-    width: 42px;
-    height: 22px;
+    width: 58px;
+    height: 30px;
+    flex-shrink: 0;
+  }
+
+  @media (min-resolution: 2dppx) {
+    .toggle-switch-mod { --edge-w: 0.75px; }
   }
 
   .toggle-switch-mod input {
-    opacity: 0;
-    width: 0;
-    height: 0;
+    display: none;
   }
 
   .slider {
     position: absolute;
-    cursor: pointer;
     inset: 0;
-    background: var(--bg-hover);
+    background: rgba(120, 120, 128, 0.5);
     border-radius: 999px;
-    transition: background 0.25s ease;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  }
+
+  .slider::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: var(--edge-w);
+    border-radius: inherit;
+    background: linear-gradient(
+      135deg,
+      var(--edge-hi) 0%,
+      var(--edge-lo) 28%,
+      var(--edge-lo) 72%,
+      var(--edge-hi) 100%
+    );
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
   }
 
   .slider::before {
     content: "";
     position: absolute;
-    height: 18px;
-    width: 18px;
-    left: 2px;
-    top: 2px;
-    background: var(--toggle-knob);
-    border-radius: 50%;
-    transition: transform 0.25s ease;
+    left: 3px;
+    top: 3px;
+    width: 34px;
+    height: 24px;
+    background: #fff;
+    border-radius: 999px;
+    box-shadow:
+      0 3px 8px rgba(0, 0, 0, 0.35),
+      0 0 0 2px rgba(255, 255, 255, 0.16);
+    transition:
+      transform 0.4s cubic-bezier(0.34, 1.4, 0.64, 1),
+      width 0.25s cubic-bezier(0.34, 1.4, 0.64, 1);
+  }
+
+  .toggle-switch-mod:active .slider::before {
+    width: 40px;
   }
 
   .toggle-switch-mod input:checked + .slider {
@@ -109,15 +183,47 @@
   }
 
   .toggle-switch-mod input:checked + .slider::before {
-    transform: translateX(20px);
+    transform: translateX(18px);
+  }
+
+  .toggle-switch-mod:active input:checked + .slider::before {
+    transform: translateX(12px);
   }
 
   .permission-override {
+    --edge-hi: rgba(250, 204, 21, 0.65);
+    --edge-lo: rgba(250, 204, 21, 0.1);
+    --edge-w: 1px;
+    position: relative;
     margin-top: 22px;
     padding: 16px 16px;
     border-radius: 18px;
     background: var(--info-bg);
-    border: 1px solid var(--info-border);
+    border: var(--edge-w) solid transparent;
+  }
+
+  @media (min-resolution: 2dppx) {
+    .permission-override { --edge-w: 0.75px; }
+  }
+
+  .permission-override::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: var(--edge-w);
+    border-radius: inherit;
+    background: linear-gradient(
+      135deg,
+      var(--edge-hi) 0%,
+      var(--edge-lo) 28%,
+      var(--edge-lo) 72%,
+      var(--edge-hi) 100%
+    );
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
   }
 
   .override-header strong {
@@ -237,7 +343,6 @@
 
     </div>
 
-  <!-- ROLE OVERRIDES -->
   <div class="permission-override">
     <div class="override-header">
       <strong>Role Overrides</strong>
@@ -257,4 +362,3 @@
     </p>
   </div>
 </div>
-    

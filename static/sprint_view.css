@@ -1304,3 +1304,106 @@ body.no-scroll {
 .reward-zone-label svg {
   flex-shrink: 0;
 }
+
+
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid #e5e7eb19;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.export-btn:hover { background: rgba(255,255,255,0.14); }
+
+/* ---------- EXPORT MODAL (extras on top of modal-glass) ---------- */
+.export-loading {
+  display: flex;
+  justify-content: center;
+  padding: 28px 0;
+}
+.export-spinner {
+  width: 26px;
+  height: 26px;
+  border: 3px solid var(--border);
+  border-top-color: var(--text-main);
+  border-radius: 50%;
+  animation: exportSpin 0.7s linear infinite;
+}
+@keyframes exportSpin { to { transform: rotate(360deg); } }
+
+.modal-input.invalid { border-color: #ff5a5a; }
+
+.export-counter {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  text-align: right;
+  margin-top: 6px;
+}
+.export-counter.over { color: #ff5a5a; }
+
+.export-error {
+  font-size: 12.5px !important;
+  color: #ff5a5a;
+  margin: 8px 0 0;
+}
+
+.export-input {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 6px;
+  padding: 13px 15px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--text-main);
+  background: var(--bg-app-export);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  outline: none;
+  transition: border-color 0.2s ease;
+  -moz-appearance: textfield;
+}
+.export-input::placeholder { color: var(--text-muted); font-size: 13px;}
+.export-input:focus { border-color: var(--accent-color); }
+.export-input.invalid { border-color: #ff5a5a; }
+
+.export-input::-webkit-outer-spin-button,
+.export-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.modal-actions.push-downer.export button{
+  padding: 8px 23px;
+  border-radius: 16px !important;
+}
+
+#exportCancelBtn {
+  background-color: #25253b !important;
+  border: 0.9px solid var(--border);
+}
+
+#exportCancelBtn:hover {
+  background-color: var(--bg-surface-lighter);
+}
+
+#exportConfirmBtn {
+  background-color: #4286f4e4 !important;
+}
+
+#exportConfirmBtn:hover {
+  background-color: #3a75d3;
+}

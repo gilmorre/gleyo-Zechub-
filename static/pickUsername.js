@@ -1,135 +1,128 @@
-function pickUsername(){
+function pickUsername() {
   const input = document.getElementById('username-input');
-  const form = input.closest('form');
-  const serverError = document.getElementById('username-server-error');
+  const fieldset = document.getElementById('usernameFieldset');
+  const errorEl = document.getElementById('username-error');
+  const btn = document.getElementById('continueBtn');
 
-  let validationError = document.getElementById('username-uppercase-error');
-  if (!validationError) {
-    validationError = document.createElement('p');
-    validationError.id = 'username-uppercase-error';
-    validationError.style.color = 'rgba(255, 0, 0, 0.771)';
-    validationError.style.display = 'none';
-    input.insertAdjacentElement('afterend', validationError);
+  if (!input || !fieldset || !errorEl || !btn) {
+    console.error('pickUsername: missing element(s)');
+    return;
   }
 
+  const allowedRegex = /^[a-z0-9_]+$/;
+  let isSaving = false;
 
-  const allowedRegex = /^[a-z0-9._@-]+$/;
+  function showError(msg) {
+    errorEl.textContent = msg;
+    errorEl.style.display = 'block';
+    fieldset.classList.add('error');
+    fieldset.classList.remove('valid');
+    btn.classList.remove('ready');
+  }
+
+  function clearError() {
+    errorEl.textContent = '';
+    errorEl.style.display = 'none';
+    fieldset.classList.remove('error');
+  }
+
+  function validate(value, strict) {
+    if (value === '') return strict ? 'Username cannot be empty.' : null;
+    if (value !== value.toLowerCase()) return 'Username must be all lowercase letters.';
+    if (/\s/.test(value)) return 'Username cannot contain spaces.';
+    if (!allowedRegex.test(value)) return 'Only letters, numbers and underscores are allowed.';
+    if (value.length > 20) return 'Username must be 20 characters or less.';
+    if (strict && value.length < 3) return 'Username must be at least 3 characters.';
+    return null;
+  }
 
   input.addEventListener('input', () => {
-    if (serverError) serverError.style.display = 'none';
-
     const value = input.value;
+    const msg = validate(value, false);
 
-    if (value !== value.toLowerCase()) {
-      validationError.textContent = 'Username must be all lowercase letters.';
-      validationError.style.display = 'block';
-    } 
-    else if (/\s/.test(value)) {
-      validationError.textContent = 'Username cannot contain spaces.';
-      validationError.style.display = 'block';
-    }
-    else if (!allowedRegex.test(value)) {  
-      validationError.textContent = 'Username contains invalid characters.';
-      validationError.style.display = 'block';
-    }
-    else {
-      validationError.style.display = 'none';
-    }
-  });
-
-  input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      const value = input.value.trim();
-
-      if (value === '') {
-        validationError.textContent = 'Username cannot be empty.';
-        validationError.style.display = 'block';
-        return;
-      }
-
-      if (value !== value.toLowerCase()) {
-        validationError.textContent = 'Username must be all lowercase letters.';
-        validationError.style.display = 'block';
-        return;
-      }
-
-      if (/\s/.test(value)) {
-        validationError.textContent = 'Username cannot contain spaces.';
-        validationError.style.display = 'block';
-        return;
-      }
-
-      if (!allowedRegex.test(value)) { 
-        validationError.textContent = 'Username contains invalid characters.';
-        validationError.style.display = 'block';
-        return;
-      }
-
-      form.dispatchEvent(new Event('submit', { cancelable: true }));
-    }
-  });
-
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    const value = input.value.trim();
-
-    if (
-      value === '' ||
-      value !== value.toLowerCase() ||
-      /\s/.test(value) ||
-      !allowedRegex.test(value)
-    ) {
-      validationError.style.display = 'block';
+    if (msg) {
+      showError(msg);
       return;
     }
-    const btn = document.getElementById("continueBtn");
 
-    btn.disabled = true;
-    btn.textContent = "Saving...";
-    const res = await fetch("/api/pick-username", {
-    method: "POST",
-    headers: {
-        "Content-Type": "application/json",
-        "X-CSRFToken": getCSRFToken()
-    },
-    body: JSON.stringify({
-        username: value
-    })
-    });
+    clearError();
 
-    const data = await res.json();
+    const ok = validate(value, true) === null;
+    btn.classList.toggle('ready', ok);
+    fieldset.classList.toggle('valid', ok);
+  });
 
-    if (data.error) {
-        validationError.textContent = data.error;
-        validationError.style.display = 'block';
+  async function submitUsername() {
+    if (isSaving) return;
 
-        btn.disabled = false;
-        btn.textContent = "Continue";
+    const value = input.value.trim();
+    const msg = validate(value, true);
 
-        return;
+    if (msg) {
+      showError(msg);
+      input.focus();
+      return;
     }
 
-    if (data.redirect) {
+    clearError();
+    isSaving = true;
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+
+    try {
+      const res = await fetch('/api/pick-username', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCSRFToken()
+        },
+        body: JSON.stringify({ username: value })
+      });
+
+      const data = await res.json();
+
+      if (data.error) {
+        showError(data.error);
+        return;
+      }
+
+      if (data.redirect) {
         const response = await fetch(data.redirect, {
-            headers: { "X-Requested-With": "XMLHttpRequest" }
+          headers: { 'X-Requested-With': 'XMLHttpRequest' }
         });
 
         const html = await response.text();
 
-        const container = document.getElementById("innerconntect");
+        const container = document.getElementById('innerconntect');
         container.innerHTML = html;
 
-        window.history.pushState({}, "", data.redirect);
+        window.history.pushState({}, '', data.redirect);
 
-        await runPageScript(); 
+        await runPageScript();
+      }
+    } catch (err) {
+      console.error('pick-username failed:', err);
+      showError('Something went wrong. Please try again.');
+    } finally {
+      isSaving = false;
+      if (document.body.contains(btn)) {
+        btn.disabled = false;
+        btn.textContent = 'Continue';
+      }
+    }
+  }
+
+  btn.addEventListener('click', submitUsername);
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      submitUsername();
     }
   });
 
-
+  input.focus();
 }
-
 
 
 function forceReflow() {
@@ -139,17 +132,3 @@ function forceReflow() {
     document.body.style.minHeight = window.innerHeight + "px";
   }, 50);
 }
-
-function handleFocusOut(e) {
-  const el = e.target;
-
-  if (
-    el.tagName === "INPUT" ||
-    el.tagName === "TEXTAREA" ||
-    el.isContentEditable
-  ) {
-
-  }
-}
-
-document.addEventListener("focusout", handleFocusOut);

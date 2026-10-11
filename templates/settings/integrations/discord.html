@@ -1,5 +1,63 @@
 <style>
+  @property --edge-hi {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: rgba(255, 255, 255, 0.42);
+  }
+  @property --edge-lo {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: rgba(255, 255, 255, 0.05);
+  }
 
+  .linked-card,
+  .notify-container,
+  .notify-card,
+  .smart-dd-trigger,
+  .notify-switch {
+    --edge-hi: rgba(255, 255, 255, 0.253);
+    --edge-lo: rgba(255, 255, 255, 0.05);
+    --edge-w: 1px;
+  }
+
+  .linked-btn {
+    --edge-hi: rgba(130, 142, 255, 0.75);
+    --edge-lo: rgba(88, 101, 242, 0.12);
+    --edge-w: 1px;
+  }
+
+  @media (min-resolution: 2dppx) {
+    .linked-card,
+    .notify-container,
+    .notify-card,
+    .smart-dd-trigger,
+    .notify-switch,
+    .linked-btn { --edge-w: 0.75px; }
+  }
+
+  .linked-card::before,
+  .notify-container::before,
+  .notify-card::before,
+  .smart-dd-trigger::before,
+  .linked-btn::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: var(--edge-w);
+    border-radius: inherit;
+    background: linear-gradient(
+      135deg,
+      var(--edge-hi) 0%,
+      var(--edge-lo) 28%,
+      var(--edge-lo) 72%,
+      var(--edge-hi) 100%
+    );
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
 
   @media (min-width: 768px) {
   #discord {
@@ -22,11 +80,12 @@
   }
 
   .linked-card {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 14px;
     background: var(--bg-surface);
-    border: 1px solid var(--border);
+    border: var(--edge-w) solid transparent;
     border-radius: var(--radius);
     padding: 16px 18px;
     max-width: 420px;
@@ -70,23 +129,21 @@
     background: #4752c4;
   }
 
-  /* ---------- CONNECTED STATE ---------- */
-
   .linked-btn {
+    position: relative;
     background: rgba(88, 101, 242, 0.15);
     color: #9fa7ff;
-    border: 1px solid rgba(88, 101, 242, 0.3);
+    border: var(--edge-w) solid transparent;
     padding: 10px 14px;
     border-radius: var(--radius);
     margin-bottom: 20px;
     font-size: 14px;
   }
 
-  /* ---------- NOTIFICATION CONTAINER ---------- */
-
   .notify-container {
+    position: relative;
     background: var(--bg-surface);
-    border: 1px solid var(--border);
+    border: var(--edge-w) solid transparent;
     border-radius: var(--radius);
     padding: 22px;
   }
@@ -105,8 +162,6 @@
     color: var(--text-muted);
     margin-top: 4px;
   }
-
-  /* ---------- GRID ---------- */
 
   .notify-grid {
     display: grid;
@@ -127,11 +182,9 @@
   }
 
 
-  /* ---------- CARD ---------- */
-
   .notify-card {
     background: var(--bg-app);
-    border: 1px solid var(--border);
+    border: var(--edge-w) solid transparent;
     border-radius: var(--radius);
     padding: 16px;
     position: relative;
@@ -149,40 +202,65 @@
     margin-bottom: 14px;
   }
 
-  /* ---------- TOGGLE ---------- */
-
   .notify-switch {
     position: relative;
-    width: 46px;
-    height: 26px;
+    width: 58px;
+    height: 30px;
     flex-shrink: 0;
   }
 
   .notify-switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
+    display: none;
   }
 
   .notify-slider {
     position: absolute;
     inset: 0;
-    background: var(--border);
+    background: rgba(120, 120, 128, 0.5);
     border-radius: 999px;
     cursor: pointer;
-    transition: background 0.2s ease;
+    transition: background 0.3s ease;
+  }
+
+  .notify-slider::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: var(--edge-w);
+    border-radius: inherit;
+    background: linear-gradient(
+      135deg,
+      var(--edge-hi) 0%,
+      var(--edge-lo) 28%,
+      var(--edge-lo) 72%,
+      var(--edge-hi) 100%
+    );
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
   }
 
   .notify-slider::before {
     content: "";
     position: absolute;
-    height: 20px;
-    width: 20px;
     left: 3px;
     top: 3px;
-    background: white;
-    border-radius: 50%;
-    transition: transform 0.2s ease;
+    width: 34px;
+    height: 24px;
+    background: #fff;
+    border-radius: 999px;
+    box-shadow:
+      0 3px 8px rgba(0, 0, 0, 0.35),
+      0 0 0 2px rgba(255, 255, 255, 0.16);
+    transition:
+      transform 0.4s cubic-bezier(0.34, 1.4, 0.64, 1),
+      width 0.25s cubic-bezier(0.34, 1.4, 0.64, 1);
+  }
+
+  .notify-switch:active .notify-slider::before {
+    width: 40px;
   }
 
   .notify-switch input:checked + .notify-slider {
@@ -190,10 +268,12 @@
   }
 
   .notify-switch input:checked + .notify-slider::before {
-    transform: translateX(20px);
+    transform: translateX(18px);
   }
 
-  /* ---------- OPTIONS ---------- */
+  .notify-switch:active input:checked + .notify-slider::before {
+    transform: translateX(12px);
+  }
 
 
 
@@ -205,8 +285,6 @@
     justify-content: space-between;
     gap: 12px;
   }
-
-  /* ---------- SAVE BUTTON ---------- */
 
   .notify-action {
     margin-top: 22px;
@@ -232,8 +310,9 @@
   }
 
   .smart-dd-trigger {
+    position: relative;
     background: var(--bg-surface);
-    border: 1px solid var(--border);
+    border: var(--edge-w) solid transparent;
     border-radius: 8px;
     padding: 8px 10px;
     font-size: 13px;
@@ -241,10 +320,12 @@
     justify-content: space-between;
     align-items: center;
     cursor: pointer;
+    transition: --edge-hi .2s, --edge-lo .2s;
   }
 
   .smart-dd-trigger:hover {
-    border-color: #5865f2;
+    --edge-hi: rgba(88, 101, 242, 0.9);
+    --edge-lo: rgba(88, 101, 242, 0.2);
   }
 
   .smart-dd-menu {
@@ -261,12 +342,10 @@
     z-index: 50;
   }
 
-  /* default = drop down */
   .smart-dd.drop-down .smart-dd-menu {
     top: calc(100% + 6px);
   }
 
-  /* smart up */
   .smart-dd.drop-up .smart-dd-menu {
     bottom: calc(100% + 6px);
   }
@@ -342,7 +421,6 @@
 
         <div class="notify-grid">
 
-        <!-- Card: New Quest -->
         {% set setting = notification_settings.get("new_quest") %}
         <div class="notify-card">
 
@@ -363,7 +441,6 @@
             </p>
             <div class="notify-options" {% if not setting %}style="display:none"{% endif %}>
 
-            <!-- CHANNEL DROPDOWN -->
             <div class="smart-dd"
                 data-type="channel"
                 data-selected="{{ setting.channel_id if setting else '' }}">
@@ -381,7 +458,6 @@
                 <div class="smart-dd-menu"></div>
             </div>
 
-            <!-- ROLE DROPDOWN -->
             <div class="smart-dd"
                 data-type="role"
                 data-selected="{{ setting.role_id if setting else '' }}">
@@ -421,4 +497,3 @@
     {% endif %}
 
 </div>
-

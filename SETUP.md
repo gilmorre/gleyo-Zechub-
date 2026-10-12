@@ -1,6 +1,6 @@
 # Gleyo — Full Setup Guide
 
-This covers everything needed to run Gleyo with full ZEC functionality on real Zcash mainnet: environment variables, Supabase, the Zebra full node, and the Nozy Wallet API server. For just getting the app itself running locally, see the Setup section in [README.md](./README.md).
+This covers everything needed to run Gleyo with full ZEC functionality on real Zcash mainnet: environment variables, Supabase, the Zcash full node (Zakura in production), and the Nozy Wallet API server. For just getting the app itself running locally, see the Setup section in [README.md](./README.md).
 
 ---
 
@@ -10,7 +10,7 @@ This covers everything needed to run Gleyo with full ZEC functionality on real Z
   - ⚠️ **Python 3.14 is not currently supported.** `pythonnet==3.0.5` (a dependency) does not support 3.14 yet. If your system ships with Python 3.14 by default, see [Linux: installing Python 3.12 with pyenv](#linux-installing-python-312-with-pyenv) below.
 - Git
 - Rust (for building the Nozy API server)
-- A running Zebra node (Ubuntu VPS, 400GB+ SSD recommended) — **only required for real mainnet ZEC transactions**, not for local development. See [Nozy & Local Development](#nozy--local-development).
+- A running Zcash full node (Ubuntu VPS, 400GB+ SSD recommended) — **only required for real mainnet ZEC transactions**, not for local development. Gleyo's production deployment runs Zakura; the install steps below use Zebra. See [Nozy & Local Development](#nozy--local-development).
 
 ---
 
@@ -270,7 +270,7 @@ App runs at **http://127.0.0.1:8000**
 
 ## Nozy & Local Development
 
-You do **not** need a local Zebra node or Nozy setup to develop Gleyo. The following all work locally out of the box, using just Supabase and your `.env`:
+You do **not** need a local Zcash node or Nozy setup to develop Gleyo. The following all work locally out of the box, using just Supabase and your `.env`:
 
 - Community features
 - Chat
@@ -278,7 +278,7 @@ You do **not** need a local Zebra node or Nozy setup to develop Gleyo. The follo
 - Analytics
 - Uploads
 
-The **production mainnet ZEC payment flow is intentionally protected behind our server firewall**. This means you won't be able to perform real ZEC transactions from your local machine unless you configure your own Nozy/Zebra infrastructure, as described below.
+The **production mainnet ZEC payment flow is intentionally protected behind our server firewall**. This means you won't be able to perform real ZEC transactions from your local machine unless you configure your own Nozy and Zcash node infrastructure, as described below.
 
 ### Generating a Nozy API key
 
@@ -298,9 +298,11 @@ LIGHTWALLETD_GRPC=your_host:port
 
 ---
 
-## Zebra Node Setup
+## Zcash Node Setup
 
-Only needed if you want to run real mainnet ZEC transactions locally (see [Nozy & Local Development](#nozy--local-development) above). Gleyo uses a self-hosted Zebra full node for Zcash mainnet access. Nozy Wallet connects to Zebra directly — no lightwalletd required for this path.
+Only needed if you want to run real mainnet ZEC transactions locally (see [Nozy & Local Development](#nozy--local-development) above). Gleyo's production deployment uses Zakura as its self-hosted Zcash full node, and Nozy Wallet connects to the node directly — no lightwalletd required for this path.
+
+The steps below install **Zebra**, the Zcash Foundation full node Gleyo originally launched on. For Zakura, follow that project's own install instructions.
 
 ### Install Rust
 
@@ -318,15 +320,15 @@ cargo install --locked --bin zebrad zebrad
 zebrad start
 ```
 
-> Zebra must sync to Orchard activation height (~1.8M blocks) before Nozy can operate. Full sync to mainnet tip (~3.4M+ blocks) is required for live withdrawals and deposit verification.
+> The node must sync to Orchard activation height (~1.8M blocks) before Nozy can operate. Full sync to mainnet tip (~3.4M+ blocks) is required for live withdrawals and deposit verification.
 
-> Keep Zebra on the latest stable tagged release (not a release-candidate/`-rc` build). Zebra's built-in "end of support" check will force-stop the node once a build falls too far behind — check `git describe --tags` against the newest tag under [Releases](https://github.com/ZcashFoundation/zebra/tags) periodically.
+> If you run Zebra, keep it on the latest stable tagged release (not a release-candidate/`-rc` build). Zebra's built-in "end of support" check will force-stop the node once a build falls too far behind — check `git describe --tags` against the newest tag under [Releases](https://github.com/ZcashFoundation/zebra/tags) periodically.
 
 ---
 
 ## Nozy API Server Setup
 
-The [Nozy Wallet](https://github.com/LEONINE-DAO/Nozy-wallet) API server by LEONINE DAO is a Rust REST API that wraps the Nozy wallet backend and exposes it via HTTP on port 3000. Gleyo uses it to sync with Zebra, check balances, and send shielded transactions.
+The [Nozy Wallet](https://github.com/LEONINE-DAO/Nozy-wallet) API server by LEONINE DAO is a Rust REST API that wraps the Nozy wallet backend and exposes it via HTTP on port 3000. Gleyo uses it to sync with the Zcash node, check balances, and send shielded transactions.
 
 ```bash
 # Install protobuf compiler (required for zeaking/build.rs)

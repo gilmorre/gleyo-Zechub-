@@ -2,7 +2,7 @@
 
 Gleyo is a Zcash-native quest and community growth platform where any project — Zcash ecosystem or otherwise — can create tasks, reward contributors directly in ZEC, and track real community retention. No vanity metrics, no multi-token complexity, no detached Discord. Just ZEC, shielded by default.
 
-Built for the [ZecHub Hackathon 2026](https://zechub.wiki/hackathon) — Infrastructure Track.
+Started at the [ZecHub Hackathon 2026](https://zechub.wiki/hackathon) (Infrastructure Track) and still in active development.
 
 🔗 **Live:** [gleyo.app](https://gleyo.app)
 
@@ -10,9 +10,13 @@ Gleyo's feature set naturally spans the contributor lifecycle — education, onb
 
 ---
 
-## Traction
+## Traction (as of October 2026)
 
-- **35+ weekly active users** processing real mainnet ZEC — live in closed beta, not a testnet demo
+- Live on Zcash mainnet in closed beta with **300+ registered users**
+- Proof of Privacy campaign: 239 users, 1,091 quest starts, 1,002 completions (91.8%), 54.12% 7-day retention
+- Built-in community chat: 462 messages from 38 members
+- In use by Zcash Ghana (Developer Residency), ZecForge (Heat Index), and the ZEC Developer Community (recurring developer quizzes)
+- Zodl partnership drove 129 app downloads through Gleyo
 - Deposits, quest rewards, and shielded withdrawals all running end-to-end on Zcash mainnet
 - Multi-token funding (USDT/USDC → ZEC via NEAR Intents) live alongside direct ZEC funding
 
@@ -40,7 +44,7 @@ Any project building on Zcash — or any project outside the ecosystem that want
 
 **For project owners:**
 - Create a community and fund it by sending ZEC to Gleyo's shielded address
-- Gleyo verifies the deposit via Nozy Wallet + Zebra node (balance delta check on Zcash mainnet)
+- Gleyo verifies the deposit via Nozy Wallet + Zakura node (balance delta check on Zcash mainnet)
 - Create quests with XP rewards and/or ZEC token rewards
 - Publish quests — funds are locked per quest from the community wallet
 - Review submissions and approve — ZEC is credited to the winner's reward hub automatically
@@ -89,8 +93,8 @@ flowchart LR
     Flask --> PG[(PostgreSQL<br/>AWS RDS)]
     Flask --> Redis[(Redis<br/>AWS EC2)]
     Flask --> Nozy[Nozy Wallet API<br/>Contabo VPS]
-    Nozy --> Zebra[Zebra Full Node<br/>Contabo VPS]
-    Zebra --> Mainnet((Zcash Mainnet))
+    Nozy --> Zakura[Zakura Full Node<br/>Contabo VPS]
+    Zakura --> Mainnet((Zcash Mainnet))
 
     Flask -.-> GitHub[GitHub OAuth]
     Flask -.-> Discord[Discord Bot]
@@ -101,9 +105,9 @@ flowchart LR
     Defuse -.-> Nozy
 ```
 
-Cloudflare fronts the Flask app and handles DNS/TLS termination. The Flask app and Redis run on AWS EC2, with PostgreSQL on AWS RDS. Everything ZEC-related goes through the Nozy Wallet API, which runs on a separate Contabo VPS alongside the self-hosted Zebra full node, decoupled from the app tier by design.
+Cloudflare fronts the Flask app and handles DNS/TLS termination. The Flask app and Redis run on AWS EC2, with PostgreSQL on AWS RDS. Everything ZEC-related goes through the Nozy Wallet API, which runs on a separate Contabo VPS alongside the self-hosted Zakura full node, decoupled from the app tier by design.
 
-Nozy's port is not publicly exposed. UFW restricts access to the Flask app's EC2 IP, and every request is authenticated using an API key as a second layer of security. Nozy communicates with Zebra over RPC for balance checks, deposit verification, and shielded transactions, while Zebra maintains its own P2P connection to the Zcash mainnet. Task verification integrations (GitHub, Discord, Telegram, and YouTube), together with email delivery (Resend/SMTP), are shown as dotted lines because they are independent, non-blocking outbound calls from the Flask app. USDT/USDC funding follows the same dotted, non-blocking pattern: the Flask app calls NEAR Intents (Defuse Protocol) to quote and route the swap, and Defuse settles the converted ZEC to Gleyo's shielded Orchard address — the same deposit address Nozy already watches — so no separate confirmation path is needed on Gleyo's side once the swap completes.
+Nozy is not publicly exposed and requires API-key authentication on every request. Nozy communicates with Zakura over RPC for balance checks, deposit verification, and shielded transactions, while Zakura maintains its own P2P connection to the Zcash mainnet. Task verification integrations (GitHub, Discord, Telegram, and YouTube), together with email delivery (Resend/SMTP), are shown as dotted lines because they are independent, non-blocking outbound calls from the Flask app. USDT/USDC funding follows the same dotted, non-blocking pattern: the Flask app calls NEAR Intents (Defuse Protocol) to quote and route the swap, and Defuse settles the converted ZEC to Gleyo's shielded Orchard address — the same deposit address Nozy already watches — so no separate confirmation path is needed on Gleyo's side once the swap completes.
 
 ---
 
@@ -112,7 +116,7 @@ Nozy's port is not publicly exposed. UFW restricts access to the Flask app's EC2
 ```
 Project owner sends ZEC to Gleyo shielded address
         ↓
-Gleyo verifies via Nozy API sync (balance delta on Zebra node)
+Gleyo verifies via Nozy API sync (balance delta on Zakura node)
         ↓
 Community wallet credited in zatoshi
         ↓
@@ -124,7 +128,7 @@ ZEC credited to user's Gleyo reward hub (UserBalance)
         ↓
 User withdraws to their shielded address (typed/pasted, or auto-filled if a wallet was optionally linked)
         ↓
-Gleyo sends via Nozy API → Zebra node → Zcash mainnet
+Gleyo sends via Nozy API → Zakura node → Zcash mainnet
         ↓
 Transaction confirms in user's wallet within ~3 minutes
 ```
@@ -137,14 +141,14 @@ All transactions are shielded Orchard spends. The memo field on every withdrawal
 
 - **Backend** — Python (Flask), SQLAlchemy, PostgreSQL (production) / SQLite (local dev)
 - **Frontend** — HTML, CSS, JavaScript (no framework)
-- **Zcash node** — [Zebra](https://github.com/ZcashFoundation/zebra) (Zcash Foundation full node)
+- **Zcash node** — Zakura (Zcash full node)
 - **Wallet backend** — [Nozy Wallet](https://github.com/LEONINE-DAO/Nozy-wallet) by LEONINE DAO (Rust, runs on port 3000)
 - **Task integrations** — GitHub OAuth, Discord bot, Telegram bot, YouTube API, link-visit tasks (Twitter/X, TikTok, and webhook-based verification in progress — see limitations)
 - **Email** — Resend + SMTP fallback
 - **Push notifications** — Web Push (VAPID)
 - **Cache** — Redis (also used for session storage, with automatic fallback to filesystem sessions if unavailable)
 
-> Gleyo does not require lightwalletd. Nozy Wallet connects to Zebra directly for compact block sync and shielded transaction broadcasting.
+> Gleyo does not require lightwalletd. Nozy Wallet connects to the Zcash node directly for compact block sync and shielded transaction broadcasting.
 
 ---
 
@@ -203,19 +207,19 @@ Once your `.env` has been configured correctly, the application will be availabl
 - Optional wallet verification uses a 0.00001 ZEC micro-transaction with a session code in the shielded memo field, purely so Gleyo can remember the address and save the user from re-pasting it on future withdrawals
 - Quest rewards are credited to users' in-app balances on approval
 - Withdrawals are sent as shielded Orchard transactions via Nozy API with memo `Gleyo ZEC Withdrawal`, to any Unified shielded address the user provides
-- All on-chain activity goes through Zcash mainnet via the self-hosted Zebra node
+- All on-chain activity goes through Zcash mainnet via the self-hosted Zakura node
 
 ---
 
 ## Live on Zcash Mainnet
 
-A confirmed shielded withdrawal, processed end-to-end through Gleyo's Nozy + Zebra integration:
+A confirmed shielded withdrawal, processed end-to-end through Gleyo's Nozy + Zcash node integration:
 
 **1. Fee calculated at withdrawal request** — Gleyo shows the exact amount the user will receive after network fees:
 
 <img src="./static/fee-calculated.jpg" style="width: 250px; border-radius: 8px; object-fit: contain; display: block;" alt="Gleyo calculating withdrawal fee before sending">
 
-**2. Withdrawal submitted** — the transaction is sent via Nozy API to the Zebra node:
+**2. Withdrawal submitted** — the transaction is sent via Nozy API to the Zcash node:
 
 <img src="./static/withdrawal-success.jpg" style="width: 250px; border-radius: 8px; object-fit: contain; display: block;" alt="Successful ZEC withdrawal submitted">
 
@@ -230,13 +234,15 @@ A confirmed shielded withdrawal, processed end-to-end through Gleyo's Nozy + Zeb
 Gleyo is live and processing real ZEC on mainnet, but it's currently in closed beta while these are addressed before public launch:
 
 - **Security audit** — the codebase has been tested extensively in production with real funds, but hasn't yet had an independent third-party review.
-- **Infrastructure redundancy** — Zebra and Nozy currently run on a single VPS without failover.
+- **Infrastructure redundancy** — Zakura and Nozy currently run on a single VPS without failover.
 - **Unified addresses only** — withdrawals currently require a Unified (u1...) shielded address, routed through Orchard. Legacy Sapling-only wallets (zs1...) aren't yet supported for receiving withdrawals; users on older wallets will need to upgrade to a Unified-address wallet.
-- **Twitter/X, TikTok, and webhook task verification** — GitHub, Discord, Telegram, YouTube, and link-visit task verification are fully live. Twitter/X verification is currently blocked by API access costs; TikTok requires video-based verification that's still in development; webhook-based task verification is also still under development. All three are being worked on post-hackathon.
+- **Twitter/X, TikTok, and webhook task verification** — GitHub, Discord, Telegram, YouTube, and link-visit task verification are fully live. Twitter/X verification is currently blocked by API access costs; TikTok requires video-based verification that's still in development; webhook-based task verification is also still under development.
 
 ---
 
 ## Future work
+
+* **Subscription billing** — Free, Standard, Pro, and Enterprise plans with card (Stripe) or wallet-balance payment, currently in development.
 
 * **Member rewards** — enable project owners to send direct ZEC tips to active community members from within the community chat to encourage participation and recognize contributions.
 
@@ -246,8 +252,6 @@ Gleyo is live and processing real ZEC on mainnet, but it's currently in closed b
 
 * **Additional notification channels & automation** — expand notifications beyond browser push to include smarter delivery preferences, community activity alerts, and automated engagement workflows.
 
-* **Billing & invoicing tab** — explore optional integration with Zcash-native payment infrastructure (e.g. CipherPay) to support recurring community funding, billing, and invoicing workflows directly in ZEC while preserving Gleyo's native funding model.
-
 * **Expanded multi-token on-ramp** — USDT/USDC funding (via Polygon, BSC, and Base) is live today, auto-converted to ZEC through NEAR Intents. Still to come: ETH, SOL, and fiat on-ramps, using the same auto-convert-to-ZEC model so the platform stays 100% ZEC-native end-to-end regardless of what funding rail a project owner uses.
 
 ---
@@ -255,7 +259,7 @@ Gleyo is live and processing real ZEC on mainnet, but it's currently in closed b
 ## Credits & Thanks
 
 - **[LOWO](https://github.com/lowo88)** — creator of [Nozy Wallet](https://github.com/LEONINE-DAO/Nozy-wallet), for the relentless bug fixes and quick turnarounds that made shielded payment verification and withdrawals possible
-- **[Zcash Foundation](https://www.zfnd.org/)** — for building and maintaining [Zebra](https://github.com/ZcashFoundation/zebra), the full node powering all of Gleyo's mainnet activity
+- **[Zcash Foundation](https://www.zfnd.org/)** — for building and maintaining [Zebra](https://github.com/ZcashFoundation/zebra), the full node Gleyo launched its mainnet activity on
 - **[Dismad](https://github.com/dismad)** — for pointing me toward the [ZecHub Developer docs](https://zechub.wiki/developers/quick-start) and guiding me on setting up Zebra
 - **[Tron](https://github.com/onajifortune)** — whose tutorial video was a huge help in getting Zebra running
 - **Dre & the ZecHub Developer Workshop series** — for creating the space that connected builders with the knowledge, discussions, and technical sessions that helped shape parts of Gleyo's journey.
@@ -266,7 +270,7 @@ Gleyo is live and processing real ZEC on mainnet, but it's currently in closed b
 
 ## Demo
 
-[Watch the demo](https://youtu.be/Har9yk9Ep04)
+[Watch the demo](https://youtu.be/ftnIXVrD_D0)
 
 ---
 

@@ -37,12 +37,10 @@ const SWAPPING_RECHECK = 20;
 const NETWORKS_BY_TOKEN = {
   USDT: [
     { value: 'Polygon', label: 'Polygon' },
-    { value: 'BSC', label: 'BNB Smart Chain (BSC)' }
   ],
   USDC: [
     { value: 'Base', label: 'Base' },
     { value: 'Polygon', label: 'Polygon' },
-    { value: 'BSC', label: 'BNB Smart Chain (BSC)' }
   ],
   ZEC: [
     { value: 'Zcash', label: 'Zcash' }

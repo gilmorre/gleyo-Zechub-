@@ -122,13 +122,37 @@ function checkEmptyState() {
 
 function appendSkeletons(count) {
   const list = document.querySelector(".team-members-list");
+  const sentinel = list.querySelector(".team-members-sentinel");
   for (let i = 0; i < count; i++) {
-    list.insertAdjacentHTML("beforeend", buildSkeletonHTML());
+    const html = buildSkeletonHTML();
+    if (sentinel) sentinel.insertAdjacentHTML("beforebegin", html);
+    else list.insertAdjacentHTML("beforeend", html);
   }
 }
 
 function removeSkeletons() {
   document.querySelectorAll(".team-member.skeleton-row").forEach(el => el.remove());
+}
+
+function animateBoxHeight(box, from) {
+  box.style.height = "";
+  const to = box.offsetHeight;
+  if (from === to) return;
+
+  clearTimeout(box._hTimer);
+  box.style.height = from + "px";
+  box.classList.add("animating");
+  void box.offsetHeight;  
+  box.style.height = to + "px";
+
+  const finish = () => {
+    box.style.height = "";
+    box.classList.remove("animating");
+    box.removeEventListener("transitionend", onEnd);
+  };
+  const onEnd = (e) => { if (e.propertyName === "height") finish(); };
+  box.addEventListener("transitionend", onEnd);
+  box._hTimer = setTimeout(finish, 500); // safety fallback
 }
 
 async function fetchMembers({ replace = false } = {}) {
@@ -137,14 +161,15 @@ async function fetchMembers({ replace = false } = {}) {
 
   memberLoading = true;
 
+  const box = document.querySelector(".all-team-conatiner");
   const list = document.querySelector(".team-members-list");
   const heading = list.querySelector("h3");
+  const startHeight = box.offsetHeight;
 
   if (replace) {
     memberOffset = 0;
     memberHasMore = true;
-    list.querySelectorAll(".team-member").forEach(el => el.remove());
-    appendSkeletons(3);
+    list.classList.add("loading");
   } else {
     appendSkeletons(3);
   }
@@ -166,10 +191,16 @@ async function fetchMembers({ replace = false } = {}) {
       return;
     }
 
+    if (replace) {
+      list.querySelectorAll(".team-member").forEach(el => el.remove());
+    }
+
     if (heading) heading.textContent = `${data.total_members} Members`;
 
+    const sentinel = list.querySelector(".team-members-sentinel");
     data.members.forEach(m => {
-      list.insertAdjacentHTML("beforeend", buildMemberHTML(m));
+      if (sentinel) sentinel.insertAdjacentHTML("beforebegin", buildMemberHTML(m));
+      else list.insertAdjacentHTML("beforeend", buildMemberHTML(m));
     });
 
     applyAvatarColors(list);
@@ -183,7 +214,9 @@ async function fetchMembers({ replace = false } = {}) {
     removeSkeletons();
     showToast("❌ Network error", "error");
   } finally {
+    list.classList.remove("loading");
     memberLoading = false;
+    if (replace) animateBoxHeight(box, startHeight);
   }
 }
 
@@ -221,7 +254,7 @@ function setupSearch() {
       searchDebounceTimer = setTimeout(() => {
         memberSearch = value;
         fetchMembers({ replace: true }).then(setupInfiniteScroll);
-      }, 2000);
+      }, 400);
     });
   });
 }

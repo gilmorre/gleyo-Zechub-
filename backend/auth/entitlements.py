@@ -3,7 +3,7 @@ from functools import wraps
 from sqlalchemy import func
 from flask import jsonify
 
-from backend.auth.billing_stripe import (
+from backend.auth.billing_paystack import (
     BillingError, CLAIM_LIMITS, get_active_subscription,
 )
 from backend.communities.community_models import Community

@@ -23820,18 +23820,26 @@ function isEditModeActive() {
   return editBlob && editBlob.style.display === "block";
 }
 
-function applyEditedState(wrapper, text) {
-
+async function applyEditedState(wrapper, text) {
   const messageEl = wrapper.querySelector(".message");
   if (!messageEl) return;
 
   const textEl = messageEl.querySelector(".text");
   if (!textEl) return;
 
+  await resolveTokens([text]);
+
+  if (!wrapper.isConnected) return;
+
   const escaped = escapeHTML(text);
-  const safeHTML = stylizeLinks(escaped);
+  let safeHTML = stylizeLinks(escaped);
+  if (!is_mobile) safeHTML = replaceUnicodeEmojiWithSVG(safeHTML);
+  safeHTML = highlightMentions(safeHTML);
+  safeHTML = highlightCustomEmojis(safeHTML);
 
   textEl.innerHTML = safeHTML;
+
+  textEl.classList.toggle("emoji-only", isEmojiOnlyText(textEl));
 
   wrapper.classList.add("edited");
 
@@ -23843,7 +23851,6 @@ function applyEditedState(wrapper, text) {
     meta.appendChild(edited);
   }
 }
-
 function buildVoiceContent({
   wrapper,
   safeHTML,
@@ -29965,7 +29972,6 @@ function handleEmojiPick(emoji) {
 }
 
 function reactToTargetMessage({ emojiKey, emojiChar }) {
-
   if (!activeReactionMsgId) return;
 
   const wrapper = document.querySelector(
@@ -30333,7 +30339,7 @@ function showVariantPopup(targetEl, variants) {
   popup.style.borderRadius = "25px";
   popup.style.border = "1px solid var(--border)";
   popup.style.backdropFilter = "blur(3px)";
-  popup.style.background = "var(--bg-card-glassy)";
+  popup.style.background = "var(--card-bg-glassy)";
   popup.style.boxShadow = "0 6px 20px rgba(0,0,0,0.4)";
   popup.style.zIndex = 9999;
   popup.style.whiteSpace = "nowrap";
@@ -33462,21 +33468,71 @@ async function ensureCustomEmojisLoaded() {
   }
 }
 
+function makeCustomReactionImg(custom) {
+  const img = document.createElement("img");
+  img.className = "reaction-emoji reaction-custom-emoji";
+  img.src = custom.image_url;
+  img.alt = `:${custom.name}:`;
+  img.draggable = false;
+  img.style.width = "18px";
+  img.style.height = "18px";
+  img.style.objectFit = "contain";
+  img.style.verticalAlign = "middle";
+  return img;
+}
+
+// Reactions can render before the community emoji list has loaded.
+// They get a placeholder first, then the real image once the list arrives.
+let customReactionRefreshQueued = false;
+
+function queueCustomReactionRefresh() {
+  if (customReactionRefreshQueued) return;
+  customReactionRefreshQueued = true;
+
+  const slug = CurrentActiveChat.communitySlug;
+  // force = true so an emoji added after the last load is picked up too
+  const load = slug ? fetchServerEmojis(slug, true) : Promise.resolve();
+
+  load
+    .catch(err => console.error("Custom reaction emoji load failed:", err))
+    .finally(() => {
+      customReactionRefreshQueued = false;
+      refreshPendingCustomReactions();
+    });
+}
+
+function refreshPendingCustomReactions() {
+  document.querySelectorAll(".reaction-custom-pending").forEach(ph => {
+    const custom = resolveCustomReaction(ph.dataset.customKey);
+
+    if (custom) {
+      ph.replaceWith(makeCustomReactionImg(custom));
+    } else {
+      // emoji no longer exists (deleted from the server)
+      ph.classList.remove("reaction-custom-pending");
+      ph.textContent = "▫️";
+      ph.style.fontSize = "16px";
+      ph.style.lineHeight = "1";
+    }
+  });
+}
+
 function buildReactionVisual(key, char) {
   if (isCustomReactionKey(key)) {
     const custom = resolveCustomReaction(key);
-    if (!custom) return null;
+    if (custom) return makeCustomReactionImg(custom);
 
-    const img = document.createElement("img");
-    img.className = "reaction-emoji reaction-custom-emoji";
-    img.src = custom.image_url;
-    img.alt = `:${custom.name}:`;
-    img.draggable = false;
-    img.style.width = "18px";
-    img.style.height = "18px";
-    img.style.objectFit = "contain";
-    img.style.verticalAlign = "middle";
-    return img;
+    // list not loaded yet: placeholder now, real image when it arrives
+    const ph = document.createElement("span");
+    ph.className = "reaction-emoji reaction-custom-pending";
+    ph.dataset.customKey = key;
+    ph.style.display = "inline-block";
+    ph.style.width = "18px";
+    ph.style.height = "18px";
+    ph.style.verticalAlign = "middle";
+
+    queueCustomReactionRefresh();
+    return ph;
   }
 
   if (!char) return null;
@@ -33637,7 +33693,6 @@ async function loadServerEmojiSection() {
   }
 }
 </script>
-
 <style>
 #emoji-picker .se-grid {
   display: grid;

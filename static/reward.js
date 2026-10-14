@@ -809,8 +809,8 @@ let currentDepositId = null, depCheckInterval = null, depPhaseEnd = null, depTim
 const DEP_ACTIVE = 10, DEP_COOLDOWN = 30, DEP_SWAP_RECHECK = 20;
 
 const DEP_NETWORKS_BY_TOKEN = {
-  USDT: [{ value:'Polygon', label:'Polygon' }, { value:'BSC', label:'BNB Smart Chain (BSC)' }],
-  USDC: [{ value:'Base', label:'Base' }, { value:'Polygon', label:'Polygon' }, { value:'BSC', label:'BNB Smart Chain (BSC)' }],
+  USDT: [{ value:'Polygon', label:'Polygon' }],
+  USDC: [{ value:'Base', label:'Base' }, { value:'Polygon', label:'Polygon' }],
   ZEC:  [{ value:'Zcash', label:'Zcash' }]
 };
 

@@ -153,24 +153,33 @@ import backend.utils.ai_init as ai_init
 # ─────────────────────────────────────────────────────────────
 # INTERNAL — BLUEPRINTS / OAUTH
 # ─────────────────────────────────────────────────────────────
-from backend.auth.googleOauth import google_bp
-from backend.auth.billing_stripe import (
+from backend.auth.googleOauth import google_bp 
+from backend.auth.billing_paystack import (
     BillingError,
-    STRIPE_PUBLISHABLE_KEY,
-    CLAIM_LIMITS,
-    get_active_subscription,
-    consume_claim,
     get_billing_community,
-    resume_card_subscription,
-    cancel_card_subscription,
-    claims_open,
-    get_extra_left,
-    quest_packs_for_template,
+    CLAIM_LIMITS,
     create_plan_payment,
     create_pack_payment,
     is_ready,
+    set_expiry_scheduler, 
+    set_wallet_debit,
+    consume_claim,
+    claims_open,
     subscription_payload,
+    quest_packs_for_template,
+    get_extra_left,
+    get_active_subscription,
+    cancel_card_subscription,
+    resume_card_subscription,
+    verify_webhook_signature,
+    handle_paystack_event,
 )
+
+from backend.billing.crypto_checkout import (
+    create_checkout, verify_checkout, checkout_payload, get_zec_usd_rate,
+    poll_pending_checkouts, verify_for_button
+)
+from backend.billing.crypto_models import CryptoCheckout
 from backend.communities.community_subscription_models import CommunitySubscription, EnterpriseRequest, CommunityPayment
 from backend.communities.community_claim_pack_models import CommunityExtraClaims, ClaimPackPurchase
 from backend.integrations.telegramAPI import telegram_bp
@@ -429,8 +438,7 @@ with app.app_context():
 start_bot_in_background(app) #---Start Discord Bot By Uncommenting (Option)----
 start_zec_worker(app)
 
-from backend.jobs.expire_subscriptions import init_subscription_jobs, schedule_subscription_expiry
-from backend.auth.billing_stripe import set_expiry_scheduler, set_wallet_debit
+from backend.jobs.expire_subscriptions import init_subscription_jobs, schedule_subscription_expiry 
 
 set_expiry_scheduler(schedule_subscription_expiry)
 init_subscription_jobs(app, scheduler)
@@ -1879,31 +1887,38 @@ def disable_2fa():
 
     return jsonify({"status": "ok"})
 
-DEMO_EMAIL = smtp_user
-DEMO_MODE = True  # turn off later
-DEMO_EXPIRY = 60 * 60 * 24 * 365 * 100  
-DEMO_COMMUNITY_SLUG = "gleyo"  
+
+DEMO_EMAIL = "test@gleyo.app"
+DEMO_MODE = True
+DEMO_CODE = "123456"
+DEMO_EXPIRY = 60 * 60 * 24 * 365 * 100
+DEMO_COMMUNITY_SLUG = "gleyo"
+
 
 def new_code_for(email: str) -> None:
-    if DEMO_MODE and email == DEMO_EMAIL:
-        code = "123456"
+    email = email.strip().lower()
+    is_demo = DEMO_MODE and email == DEMO_EMAIL
+
+    if is_demo:
+        code = DEMO_CODE
         expiry = time.time() + DEMO_EXPIRY
     else:
-        code = f"{random.randint(0, 999999):06}"
+        code = f"{secrets.randbelow(1_000_000):06}"
         expiry = time.time() + EXPIRY_SECONDS
 
     codes[email] = {
         "code": code,
-        "expires": expiry
+        "expires": expiry,
     }
 
     session["pending_email"] = email
     session["code_sent_time"] = time.time()
 
-    print(f"📧 Sent OTP {code} to {email}")
+    if is_demo:
+        print(f"🧪 Demo login for {email}, no email sent")
+        return
+
     send_email_code(email, code)
-
-
 
 def log_user_in(user):
     login_user(user, remember=True)
@@ -4332,7 +4347,6 @@ def create_default_roles_and_styles(community_id, creator_id):
         )
         db.session.add(style)
 
-DEFAULT_LOGO_URL = "https://xpcqiovfesvllsljxhac.supabase.co/storage/v1/object/public/uploads/gleyo_image.png"
 
 @app.route("/api/create-community", methods=["POST"])
 @login_required
@@ -4503,7 +4517,7 @@ def next_setup(community_slug):
 @login_required
 @csrf.exempt
 @community_not_deleted()
-def next_api(community_slug):
+def next(community_slug):
     community = Community.query.filter_by(slug=community_slug).first_or_404()
     user_id = current_user.id
 
@@ -11981,20 +11995,6 @@ def comm_message_tip():
     })
 
 
-@app.route('/api/zec-price', methods=['GET'])
-def zec_price():
-    try:
-        resp = requests.get(
-            'https://api.coingecko.com/api/v3/simple/price?ids=zcash&vs_currencies=usd',
-            timeout=10
-        )
-        data = resp.json()
-        price = data.get('zcash', {}).get('usd', 0)
-        return jsonify({'price': price})
-    except Exception:
-        return jsonify({'price': 0})
-
-
 
 
 
@@ -12227,6 +12227,67 @@ def api_enterprise(slug, interval):
 def handle_billing_error(e):
     return jsonify(success=False, message=e.message), e.code
 
+ 
+
+
+@app.route("/billing/crypto/create", methods=["POST"])
+@login_required
+def crypto_create():
+    data = request.get_json(force=True)
+    try:
+        community = get_billing_community(data.get("community_id"), current_user)
+        c = create_checkout(community, current_user, data)
+    except BillingError as e:
+        logger.warning("crypto create refused: %s | payload=%s", e, data)
+        return jsonify(error=str(e)), 400
+    return jsonify(checkout_payload(c))
+
+
+@app.route("/billing/verify-plan-payment", methods=["POST"])
+@login_required
+def verify_plan_payment():
+    """The 'I've paid, please check' button. One check per click."""
+    data = request.get_json(force=True) or {}
+    try:
+        checkout_id = int(data.get("id") or 0)
+    except (TypeError, ValueError):
+        return jsonify(error="Invalid payment."), 400
+
+    c = db.session.get(CryptoCheckout, checkout_id)
+    if not c:
+        return jsonify(error="Payment not found."), 404
+
+    try:
+        community = get_billing_community(c.community_id, current_user)   # authorisation
+    except BillingError as e:
+        return jsonify(error=str(e)), 403
+    if c.user_id != current_user.id:
+        return jsonify(error="Payment not found."), 404
+
+    try:
+        c = verify_for_button(c.id)
+    except Exception:
+        logger.exception("verify-plan-payment failed for checkout %s", checkout_id)
+        db.session.rollback()
+        return jsonify(error="Couldn't check the payment right now. Please try again in a moment."), 500
+
+    payload = checkout_payload(c)
+    ready = c.status == "paid"
+    db.session.refresh(community)
+    return jsonify(
+        status=c.status,
+        ready=ready,
+        expires_at=payload["expires_at"],
+        server_time=payload["server_time"],
+        subscription=subscription_payload(community) if ready else None,
+        extra_left=get_extra_left(community) if ready else None,
+    )
+
+@app.route("/api/zec-price", methods=["GET"])
+def zec_price():
+    rate = get_zec_usd_rate()
+    return jsonify({"price": float(rate) if rate else 0})
+ 
 
 @app.route("/community/<community_slug>/settings/billing")
 @login_required
@@ -12239,7 +12300,6 @@ def settings_billing(community_slug):
     context = {
         "community": community,
         "wallet": wallet,
-        "stripe_publishable_key": STRIPE_PUBLISHABLE_KEY,
         "subscription": get_active_subscription(community),
         "quest_packs": quest_packs_for_template(),
         "extra_left": get_extra_left(community),
@@ -12251,31 +12311,24 @@ def settings_billing(community_slug):
 
     return render_template("community_settings.html", community_slug=community_slug, **context)
 
-
-@app.route("/billing/stripe/create-subscription", methods=["POST"])
+@app.route("/billing/paystack/initialize", methods=["POST"])
 @login_required
-def stripe_create_subscription():
+def paystack_initialize():
     data = request.get_json(force=True)
     community = get_billing_community(data.get("community_id"), current_user)
-    result = create_plan_payment(community, data.get("plan"), data.get("interval"))
-    return jsonify(
-        client_secret=result["client_secret"],
-        amount_cents=result["amount_cents"],
-        mode=result["mode"],
-    )
+    result = create_plan_payment(community, data.get("plan"), data.get("interval"), current_user.email)
+    return jsonify(**result)
 
 
-@app.route("/billing/stripe/create-pack-intent", methods=["POST"])
+
+
+@app.route("/billing/paystack/initialize-pack", methods=["POST"])
 @login_required
-def stripe_create_pack_intent():
+def paystack_initialize_pack():
     data = request.get_json(force=True)
     community = get_billing_community(data.get("community_id"), current_user)
-    result = create_pack_payment(community, data.get("pack"))
-    return jsonify(
-        client_secret=result["client_secret"],
-        amount_cents=result["amount_cents"],
-        mode=result["mode"],
-    )
+    result = create_pack_payment(community, data.get("pack"), current_user.email)
+    return jsonify(**result)
 
 
 @app.route("/billing/status")
@@ -12283,11 +12336,15 @@ def stripe_create_pack_intent():
 def billing_status():
     a = request.args
     community = get_billing_community(a.get("community_id"), current_user)
-    ready = is_ready(community, a.get("type"), a.get("plan"), a.get("interval"),
-                     a.get("payment_intent"), a.get("mode"))
+    ready = is_ready(
+        community,
+        a.get("type"),
+        a.get("plan"),
+        a.get("interval"),
+        a.get("reference") or a.get("payment_intent"),
+        a.get("mode"),
+    )
 
-    # 💾 payment confirmed -> save the "back to Free" job right here in the route
-    # (extra-quest packs don't change the plan, so skip them)
     if ready and a.get("type") != "quests":
         try:
             db.session.refresh(community)
@@ -12300,6 +12357,7 @@ def billing_status():
         subscription=subscription_payload(community) if ready else None,
         extra_left=get_extra_left(community) if ready else None,
     )
+
 
 
 # =====================================================================
@@ -12399,64 +12457,56 @@ def settings_subcription(community_slug):
         **context
     )
 
+
 @app.route("/billing/cancel-subscription", methods=["POST"])
 @login_required
 def billing_cancel_subscription():
     data = request.get_json(force=True)
     community = get_billing_community(data.get("community_id"), current_user)
- 
     sub = get_active_subscription(community)
     if not sub:
         raise BillingError("You don't have an active plan.")
     if sub.status == "canceled":
         raise BillingError("Your subscription is already set to end.")
- 
     if sub.payment_method == "card" and sub.stripe_subscription_id:
-        # Tells Stripe cancel_at_period_end=True (no refund, no new charge),
-        # sets status="canceled", and moves the expiry job (no grace period anymore).
         cancel_card_subscription(community)
     else:
-        # Wallet plan: nothing to cancel on Stripe. Just stop the 24h-before wallet renewal.
         sub.auto_renew_wallet = False
         sub.status = "canceled"
         sub.canceled_at = datetime.utcnow()
         db.session.commit()
-        save_expiry_job(community)  
- 
+        save_expiry_job(community)
     db.session.refresh(community)
     return jsonify(
         success=True,
         message="Your subscription has been cancelled.",
         subscription=subscription_payload(community),
     )
- 
- 
+
+
 @app.route("/billing/resume-subscription", methods=["POST"])
 @login_required
 def billing_resume_subscription():
     data = request.get_json(force=True)
     community = get_billing_community(data.get("community_id"), current_user)
- 
     sub = get_active_subscription(community)
     if not sub or sub.status != "canceled" or sub.expires_at <= datetime.utcnow():
         raise BillingError("There's nothing to resume.")
- 
     if sub.payment_method == "card" and sub.stripe_subscription_id:
-        resume_card_subscription(community)     
+        resume_card_subscription(community)
     else:
         sub.auto_renew_wallet = True
         sub.status = "active"
         sub.canceled_at = None
         db.session.commit()
-        save_expiry_job(community)           
- 
+        save_expiry_job(community)
     db.session.refresh(community)
     return jsonify(
         success=True,
         message="Your subscription will renew as normal.",
         subscription=subscription_payload(community),
     )
- 
+
 
 @app.route("/community/<community_slug>/settings/general", methods=["GET", "POST"])
 @login_required
@@ -16474,7 +16524,7 @@ def subquest_detail(community_slug, quest_uuid, subquest_uuid):
 
     community_list_visible = session.get("community_list_visible", True)
     usersettings_states = session.get("usersettings_states", {})
-    settingsinfo_visible = usersettings_states.get(str(community.id), True)
+    settingsinfo_visible = usersettings_states.get(str(community.id), False)
 
     security = CommunitySecurity.query.filter_by(community_id=community.id).first()
     invite_permission = security.invite_permission if security else "members"
@@ -35230,6 +35280,128 @@ class MessageMentionAdmin(BaseAdmin):
         "channel_id": "Channel ID",
     }
 
+
+from backend.billing.crypto_models import CryptoCheckout   # adjust the import path if yours differs
+
+
+def _usd(cents_field):
+    def fmt(view, context, model, name):
+        value = getattr(model, cents_field)
+        return f"${value / 100:,.2f}" if value is not None else ""
+    return fmt
+
+
+class CryptoCheckoutAdmin(BaseAdmin):
+    """
+    Mostly read-only: these rows are payment records.
+    Rows to watch are status = underpaid / late_paid (money arrived, a human has to decide)
+    and failed (the swap was refunded).
+    Delete is enabled for cleaning up test/abandoned rows. Be careful with paid rows.
+    """
+
+    can_create = False
+    can_edit = False
+    can_delete = True
+    can_view_details = True
+
+    column_list = (
+        "id",
+        "community",
+        "user_id",
+        "purpose",
+        "plan",
+        "interval",
+        "pack",
+        "pay_token",
+        "pay_network",
+        "charged_cents",
+        "status",
+        "created_at",
+    )
+
+    column_details_list = (
+        "id",
+        "community",
+        "user_id",
+        "purpose",
+        "plan",
+        "interval",
+        "pack",
+        "mode",
+        "base_cents",
+        "discount_pct",
+        "charged_cents",
+        "pay_token",
+        "pay_network",
+        "deposit_address",
+        "memo",
+        "refund_address",
+        "zec_rate",
+        "expected_amount",
+        "received_amount",
+        "swap_zec_amount",
+        "swap_status",
+        "status",
+        "tx_ref",
+        "last_checked_at",
+        "expires_at",
+        "paid_at",
+        "fulfilled_at",
+        "created_at",
+    )
+
+    column_filters = (
+        "status",
+        "pay_token",
+        "pay_network",
+        "purpose",
+        "plan",
+        "created_at",
+        "expires_at",
+    )
+
+    column_searchable_list = (
+        "memo",
+        "deposit_address",
+        "tx_ref",
+        "community.slug",
+    )
+
+    column_default_sort = ("created_at", True)
+
+    column_formatters = {
+        "charged_cents": _usd("charged_cents"),
+    }
+    column_formatters_detail = {
+        "base_cents": _usd("base_cents"),
+        "charged_cents": _usd("charged_cents"),
+    }
+
+    column_labels = {
+        "id": "ID",
+        "community": "Community",
+        "user_id": "User ID",
+        "purpose": "Purpose",
+        "base_cents": "Base Price",
+        "discount_pct": "Discount %",
+        "charged_cents": "Charged",
+        "pay_token": "Token",
+        "pay_network": "Network",
+        "deposit_address": "Deposit Address",
+        "refund_address": "Refund Address",
+        "zec_rate": "ZEC Rate (USD)",
+        "expected_amount": "Expected Amount",
+        "received_amount": "Received Amount",
+        "swap_zec_amount": "Swap ZEC Out",
+        "swap_status": "Swap Status",
+        "tx_ref": "Transaction Ref",
+        "last_checked_at": "Last Checked",
+        "expires_at": "Expires At",
+        "paid_at": "Paid At",
+        "fulfilled_at": "Fulfilled At",
+        "created_at": "Created At",
+    }
+
 admin.add_view(UserAdmin(Users, db.session))
 admin.add_view(UserTwoFactorAdmin(UserTwoFactor, db.session))
 admin.add_view(UserSessionAdmin(UserSession, db.session))
@@ -35349,6 +35521,7 @@ admin.add_view(ZecAuthSessionAdmin(ZecAuthSession, db.session))
 admin.add_view(CommunityPaymentAdmin(CommunityPayment, db.session))
 admin.add_view(ChannelReadStateAdmin(ChannelReadState, db.session))
 admin.add_view(MessageMentionAdmin(MessageMention, db.session))
+admin.add_view(CryptoCheckoutAdmin(CryptoCheckout, db.session))
 admin.add_view(EnterpriseRequestAdmin(EnterpriseRequest, db.session))
 
 @app.errorhandler(404)
@@ -35427,4 +35600,4 @@ if __name__ == "__main__":
     )
     scheduler.start()
 
-    socketio.run(app, host="0.0.0.0", port=8000, debug=True)
+    socketio.run(app, host="0.0.0.0", port=8000)

@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="csrf-token" content="{{ csrf_token() }}">
 <link rel="shortcut icon" href="https://zupdpwnloewdkjqsymdm.supabase.co/storage/v1/object/public/uploads/communities/7/logos/511f4996-5748-4f1f-b74c-5d5c33f7124c.png">
-
+<script src="https://unpkg.com/qr-code-styling/lib/qr-code-styling.js" defer></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 
@@ -4854,12 +4854,25 @@ const INTERVAL_LABELS = { monthly: "month", yearly: "year" };
 const PERIOD_DAYS = { monthly: 30, yearly: 365 };
 const TAB_FOR_CYCLE = { monthly: "monthly", yearly: "annually", annually: "annually" };
 
+const ZEC_DISCOUNT = 8;
+const CX_NETWORKS = {
+  USDT: [["Polygon", "Polygon"]],
+  USDC: [["Base", "Base"], ["Polygon", "Polygon"]]
+};
+const VERIFY_URL = "/billing/verify-plan-payment";
+const CHECK_LABEL = "I've paid, please check";
+const CHECK_COOLDOWN_SECONDS = 8;
+
+const CHECK_SVG =
+  '<svg class="cx-dd-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+
 const fmtNum = n => Number(n).toLocaleString("en-US");
 const fmtMoney = n => "$" + Number(n).toLocaleString("en-US", { minimumFractionDigits: Number.isInteger(+n) ? 0 : 2, maximumFractionDigits: 2 });
 const fmtDate = iso => {
   const d = new Date(iso);
   return isNaN(d) ? "" : d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 };
+const shortAddr = a => (a.length > 22 ? `${a.slice(0, 10)}…${a.slice(-8)}` : a);
 
 function resolveBillingCycle() {
   if (location.pathname.includes("monthly")) return "monthly";
@@ -4877,20 +4890,16 @@ function initBillingTabs() {
   if (!root || !tabs.length || !contents.length || !indicator) return;
 
   const COMMUNITY_ID = root.dataset.communityId;
-  const STRIPE_PK = root.dataset.stripePk;
 
-  let walletAbort = null;
-  let walletBalance = null;
   let busy = false;
   let paying = false;
   let openToken = 0;
-  let stripe = null;
-  let elements = null;
-  let paymentEl = null;
   let heightRO = null;
   let currentStep = "method";
   let methodInner = 0;
   let doneTimer = null;
+
+  const cx = { token: "ZEC", view: "form", checkout: null, tick: null, cool: null, checking: false };
 
   let currentSub = root.dataset.subPlan
     ? { plan: root.dataset.subPlan, interval: root.dataset.subInterval, expires_at: root.dataset.subExpires || "" }
@@ -4901,10 +4910,9 @@ function initBillingTabs() {
   const listenerOpts = { signal: ac.signal };
   window.__billingCleanup = () => {
     ac.abort();
-    if (walletAbort) walletAbort.abort();
     if (heightRO) heightRO.disconnect();
     if (doneTimer) clearTimeout(doneTimer);
-    destroyElement();
+    stopCryptoTimers();
     document.body.style.overflow = "";
   };
 
@@ -4991,19 +4999,17 @@ function initBillingTabs() {
     );
     const curPrice = curBtn ? Number(curBtn.dataset.price) : 0;
 
-    // same interval, higher plan -> pay the difference
     if (targetRank > currentRank && sameInterval && curPrice > 0) {
       return { mode: "upgrade", amount: Math.max(full - curPrice, 0), full, curPrice };
     }
 
-    // monthly -> yearly (same or higher plan) -> credit the unused time
     if (!sameInterval && curPrice > 0) {
       const periodMs = PERIOD_DAYS[currentSub.interval] * 86400000;
       const exp = new Date(currentSub.expires_at);
       const leftMs = isNaN(exp) ? 0 : Math.max(exp - Date.now(), 0);
-      const fraction = Math.min(leftMs / periodMs, 1);          // never more than 100% unused
+      const fraction = Math.min(leftMs / periodMs, 1);
       const rawCredit = Math.round(curPrice * 100 * fraction) / 100;
-      const credit = Math.max(Math.min(rawCredit, curPrice, full - 0.5), 0);  // never above what was paid
+      const credit = Math.max(Math.min(rawCredit, curPrice, full - 0.5), 0);
       return {
         mode: "switch",
         amount: Math.round((full - credit) * 100) / 100,
@@ -5040,26 +5046,17 @@ function initBillingTabs() {
     name: document.getElementById("modalPlanName"),
     price: document.getElementById("modalPrice"),
     note: document.getElementById("modalNote"),
-    skeleton: document.getElementById("walletSkeleton"),
-    balance: document.getElementById("walletBalance"),
-    walletOpt: document.getElementById("walletOption"),
-    walletRadio: document.querySelector("input[name='paymentMethod'][value='wallet']"),
-    cardRadio: document.querySelector("input[name='paymentMethod'][value='card']"),
-    hint: document.getElementById("upgradeHint"),
     cont: document.getElementById("continueUpgrade"),
     methodError: document.getElementById("methodError"),
     stepMethod: document.getElementById("stepMethod"),
-    stepCard: document.getElementById("stepCard"),
+    stepCrypto: document.getElementById("stepCrypto"),
     stepDone: document.getElementById("stepDone"),
     back: document.getElementById("upgradeBack"),
     close: document.querySelector(".upgrade-close"),
-    pay: document.getElementById("payBtn"),
-    paySkeleton: document.getElementById("paySkeleton"),
-    cardError: document.getElementById("cardError"),
     doneTitle: document.getElementById("doneTitle"),
     doneText: document.getElementById("doneText")
   };
-  const DEFAULT_HINT = "Low wallet balance? Choose card instead.";
+  const $ = id => document.getElementById(id);
   const FALLBACK_METHOD_HEIGHT = 380;
   const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
 
@@ -5126,7 +5123,7 @@ function initBillingTabs() {
     const res = await fetch(url, { method: "POST", credentials: "same-origin", headers, body: JSON.stringify(body) });
     let data = {};
     try { data = await res.json(); } catch (_) {}
-    if (!res.ok) throw new Error(data.message || "Something went wrong. Please try again.");
+    if (!res.ok) throw new Error(data.message || data.error || "Something went wrong. Please try again.");
     return data;
   }
 
@@ -5143,12 +5140,12 @@ function initBillingTabs() {
   function showStep(name) {
     currentStep = name;
 
-    el.box.classList.toggle("is-wide", name === "card");
+    if (name !== "crypto") closeNetworkMenu();
 
     el.stepMethod.classList.toggle("hidden", name !== "method");
-    el.stepCard.classList.toggle("hidden", name !== "card");
+    el.stepCrypto.classList.toggle("hidden", name !== "crypto");
     el.stepDone.classList.toggle("hidden", name !== "done");
-    el.back.classList.toggle("hidden", name !== "card" || paying);
+    el.back.classList.toggle("hidden", name !== "crypto" || paying);
     el.head.classList.toggle("hidden", name === "done");
     el.close.classList.toggle("hidden", paying);
 
@@ -5191,56 +5188,7 @@ function initBillingTabs() {
   }
 
   function syncModalState() {
-    const sel = window.selectedPurchase;
-    const loading = walletBalance === null;
-    const insufficient = !loading && !!sel && walletBalance < Number(sel.price);
-    const walletBlocked = loading || insufficient;
-
-    el.skeleton.classList.toggle("hidden", !loading);
-    el.balance.classList.toggle("hidden", loading);
-
-    el.walletRadio.disabled = walletBlocked;
-    el.walletOpt.classList.toggle("is-disabled", walletBlocked);
-
-    if (walletBlocked && selectedMethod() === "wallet" && !loading) {
-      el.cardRadio.checked = true;
-    }
-
-    el.hint.textContent = insufficient
-      ? "Your wallet balance is too low for this purchase. Pay by card instead."
-      : DEFAULT_HINT;
-
-    el.cont.disabled = busy || (selectedMethod() === "wallet" && walletBlocked);
-  }
-
-  async function loadWalletBalance() {
-    if (walletAbort) walletAbort.abort();
-    walletAbort = new AbortController();
-    const { signal } = walletAbort;
-
-    walletBalance = null;
-    el.walletRadio.checked = true;
-    syncModalState();
-
-    try {
-      const res = await fetch(
-        `/billing/wallet-balance?community_id=${encodeURIComponent(COMMUNITY_ID)}`,
-        { signal, headers: { Accept: "application/json" } }
-      );
-      const data = await res.json();
-      if (!res.ok || typeof data.balance !== "number") {
-        throw new Error(data.message || "Invalid wallet response");
-      }
-      walletBalance = data.balance;
-      el.balance.textContent = fmtMoney(walletBalance.toFixed(2));
-    } catch (err) {
-      if (err.name === "AbortError") return;
-      console.error(err);
-      walletBalance = 0;
-      el.balance.textContent = "Unavailable";
-    }
-    syncModalState();
-    refitModal();
+    el.cont.disabled = busy;
   }
 
   function openModal(btn) {
@@ -5256,9 +5204,11 @@ function initBillingTabs() {
 
     if (doneTimer) { clearTimeout(doneTimer); doneTimer = null; }
     openToken++;
-    destroyElement();
+    stopCryptoTimers();
+    closeNetworkMenu();
+    cx.view = "form";
+    cx.checkout = null;
     clearError(el.methodError);
-    clearError(el.cardError);
 
     window.selectedPurchase = isQuests
       ? { type: "quests", pack: d.pack, price: d.price }
@@ -5301,6 +5251,7 @@ function initBillingTabs() {
     busy = false;
     paying = false;
     setLoading(el.cont, false, "Continue");
+    syncModalState();
 
     hadHeight = false;
     el.box.style.height = "";
@@ -5309,18 +5260,17 @@ function initBillingTabs() {
     modal.classList.remove("hidden");
     document.body.style.overflow = "hidden";
     refitModal();
-    loadWalletBalance();
   }
 
   function closeModal() {
     if (paying) return;
     openToken++;
+    stopCryptoTimers();
+    closeNetworkMenu();
     modal.classList.add("hidden");
     el.box.style.height = "";
     hadHeight = false;
     document.body.style.overflow = "";
-    if (walletAbort) walletAbort.abort();
-    destroyElement();
     busy = false;
   }
 
@@ -5332,16 +5282,30 @@ function initBillingTabs() {
   modal.addEventListener("click", e => { if (e.target === modal) closeModal(); });
   el.close?.addEventListener("click", closeModal);
   document.addEventListener("keydown", e => {
-    if (e.key === "Escape" && !modal.classList.contains("hidden")) closeModal();
+    if (e.key !== "Escape" || modal.classList.contains("hidden")) return;
+    if (isNetworkMenuOpen()) {
+      closeNetworkMenu();
+      $("cxNetworkTrigger")?.focus();
+      return;
+    }
+    closeModal();
   }, listenerOpts);
   document.querySelectorAll("input[name='paymentMethod']")
     .forEach(r => r.addEventListener("change", syncModalState));
 
   el.back.addEventListener("click", () => {
     if (paying) return;
-    openToken++;
-    destroyElement();
-    clearError(el.cardError);
+
+    if (currentStep === "crypto") {
+      if (cx.view === "pay") {
+        stopCryptoTimers();
+        showCryptoView("form");
+      } else {
+        showStep("method");
+      }
+      return;
+    }
+
     showStep("method");
     syncModalState();
   });
@@ -5357,73 +5321,23 @@ function initBillingTabs() {
     if (currentStep === "done" && !paying && !doneTimer) scheduleClose(800);
   }, listenerOpts);
 
-  function loadStripeJs() {
-    if (window.Stripe) return Promise.resolve();
+  function loadPaystackJs() {
+    if (window.PaystackPop) return Promise.resolve();
     return new Promise((resolve, reject) => {
+      const existing = document.querySelector('script[data-paystack-inline]');
+      if (existing) {
+        existing.addEventListener("load", resolve, { once: true });
+        existing.addEventListener("error", () => reject(new Error("Couldn't load the payment window. Check your connection and try again.")), { once: true });
+        return;
+      }
       const s = document.createElement("script");
-      s.src = "https://js.stripe.com/v3/";
+      s.src = "https://js.paystack.co/v2/inline.js";
+      s.dataset.paystackInline = "1";
       s.onload = resolve;
-      s.onerror = () => reject(new Error("Couldn't load the payment form. Check your connection and try again."));
+      s.onerror = () => reject(new Error("Couldn't load the payment window. Check your connection and try again."));
       document.head.appendChild(s);
     });
   }
-
-  async function getStripe() {
-    await loadStripeJs();
-    if (!stripe) stripe = window.Stripe(STRIPE_PK);
-    return stripe;
-  }
-
-  function destroyElement() {
-    if (paymentEl) {
-      try { paymentEl.destroy(); } catch (_) {}
-    }
-    paymentEl = null;
-    elements = null;
-    if (el && el.paySkeleton) el.paySkeleton.classList.remove("hidden");
-    if (el && el.pay) { el.pay.disabled = true; setLoading(el.pay, false); }
-  }
-
-  const APPEARANCE = {
-    theme: "night",
-    variables: {
-      colorPrimary: "#6366f1",
-      colorBackground: "#1d1d33",
-      colorText: "#ffffff",
-      colorTextSecondary: "#9ca3af",
-      colorDanger: "#f87171",
-      fontFamily: "Inter, system-ui, sans-serif",
-      spacingUnit: "4px",
-      borderRadius: "14px"
-    },
-    rules: {
-      ".Input": {
-        backgroundColor: "rgba(255,255,255,0.05)",
-        border: "1px solid transparent",
-        boxShadow: "none",
-        padding: "14px 16px"
-      },
-      ".Input:focus": {
-        border: "1px solid rgba(99,102,241,0.9)",
-        boxShadow: "0 0 0 3px rgba(99,102,241,0.25)"
-      },
-      ".Input--invalid": {
-        border: "1px solid rgba(248,113,113,0.6)",
-        boxShadow: "none"
-      },
-      ".Label": { color: "#9ca3af", fontWeight: "500", marginBottom: "8px" },
-      ".Tab": {
-        backgroundColor: "rgba(255,255,255,0.05)",
-        border: "1px solid transparent",
-        boxShadow: "none"
-      },
-      ".Tab--selected": {
-        border: "1px solid rgba(99,102,241,0.9)",
-        backgroundColor: "rgba(99,102,241,0.14)",
-        boxShadow: "none"
-      }
-    }
-  };
 
   async function startCard(sel) {
     const token = ++openToken;
@@ -5433,36 +5347,37 @@ function initBillingTabs() {
     syncModalState();
 
     try {
-      const s = await getStripe();
+      await loadPaystackJs();
       const url = sel.type === "quests"
-        ? "/billing/stripe/create-pack-intent"
-        : "/billing/stripe/create-subscription";
+        ? "/billing/paystack/initialize-pack"
+        : "/billing/paystack/initialize";
       const data = await postJSON(url, purchaseBody(sel));
       if (token !== openToken) return;
-      if (!data.client_secret) throw new Error("Couldn't start the payment. Please try again.");
+      if (!data.access_code) throw new Error("Couldn't start the payment. Please try again.");
 
       if (typeof data.amount_cents === "number") sel.price = String(data.amount_cents / 100);
       if (data.mode) sel.mode = data.mode;
 
-      elements = s.elements({
-        clientSecret: data.client_secret,
-        appearance: APPEARANCE,
-        fonts: [{ cssSrc: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" }]
+      const popup = new window.PaystackPop();
+      popup.resumeTransaction(data.access_code, {
+        onSuccess: tx => {
+          const ref = (tx && (tx.reference || tx.trxref)) || data.reference;
+          paying = true;
+          setDone("Payment received", "Activating your purchase…");
+          finishAfterPayment(sel, ref);
+        },
+        onCancel: () => {
+          busy = false;
+          setLoading(el.cont, false, "Continue");
+          syncModalState();
+        },
+        onError: err => {
+          busy = false;
+          setLoading(el.cont, false, "Continue");
+          syncModalState();
+          showError(el.methodError, (err && err.message) || "Couldn't open the payment window. Please try again.");
+        }
       });
-
-      clearError(el.cardError);
-      el.pay.disabled = true;
-      setLoading(el.pay, false, `Pay ${fmtMoney(sel.price)}`);
-      el.paySkeleton.classList.remove("hidden");
-      showStep("card");
-
-      paymentEl = elements.create("payment", { layout: "tabs" });
-      paymentEl.on("ready", () => {
-        el.paySkeleton.classList.add("hidden");
-        el.pay.disabled = false;
-        refitModal();
-      });
-      paymentEl.mount("#paymentElement");
     } catch (err) {
       if (token === openToken) showError(el.methodError, err.message);
     } finally {
@@ -5474,54 +5389,13 @@ function initBillingTabs() {
     }
   }
 
-  async function payWithCard() {
-    const sel = window.selectedPurchase;
-    if (!stripe || !elements || !sel || paying) return;
-
-    paying = true;
-    clearError(el.cardError);
-    setLoading(el.pay, true, "Processing…");
-    el.pay.disabled = true;
-    showStep("card");
-
-    try { sessionStorage.setItem("pendingPurchase", JSON.stringify(sel)); } catch (_) {}
-
-    const cycle = document.querySelector(".billing-tab.active")?.dataset.subtab || "monthly";
-    const { error, paymentIntent } = await stripe.confirmPayment({
-      elements,
-      confirmParams: { return_url: `${location.origin}${location.pathname}?cycle=${cycle}` },
-      redirect: "if_required"
-    });
-
-    if (error) {
-      paying = false;
-      sessionStorage.removeItem("pendingPurchase");
-      setLoading(el.pay, false, `Pay ${fmtMoney(sel.price)}`);
-      el.pay.disabled = false;
-      showStep("card");
-      if (error.type !== "validation_error") {
-        showError(el.cardError, error.message || "Your payment could not be completed.");
-      }
-      return;
-    }
-
-    sessionStorage.removeItem("pendingPurchase");
-
-    if (paymentEl) { try { paymentEl.destroy(); } catch (_) {} paymentEl = null; }
-
-    setDone("Payment received", "Activating your purchase…");
-    finishAfterPayment(sel, paymentIntent && paymentIntent.id);
-  }
-
-  el.pay.addEventListener("click", payWithCard);
-
-  async function pollStatus(sel, paymentIntentId) {
-    if (!sel && !paymentIntentId) return null;
+  async function pollStatus(sel, reference) {
+    if (!sel && !reference) return null;
     const q = new URLSearchParams({ community_id: COMMUNITY_ID, type: (sel && sel.type) || "plan" });
     if (sel && sel.plan) q.set("plan", sel.plan);
     if (sel && sel.interval) q.set("interval", sel.interval);
     if (sel && sel.mode) q.set("mode", sel.mode);
-    if (paymentIntentId) q.set("payment_intent", paymentIntentId);
+    if (reference) q.set("reference", reference);
 
     for (let i = 0; i < 10; i++) {
       if (ac.signal.aborted) return null;
@@ -5535,9 +5409,9 @@ function initBillingTabs() {
     return null;
   }
 
-  async function finishAfterPayment(sel, paymentIntentId) {
+  async function finishAfterPayment(sel, reference) {
     paying = true;
-    const data = await pollStatus(sel, paymentIntentId);
+    const data = await pollStatus(sel, reference);
     paying = false;
 
     if (data && data.ready) {
@@ -5551,91 +5425,389 @@ function initBillingTabs() {
     }
   }
 
-  el.cont.onclick = async e => {
+  function stopCryptoTimers() {
+    clearInterval(cx.tick);
+    clearInterval(cx.cool);
+    cx.tick = cx.cool = null;
+  }
+
+  function showCryptoView(v) {
+    cx.view = v;
+    closeNetworkMenu();
+    $("cxForm").classList.toggle("hidden", v !== "form");
+    $("cxPay").classList.toggle("hidden", v !== "pay");
+    refitModal();
+  }
+
+  function isNetworkMenuOpen() {
+    const m = $("cxNetworkMenu");
+    return !!m && !m.classList.contains("hidden");
+  }
+
+  function openNetworkMenu() {
+    const menu = $("cxNetworkMenu");
+    const trigger = $("cxNetworkTrigger");
+    if (!menu || !trigger) return;
+    menu.classList.remove("hidden");
+    trigger.setAttribute("aria-expanded", "true");
+  }
+
+  function closeNetworkMenu() {
+    const menu = $("cxNetworkMenu");
+    const trigger = $("cxNetworkTrigger");
+    if (!menu || !trigger) return;
+    if (menu.classList.contains("hidden")) return;
+    menu.classList.add("hidden");
+    trigger.setAttribute("aria-expanded", "false");
+  }
+
+  function selectNetwork(value, label) {
+    $("cxNetwork").value = value;
+    $("cxNetworkValue").textContent = label;
+    $("cxNetworkMenu").querySelectorAll(".cx-dd-option").forEach(o => {
+      o.setAttribute("aria-selected", o.dataset.value === value ? "true" : "false");
+    });
+  }
+
+  function buildNetworkOptions(list) {
+    const menu = $("cxNetworkMenu");
+    menu.innerHTML = list.map(([v, l]) =>
+      `<li class="cx-dd-option" role="option" tabindex="-1" data-value="${v}" data-label="${l}" aria-selected="false"><span>${l}</span>${CHECK_SVG}</li>`
+    ).join("");
+    selectNetwork(list[0][0], list[0][1]);
+  }
+
+  $("cxNetworkTrigger").addEventListener("click", () => {
+    if (isNetworkMenuOpen()) closeNetworkMenu();
+    else openNetworkMenu();
+  });
+
+  $("cxNetworkTrigger").addEventListener("keydown", e => {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      openNetworkMenu();
+      const opts = $("cxNetworkMenu").querySelectorAll(".cx-dd-option");
+      if (opts.length) (e.key === "ArrowUp" ? opts[opts.length - 1] : opts[0]).focus();
+    }
+  });
+
+  $("cxNetworkMenu").addEventListener("click", e => {
+    const opt = e.target.closest(".cx-dd-option");
+    if (!opt) return;
+    selectNetwork(opt.dataset.value, opt.dataset.label);
+    closeNetworkMenu();
+    $("cxNetworkTrigger").focus();
+  });
+
+  $("cxNetworkMenu").addEventListener("keydown", e => {
+    const opts = [...$("cxNetworkMenu").querySelectorAll(".cx-dd-option")];
+    const i = opts.indexOf(document.activeElement);
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      opts[(i + 1) % opts.length]?.focus();
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      opts[(i - 1 + opts.length) % opts.length]?.focus();
+    } else if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      document.activeElement?.click();
+    }
+  });
+
+  document.addEventListener("click", e => {
+    if (!isNetworkMenuOpen()) return;
+    if (e.target.closest("#cxNetworkDd")) return;
+    closeNetworkMenu();
+  }, listenerOpts);
+
+  function updateCryptoForm() {
+    const sel = window.selectedPurchase;
+    const base = Number(sel.price);
+    const isZec = cx.token === "ZEC";
+    const pay = isZec ? base * (100 - ZEC_DISCOUNT) / 100 : base;
+
+    document.querySelectorAll("#cxChips .cx-chip")
+      .forEach(c => c.classList.toggle("active", c.dataset.token === cx.token));
+
+    $("cxNetworkWrap").classList.toggle("hidden", isZec);
+    $("cxRefundWrap").classList.toggle("hidden", isZec);
+
+    closeNetworkMenu();
+    if (!isZec) buildNetworkOptions(CX_NETWORKS[cx.token]);
+
+    $("cxSummary").innerHTML = isZec
+      ? `You pay <strong>${fmtMoney(pay.toFixed(2))}</strong> in ZEC <span style="color:#7fd9a2">(${ZEC_DISCOUNT}% off ${fmtMoney(base)})</span>.`
+      : `You pay <strong>${fmtMoney(pay.toFixed(2))}</strong> in ${cx.token}. Pay with ZEC to get ${ZEC_DISCOUNT}% off.`;
+
+    clearError($("cxFormError"));
+    refitModal();
+  }
+
+  function openCryptoStep() {
+    cx.token = "ZEC";
+    showStep("crypto");
+    showCryptoView("form");
+    updateCryptoForm();
+  }
+
+  document.querySelectorAll("#cxChips .cx-chip").forEach(btn =>
+    btn.addEventListener("click", () => { cx.token = btn.dataset.token; updateCryptoForm(); }));
+
+  $("cxGenerate").addEventListener("click", async () => {
+    const sel = window.selectedPurchase;
+    if (!sel) return;
+    const btn = $("cxGenerate");
+    clearError($("cxFormError"));
+    closeNetworkMenu();
+
+    const body = { ...purchaseBody(sel), token: cx.token };
+    if (cx.token !== "ZEC") {
+      body.network = $("cxNetwork").value;
+      body.refund_address = $("cxRefund").value.trim();
+      if (!body.network) {
+        showError($("cxFormError"), "Choose a network.");
+        return;
+      }
+      if (!body.refund_address) {
+        showError($("cxFormError"), "Enter your refund address.");
+        return;
+      }
+    }
+
+    btn.disabled = true;
+    setLoading(btn, true, "Generating…");
+    try {
+      const d = await postJSON("/billing/crypto/create", body);
+      await renderCryptoPay(d);
+      startCryptoCountdown(d);
+    } catch (err) {
+      showError($("cxFormError"), err.message);
+    } finally {
+      btn.disabled = false;
+      setLoading(btn, false, "Generate payment");
+    }
+  });
+
+  function loadQrLib() {
+    if (window.QRCodeStyling) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      let tries = 0;
+      const wait = setInterval(() => {
+        if (window.QRCodeStyling) { clearInterval(wait); resolve(); }
+        else if (++tries > 20) {
+          clearInterval(wait);
+          const s = document.createElement("script");
+          s.src = "https://unpkg.com/qr-code-styling/lib/qr-code-styling.js";
+          s.onload = resolve;
+          s.onerror = () => reject(new Error("Couldn't load the QR code."));
+          document.head.appendChild(s);
+        }
+      }, 100);
+    });
+  }
+
+  function buildQrData(d) {
+    return d.qr || d.address;
+  }
+
+  async function renderQR(d) {
+    const qrContainer = document.getElementById("qrcode");
+    qrContainer.innerHTML = "";
+
+    await loadQrLib();
+
+    const qr = new QRCodeStyling({
+      width: 280,
+      height: 280,
+      type: "svg",
+      data: buildQrData(d),
+      qrOptions: {
+        errorCorrectionLevel: "H"
+      },
+      dotsOptions: {
+        color: "#000000",
+        type: "rounded"
+      },
+      backgroundOptions: {
+        color: "#d9d8d8"
+      },
+      cornersSquareOptions: {
+        type: "extra-rounded"
+      },
+      cornersDotOptions: {
+        type: "dot"
+      }
+    });
+
+    qr.append(qrContainer);
+  }
+
+  async function renderCryptoPay(d) {
+    cx.checkout = d;
+    const isZec = d.token === "ZEC";
+
+    $("cxAmount").textContent = `${d.amount} ${d.token}`;
+    $("cxAmount").dataset.raw = d.amount;
+    $("cxAmountSub").textContent = isZec
+      ? `${fmtMoney(d.usd)} · ${d.discount_pct}% off ${fmtMoney(d.base_usd)}`
+      : `${fmtMoney(d.usd)} on ${d.network}`;
+
+    $("cxAddrLabel").textContent = isZec ? "Zcash address" : `${d.token} deposit address (${d.network})`;
+    $("cxAddr").textContent = shortAddr(d.address);
+    $("cxAddr").dataset.full = d.address;
+
+    $("cxMemoRow").classList.toggle("hidden", !isZec);
+    $("cxMemoWarn").classList.toggle("hidden", !isZec);
+    if (isZec) $("cxMemo").textContent = d.memo;
+
+    clearInterval(cx.cool);
+    cx.cool = null;
+    cx.checking = false;
+    const chk = $("cxCheck");
+    chk.disabled = false;
+    setLoading(chk, false, CHECK_LABEL);
+
+    clearError($("cxPayError"));
+    setCryptoStatus("waiting");
+    showCryptoView("pay");
+
+    try {
+      await renderQR(d);
+    } catch (_) {}
+
+    refitModal();
+  }
+
+  $("cxPay").addEventListener("click", async e => {
+    const b = e.target.closest(".cx-copy");
+    if (!b) return;
+    const t = b.dataset.copy;
+    const text = t === "cxAddrFull" ? $("cxAddr").dataset.full
+               : t === "cxAmountRaw" ? $("cxAmount").dataset.raw
+               : $(t).textContent;
+    try { await navigator.clipboard.writeText((text || "").trim()); } catch (_) { return; }
+    const old = b.textContent;
+    b.textContent = "Copied";
+    setTimeout(() => { b.textContent = old; }, 1200);
+  });
+
+  function setCryptoStatus(state) {
+    const map = {
+      waiting: "Send the payment, then press the button below.",
+      processing: "Payment detected, confirming. Press check again in a minute.",
+      notfound: "We haven't seen your payment yet. Wait a minute after sending, then check again."
+    };
+    $("cxStatusText").textContent = map[state] || map.waiting;
+    $("cxStatus").classList.remove("hidden");
+  }
+
+  function startCryptoCountdown(d) {
+    clearInterval(cx.tick);
+    const expiresAtMs = d.expires_at * 1000 - (d.server_time * 1000 - Date.now());
+    const draw = () => {
+      const left = Math.max(Math.floor((expiresAtMs - Date.now()) / 1000), 0);
+      $("cxTimer").textContent = left > 0
+        ? `Expires in ${String(Math.floor(left / 60)).padStart(2, "0")}:${String(left % 60).padStart(2, "0")}`
+        : "Expired";
+    };
+    draw();
+    cx.tick = setInterval(draw, 1000);
+  }
+
+  function startCheckCooldown(seconds) {
+    const btn = $("cxCheck");
+    clearInterval(cx.cool);
+    let left = seconds;
+    btn.disabled = true;
+    btn.textContent = `Check again in ${left}s`;
+    cx.cool = setInterval(() => {
+      left -= 1;
+      if (left <= 0) {
+        clearInterval(cx.cool);
+        cx.cool = null;
+        btn.disabled = false;
+        btn.textContent = CHECK_LABEL;
+      } else {
+        btn.textContent = `Check again in ${left}s`;
+      }
+    }, 1000);
+  }
+
+  async function checkCryptoPayment() {
+    const d = cx.checkout;
+    const sel = window.selectedPurchase;
+    if (!d || !sel || cx.checking) return;
+
+    const btn = $("cxCheck");
+    cx.checking = true;
+    clearError($("cxPayError"));
+    btn.disabled = true;
+    setLoading(btn, true, "Checking…");
+
+    let final = false;
+    let cooldown = CHECK_COOLDOWN_SECONDS;
+
+    try {
+      const s = await postJSON(VERIFY_URL, { id: d.id });
+
+      if (s.status === "paid") {
+        final = true;
+        stopCryptoTimers();
+        if (s.subscription) applySubscription(s.subscription);
+        if (typeof s.extra_left === "number") applyExtraLeft(s.extra_left);
+        setDone("You're all set", successText(sel));
+        scheduleClose(1600);
+      } else if (s.status === "processing") {
+        setCryptoStatus("processing");
+      } else if (s.status === "expired") {
+        final = true;
+        stopCryptoTimers();
+        showError($("cxPayError"), "This payment expired. If you already sent funds, contact support with your memo or transaction.");
+        $("cxStatus").classList.add("hidden");
+      } else if (s.status === "underpaid" || s.status === "late_paid") {
+        final = true;
+        stopCryptoTimers();
+        showError($("cxPayError"), "We received your payment but it needs a manual review. Please contact support.");
+        $("cxStatus").classList.add("hidden");
+      } else if (s.status === "failed") {
+        final = true;
+        stopCryptoTimers();
+        showError($("cxPayError"), "The payment failed. Funds from a swap are refunded to your refund address. Contact support if you need help.");
+        $("cxStatus").classList.add("hidden");
+      } else {
+        setCryptoStatus("notfound");
+      }
+    } catch (err) {
+      showError($("cxPayError"), err.message);
+      cooldown = 3;
+    } finally {
+      cx.checking = false;
+      setLoading(btn, false, CHECK_LABEL);
+      if (final) {
+        btn.disabled = true;
+      } else {
+        startCheckCooldown(cooldown);
+      }
+      refitModal();
+    }
+  }
+
+  $("cxCheck").addEventListener("click", checkCryptoPayment);
+
+  el.cont.onclick = e => {
     e.preventDefault();
     e.stopPropagation();
     if (busy) return;
 
-    const method = selectedMethod();
     const sel = window.selectedPurchase;
     if (!sel) return;
 
-    if (method === "card") {
+    if (selectedMethod() === "card") {
       startCard(sel);
       return;
     }
-
-    try {
-      busy = true;
-      el.cont.textContent = "Processing…";
-      syncModalState();
-
-      const res = await fetch("/billing/pay-with-wallet", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: sel.type,
-          plan: sel.plan || null,
-          interval: sel.interval || null,
-          pack: sel.pack || null,
-          community_id: COMMUNITY_ID
-        })
-      });
-      const data = await res.json();
-
-      if (data.success) {
-        busy = false;
-        if ("subscription" in data || "extra_left" in data) {
-          if ("subscription" in data) applySubscription(data.subscription);
-          if ("extra_left" in data) applyExtraLeft(data.extra_left);
-          setDone("You're all set", successText(sel));
-          scheduleClose(1600);
-        } else {
-          location.reload();
-        }
-        return;
-      }
-      alert(data.message || "Payment failed");
-      busy = false;
-      el.cont.textContent = "Continue";
-      syncModalState();
-    } catch (err) {
-      console.error(err);
-      alert("Something went wrong");
-      busy = false;
-      el.cont.textContent = "Continue";
-      syncModalState();
-    }
+    openCryptoStep();
   };
-
-  (function handleRedirectReturn() {
-    const p = new URLSearchParams(location.search);
-    const status = p.get("redirect_status");
-    const pi = p.get("payment_intent");
-    if (!status || !pi) return;
-
-    ["payment_intent", "payment_intent_client_secret", "redirect_status"].forEach(k => p.delete(k));
-    const qs = p.toString();
-    history.replaceState({}, "", location.pathname + (qs ? `?${qs}` : ""));
-
-    let sel = null;
-    try { sel = JSON.parse(sessionStorage.getItem("pendingPurchase") || "null"); } catch (_) {}
-    sessionStorage.removeItem("pendingPurchase");
-
-    if (status === "failed") {
-      alert("Your payment didn't go through. You have not been charged.");
-      return;
-    }
-
-    window.selectedPurchase = sel;
-    hadHeight = false;
-    el.box.style.height = "";
-    paying = true;
-    modal.classList.remove("hidden");
-    document.body.style.overflow = "hidden";
-    setDone("Payment received", "Activating your purchase…");
-    finishAfterPayment(sel, pi);
-  })();
 }
 
 if (document.readyState === "loading") {

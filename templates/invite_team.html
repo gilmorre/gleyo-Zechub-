@@ -1,4 +1,4 @@
-<link rel="stylesheet" href="{{ url_for('static', filename='invite_teams.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='invite_teams.css') }}?v2">
 <div class="team-wrapper">
   <div class="team-container">
       <div class="team-header">
@@ -81,44 +81,19 @@
         <div class="team-members-list">
           <h3 style="color: var(--text-main);">{{ total_members }} Members</h3>
 
-          {% for m in members %}
-          <div class="team-member">
-            <div class="team-avatar" data-user-id="{{ m.id }}">
-              {% if m.profile_pic %}
-                <img src="{{ m.profile_pic }}" alt="{{ m.username }}" loading="lazy" decoding="async">
-              {% else %}
-                {{ m.username[0]|upper }}
-              {% endif %}
-            </div>
+          {% for _ in range(4) %}
+          <div class="team-member skeleton-row">
+            <div class="team-avatar"><div class="skeleton-box avatar member-lighter"></div></div>
             <div class="team-divide-up">
               <div class="team-info">
-                <div class="team-name" style="font-size: 15px !important ;color: var(--text-main) !important;">{{ m.username }}</div>
-                {% if m.joined %}
-                  <div class="team-joined" style="margin-top: 4px; color: #bebece;">Joined {{ m.joined }}</div>
-                {% endif %}
+                <div class="team-name skeleton-box member-lighter"></div>
+                <div class="team-joined skeleton-box member-lighter"></div>
               </div>
-
-              <div class="team-role {% if m.is_creator %}creator-role{% endif %}" {% if not m.is_creator %}data-user-id="{{ m.id }}" {% endif %}
-                  {% if m.is_creator %}data-tooltip="Community creator cannot be edited"{% endif %}>
-                {% if m.banned %}
-                  <span class="team-role-label" style="color:#f66;">Banned</span>
-                {% else %}
-                  <span class="team-role-label">{{ m.role }}</span>
-                {% endif %}
-
-                {% if m.is_creator %}
-
-                  <span class="creator-lock" data-tooltip="Community creator cannot be edited">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="gold" stroke-width="2" class="icon">
-                      <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
-                    </svg>
-                  </span>
-                {% endif %}
+              <div class="team-role">
+                <span class="team-role-label skeleton-box member-lighter"></span>
               </div>
             </div>
           </div>
-
           {% endfor %}
         </div>
 

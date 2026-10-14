@@ -311,8 +311,8 @@
     </div>
 
     <a id="nextLink"
-       href="{{ url_for('next', community_slug=community_slug) }}"
-       class="main-login-btn valid-email" onclick="event.preventDefault(); navigateTo(this.href);">
+      href="{{ url_for('next_setup', community_slug=community.slug) }}"
+      class="main-login-btn valid-email" onclick="event.preventDefault(); navigateTo(this.href);">
         Next
     </a>
 

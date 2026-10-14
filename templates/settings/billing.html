@@ -32,14 +32,19 @@
   :root { --edge-w: 0.75px; }
 }
 
-/* gradient edge: page elements + the wallet box and payment options inside the upgrade modal */
+/* gradient edge: page elements + everything inside the upgrade modal (payment options + crypto step) */
 .billing-tabs-shell::before,
 .table-edge::before,
 .mobile-plan-card::before,
 .plan-action-btn::before,
 .quest-pack::before,
-.upgrade-box .wallet-info::before,
-.upgrade-box .pay-option::before {
+.upgrade-box .pay-option::before,
+.upgrade-box .cx-chip::before,
+.upgrade-box .cx-dd-trigger::before,
+.upgrade-box .cx-dd-menu::before,
+.upgrade-box .cx-input::before,
+.upgrade-box .cx-row::before,
+.upgrade-box .cx-copy::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -881,27 +886,6 @@ tbody td:not(:first-child) {
   color: var(--text-muted);
 }
 
-.upgrade-box .wallet-info {
-  position: relative;
-  border: var(--edge-w) solid transparent;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 22px;
-  padding: 14px 16px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.03);
-  font-size: 13px;
-  color: var(--text-muted);
-}
-
-.upgrade-box #walletBalance {
-  font-family: var(--font-mono);
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-main);
-}
-
 .upgrade-box .pivooo-init {
   margin: 0 0 10px;
   font-family: var(--font-display);
@@ -916,6 +900,7 @@ tbody td:not(:first-child) {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  margin-bottom: 20px;
 }
 
 .upgrade-box .pay-option {
@@ -977,6 +962,18 @@ tbody td:not(:first-child) {
   color: var(--text-muted);
 }
 
+.upgrade-box .pay-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #7fd9a2;
+  background: rgba(34, 197, 94, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(34, 197, 94, 0.22);
+}
+
 .upgrade-box .pay-radio {
   flex-shrink: 0;
   width: 18px;
@@ -1006,13 +1003,6 @@ tbody td:not(:first-child) {
   outline-offset: 2px;
 }
 
-.upgrade-box .upgrade-hint {
-  margin: 14px 0 18px;
-  text-align: center;
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
 .upgrade-box .upgrade-continue {
   display: flex;
   align-items: center;
@@ -1039,7 +1029,7 @@ tbody td:not(:first-child) {
   transform: scale(.99);
 }
 
-/* ===== wallet skeleton shimmer + disabled states ===== */
+/* ===== skeleton shimmer + disabled states ===== */
 .upgrade-box .hidden {
   display: none !important;
 }
@@ -1058,18 +1048,6 @@ tbody td:not(:first-child) {
 @keyframes skelShimmer {
   from { background-position: 200% 0; }
   to   { background-position: -200% 0; }
-}
-
-.upgrade-box #walletSkeleton {
-  width: 78px;
-  height: 16px;
-  vertical-align: middle;
-}
-
-.upgrade-box .pay-option.is-disabled {
-  opacity: .45;
-  cursor: not-allowed;
-  pointer-events: none;
 }
 
 .upgrade-box .upgrade-continue:disabled {
@@ -1110,14 +1088,37 @@ tbody td:not(:first-child) {
 }
 
 .upgrade-box .upgrade-error {
+  position: relative;
   margin: 0 0 14px;
   padding: 10px 12px;
   border-radius: 12px;
+  border: var(--edge-w) solid transparent;
   background: rgba(248, 113, 113, 0.1);
-  border: 1px solid rgba(248, 113, 113, 0.3);
   color: var(--danger);
   font-size: 13px;
   line-height: 1.45;
+  --edge-hi: rgba(248, 113, 113, 0.9);
+  --edge-lo: rgba(248, 113, 113, 0.2);
+}
+
+.upgrade-box .upgrade-error::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: var(--edge-w);
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    var(--edge-hi) 0%,
+    var(--edge-lo) 28%,
+    var(--edge-lo) 72%,
+    var(--edge-hi) 100%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
 }
 
 .upgrade-box .secure-note {
@@ -1133,6 +1134,358 @@ tbody td:not(:first-child) {
 .upgrade-box .secure-note svg {
   width: 13px;
   height: 13px;
+}
+
+/* ===== crypto step ===== */
+.upgrade-box .cx-label {
+  margin: 0 0 8px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.upgrade-box .cx-chips {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+/* coin chips: gradient edge */
+.upgrade-box .cx-chip {
+  position: relative;
+  flex: 1;
+  padding: 11px 8px;
+  border-radius: 14px;
+  cursor: pointer;
+  border: var(--edge-w) solid transparent;
+  background: transparent;
+  color: var(--text-main);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  transition: background .2s;
+}
+
+.upgrade-box .cx-chip:hover {
+  background: var(--bg-hover-hover)
+}
+
+.upgrade-box .cx-chip em {
+  font-style: normal;
+  font-size: 10.5px;
+  color: #7fd9a2;
+  margin-left: 4px;
+}
+
+.upgrade-box .cx-chip.active {
+  --edge-hi: rgba(99, 102, 241, 0.95);
+  --edge-lo: rgba(99, 102, 241, 0.25);
+  background: rgba(99, 102, 241, .14);
+}
+
+/* text input (refund address): wrapper carries the edge, input stays plain */
+.upgrade-box .cx-input {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  margin-bottom: 14px;
+  border-radius: 14px;
+  border: var(--edge-w) solid transparent;
+  background: var(--bg-hover-hover);
+  transition: background .2s;
+}
+
+.upgrade-box .cx-input input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 13px 14px;
+  border: none;
+  border-radius: inherit;
+  background: transparent;
+  color: var(--text-main);
+  font-family: var(--font-body);
+  font-size: 14px;
+  outline: none;
+}
+
+.upgrade-box .cx-input input::placeholder {
+  color: var(--text-muted);
+}
+
+.upgrade-box .cx-input:focus-within {
+  --edge-hi: rgba(99, 102, 241, 0.95);
+  --edge-lo: rgba(99, 102, 241, 0.35);
+  background: rgba(99, 102, 241, .08);
+}
+
+/* ---- custom dropdown (replaces the browser <select>) ---- */
+.upgrade-box .cx-dd {
+  position: relative;
+  z-index: 5;
+  margin-bottom: 14px;
+}
+
+.upgrade-box .cx-dd-trigger {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 13px 14px;
+  border-radius: 14px;
+  border: var(--edge-w) solid transparent;
+  background: var(--bg-hover-hover);
+  color: var(--text-main);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 400;
+  text-align: left;
+  cursor: pointer;
+  outline: none;
+  transition: background .2s;
+}
+
+.upgrade-box .cx-dd-trigger:hover {
+  background: rgba(255, 255, 255, .07);
+}
+
+.upgrade-box .cx-dd-trigger:focus-visible,
+.upgrade-box .cx-dd-trigger[aria-expanded="true"] {
+  --edge-hi: rgba(99, 102, 241, 0.95);
+  --edge-lo: rgba(99, 102, 241, 0.35);
+  background: rgba(99, 102, 241, .08);
+}
+
+.upgrade-box .cx-dd-value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.upgrade-box .cx-dd-chevron {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  color: var(--text-muted);
+  transition: transform .25s ease;
+}
+
+.upgrade-box .cx-dd-trigger[aria-expanded="true"] .cx-dd-chevron {
+  transform: rotate(180deg);
+}
+
+/* the menu FLOATS over the form (absolute), it does not push anything down.
+   solid background so the content under it never shows through. */
+.upgrade-box .cx-dd-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  max-height: 220px;
+  overflow-y: auto;
+  border-radius: 14px;
+  border: var(--edge-w) solid transparent;
+  background: #25253f;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, .5);
+  transform-origin: top center;
+  animation: cxDdIn .16s ease;
+}
+
+@keyframes cxDdIn {
+  from { opacity: 0; transform: translateY(-6px) scale(.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.upgrade-box .cx-dd-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 11px 12px;
+  border-radius: 10px;
+  color: var(--text-main);
+  font-size: 14px;
+  cursor: pointer;
+  outline: none;
+  transition: background .15s;
+}
+
+.upgrade-box .cx-dd-option {
+  margin-top: 5px;
+}
+
+.upgrade-box .cx-dd-option:hover,
+.upgrade-box .cx-dd-option:focus-visible {
+  background: rgba(255, 255, 255, .07);
+}
+
+.upgrade-box .cx-dd-option[aria-selected="true"] {
+  background: rgba(99, 102, 241, .16);
+}
+
+.upgrade-box .cx-dd-option .cx-dd-check {
+  width: 14px;
+  height: 14px;
+  color: #8b8df7;
+  opacity: 0;
+}
+
+.upgrade-box .cx-dd-option[aria-selected="true"] .cx-dd-check {
+  opacity: 1;
+}
+
+.upgrade-box .cx-summary {
+  margin: 0 0 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.upgrade-box .cx-summary strong {
+  color: var(--text-main);
+  font-family: var(--font-mono);
+  font-weight: 500;
+}
+
+.upgrade-box .cx-amount {
+  text-align: center;
+  margin-bottom: 14px;
+}
+
+.upgrade-box .cx-amount b {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 26px;
+  font-weight: 500;
+  color: var(--text-main);
+}
+
+.upgrade-box .cx-amount span {
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.upgrade-box .cx-qr {
+  width: 188px;
+  height: 188px;
+  margin: 0 auto 14px;
+  padding: 10px;
+  box-sizing: border-box;
+  border-radius: 16px;
+  background: #d9d8d8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.upgrade-box .cx-qr svg,
+.upgrade-box .cx-qr canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* address / memo rows: gradient edge */
+.upgrade-box .cx-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding: 11px 14px;
+  border-radius: 14px;
+  border: var(--edge-w) solid transparent;
+  background: var(--bg-hover-hover);
+}
+
+.upgrade-box .cx-row small {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+.upgrade-box .cx-row code {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-main);
+  word-break: break-all;
+}
+
+/* copy buttons: gradient edge */
+.upgrade-box .cx-copy {
+  position: relative;
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: var(--edge-w) solid transparent;
+  cursor: pointer;
+  background: rgba(255, 255, 255, .06);
+  color: var(--text-main);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  transition: background .2s;
+}
+
+.upgrade-box .cx-copy:hover {
+  background: rgba(255, 255, 255, .12);
+}
+
+.upgrade-box .cx-copy.wide {
+  width: 100%;
+  margin-bottom: 6px;
+  padding: 10px;
+}
+
+.upgrade-box .cx-memo-warn {
+  margin: 0 0 12px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #facc15;
+  text-align: center;
+}
+
+.upgrade-box .cx-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.upgrade-box .cx-status .dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, .2);
+  border-top-color: var(--accent);
+  animation: billingSpin .8s linear infinite;
+}
+
+.upgrade-box .cx-timer {
+  margin-top: 6px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
 }
 
 .upgrade-box .upgrade-done {
@@ -1212,7 +1565,40 @@ tbody td:not(:first-child) {
 .quest-pack {
   isolation: isolate;
 }
+
+.upgrade-box .cx-qr {
+  width: 300px;
+  max-width: 100%;
+  aspect-ratio: 1 / 1;
+  margin: 0 auto 14px;
+  padding: 10px;
+  box-sizing: border-box;
+  border-radius: 16px;
+  background: #d9d8d8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.upgrade-box .cx-qr svg,
+.upgrade-box .cx-qr canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.upgrade-box .cx-status {
+  margin: 6px 0 0;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.upgrade-box .cx-check {
+  margin-top: 14px;
+}
 </style>
+
 {# ------------------------------------------------------------------
    From the route:
    `subscription`    the community's ACTIVE CommunitySubscription, or None (= Free)
@@ -1460,7 +1846,7 @@ tbody td:not(:first-child) {
     <div class="auto-renew-features">
       <div class="auto-renew-item">
         {{ tick() }}
-        Pay from your wallet balance (crypto) or by card through Stripe.
+        Pay with crypto (ZEC, USDT or USDC) or by card through Stripe.
       </div>
       <div class="auto-renew-item">
         {{ tick() }}
@@ -1500,36 +1886,26 @@ tbody td:not(:first-child) {
       <!-- STEP 1: choose payment method -->
       <div id="stepMethod">
 
-        <div class="wallet-info" style="background-color: var(--bg-hover-hover);">
-          <span>Wallet balance</span>
-          <strong>
-            <span id="walletSkeleton" class="skel"></span>
-            <span id="walletBalance" class="hidden"></span>
-          </strong>
-        </div>
-
         <h4 class="pivooo-init">Choose payment method</h4>
 
         <div class="pay-options">
 
-          <label class="pay-option" id="walletOption">
-            <input type="radio" name="paymentMethod" value="wallet" checked>
+          <label class="pay-option" id="cryptoOption">
+            <input type="radio" name="paymentMethod" value="crypto" checked>
             <span class="pay-icon">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path fill-rule="evenodd" clip-rule="evenodd" d="M20.9235 11.7502C20.9032 11.75 20.8766 11.75 20.8333 11.75H18.2308C16.8074 11.75 15.75 12.8087 15.75 14C15.75 15.1913 16.8074 16.25 18.2308 16.25H20.8333C20.8766 16.25 20.9032 16.25 20.9235 16.2498C20.9427 16.2496 20.948 16.2492 20.948 16.2492C21.154 16.2367 21.2427 16.0976 21.2495 16.0139C21.2495 16.0139 21.2497 16.0077 21.2498 15.9986C21.25 15.9808 21.25 15.9572 21.25 15.9167V12.0833C21.25 12.0609 21.25 12.0437 21.25 12.0297C21.2499 12.0185 21.2499 12.0093 21.2498 12.0014C21.2497 11.9924 21.2495 11.9861 21.2495 11.9861C21.2427 11.9024 21.154 11.7633 20.9479 11.7508C20.9479 11.7508 20.943 11.7504 20.9235 11.7502ZM20.8499 10.25C20.9163 10.25 20.9803 10.2499 21.0391 10.2535C21.9104 10.3066 22.681 10.9638 22.7458 11.8818C22.7501 11.942 22.75 12.0069 22.75 12.067V12.0833V15.9167V15.933C22.75 15.9931 22.7501 16.058 22.7458 16.1182C22.681 17.0362 21.9104 17.6934 21.0391 17.7465C20.9803 17.7501 20.9163 17.75 20.8499 17.75H20.8333H18.2308C16.0856 17.75 14.25 16.1224 14.25 14C14.25 11.8776 16.0856 10.25 18.2308 10.25H20.8333H20.8499Z" fill="currentColor"/>
-                <path d="M19 14C19 14.5523 18.5523 15 18 15C17.4477 15 17 14.5523 17 14C17 13.4477 17.4477 13 18 13C18.5523 13 19 13.4477 19 14Z" fill="currentColor"/>
-                <path fill-rule="evenodd" clip-rule="evenodd" d="M20.8499 10.25C20.9163 10.25 20.9803 10.2499 21.0391 10.2535C21.2645 10.2672 21.4832 10.3214 21.6847 10.4101C21.5777 8.80363 21.2831 7.56563 20.3588 6.64124C19.6104 5.89288 18.6614 5.56076 17.489 5.40313L17.4467 5.39754C17.4362 5.38977 17.4255 5.38223 17.4145 5.37492L13.679 2.89806C12.3758 2.03398 10.6242 2.03398 9.32102 2.89806L5.58554 5.37492C5.57453 5.38223 5.56377 5.38977 5.55327 5.39754L5.51098 5.40313C4.33856 5.56076 3.38961 5.89288 2.64124 6.64124C1.89288 7.38961 1.56076 8.33856 1.40314 9.51098C1.24997 10.6502 1.24998 12.1058 1.25 13.9436V14.0564C1.24998 15.8942 1.24997 17.3498 1.40314 18.489C1.56076 19.6614 1.89288 20.6104 2.64124 21.3588C3.38961 22.1071 4.33856 22.4392 5.51098 22.5969C6.65019 22.75 8.10583 22.75 9.94359 22.75H13.0564C14.8942 22.75 16.3498 22.75 17.489 22.5969C18.6614 22.4392 19.6104 22.1071 20.3588 21.3588C21.2831 20.4344 21.5777 19.1964 21.6847 17.5899C21.4832 17.6786 21.2645 17.7328 21.0391 17.7465C20.9803 17.7501 20.9163 17.75 20.8499 17.75H20.8333H20.1679C20.0541 19.0915 19.7966 19.7996 19.2981 20.2981C18.8749 20.7213 18.2952 20.975 17.2892 21.1102C16.2615 21.2484 14.9068 21.25 13 21.25H10C8.09318 21.25 6.73851 21.2484 5.71085 21.1102C4.70476 20.975 4.12511 20.7213 3.7019 20.2981C3.27869 19.8749 3.02502 19.2952 2.88976 18.2892C2.75159 17.2615 2.75 15.9068 2.75 14C2.75 12.0932 2.75159 10.7385 2.88976 9.71085C3.02502 8.70476 3.27869 8.12511 3.7019 7.7019C4.12511 7.27869 4.70476 7.02502 5.71085 6.88976C6.73851 6.75159 8.09318 6.75 10 6.75H13C14.9068 6.75 16.2615 6.75159 17.2892 6.88976C18.2952 7.02502 18.8749 7.27869 19.2981 7.7019C19.7966 8.20043 20.0541 8.90854 20.1679 10.25H20.8333H20.8499ZM9.94358 5.25H13.0564C13.5729 5.24999 14.0592 5.24999 14.5168 5.25339L12.8501 4.14821C12.0493 3.61726 10.9507 3.61726 10.15 4.14821L8.48318 5.25339C8.94077 5.24999 9.42708 5.24999 9.94358 5.25Z" fill="currentColor"/>
-                <path d="M6 9.25C5.58579 9.25 5.25 9.58579 5.25 10C5.25 10.4142 5.58579 10.75 6 10.75H10C10.4142 10.75 10.75 10.4142 10.75 10C10.75 9.58579 10.4142 9.25 10 9.25H6Z" fill="currentColor"/>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="9"/>
+                <path d="M9 9h6l-6 6h6M12 7v2M12 15v2"/>
               </svg>
             </span>
             <span class="pay-text">
-              <strong>Wallet balance</strong>
-              <small>Pay instantly with your wallet funds</small>
+              <strong>Crypto <span class="pay-badge">8% off with ZEC</span></strong>
+              <small>Pay with ZEC, USDT or USDC</small>
             </span>
             <span class="pay-radio"></span>
           </label>
 
-          <label class="pay-option">
+          <label class="pay-option" id="cardOption">
             <input type="radio" name="paymentMethod" value="card">
             <span class="pay-icon">
               <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1548,17 +1924,15 @@ tbody td:not(:first-child) {
 
         </div>
 
-        <p class="upgrade-hint" id="upgradeHint">Low wallet balance? Choose card instead.</p>
-
         <div class="upgrade-error hidden" id="methodError" role="alert"></div>
 
-        <button id="continueUpgrade" class="upgrade-continue" disabled>
+        <button id="continueUpgrade" class="upgrade-continue" type="button">
           Continue
         </button>
 
       </div>
 
-      <!-- STEP 2: card -->
+      <!-- STEP 2a: card -->
       <div id="stepCard" class="hidden">
 
         <div class="card-form">
@@ -1579,6 +1953,81 @@ tbody td:not(:first-child) {
           </svg>
           Encrypted and processed by Stripe
         </p>
+
+      </div>
+
+      <!-- STEP 2b: crypto -->
+      <div id="stepCrypto" class="hidden">
+
+        <!-- choose coin -->
+        <div id="cxForm">
+          <p class="cx-label">Pay with</p>
+          <div class="cx-chips" id="cxChips">
+            <button type="button" class="cx-chip active" data-token="ZEC">ZEC <em>-8%</em></button>
+            <button type="button" class="cx-chip" data-token="USDT">USDT</button>
+            <button type="button" class="cx-chip" data-token="USDC">USDC</button>
+          </div>
+
+          <!-- custom network dropdown (no native <select>), floats over the form -->
+          <div id="cxNetworkWrap" class="hidden">
+            <p class="cx-label" id="cxNetworkLabelTitle">Network</p>
+            <div class="cx-dd" id="cxNetworkDd">
+              <input type="hidden" id="cxNetwork" value="">
+              <button type="button" class="cx-dd-trigger" id="cxNetworkTrigger"
+                      aria-haspopup="listbox" aria-expanded="false" aria-controls="cxNetworkMenu"
+                      aria-labelledby="cxNetworkLabelTitle cxNetworkValue">
+                <span class="cx-dd-value" id="cxNetworkValue">Select network</span>
+                <svg class="cx-dd-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M6 9l6 6 6-6"/>
+                </svg>
+              </button>
+              <ul class="cx-dd-menu hidden" id="cxNetworkMenu" role="listbox" aria-labelledby="cxNetworkLabelTitle"></ul>
+            </div>
+          </div>
+
+          <div id="cxRefundWrap" class="hidden">
+            <p class="cx-label">Refund address</p>
+            <div class="cx-input">
+              <input id="cxRefund" type="text" placeholder="0x… your wallet on that network" autocomplete="off" autocapitalize="off" spellcheck="false">
+            </div>
+          </div>
+
+          <p class="cx-summary" id="cxSummary"></p>
+          <div class="upgrade-error hidden" id="cxFormError" role="alert"></div>
+          <button type="button" id="cxGenerate" class="upgrade-continue">Generate payment</button>
+        </div>
+
+        <!-- pay screen -->
+        <div id="cxPay" class="hidden">
+          <div class="cx-amount">
+            <b id="cxAmount">0</b>
+            <span id="cxAmountSub"></span>
+          </div>
+
+          <!-- QR (same style for ZEC and USDT/USDC) -->
+          <div class="cx-qr" id="qrcode"></div>
+
+          <div class="cx-row">
+            <div><small id="cxAddrLabel">Address</small><code id="cxAddr"></code></div>
+            <button type="button" class="cx-copy" data-copy="cxAddrFull">Copy</button>
+          </div>
+
+          <div class="cx-row hidden" id="cxMemoRow">
+            <div><small>Memo (required)</small><code id="cxMemo"></code></div>
+            <button type="button" class="cx-copy" data-copy="cxMemo">Copy</button>
+          </div>
+          <p class="cx-memo-warn hidden" id="cxMemoWarn">Include this memo in your transaction. Payments without it can't be matched automatically.</p>
+
+          <button type="button" class="cx-copy wide" data-copy="cxAmountRaw">Copy amount</button>
+
+          <div class="upgrade-error hidden" id="cxPayError" role="alert"></div>
+
+          <p class="cx-status" id="cxStatus"><span id="cxStatusText">Send the payment, then press the button below.</span></p>
+
+          <button type="button" id="cxCheck" class="upgrade-continue cx-check">I've paid, please check</button>
+
+          <div class="cx-timer" id="cxTimer"></div>
+        </div>
 
       </div>
 

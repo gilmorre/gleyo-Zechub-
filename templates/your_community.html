@@ -35,7 +35,7 @@
 <meta name="color-scheme" content="light">
 <link rel="shortcut icon" href="https://zupdpwnloewdkjqsymdm.supabase.co/storage/v1/object/public/uploads/communities/7/logos/511f4996-5748-4f1f-b74c-5d5c33f7124c.png">
 
-<link rel="stylesheet" href="{{ url_for('static', filename='your_communitys.css') }}?v=1">
+<link rel="stylesheet" href="{{ url_for('static', filename='your_communitys.css') }}?v=6">
 <style>
 
 :root {
@@ -86,6 +86,7 @@
   --bg-hover-hover-lower: #2a2a4467;
   --bg-hover-hover-3: #2323389c;
   --satus-yyr : #212135ea;
+  --card-bg-glassy: #262738af;
   --error-alt: #e74c3c;
   --sub-muted: #9aa0b4;
   --active-ness: #2ecc71;
@@ -7576,9 +7577,9 @@ async function loadMainSettingsSection(path, push = true, previewMode = false, n
   /* ---------------- TEAM ---------------- */
 
   if (finalPath.includes("/invite_team")) {
-    __CURRENT_SCRIPT__ = "/static/invite_team.js?v=9";
+    __CURRENT_SCRIPT__ = "/static/invite_team.js?v=1";
     
-    await loadScript("/static/invite_team.js?v=9");
+    await loadScript("/static/invite_team.js?v=1");
 
     if (window.TeamInviteModule) {
       window.TeamInviteModule.init();

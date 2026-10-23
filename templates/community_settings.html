@@ -4862,6 +4862,9 @@ const CX_NETWORKS = {
 const VERIFY_URL = "/billing/verify-plan-payment";
 const CHECK_LABEL = "I've paid, please check";
 const CHECK_COOLDOWN_SECONDS = 8;
+const STATUS_HIDE_MS = 5000;
+const AUTO_POLL_MS = 60000;
+const LOCK_TIP = "Confirming, please wait";
 
 const CHECK_SVG =
   '<svg class="cx-dd-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
@@ -4873,6 +4876,22 @@ const fmtDate = iso => {
   return isNaN(d) ? "" : d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 };
 const shortAddr = a => (a.length > 22 ? `${a.slice(0, 10)}…${a.slice(-8)}` : a);
+
+function ensureStatusStyles() {
+  if (document.getElementById("cxStatusStyles")) return;
+  const s = document.createElement("style");
+  s.id = "cxStatusStyles";
+  s.textContent = `
+    #cxStatus { border-radius: 10px; padding: 10px 12px; border: 1px solid transparent; transition: opacity .25s ease; }
+    #cxStatus, #cxStatus * { color: var(--cx-status-color, #9cc4ff) !important; }
+    #cxStatus { background: var(--cx-status-bg, rgba(90,160,255,.10)); border-color: var(--cx-status-border, rgba(90,160,255,.35)); }
+    #cxStatus[data-state="waiting"]    { --cx-status-color:#9cc4ff; --cx-status-bg:rgba(90,160,255,.10); --cx-status-border:rgba(90,160,255,.35); }
+    #cxStatus[data-state="processing"] { --cx-status-color:#ffd166; --cx-status-bg:rgba(255,209,102,.10); --cx-status-border:rgba(255,209,102,.40); }
+    #cxStatus[data-state="notfound"]   { --cx-status-color:#ff8a80; --cx-status-bg:rgba(255,100,90,.10);  --cx-status-border:rgba(255,100,90,.40); }
+    #cxPayError { transition: opacity .25s ease; }
+  `;
+  document.head.appendChild(s);
+}
 
 function resolveBillingCycle() {
   if (location.pathname.includes("monthly")) return "monthly";
@@ -4889,6 +4908,8 @@ function initBillingTabs() {
   const indicator = document.querySelector(".billing-indicator");
   if (!root || !tabs.length || !contents.length || !indicator) return;
 
+  ensureStatusStyles();
+
   const COMMUNITY_ID = root.dataset.communityId;
 
   let busy = false;
@@ -4899,7 +4920,13 @@ function initBillingTabs() {
   let methodInner = 0;
   let doneTimer = null;
 
-  const cx = { token: "ZEC", view: "form", checkout: null, tick: null, cool: null, checking: false };
+  const cx = {
+    token: "ZEC", view: "form", checkout: null,
+    tick: null, cool: null, checking: false,
+    statusTimer: null, errTimer: null,
+    autoTimer: null, autoOn: false, lastCheckAt: 0,
+    locked: false
+  };
 
   let currentSub = root.dataset.subPlan
     ? { plan: root.dataset.subPlan, interval: root.dataset.subInterval, expires_at: root.dataset.subExpires || "" }
@@ -5062,6 +5089,37 @@ function initBillingTabs() {
 
   let hadHeight = false;
 
+  // ---- lock Back / X while a swap payment is being confirmed ----
+  function setLocked(on) {
+    cx.locked = !!on;
+    [el.back, el.close].forEach(b => {
+      if (!b) return;
+      b.classList.toggle("is-locked", cx.locked);
+      if (cx.locked) {
+        b.setAttribute("aria-disabled", "true");
+        b.dataset.tip = LOCK_TIP;
+        // the tooltip is positioned against the button, so it must be a positioned element
+        if (getComputedStyle(b).position === "static") {
+          b.style.position = "relative";
+          b.dataset.posFix = "1";
+        }
+      } else {
+        b.removeAttribute("aria-disabled");
+        delete b.dataset.tip;
+        if (b.dataset.posFix) {
+          b.style.position = "";
+          delete b.dataset.posFix;
+        }
+      }
+    });
+  }
+
+  window.addEventListener("beforeunload", e => {
+    if (!cx.locked) return;
+    e.preventDefault();
+    e.returnValue = "";
+  }, listenerOpts);
+
   function fit() {
     if (!el.box || !el.inner) return;
     const h = el.inner.offsetHeight;
@@ -5206,6 +5264,7 @@ function initBillingTabs() {
     openToken++;
     stopCryptoTimers();
     closeNetworkMenu();
+    setLocked(false);
     cx.view = "form";
     cx.checkout = null;
     clearError(el.methodError);
@@ -5263,7 +5322,7 @@ function initBillingTabs() {
   }
 
   function closeModal() {
-    if (paying) return;
+    if (paying || cx.locked) return;
     openToken++;
     stopCryptoTimers();
     closeNetworkMenu();
@@ -5294,7 +5353,7 @@ function initBillingTabs() {
     .forEach(r => r.addEventListener("change", syncModalState));
 
   el.back.addEventListener("click", () => {
-    if (paying) return;
+    if (paying || cx.locked) return;
 
     if (currentStep === "crypto") {
       if (cx.view === "pay") {
@@ -5319,6 +5378,13 @@ function initBillingTabs() {
     if (modal.classList.contains("hidden")) return;
     refitModal();
     if (currentStep === "done" && !paying && !doneTimer) scheduleClose(800);
+
+    // Browsers throttle timers in background tabs: catch up as soon as the tab is visible again.
+    if (cx.autoOn && currentStep === "crypto" && cx.view === "pay" && !cx.checking
+        && Date.now() - cx.lastCheckAt >= AUTO_POLL_MS) {
+      clearTimeout(cx.autoTimer);
+      runCryptoCheck(true);
+    }
   }, listenerOpts);
 
   function loadPaystackJs() {
@@ -5428,7 +5494,11 @@ function initBillingTabs() {
   function stopCryptoTimers() {
     clearInterval(cx.tick);
     clearInterval(cx.cool);
-    cx.tick = cx.cool = null;
+    clearTimeout(cx.statusTimer);
+    clearTimeout(cx.errTimer);
+    clearTimeout(cx.autoTimer);
+    cx.tick = cx.cool = cx.statusTimer = cx.errTimer = cx.autoTimer = null;
+    cx.autoOn = false;
   }
 
   function showCryptoView(v) {
@@ -5643,6 +5713,7 @@ function initBillingTabs() {
   }
 
   async function renderCryptoPay(d) {
+    stopCryptoTimers();
     cx.checkout = d;
     const isZec = d.token === "ZEC";
 
@@ -5660,16 +5731,26 @@ function initBillingTabs() {
     $("cxMemoWarn").classList.toggle("hidden", !isZec);
     if (isZec) $("cxMemo").textContent = d.memo;
 
-    clearInterval(cx.cool);
-    cx.cool = null;
     cx.checking = false;
     const chk = $("cxCheck");
     chk.disabled = false;
     setLoading(chk, false, CHECK_LABEL);
+    // ZEC keeps the manual button; USDT/USDC are checked automatically.
+    chk.classList.toggle("hidden", !isZec);
 
     clearError($("cxPayError"));
-    setCryptoStatus("waiting");
+
+    // A swap that was already detected (reopened checkout) comes back locked.
+    if (!isZec && d.status === "processing") {
+      setCryptoStatus("autoprocessing");
+      setLocked(true);
+    } else {
+      setCryptoStatus(isZec ? "waiting" : "autowait");
+      setLocked(false);
+    }
     showCryptoView("pay");
+
+    if (!isZec) startAutoPoll();
 
     try {
       await renderQR(d);
@@ -5691,14 +5772,49 @@ function initBillingTabs() {
     setTimeout(() => { b.textContent = old; }, 1200);
   });
 
+  // ---- status / error indicators (color-coded, auto-hide) ----
+  function hideCryptoStatus() {
+    clearTimeout(cx.statusTimer);
+    cx.statusTimer = null;
+    $("cxStatus").classList.add("hidden");
+    refitModal();
+  }
+
   function setCryptoStatus(state) {
     const map = {
       waiting: "Send the payment, then press the button below.",
       processing: "Payment detected, confirming. Press check again in a minute.",
-      notfound: "We haven't seen your payment yet. Wait a minute after sending, then check again."
+      notfound: "We haven't seen your payment yet. Wait a minute after sending, then check again.",
+      autowait: "Waiting for your payment. We check automatically every minute, so keep this window open.",
+      autoprocessing: "Payment detected, confirming. This updates automatically, keep this window open."
     };
+    const colorState = { autowait: "waiting", autoprocessing: "processing" };
+    const box = $("cxStatus");
+    clearTimeout(cx.statusTimer);
+    cx.statusTimer = null;
+
     $("cxStatusText").textContent = map[state] || map.waiting;
-    $("cxStatus").classList.remove("hidden");
+    box.dataset.state = colorState[state] || (map[state] ? state : "waiting");
+    box.classList.remove("hidden");
+
+    // "not found" is a temporary nudge: remove it after 5s.
+    if (state === "notfound") {
+      cx.statusTimer = setTimeout(hideCryptoStatus, STATUS_HIDE_MS);
+    }
+    refitModal();
+  }
+
+  function showPayError(msg, sticky) {
+    const box = $("cxPayError");
+    clearTimeout(cx.errTimer);
+    cx.errTimer = null;
+    showError(box, msg);
+    if (!sticky) {
+      cx.errTimer = setTimeout(() => {
+        clearError(box);
+        refitModal();
+      }, STATUS_HIDE_MS);
+    }
   }
 
   function startCryptoCountdown(d) {
@@ -5733,16 +5849,39 @@ function initBillingTabs() {
     }, 1000);
   }
 
-  async function checkCryptoPayment() {
+  // ---- automatic checking for USDT / USDC swaps (every 60s while the tab is open) ----
+  function startAutoPoll() {
+    clearTimeout(cx.autoTimer);
+    cx.autoOn = true;
+    cx.lastCheckAt = Date.now();
+    scheduleAutoPoll();
+  }
+
+  function scheduleAutoPoll() {
+    clearTimeout(cx.autoTimer);
+    if (!cx.autoOn) return;
+    cx.autoTimer = setTimeout(() => runCryptoCheck(true), AUTO_POLL_MS);
+  }
+
+  // One check. auto=true -> called by the timer, auto=false -> the ZEC button.
+  async function runCryptoCheck(auto) {
     const d = cx.checkout;
     const sel = window.selectedPurchase;
-    if (!d || !sel || cx.checking) return;
+    if (!d || !sel || cx.checking) {
+      if (auto) scheduleAutoPoll();
+      return;
+    }
 
     const btn = $("cxCheck");
+    const token = d.id;
     cx.checking = true;
+    cx.lastCheckAt = Date.now();
+    clearTimeout(cx.errTimer);
     clearError($("cxPayError"));
-    btn.disabled = true;
-    setLoading(btn, true, "Checking…");
+    if (!auto) {
+      btn.disabled = true;
+      setLoading(btn, true, "Checking…");
+    }
 
     let final = false;
     let cooldown = CHECK_COOLDOWN_SECONDS;
@@ -5750,49 +5889,64 @@ function initBillingTabs() {
     try {
       const s = await postJSON(VERIFY_URL, { id: d.id });
 
+      // The user closed the modal or started another payment while we were waiting.
+      if (!cx.checkout || cx.checkout.id !== token) return;
+
       if (s.status === "paid") {
         final = true;
+        setLocked(false);
         stopCryptoTimers();
+        hideCryptoStatus();
         if (s.subscription) applySubscription(s.subscription);
         if (typeof s.extra_left === "number") applyExtraLeft(s.extra_left);
         setDone("You're all set", successText(sel));
         scheduleClose(1600);
       } else if (s.status === "processing") {
-        setCryptoStatus("processing");
+        // payment detected: lock Back / X for swaps until it is confirmed
+        if (d.token !== "ZEC") setLocked(true);
+        setCryptoStatus(auto || d.token !== "ZEC" ? "autoprocessing" : "processing");
       } else if (s.status === "expired") {
         final = true;
+        setLocked(false);
         stopCryptoTimers();
-        showError($("cxPayError"), "This payment expired. If you already sent funds, contact support with your memo or transaction.");
-        $("cxStatus").classList.add("hidden");
+        showPayError("This payment expired. If you already sent funds, contact gilmore@gleyo.app with your memo or transaction.", true);
+        hideCryptoStatus();
       } else if (s.status === "underpaid" || s.status === "late_paid") {
         final = true;
+        setLocked(false);
         stopCryptoTimers();
-        showError($("cxPayError"), "We received your payment but it needs a manual review. Please contact support.");
-        $("cxStatus").classList.add("hidden");
+        showPayError("We received your payment but it needs a manual review. Please contact support.", true);
+        hideCryptoStatus();
       } else if (s.status === "failed") {
         final = true;
+        setLocked(false);
         stopCryptoTimers();
-        showError($("cxPayError"), "The payment failed. Funds from a swap are refunded to your refund address. Contact support if you need help.");
-        $("cxStatus").classList.add("hidden");
+        showPayError("The payment failed. Funds from a swap are refunded to your refund address. Contact gilmore@gleyo.app if you need help.", true);
+        hideCryptoStatus();
       } else {
-        setCryptoStatus("notfound");
+        // Nothing seen yet: swaps keep the calm blue "waiting" text, ZEC shows the red nudge.
+        setLocked(false);
+        setCryptoStatus(d.token === "ZEC" ? "notfound" : "autowait");
       }
     } catch (err) {
-      showError($("cxPayError"), err.message);
-      cooldown = 3;
+      if (cx.checkout && cx.checkout.id === token) {
+        showPayError(err.message, false);
+        cooldown = 3;
+      }
     } finally {
       cx.checking = false;
-      setLoading(btn, false, CHECK_LABEL);
-      if (final) {
-        btn.disabled = true;
-      } else {
-        startCheckCooldown(cooldown);
+      if (!auto) {
+        setLoading(btn, false, CHECK_LABEL);
+        if (final) btn.disabled = true;
+        else startCheckCooldown(cooldown);
       }
+      // keep the 60s loop going until the payment reaches a final state
+      if (auto && !final && cx.autoOn && cx.checkout && cx.checkout.id === token) scheduleAutoPoll();
       refitModal();
     }
   }
 
-  $("cxCheck").addEventListener("click", checkCryptoPayment);
+  $("cxCheck").addEventListener("click", () => runCryptoCheck(false));
 
   el.cont.onclick = e => {
     e.preventDefault();

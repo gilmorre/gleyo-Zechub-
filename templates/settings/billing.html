@@ -1597,6 +1597,72 @@ tbody td:not(:first-child) {
 .upgrade-box .cx-check {
   margin-top: 14px;
 }
+
+/* Locked Back / X buttons while a swap payment is confirming */
+#upgradeBack.is-locked,
+.upgrade-close.is-locked {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+#upgradeBack.is-locked::after,
+.upgrade-close.is-locked::after {
+  content: attr(data-tip);
+  position: absolute;
+  top: calc(100% + 10px);
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #1c1f26;
+  color: #e8eaf0;
+  border: 1px solid rgba(255, 255, 255, .12);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .35);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+  transition: opacity .15s ease, transform .15s ease;
+  z-index: 50;
+}
+
+#upgradeBack.is-locked::before,
+.upgrade-close.is-locked::before {
+  content: "";
+  position: absolute;
+  top: calc(100% + 5px);
+  width: 8px;
+  height: 8px;
+  background: #1c1f26;
+  border-left: 1px solid rgba(255, 255, 255, .12);
+  border-top: 1px solid rgba(255, 255, 255, .12);
+  transform: translateY(-4px) rotate(45deg);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .15s ease, transform .15s ease;
+  z-index: 51;
+}
+
+#upgradeBack.is-locked::after  { left: 0; }
+#upgradeBack.is-locked::before { left: 12px; }
+.upgrade-close.is-locked::after  { right: 0; }
+.upgrade-close.is-locked::before { right: 12px; }
+
+#upgradeBack.is-locked:hover::after,
+#upgradeBack.is-locked:focus-visible::after,
+.upgrade-close.is-locked:hover::after,
+.upgrade-close.is-locked:focus-visible::after {
+  opacity: 1;
+  transform: translateY(0);
+}
+#upgradeBack.is-locked:hover::before,
+#upgradeBack.is-locked:focus-visible::before,
+.upgrade-close.is-locked:hover::before,
+.upgrade-close.is-locked:focus-visible::before {
+  opacity: 1;
+  transform: translateY(0) rotate(45deg);
+}
 </style>
 
 {# ------------------------------------------------------------------

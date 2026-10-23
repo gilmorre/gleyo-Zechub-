@@ -18,7 +18,7 @@
 
   <meta name="description" content="
   {% if active_page == 'pricing' %}
-    Explore Gleyo pricing. Free early access for Zcash communities with ZEC-powered quest rewards and retention analytics.
+    Explore Gleyo pricing. Start free, then upgrade for ZEC-powered quest rewards, community chat and retention analytics.
   {% elif active_page == 'product' %}
     Discover Gleyo's ZEC-native quest system, shielded reward payouts, built-in community chat, and real retention analytics.
   {% elif active_page == 'about' %}
@@ -43,7 +43,7 @@
 
   <meta property="og:description" content="
   {% if active_page == 'pricing' %}
-    Free early access for Zcash communities. All rewards paid in ZEC.
+    Start free. Plans for every Zcash community. All rewards paid in ZEC.
   {% elif active_page == 'product' %}
     ZEC-powered quests, shielded rewards, built-in chat, and real retention analytics.
   {% elif active_page == 'about' %}
@@ -71,25 +71,17 @@
     <nav class="nav">
       <a class="logo" href="/" aria-label="Gleyo home">
         <img src="https://zupdpwnloewdkjqsymdm.supabase.co/storage/v1/object/public/uploads/communities/7/logos/511f4996-5748-4f1f-b74c-5d5c33f7124c.png" alt="" width="38" height="38" draggable="false">
-        <span>Gleyo</span>
+        <span id="platform-name">Gleyo</span>
       </a>
       <div class="nav-links">
-        <a href="{{ url_for('about', page='home') }}"
-          class="{% if active_page == 'home' %}active{% endif %}">
-          Home
-        </a>
-        <a href="{{ url_for('about', page='product') }}"
-          class="{% if active_page == 'product' %}active{% endif %}">
-          Product
-        </a>
-        <a href="{{ url_for('about', page='pricing') }}"
-          class="{% if active_page == 'pricing' %}active{% endif %}">
-          Pricing
-        </a>
-        <a href="{{ url_for('about', page='about') }}"
-          class="{% if active_page == 'about' %}active{% endif %}">
-          About
-        </a>
+        <a href="{{ url_for('about', page='home') }}" data-view="home"
+          class="{% if active_page == 'home' %}active{% endif %}">Home</a>
+        <a href="{{ url_for('about', page='product') }}" data-view="product"
+          class="{% if active_page == 'product' %}active{% endif %}">Product</a>
+        <a href="{{ url_for('about', page='pricing') }}" data-view="pricing"
+          class="{% if active_page == 'pricing' %}active{% endif %}">Pricing</a>
+        <a href="{{ url_for('about', page='about') }}" data-view="about"
+          class="{% if active_page == 'about' %}active{% endif %}">About</a>
       </div>
     </nav>
   </div>
@@ -129,26 +121,174 @@
 
   </section>
 
+  {# ================= PRICING DATA + MACROS ================= #}
+  {# CHANGE THESE TWO to your real routes #}
+  {% set signup_url = '/signup' %}
+  {% set contact_url = '/contact' %}
+
+  {% set all_plans = [
+    {'key': 'free', 'name': 'Free', 'monthly': 0, 'yearly_month': 0, 'yearly_total': 0, 'paid': false, 'popular': false},
+    {'key': 'standard', 'name': 'Standard', 'monthly': 69, 'yearly_month': 66, 'yearly_total': 792, 'paid': true, 'popular': true},
+    {'key': 'plus', 'name': 'Pro', 'monthly': 110, 'yearly_month': 105, 'yearly_total': 1260, 'paid': true, 'popular': false},
+    {'key': 'enterprise', 'name': 'Enterprise', 'monthly': 0, 'yearly_month': 0, 'yearly_total': 0, 'paid': false, 'popular': false}
+  ] %}
+
+  {% set sections = [
+    {'title': 'Usage', 'rows': [
+      ['Community members', 'Up to 100', 'Up to 3,000', 'Up to 8,000', 'Unlimited'],
+      ['Team members', '1', 'Unlimited', 'Unlimited', 'Unlimited'],
+      ['Included Claimed Quests', '200 / month', '1,000 / month', '4,000 / month', 'Unlimited']
+    ]},
+    {'title': 'Features', 'rows': [
+      ['In-app Community Chat', false, true, true, true],
+      ['Custom emojis', false, 'Up to 10', 'Up to 35', 'Up to 65'],
+      ['Exports (leaderboard & claims)', 'Up to 100 members', 'Up to 1,000 members', 'Up to 4,000 members', 'Unlimited'],
+      ['CRM', false, true, true, true],
+      ['Analytics', false, true, true, true]
+    ]},
+    {'title': 'Visibility Boosters', 'rows': [
+      ['Listed on the landing page', true, true, true, true],
+      ['Twitter promotion', false, true, true, true]
+    ]},
+    {'title': 'Security', 'rows': [
+      ['Bot protection', true, true, true, true]
+    ]},
+    {'title': 'Support', 'rows': [
+      ['Priority support', false, true, true, true],
+      ['Dedicated account manager', false, false, true, true]
+    ]},
+    {'title': 'Billing', 'rows': [
+      ['Pay with crypto', false, false, false, true]
+    ]}
+  ] %}
+
+  {% set standard_discount = ((all_plans[1].monthly - all_plans[1].yearly_month) / all_plans[1].monthly * 100)|round|int %}
+  {% set pro_discount = ((all_plans[2].monthly - all_plans[2].yearly_month) / all_plans[2].monthly * 100)|round|int %}
+  {% set best_discount = [standard_discount, pro_discount]|max %}
+
+  {% macro tick() %}
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor">
+    <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
+  </svg>
+  {% endmacro %}
+
+  {% macro cell(v) %}
+  {% if v is sameas true %}{{ tick() }}{% elif v is sameas false %}<span class="dash">—</span>{% else %}{{ v }}{% endif %}
+  {% endmacro %}
+
+  {% macro price_block(p, interval) %}
+  <div class="price-block">
+    {% if p.key == 'free' %}
+      <span class="price-main">$0<small> / month</small></span>
+      <span class="price-sub">Free forever</span>
+    {% elif p.key == 'enterprise' %}
+      <span class="price-main">Custom</span>
+      <span class="price-sub">Billed {{ 'monthly' if interval == 'monthly' else 'annually' }}</span>
+    {% elif interval == 'yearly' %}
+      <span class="price-main">${{ p.yearly_month }}<small> / month</small></span>
+      <span class="price-sub"><s>${{ p.monthly }}</s>billed ${{ "{:,}".format(p.yearly_total) }} / year</span>
+    {% else %}
+      <span class="price-main">${{ p.monthly }}<small> / month</small></span>
+      <span class="price-sub">Billed monthly</span>
+    {% endif %}
+  </div>
+  {% endmacro %}
+
+  {% macro head(p, interval) %}
+  <div class="pp-head">
+    <span class="pp-name">{{ p.name }}</span>
+    <div class="pp-badges">
+      {%- if interval == 'yearly' and p.paid -%}
+        <span class="pp-pill pp-pill-green">Save {{ ((p.monthly - p.yearly_month) / p.monthly * 100)|round|int }}%</span>
+      {%- endif -%}
+      {%- if p.popular -%}
+        <span class="pp-pill">Most popular</span>
+      {%- endif -%}
+    </div>
+    {{ price_block(p, interval) }}
+    {% if p.key == 'enterprise' %}
+      <a class="pp-btn" href="{{ contact_url }}">Contact us</a>
+    {% else %}
+      <a class="pp-btn{% if p.popular %} pp-btn-primary{% endif %}" href="{{ signup_url }}">{{ 'Start free' if p.key == 'free' else 'Get started' }}</a>
+    {% endif %}
+  </div>
+  {% endmacro %}
+
+  {# ================= PRICING SECTION ================= #}
   <section id="pricing" class="view {% if active_page == 'pricing' %}active{% endif %}">
     <div class="hero">
       <h1>Simple Pricing</h1>
-      <p>Free for early Zcash communities. Paid plans coming soon.</p>
+      <p>Start free. Upgrade when your community grows.</p>
     </div>
 
-    <div class="pricing-grid">
-      <div class="price-card">
-        <h3>Early Access</h3>
-        <div class="price">Free <span>/ limited</span></div>
-        <p>Full platform access for selected Zcash communities. All rewards paid in ZEC.</p>
-        <a href="javascript:void(0)" class="btn" onclick="openModal('earlyModal')">Apply</a>
+    <div class="pp">
+
+      <div class="pp-toggle-wrap">
+        <div class="pp-toggle">
+          <span class="pp-toggle-indicator" aria-hidden="true"></span>
+          <button type="button" class="pp-tab active" data-interval="monthly">Monthly</button>
+          <button type="button" class="pp-tab" data-interval="yearly">Yearly <span class="pp-pill pp-pill-green">Save up to {{ best_discount }}%</span></button>
+        </div>
       </div>
 
-      <div class="price-card">
-        <h3>Pro</h3>
-        <div class="price">Coming Soon</div>
-        <p>Advanced retention analytics, AI insights, and priority ZEC reward processing.</p>
-        <a href="javascript:void(0)" class="btn" onclick="openModal('waitlistModal')">Join Waitlist</a>
+      {% for interval in ['monthly', 'yearly'] %}
+      <div class="pp-panel{% if loop.first %} active{% endif %}" data-panel="{{ interval }}">
+
+        <!-- desktop table -->
+        <div class="pp-table-edge">
+          <table>
+            <thead>
+              <tr>
+                <th></th>
+                {% for p in all_plans %}
+                  <th>{{ head(p, interval) }}</th>
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for s in sections %}
+                <tr><th colspan="5" class="pp-section">{{ s.title }}</th></tr>
+                {% for r in s.rows %}
+                <tr>
+                  <td>{{ r[0] }}</td>
+                  {% for v in r[1:] %}
+                    <td{% if v is sameas true %} class="check"{% endif %}>{{ cell(v) }}</td>
+                  {% endfor %}
+                </tr>
+                {% endfor %}
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- mobile cards -->
+        <div class="pp-cards">
+          {% for p in all_plans %}
+            {% set pi = loop.index0 %}
+            <div class="pp-card{% if p.popular %} popular{% endif %}">
+              <header>{{ head(p, interval) }}</header>
+
+              {% for s in sections %}
+                {% set ns = namespace(show=false) %}
+                {% for r in s.rows %}
+                  {% if r[pi + 1] is not sameas false %}{% set ns.show = true %}{% endif %}
+                {% endfor %}
+                {% if ns.show %}
+                <section>
+                  <h4>{{ s.title }}</h4>
+                  {% for r in s.rows %}
+                    <div class="row"><span>{{ r[0] }}</span><span>{{ cell(r[pi + 1]) }}</span></div>
+                  {% endfor %}
+                </section>
+                {% endif %}
+              {% endfor %}
+            </div>
+          {% endfor %}
+        </div>
+
       </div>
+      {% endfor %}
+
     </div>
   </section>
 
@@ -247,6 +387,58 @@
     </div>
   </div>
 </div>
+
+<script>
+  // monthly / yearly pricing toggle with a sliding pill
+  (function () {
+    var toggle = document.querySelector(".pp-toggle");
+    if (!toggle) return;
+
+    var tabs = toggle.querySelectorAll(".pp-tab");
+    var indicator = toggle.querySelector(".pp-toggle-indicator");
+
+    // move the pill under the active tab. animate=false snaps it with no transition
+    function place(animate) {
+      var active = toggle.querySelector(".pp-tab.active");
+      if (!active || !active.offsetWidth) return; // pricing tab is hidden right now
+
+      if (!animate) indicator.style.transition = "none";
+      indicator.style.width = active.offsetWidth + "px";
+      indicator.style.transform = "translateX(" + active.offsetLeft + "px)";
+      if (!animate) {
+        indicator.offsetWidth; // force reflow so the snap sticks
+        indicator.style.transition = "";
+      }
+    }
+
+    tabs.forEach(function (tab) {
+      tab.addEventListener("click", function () {
+        if (tab.classList.contains("active")) return;
+
+        var interval = tab.dataset.interval;
+        tabs.forEach(function (t) {
+          t.classList.toggle("active", t === tab);
+        });
+        document.querySelectorAll(".pp-panel").forEach(function (p) {
+          p.classList.toggle("active", p.dataset.panel === interval);
+        });
+
+        place(true);
+      });
+    });
+
+    // re-measure when the pricing tab becomes visible, on resize, and after fonts load
+    if (window.ResizeObserver) {
+      new ResizeObserver(function () { place(false); }).observe(toggle);
+    }
+    window.addEventListener("resize", function () { place(false); });
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(function () { place(false); });
+    }
+
+    place(false);
+  })();
+</script>
 
 </body>
 </html>

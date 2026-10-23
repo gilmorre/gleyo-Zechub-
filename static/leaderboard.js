@@ -3,22 +3,577 @@ let hoverTimeout = null;
 let hideTimeout = null;
 let isHoveringTrigger = false;
 let isHoveringModal = false;
+let activityRequestId = 0;
 
-// ── pagination state ──────────────────────────────────
-// Same pattern as the sprint leaderboard module — module-level so it
-// survives across multiple loadMoreParticipants() calls triggered by scroll.
 const INITIAL_LIMIT = 30;
 const PAGE_SIZE = 15;
-const SCROLL_THRESHOLD = 250; // px from bottom before triggering next load
+const SCROLL_THRESHOLD = 250;
 
 let currentOffset = 0;
 let hasMore = true;
 let isLoadingMore = false;
 let scrollContainer = null;
 
-// ── export state ──────────────────────────────────────
-let exportTotalCount = 0; // set from loadLeaderboard
+let exportTotalCount = 0;
+/* ==========================================================
+   RewardTiers
+   Shown when "Platform distribution" (pay_to_creator) is picked.
+   Rows look like:   [1]  –  [to ▾]   [ 0.50 ZEC ]
+   - the first "from" is always 1 and can never be changed
+   - every other "from" is set automatically (previous "to" + 1)
+   - "to" is a smart dropdown that can go to any rank
+   - amounts are per winner, typed in ZEC, handled as zatoshi (BigInt)
+   - total is checked against the community wallet balance
+   - if the wallet is EMPTY the form is NOT blocked: the rows are replaced
+     by a short notice (with an "Add funds" link) and no tiers are sent
+   - the slot's height is animated: CSS transitions `height`, and a
+     ResizeObserver keeps it equal to the tier box height, so opening,
+     closing, adding/removing a range and the alert all glide
+   Exposes: window.RewardTiers = { init, getTiers, isValid }
+   ========================================================== */
+(function () {
+  "use strict";
 
+  const ZAT = 100000000n;      // 1 ZEC = 100,000,000 zatoshi
+  const MAX_RANK = 100000;     // highest rank the dropdown can reach
+  const PAGE = 10;             // options added at a time
+  const PAY_URL = "pay";       // "Add funds" target
+
+  let slot = null;
+  let active = false;
+  let available = 0n;          // wallet available balance, in zatoshi
+  let currency = "ZEC";
+  let tiers = [];              // { from, to, amount }
+
+  let menu = null;
+  let menuTier = -1;
+  let menuStart = 1;
+  let menuEnd = 0;
+  let docBound = false;
+  let ro = null;               // ResizeObserver for the height animation
+
+  /* ---------------- helpers ---------------- */
+
+  const esc = (s) =>
+    String(s).replace(/[&<>"']/g, (c) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    }[c]));
+
+  // "1.5" -> 150000000n ; invalid/empty -> null
+  function parseZec(str) {
+    const s = String(str || "").trim();
+    if (!s || s === "." || !/^\d*\.?\d{0,8}$/.test(s)) return null;
+    const parts = s.split(".");
+    const whole = parts[0] || "0";
+    const frac = (parts[1] || "").padEnd(8, "0");
+    return BigInt(whole) * ZAT + BigInt(frac);
+  }
+
+  // 150000000n -> "1.5"
+  function formatZec(zat) {
+    const whole = zat / ZAT;
+    const frac = (zat % ZAT).toString().padStart(8, "0").replace(/0+$/, "");
+    const w = whole.toLocaleString("en-US");
+    return frac ? `${w}.${frac}` : w;
+  }
+
+  const emit = () => window.dispatchEvent(new CustomEvent("reward-tiers:change"));
+
+  /* ---------------- height animation ---------------- */
+
+  // the slot's height always follows the tier box; CSS does the transition
+  function syncHeight() {
+    if (!slot || !active) return;
+    const box = slot.firstElementChild;
+    slot.style.height = (box ? box.offsetHeight : 0) + "px";
+  }
+
+  function observeBox() {
+    if (ro) ro.disconnect();
+    if (!slot) return;
+    const box = slot.firstElementChild;
+    if (box && "ResizeObserver" in window) {
+      ro = ro || new ResizeObserver(syncHeight);
+      ro.observe(box);
+    }
+    syncHeight();
+  }
+
+  /* ---------------- state ---------------- */
+
+  // keeps every "from" in sync with the previous "to"
+  function normalize() {
+    tiers.forEach((t, i) => {
+      t.from = i === 0 ? 1 : (tiers[i - 1].to ? tiers[i - 1].to + 1 : null);
+      if (t.from === null || (t.to && t.to < t.from)) t.to = null;
+    });
+  }
+
+  const winners = (t) => (t.to && t.from ? t.to - t.from + 1 : 0);
+
+  function costOf(t) {
+    const amt = parseZec(t.amount);
+    const n = winners(t);
+    return amt && n ? amt * BigInt(n) : 0n;
+  }
+
+  const allocated = () => tiers.reduce((sum, t) => sum + costOf(t), 0n);
+
+  function canAdd() {
+    const last = tiers[tiers.length - 1];
+    if (!last || !last.to || last.to >= MAX_RANK) return false;
+    const amt = parseZec(last.amount);
+    return !!amt && amt > 0n;
+  }
+
+  function isValid() {
+    if (!active) return true;
+    // empty wallet: don't block the form, the notice explains it and no tiers are sent
+    if (available <= 0n) return true;
+    if (!tiers.length) return false;
+    for (const t of tiers) {
+      const amt = parseZec(t.amount);
+      if (!t.to || !amt || amt <= 0n) return false;
+    }
+    return allocated() <= available;
+  }
+
+  function getTiers() {
+    if (!active || available <= 0n) return [];
+    return tiers.map((t) => ({
+      from: t.from,
+      to: t.to,
+      amount_zat: String(parseZec(t.amount) || 0n)   // per winner, in zatoshi
+    }));
+  }
+
+  /* ---------------- rendering ---------------- */
+
+  const LOCK_SVG =
+    '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+  const CHEVRON_SVG =
+    '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
+
+  function rowHtml(t, i) {
+    const fromTitle = i === 0
+      ? "The first rank always starts at 1"
+      : "Starts right after the previous range";
+
+    return `
+      <div class="tier" data-i="${i}">
+        <div class="tier-row">
+          <div class="tier-from" title="${fromTitle}">${i === 0 ? LOCK_SVG : ""}<span>${t.from === null ? "–" : t.from}</span></div>
+          <span class="tier-dash">–</span>
+          <button type="button" class="tier-trigger${t.to ? "" : " is-empty"}" data-i="${i}" ${t.from === null ? "disabled" : ""}>
+            <span>${t.to ? t.to : "to"}</span>${CHEVRON_SVG}
+          </button>
+          <label class="tier-amount">
+            <input class="tier-input" data-i="${i}" inputmode="decimal" autocomplete="off"
+                   placeholder="0.00" value="${esc(t.amount)}" aria-label="Amount each winner gets, in ${esc(currency)}">
+            <span class="tier-unit">${esc(currency)}</span>
+          </label>
+          ${i === 0 ? "" : `<button type="button" class="tier-remove" data-i="${i}" aria-label="Remove this range">&times;</button>`}
+        </div>
+        <div class="tier-meta" data-meta="${i}"></div>
+      </div>`;
+  }
+
+  // empty wallet: just a notice, nothing is blocked
+  function renderEmptyWallet() {
+    slot.innerHTML = `
+      <div class="tier-box">
+        <div class="tier-head">
+          <span class="tier-title">Reward ranks</span>
+          <span class="tier-balance">Wallet balance <strong>0 ${esc(currency)}</strong></span>
+        </div>
+        <div class="tier-alert is-info">
+          <span>Your community wallet is empty, so reward ranks can't be set yet. You can still save this sprint, then add funds.</span>
+          <button type="button" class="tier-fund">Add funds</button>
+        </div>
+      </div>`;
+    observeBox();
+  }
+
+  function render() {
+    if (!slot) return;
+
+    if (available <= 0n) {
+      renderEmptyWallet();
+      return;
+    }
+
+    slot.innerHTML = `
+      <div class="tier-box">
+        <div class="tier-head">
+          <span class="tier-title">Reward ranks</span>
+          <span class="tier-balance">Wallet balance <strong>${formatZec(available)} ${esc(currency)}</strong></span>
+        </div>
+        <div class="tier-rows">${tiers.map(rowHtml).join("")}</div>
+        <button type="button" class="tier-add" title="Finish the current range first">+ Add rank range</button>
+        <div class="tier-summary"></div>
+        <div class="tier-alert" hidden></div>
+      </div>`;
+
+    slot.querySelectorAll(".tier-trigger").forEach((b) =>
+      b.addEventListener("click", (e) => {
+        e.stopPropagation();
+        openMenu(Number(b.dataset.i), b);
+      })
+    );
+
+    slot.querySelectorAll(".tier-input").forEach((inp) =>
+      inp.addEventListener("input", () => onAmount(inp))
+    );
+
+    slot.querySelectorAll(".tier-remove").forEach((b) =>
+      b.addEventListener("click", () => removeTier(Number(b.dataset.i)))
+    );
+
+    slot.querySelector(".tier-add").addEventListener("click", addTier);
+
+    refresh();
+    observeBox();
+  }
+
+  // updates totals, per-row hints, alert and Add button WITHOUT re-rendering rows
+  // (so typing in an amount box never loses focus)
+  function refresh() {
+    if (!slot) return;
+
+    const alloc = allocated();
+    const remaining = available - alloc;
+    const cur = esc(currency);
+
+    const summary = slot.querySelector(".tier-summary");
+    if (summary) {
+      const rem = remaining < 0n ? "-" + formatZec(-remaining) : formatZec(remaining);
+      summary.innerHTML =
+        `<span>Total <strong>${formatZec(alloc)} ${cur}</strong></span>` +
+        `<span>Remaining <strong>${rem} ${cur}</strong></span>`;
+    }
+
+    tiers.forEach((t, i) => {
+      const el = slot.querySelector(`[data-meta="${i}"]`);
+      if (!el) return;
+      const n = winners(t);
+      const amt = parseZec(t.amount);
+      const label = `${n} winner${n === 1 ? "" : "s"}`;
+      el.textContent = !n
+        ? ""
+        : amt && amt > 0n
+          ? `${label} × ${formatZec(amt)} = ${formatZec(amt * BigInt(n))} ${currency}`
+          : label;
+    });
+
+    const alertEl = slot.querySelector(".tier-alert");
+    if (alertEl) {
+      let msg = "";
+      if (remaining < 0n) {
+        msg = `Over budget by ${formatZec(-remaining)} ${currency}. Lower an amount, shorten a range, or add funds.`;
+      }
+      alertEl.hidden = !msg;
+      alertEl.innerHTML = msg
+        ? `<span>${esc(msg)}</span><button type="button" class="tier-fund">Add funds</button>`
+        : "";
+    }
+
+    const add = slot.querySelector(".tier-add");
+    if (add) add.disabled = !canAdd();
+  }
+
+  /* ---------------- actions ---------------- */
+
+  function onAmount(inp) {
+    let v = inp.value.replace(/[^\d.]/g, "");
+    const dot = v.indexOf(".");
+    if (dot !== -1) {
+      v = v.slice(0, dot + 1) + v.slice(dot + 1).replace(/\./g, "").slice(0, 8);
+    }
+    if (v !== inp.value) inp.value = v;
+
+    tiers[Number(inp.dataset.i)].amount = v;
+    refresh();
+    emit();
+  }
+
+  function addTier() {
+    if (!canAdd()) return;
+    tiers.push({ from: null, to: null, amount: "" });
+    normalize();
+    render();
+    emit();
+  }
+
+  function removeTier(i) {
+    if (i === 0) return;               // the first range is locked
+    tiers.splice(i, 1);
+    normalize();
+    render();
+    emit();
+  }
+
+  /* ---------------- smart dropdown ---------------- */
+
+  function optionHtml(n, t, amt, budgetForRow) {
+    const w = n - t.from + 1;
+    const over = amt > 0n && BigInt(w) * amt > budgetForRow;
+    return `<button type="button" class="tier-opt${n === t.to ? " is-selected" : ""}${over ? " is-over" : ""}" data-v="${n}"${over ? ' title="Over your wallet balance"' : ""}>` +
+           `<span>${n}</span><small>${w} winner${w === 1 ? "" : "s"}</small></button>`;
+  }
+
+  function extendMenu(count) {
+    if (!menu) return;
+    const t = tiers[menuTier];
+    const list = menu.querySelector(".tier-menu-list");
+    const amt = parseZec(t.amount) || 0n;
+    const budgetForRow = available - (allocated() - costOf(t));
+
+    const start = menuEnd + 1;
+    const end = Math.min(MAX_RANK, menuEnd + count);
+    let html = "";
+    for (let n = start; n <= end; n++) html += optionHtml(n, t, amt, budgetForRow);
+
+    list.insertAdjacentHTML("beforeend", html);
+    menuEnd = end;
+  }
+
+  function fillMenu(minVisible) {
+    const list = menu.querySelector(".tier-menu-list");
+    list.innerHTML = "";
+    menuEnd = menuStart - 1;
+    extendMenu(minVisible);
+  }
+
+  function openMenu(i, trigger) {
+    closeMenu();
+    const t = tiers[i];
+    if (!t || t.from === null) return;
+
+    menuTier = i;
+    menuStart = t.from;
+
+    menu = document.createElement("div");
+    menu.className = "tier-menu";
+    menu.innerHTML =
+      `<input class="tier-menu-input" inputmode="numeric" autocomplete="off" placeholder="Type a rank (min ${t.from})">` +
+      `<div class="tier-menu-list"></div>`;
+    document.body.appendChild(menu);
+
+    // make sure the current selection is visible in the first batch
+    const visible = Math.max(PAGE, t.to ? t.to - t.from + 3 : 0);
+    fillMenu(visible);
+
+    const list = menu.querySelector(".tier-menu-list");
+    const input = menu.querySelector(".tier-menu-input");
+
+    menu.addEventListener("click", (e) => e.stopPropagation());
+
+    list.addEventListener("click", (e) => {
+      const b = e.target.closest(".tier-opt");
+      if (b) pick(Number(b.dataset.v));
+    });
+
+    // keeps going as you scroll: the list can reach any rank
+    list.addEventListener("scroll", () => {
+      if (menuEnd < MAX_RANK && list.scrollTop + list.clientHeight >= list.scrollHeight - 40) {
+        extendMenu(PAGE);
+      }
+    });
+
+    // typing a rank jumps the list to start at that rank
+    input.addEventListener("input", () => {
+      const n = parseInt(input.value, 10);
+      menuStart = validRank(n) ? n : tiers[menuTier].from;
+      fillMenu(PAGE);
+      list.scrollTop = 0;
+    });
+
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const n = parseInt(input.value, 10);
+        if (validRank(n)) pick(n);
+      } else if (e.key === "Escape") {
+        closeMenu();
+      }
+    });
+
+    positionMenu(trigger);
+
+    // avoid popping the keyboard on touch devices
+    if (window.matchMedia("(hover: hover)").matches) input.focus();
+
+    const selected = list.querySelector(".is-selected");
+    if (selected) selected.scrollIntoView({ block: "nearest" });
+  }
+
+  function validRank(n) {
+    const t = tiers[menuTier];
+    return Number.isInteger(n) && t && n >= t.from && n <= MAX_RANK;
+  }
+
+  function pick(n) {
+    const i = menuTier;
+    if (i < 0 || !tiers[i]) return;
+    tiers[i].to = n;
+    closeMenu();
+    normalize();
+    render();
+    emit();
+  }
+
+  function positionMenu(trigger) {
+    if (!menu) return;
+    const r = trigger.getBoundingClientRect();
+    const mh = menu.offsetHeight;
+    const mw = menu.offsetWidth;
+    const gap = 6;
+
+    let top = r.bottom + gap;
+    if (top + mh > window.innerHeight - gap && r.top - mh - gap > gap) {
+      top = r.top - mh - gap;
+    }
+    top = Math.max(gap, Math.min(top, window.innerHeight - mh - gap));
+    const left = Math.max(gap, Math.min(r.left, window.innerWidth - mw - gap));
+
+    menu.style.top = `${top}px`;
+    menu.style.left = `${left}px`;
+  }
+
+  function closeMenu() {
+    if (menu) menu.remove();
+    menu = null;
+    menuTier = -1;
+  }
+
+  /* ---------------- setup ---------------- */
+
+  function bindDocument() {
+    if (docBound) return;
+    docBound = true;
+
+    document.addEventListener("click", closeMenu);
+    window.addEventListener("resize", closeMenu);
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") closeMenu();
+    });
+    // close when the page/wrapper scrolls (but not when the list itself scrolls)
+    window.addEventListener("scroll", (e) => {
+      if (menu && !menu.contains(e.target)) closeMenu();
+    }, true);
+  }
+
+  function onDistribution(value) {
+    active = value === "pay_to_creator";
+
+    if (active) {
+      render();                          // fills the slot + sets the target height
+      slot.classList.add("is-open");     // CSS animates height / margin / opacity
+    } else {
+      closeMenu();
+      slot.classList.remove("is-open");
+      slot.style.height = "0px";         // animates closed; content stays until reopened
+    }
+    emit();
+  }
+
+  function init() {
+    injectCss();
+    closeMenu();
+    bindDocument();
+
+    if (ro) { ro.disconnect(); ro = null; }
+
+    slot = document.getElementById("distributionSlot");
+    active = false;
+    tiers = [{ from: 1, to: null, amount: "" }];
+    if (!slot) return;
+
+    slot.classList.remove("is-open");
+    slot.style.height = "0px";
+    slot.innerHTML = "";
+
+    try {
+      available = BigInt(slot.dataset.availableZat || "0");
+    } catch (_) {
+      available = 0n;
+    }
+    if (available < 0n) available = 0n;
+    currency = slot.dataset.currency || "ZEC";
+
+    if (!slot.dataset.tiersBound) {
+      slot.dataset.tiersBound = "1";
+      slot.addEventListener("click", (e) => {
+        if (e.target.closest(".tier-fund")) window.open(PAY_URL, "_blank");
+      });
+    }
+
+    document.querySelectorAll('input[name="distribution"]').forEach((radio) =>
+      radio.addEventListener("change", () => onDistribution(radio.value))
+    );
+
+    const checked = document.querySelector('input[name="distribution"]:checked');
+    if (checked) onDistribution(checked.value);
+  }
+
+  /* ---------------- styles (self-injected) ---------------- */
+
+  function injectCss() {
+    if (document.getElementById("reward-tiers-css")) return;
+    const style = document.createElement("style");
+    style.id = "reward-tiers-css";
+    style.textContent = `
+.tier-box{--edge-fill:var(--bg-sidebar);display:flex;flex-direction:column;gap:14px;padding:18px 20px;border-radius:24px}
+.tier-from,.tier-trigger,.tier-amount,.tier-add,.tier-menu{--edge-fill:var(--bg-surface)}
+.tier-box,.tier-from,.tier-trigger,.tier-amount,.tier-add,.tier-menu{
+  border:var(--edge-w,1px) solid transparent;
+  background:
+    linear-gradient(var(--edge-fill),var(--edge-fill)) padding-box,
+    linear-gradient(135deg,var(--edge-hi,rgba(255,255,255,.42)) 0%,var(--edge-lo,rgba(255,255,255,.05)) 28%,var(--edge-lo,rgba(255,255,255,.05)) 72%,var(--edge-hi,rgba(255,255,255,.42)) 100%) border-box;
+  transition:--edge-hi .2s ease,--edge-lo .2s ease,opacity .2s ease;
+}
+.tier-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.tier-title{font-size:14px;font-weight:600;color:var(--text-main)}
+.tier-balance{font-size:12.5px;color:var(--text-muted)}
+.tier-balance strong,.tier-summary strong{color:var(--text-main);font-weight:600}
+.tier-rows{display:flex;flex-direction:column;gap:12px}
+.tier-row{display:flex;align-items:center;gap:8px}
+.tier-from{width:48px;height:44px;flex-shrink:0;display:flex;align-items:center;justify-content:center;gap:4px;border-radius:14px;font-size:14px;color:var(--text-main);opacity:.85;cursor:not-allowed;user-select:none}
+.tier-from svg{color:var(--text-muted)}
+.tier-dash{color:var(--text-muted)}
+.tier-trigger{min-width:76px;height:44px;padding:0 12px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:space-between;gap:6px;border-radius:14px;font-family:inherit;font-size:14px;color:var(--text-main);cursor:pointer}
+.tier-trigger.is-empty{color:var(--text-muted)}
+.tier-trigger:hover:not(:disabled){--edge-hi:rgba(255,255,255,.6)}
+.tier-trigger:disabled{opacity:.45;cursor:not-allowed}
+.tier-amount{flex:1;min-width:0;height:44px;display:flex;align-items:center;gap:8px;padding:0 14px;border-radius:14px;cursor:text}
+.tier-amount:focus-within{--edge-hi:rgba(72,136,240,.9);--edge-lo:rgba(72,136,240,.2)}
+.tier-amount .tier-input{flex:1;min-width:0;width:100%;background:transparent!important;border:none!important;border-radius:0;padding:0;font-family:inherit;font-size:14px;color:var(--text-main);outline:none}
+.tier-unit{font-size:12px;font-weight:600;color:var(--text-muted)}
+.tier-remove{width:32px;height:32px;flex-shrink:0;border:none;border-radius:50%;background:transparent;color:var(--text-muted);font-size:20px;line-height:1;cursor:pointer}
+.tier-remove:hover{color:#ff5a6e;background:rgba(255,90,110,.1)}
+.tier-meta{min-height:16px;margin-top:6px;padding-left:2px;font-size:12px;color:var(--text-muted)}
+.tier-add{align-self:flex-start;padding:10px 16px;border-radius:14px;font-family:inherit;font-size:13px;font-weight:600;color:var(--text-main);cursor:pointer}
+.tier-add:hover:not(:disabled){--edge-hi:rgba(255,255,255,.6)}
+.tier-add:disabled{opacity:.45;cursor:not-allowed}
+.tier-summary{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:12.5px;color:var(--text-muted)}
+.tier-alert{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12.5px;color:#ff5a6e}
+.tier-alert.is-info{color:var(--text-muted)}
+.tier-alert[hidden]{display:none}
+.tier-fund{border:none;background:none;padding:0;font-family:inherit;font-size:12.5px;font-weight:600;color:#4285f4;cursor:pointer;text-decoration:underline}
+.tier-menu{position:fixed;z-index:10001;width:190px;display:flex;flex-direction:column;gap:6px;padding:8px;border-radius:18px;box-shadow:0 12px 30px rgba(0,0,0,.45)}
+.tier-menu .tier-menu-input{width:100%;box-sizing:border-box;background:var(--bg-app)!important;border:1px solid var(--border)!important;border-radius:12px;padding:9px 12px;font-family:inherit;font-size:13px;color:var(--text-main);outline:none}
+.tier-menu-list{max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:2px}
+.tier-opt{display:flex;align-items:center;justify-content:space-between;width:100%;padding:8px 10px;border:none;border-radius:10px;background:transparent;font-family:inherit;font-size:13px;color:var(--text-main);text-align:left;cursor:pointer}
+.tier-opt small{font-size:11.5px;color:var(--text-muted)}
+.tier-opt:hover{background:var(--bg-hover)}
+.tier-opt.is-selected{color:#4285f4}
+.tier-opt.is-over{opacity:.45}
+`;
+    document.head.appendChild(style);
+  }
+
+  window.RewardTiers = { init, getTiers, isValid };
+})();
 
 function getColor(id) {
   const colors = [
@@ -54,9 +609,9 @@ function getTextColor(bgColor) {
   const brightness = r * 0.299 + g * 0.587 + b * 0.114;
 
   if (brightness > 160) {
-    return adjustColor(bgColor, -60); // darker
+    return adjustColor(bgColor, -60);
   } else {
-    return adjustColor(bgColor, 60); // lighter
+    return adjustColor(bgColor, 60);
   }
 }
 
@@ -85,17 +640,11 @@ function appendSkeletonRows(list, count) {
   const wrap = document.createElement("div");
   wrap.className = "lb-skeleton-batch";
   wrap.innerHTML = makeSkeletonRows(count);
-  // move the <li> children directly into the list, keep the wrapper
-  // out of the DOM tree so it doesn't break <ul> semantics
   const rows = Array.from(wrap.children);
   rows.forEach(row => list.appendChild(row));
-  return rows; // so caller can remove exactly these once real data arrives
+  return rows;
 }
 
-// renders a single participant row and wires up the hover/click
-// activity-preview behaviour. Extracted out of the old inline
-// forEach so both the initial load and loadMoreParticipants can
-// reuse it without duplicating the row markup / listeners.
 function renderUserRow(user) {
   const li = document.createElement("li");
   li.className = "participant-item";
@@ -163,8 +712,6 @@ function appendUsersToList(list, users) {
 
 function getScrollContainer() {
   if (scrollContainer) return scrollContainer;
-  // this is the element with the calc()'d height / overflow set
-  // elsewhere in the app (see updateInfoBottomHeight)
   scrollContainer = document.querySelector(".info-bottom") || window;
   return scrollContainer;
 }
@@ -212,7 +759,6 @@ async function loadMoreParticipants() {
   } catch (err) {
     console.error("Failed to load more participants:", err);
     skeletonRows.forEach(row => row.remove());
-    // allow retry on next scroll rather than permanently giving up
   } finally {
     isLoadingMore = false;
   }
@@ -231,11 +777,8 @@ async function loadLeaderboard() {
   const rankUsername = document.querySelector(".rank-username");
   const rankXp = document.querySelector(".rank-xp");
 
-  // the template is injected dynamically, so bind the export button
-  // every time the leaderboard (re)loads
   initExportButton();
 
-  // reset pagination state on (re)load
   currentOffset = 0;
   hasMore = true;
   isLoadingMore = false;
@@ -251,16 +794,12 @@ async function loadLeaderboard() {
     const currentUser = data.current_user;
     const participantsCount = document.querySelector(".participants-count");
 
-    // ✅ use the backend's true total, not the length of just this page —
-    // users.length caps out at whatever limit was requested (30), so it
-    // was never the real participant count once a community grew past that.
     const totalCount = typeof data.total_count === "number" ? data.total_count : (users ? users.length : 0);
     exportTotalCount = totalCount;
 
     if (participantsCount) {
       participantsCount.textContent = `${totalCount} participants`;
     }
-    // EMPTY LEADERBOARD
     if (!users || users.length === 0) {
       emptyMessage.style.display = "flex";
       list.style.display = "none";
@@ -278,7 +817,6 @@ async function loadLeaderboard() {
     currentOffset = data.next_offset;
     hasMore = !!data.has_more;
 
-    // wire up infinite scroll once, against whichever container actually scrolls
     const container = getScrollContainer();
     container.removeEventListener("scroll", onScrollCheck);
     container.addEventListener("scroll", onScrollCheck, { passive: true });
@@ -341,9 +879,6 @@ function hideCountdown() {
   countdownWrapper.classList.add("is-hidden");
 }
 
-/* =====================================================
-   MAIN INIT
-===================================================== */
 function initSprintDatePickers({
   startOffsetMinutes = 10,
   durationDays = 14
@@ -351,9 +886,6 @@ function initSprintDatePickers({
   const countdownWrapper = document.getElementById('countdownWrapper');
   const countdownTimer = document.getElementById('countdownTimer');
   const countdownLabel = document.querySelector('.countdown-label');
-  /* ----------------------------------------------------
-     ELEMENTS
-  ---------------------------------------------------- */
   const startPreview = document.getElementById('timezone-start');
   const endPreview   = document.getElementById('timezone-end');
 
@@ -371,17 +903,11 @@ function initSprintDatePickers({
 
   let countdownInterval = null;
 
-  /* ----------------------------------------------------
-     TIMEZONE LABEL
-  ---------------------------------------------------- */
   if (timezoneLabel) {
     timezoneLabel.textContent =
       `Timezone: ${Intl.DateTimeFormat().resolvedOptions().timeZone}`;
   }
 
-  /* ----------------------------------------------------
-     HELPERS
-  ---------------------------------------------------- */
   function formatPreview(date) {
     return date.toLocaleString(undefined, {
       month: 'short',
@@ -407,12 +933,9 @@ function initSprintDatePickers({
   function updatePreview(el, date) {
     if (!el || !date) return;
     el.textContent = formatPreview(date);
-    el.dataset.local = date.getTime(); // LOCAL timestamp only
+    el.dataset.local = date.getTime();
   }
 
-  /* ----------------------------------------------------
-     COUNTDOWN
-  ---------------------------------------------------- */
   function startCountdown(startDate, endDate) {
     if (!countdownTimer || !countdownLabel) return;
 
@@ -422,27 +945,23 @@ function initSprintDatePickers({
       const now = new Date();
       let target;
 
-      // 🔁 RESET STATE EVERY TICK
       countdownLabel.classList.remove("ended");
       countdownLabel.textContent = "";
       countdownLabel.innerHTML = "";
 
       if (now < startDate) {
-        // 🟢 NOT STARTED
         target = startDate;
         countdownLabel.textContent = "Starting in:";
 
         showCountdown();
 
       } else if (now < endDate) {
-        // 🔵 LIVE
         target = endDate;
         countdownLabel.textContent = "Ends in:";
 
         showCountdown();
 
       } else {
-        // 🔴 ENDED
         countdownLabel.classList.add("ended");
         countdownLabel.innerHTML = `
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
@@ -456,7 +975,6 @@ function initSprintDatePickers({
         return;
       }
 
-      // ⏱️ COUNTDOWN NUMBERS
       const diff = Math.max(0, Math.floor((target - now) / 1000));
       const days = Math.floor(diff / 86400);
       const hours = Math.floor((diff % 86400) / 3600);
@@ -487,12 +1005,10 @@ function initSprintDatePickers({
 
     const state = window.calendarState;
 
-    // 🔁 sync core state
     state.selected  = new Date(d);
     state.viewYear  = d.getFullYear();
     state.viewMonth = d.getMonth();
 
-    // 🔁 sync time UI
     const hourInput = document.querySelector(".flatpickr-hour");
     const minuteEl  = document.querySelector(".flatpickr-minute");
     const amPmEl    = document.querySelector(".flatpickr-am-pm");
@@ -504,7 +1020,6 @@ function initSprintDatePickers({
     if (minuteEl)  minuteEl.textContent = String(d.getMinutes()).padStart(2, "0");
     if (amPmEl)    amPmEl.textContent = h24 >= 12 ? "PM" : "AM";
 
-    // 🔥 redraw calendar grid + header
     window.dispatchEvent(new CustomEvent("calendar:refresh"));
   }
 
@@ -537,14 +1052,6 @@ function initSprintDatePickers({
     }
   }
 
-
-  /* -----------------------------------------
-    CLOSE ON OUTSIDE CLICK
-  ----------------------------------------- */
-
-  /* ----------------------------------------------------
-     OPEN PICKERS VIA BOX
-  ---------------------------------------------------- */
   startDisplayInput.style.pointerEvents = 'none';
   endDisplayInput.style.pointerEvents = 'none';
   const startCalendar = document.getElementById("startCalendar");
@@ -563,20 +1070,15 @@ function initSprintDatePickers({
     }
   });
 
-
-
-
   let activePicker = "start";
   function toggleCalendar(triggerEl, calendarEl, type) {
     const isOpen = calendarEl.classList.contains("open");
 
     if (isOpen && activePicker === type) {
-      // 🔁 same trigger → close
       closeCalendar(calendarEl);
       return;
     }
 
-    // 🔄 switch or open
     activePicker = type;
     syncCalendarFromInput(type);
     window.openCalendar(triggerEl, calendarEl);
@@ -593,10 +1095,6 @@ function initSprintDatePickers({
     toggleCalendar(EndBox, startCalendar, "end");
   });
 
-
-  /* ----------------------------------------------------
-     DEFAULT CREATION VALUES (OFFSET APPLIED LAST)
-  ---------------------------------------------------- */
   const startDate = snapTo30Minutes(
     new Date(Date.now() + startOffsetMinutes * 60 * 1000)
   );
@@ -605,8 +1103,6 @@ function initSprintDatePickers({
     new Date(startDate.getTime() + durationDays * 86400000)
   );
 
-
- 
   startIsoInput.value = formatLocalISO(startDate);
   endIsoInput.value   = formatLocalISO(endDate);
 
@@ -636,11 +1132,10 @@ function initLiveTextPreview() {
     lines.forEach((lineText) => {
       const line = document.createElement("div");
       line.className = "line";
-      line.textContent = lineText || "\u00A0"; // keep empty lines visible
+      line.textContent = lineText || "\u00A0";
       container.appendChild(line);
     });
 
-    // Scroll to last line instantly
     const lastLine = container.lastElementChild;
     if (lastLine) {
       lastLine.scrollIntoView({
@@ -650,16 +1145,12 @@ function initLiveTextPreview() {
     }
   }
 
-  /* =========================
-     TITLE PREVIEW
-  ========================== */
   const titleInput = document.getElementById("title");
   const previewTitle = document.getElementById("previewTitle");
 
   if (titleInput && previewTitle) {
     const defaultTitle = "Title";
 
-    // Initial render
     previewTitle.textContent = titleInput.value || defaultTitle;
 
     titleInput.addEventListener("input", () => {
@@ -668,9 +1159,6 @@ function initLiveTextPreview() {
     });
   }
 
-  /* =========================
-     REWARDS PREVIEW
-  ========================== */
   const rewardInput = document.getElementById("rewards");
   const previewReward = document.getElementById("previewReward");
 
@@ -684,9 +1172,6 @@ function initLiveTextPreview() {
     });
   }
 
-  /* =========================
-     DESCRIPTION PREVIEW
-  ========================== */
   const descInput = document.getElementById("description");
   const previewDesc = document.getElementById("previewDescription");
 
@@ -731,59 +1216,21 @@ function isMobile() {
 let paymentConfirmed = false;
 let selectedOption = null;
 
+/* The reward tiers slot is handled by RewardTiers (top of this file).
+   This only keeps track of which option is picked and clears old errors. */
 function initPayDistributionUI() {
   const radios = document.querySelectorAll('input[name="distribution"]');
-  const output = document.getElementById("distributionOutput");
-  const saveBtn = document.querySelector('button[type="submit"]');
   const errorDiv = document.getElementById("paymentError");
-  const rewardInfo = document.querySelector(".distribution-type-info");
-
 
   radios.forEach(radio => {
     radio.addEventListener("change", () => {
       selectedOption = radio.value;
       paymentConfirmed = false;
-      output.innerHTML = '';
-      errorDiv.style.display = "none"; // Hide previous error
-
-      if (radio.value === "pay_to_creator") {
-        // Show Pay Now button
-        output.innerHTML = `
-          <button type="button" onclick="window.open('pay', '_blank')"
-            style="margin-top: 15px;>
-            Pay Now
-          </button>
-        `;
-      rewardInfo.innerHTML = `
-        <div class="reward-info-row Gleyo">
-          <span class="reward-icon">${INFO_SVG}</span>
-          <div class="reward-text">
-            <span class="reward-label">Handled by</span>
-            <strong>Gleyo</strong>
-          </div>
-        </div>
-      `;
-
-      } else if (radio.value === "self_distribute") {
-        output.innerHTML = ``;
-        rewardInfo.innerHTML = `
-          <div class="reward-info-row Gleyo">
-            <span class="reward-icon">${INFO_SVG}</span>
-            <div class="reward-text">
-              <strong class="reward-label">The community</strong>
-            </div>
-          </div>
-        `;
-
-      }
+      if (errorDiv) errorDiv.style.display = "none";
     });
   });
- 
 }
 
-
-
- 
 
 
 function createOrionDropdown() {
@@ -890,6 +1337,7 @@ function bindOrionPickerEvents(picker) {
   function setSprintColor(color) {
     document.documentElement.style.setProperty('--sprint-color', color);
     hiddenInput.value = color;
+    window.selectedColor = color;   // read by the save handler
   }
 
   if (isPremium) {
@@ -900,7 +1348,6 @@ function bindOrionPickerEvents(picker) {
       swatch.addEventListener('click', () => {
         setSprintColor(color);
 
-        // ✅ close ONLY because a color was chosen
         picker.classList.remove('is-open');
       });
     });
@@ -915,7 +1362,6 @@ function bindOrionPickerEvents(picker) {
     });
 
 
-    // Hashtag → Text input
     if (hashtagIcon && colorInputField) {
       hashtagIcon.addEventListener('click', () => {
         hashtagIcon.style.display = 'none';
@@ -928,20 +1374,16 @@ function bindOrionPickerEvents(picker) {
     colorInputField.addEventListener('input', () => {
       let val = colorInputField.value;
 
-      // 🛑 Always force leading #
       if (!val.startsWith('#')) {
         val = '#' + val.replace(/#/g, '');
       }
 
-      // ⛔ Remove invalid characters
       val = '#' + val.slice(1).replace(/[^0-9a-fA-F]/g, '');
 
-      // ⛔ Limit length (# + 6 chars)
       val = val.slice(0, 7);
 
       colorInputField.value = val;
 
-      // ✅ Only accept valid hex
       if (/^#[0-9a-fA-F]{3,6}$/.test(val)) {
         draftColor = val;
 
@@ -955,12 +1397,10 @@ function bindOrionPickerEvents(picker) {
     colorInputField.addEventListener('keydown', (e) => {
       const cursorPos = colorInputField.selectionStart;
 
-      // 🚫 Prevent backspace deleting #
       if (e.key === 'Backspace' && cursorPos <= 1) {
         e.preventDefault();
       }
 
-      // 🚫 Prevent cursor going before #
       if (e.key === 'ArrowLeft' && cursorPos <= 1) {
         e.preventDefault();
       }
@@ -969,7 +1409,6 @@ function bindOrionPickerEvents(picker) {
 
     }
 
-    // Eyedropper
     if (eyedropperIcon) {
       eyedropperIcon.addEventListener('click', async () => {
         if ('EyeDropper' in window) {
@@ -999,7 +1438,6 @@ function bindOrionPickerEvents(picker) {
 
     swatches.forEach(swatch => {
       swatch.classList.add('lock-base', 'lock-swatch');
-      // 🔒 Disable click completely
       swatch.addEventListener('click', (e) => {
         e.stopImmediatePropagation();
         e.preventDefault();
@@ -1044,6 +1482,7 @@ function initOrionColorPicker() {
   const toggle = document.getElementById('orion-toggle-picker');
   if (!toggle) return;
 
+  let picker = null;   // was undeclared before, which threw a ReferenceError on click
 
   toggle.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -1053,7 +1492,6 @@ function initOrionColorPicker() {
       document.body.appendChild(picker);
       bindOrionPickerEvents(picker);
 
-      // 🔥 THIS LINE FIXES EVERYTHING
       picker.addEventListener('click', e => e.stopPropagation());
     }
     const calendarPickr = document.querySelector(".flatpickr-calendar.open");
@@ -1085,6 +1523,13 @@ function initOrionColorPicker() {
 
 
 
+
+// The date inputs hold LOCAL time ("2026-10-17T19:00", no offset).
+// Convert to real UTC before sending, so the server never has to guess the timezone.
+function localToUtcISO(localStr) {
+  const d = new Date(localStr);            // no offset in the string = parsed as local time
+  return isNaN(d) ? localStr : d.toISOString();   // "2026-10-17T18:00:00.000Z"
+}
 
 function snapTo30Minutes(date) {
   const d = new Date(date);
@@ -1125,7 +1570,6 @@ function initSprintDates({
 
   const now = new Date();
 
-  // ✅ Offset REALLY applied
   const startDate = new Date(now.getTime() + startOffsetMinutes * 60 * 1000);
   const endDate = new Date(
     startDate.getTime() + durationDays * 24 * 60 * 60 * 1000
@@ -1161,15 +1605,12 @@ function initSprintDates({
     );
   };
 
-  // Inputs
   if (startDisplay) startDisplay.value = displayFormat(startDate);
   if (endDisplay) endDisplay.value = displayFormat(endDate);
 
-  // Backend-safe (LOCAL time)
   startISO.value = isoFormatLocal(startDate);
   endISO.value = isoFormatLocal(endDate);
 
-  // Preview
   if (previewStart) previewStart.textContent = previewFormat(startDate);
   if (previewEnd) previewEnd.textContent = previewFormat(endDate);
 
@@ -1204,6 +1645,9 @@ function initSprintDates({
         initSprintDatePickers();
         initLiveTextPreview();
         initPayDistributionUI();
+        window.RewardTiers.init();      // reward tiers slot
+        Savehanler();
+        setupSprintValidation();
 
 
 
@@ -1213,7 +1657,7 @@ function initSprintDates({
           alert("Could not load sprint planner.");
         });
 
-      return; // stop desktop logic
+      return;
     }
 
 
@@ -1254,6 +1698,7 @@ function initSprintDates({
         initSprintDatePickers();
         initLiveTextPreview();
         initPayDistributionUI();
+        window.RewardTiers.init();      // reward tiers slot
         Savehanler();
 
         setupSprintValidation();
@@ -1287,15 +1732,19 @@ function initSprintDates({
       const startDate = startDateInput.value;
       const endDate = endDateInput.value;
 
-      // if distribution exists (only when not paid)
       const distributionRequired = distributionInputs.length > 0;
       const distributionChecked = document.querySelector('input[name="distribution"]:checked');
+
+      // when "Platform distribution" is picked the reward tiers must be valid too
+      // (an empty wallet does NOT count as invalid, see RewardTiers.isValid)
+      const tiersOk = window.RewardTiers ? window.RewardTiers.isValid() : true;
 
       const isValid =
         title &&
         startDate &&
         endDate &&
-        (!distributionRequired || distributionChecked);
+        (!distributionRequired || distributionChecked) &&
+        tiersOk;
 
       if (isValid) {
         saveBtn.classList.remove("disable");
@@ -1304,13 +1753,19 @@ function initSprintDates({
       }
     }
 
-    // Listen to changes
     titleInput.addEventListener("input", validateForm);
     startDateInput.addEventListener("change", validateForm);
     endDateInput.addEventListener("change", validateForm);
     distributionInputs.forEach(radio =>
       radio.addEventListener("change", validateForm)
     );
+
+    // re-check whenever the tiers change (replace the old listener from a previous open)
+    if (window.__sprintValidate) {
+      window.removeEventListener("reward-tiers:change", window.__sprintValidate);
+    }
+    window.__sprintValidate = validateForm;
+    window.addEventListener("reward-tiers:change", validateForm);
 
     validateForm();
   }
@@ -1326,15 +1781,26 @@ function initSprintDates({
         return;
       }
 
+      const distribution =
+        document.querySelector('input[name="distribution"]:checked')?.value || null;
+
+      if (distribution === "pay_to_creator" && !window.RewardTiers.isValid()) {
+        showError("Fill in every reward rank and keep the total within your wallet balance.");
+        return;
+      }
+
       const payload = {
         title: document.getElementById("title").value.trim(),
         description: document.getElementById("description").value.trim(),
         rewards: document.getElementById("rewards").value.trim(),
         end_zone: document.getElementById("end_zone").value || null,
         color: window.selectedColor || null,
-        distribution: document.querySelector('input[name="distribution"]:checked')?.value || null,
-        start_date: document.getElementById("start_date_iso").value,
-        end_date: document.getElementById("end_date_iso").value
+        distribution: distribution,
+        // [{ from, to, amount_zat }]  amount_zat = per winner, in zatoshi (string)
+        // empty list when the wallet is empty
+        reward_tiers: distribution === "pay_to_creator" ? window.RewardTiers.getTiers() : [],
+        start_date: localToUtcISO(document.getElementById("start_date_iso").value),
+        end_date: localToUtcISO(document.getElementById("end_date_iso").value)
       };
 
       saveBtn.disabled = true;
@@ -1428,11 +1894,56 @@ function timeAgo(date) {
   return "just now";
 }
 
+/* ==========================================================
+   Desktop profile hover card placement
+   The card must stay INSIDE the main left panel (#leftPanel):
+   - starts next to the cursor
+   - flips to the left of the cursor if there is no room on the right
+   - flips above the cursor if there is no room below
+   - then gets clamped so it can never cross the panel edges
+   (mobile uses the fixed full-screen layout from the CSS)
+   ========================================================== */
+function placeActivityModal(position) {
+  if (window.innerWidth <= 767 || !position) return;
+
+  const panel = document.getElementById("leftPanel");
+  const bounds = panel
+    ? panel.getBoundingClientRect()
+    : { left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight };
+
+  const gap = 12;       // breathing room from the panel edges
+  const offset = 12;    // distance from the cursor
+
+  const w = modal.offsetWidth;
+  const h = modal.offsetHeight;
+
+  let left = position.x + offset;
+  let top = position.y + offset;
+
+  // no room on the right of the cursor -> open to its left
+  if (left + w > bounds.right - gap) {
+    left = position.x - w - offset;
+  }
+
+  // vertical: never jump above the cursor. Start at the cursor and, if the
+  // card is taller than the space below, only slide it up by the overflow
+  // (the clamp below), so it stays as low as the panel allows.
+
+  // final safety clamp, always inside the panel
+  left = Math.max(bounds.left + gap, Math.min(left, bounds.right - w - gap));
+  top = Math.max(bounds.top + gap, Math.min(top, bounds.bottom - h - gap));
+
+  modal.style.left = left + "px";
+  modal.style.top = top + window.scrollY + "px";
+}
+
 async function showUserActivity(username, position) {
 
   const isMobile = window.innerWidth <= 767;
+  const requestId = ++activityRequestId;
 
-  // 👉 show loader instantly
+  modal.classList.add("profile-mode");
+
   modalContent.innerHTML = `
     <div class="activity-loading">
       ${fetchingSvg}
@@ -1441,221 +1952,157 @@ async function showUserActivity(username, position) {
 
   modal.classList.remove("hidden");
 
-  // 👉 position only for desktop
   if (!isMobile && position) {
-    const offset = 12;
-    modal.style.top = position.y + window.scrollY + offset + "px";
-    modal.style.left = position.x + offset + "px";
+    placeActivityModal(position);
   }
 
   try {
     const res = await fetch(`/api/${communitySlug}/user/${username}/activity`);
     const data = await res.json();
 
+    if (requestId !== activityRequestId) return;
+
     renderUserActivity(data, isMobile, position);
 
   } catch (err) {
+    if (requestId !== activityRequestId) return;
     modalContent.innerHTML = `<div class="error">Failed to load</div>`;
   }
 }
 
 
+function activityItemHtml(act, data) {
+  if (act.type === "admin_xp_action") {
+    const sign = act.xp > 0 ? "+" : "";
+    const xpClass = act.xp > 0 ? "activity-xp" : "activity-xp negative";
+
+    return `
+      <div class="activity-item">
+        <div class="activity-left">
+          ${act.message}
+          <span class="activity-time-inline">${timeAgo(act.completed_at)}</span>
+        </div>
+        <div class="${xpClass}">${sign}${act.xp} XP</div>
+      </div>
+    `;
+  }
+
+  const actor = data.is_current_user ? "You" : data.username;
+
+  return `
+    <div class="activity-item">
+      <div class="activity-left">
+        <span class="activity-user">${actor}</span>
+        completed
+        <span class="activity-quest">${act.subquest_name}</span>
+        <span class="activity-time-inline">${timeAgo(act.completed_at)}</span>
+      </div>
+      ${act.xp !== null ? `<div class="activity-xp">+${act.xp} XP</div>` : ``}
+    </div>
+  `;
+}
+
+
+function buildActivityCard(data, isMobile) {
+  const bg = getColor(data.user_id);
+  const textColor = getTextColor(bg);
+
+  const hasBanner = data.banner && data.banner.trim() !== "";
+  const hasImage = data.image && data.image.trim() !== "";
+
+  const progress = data.next_level_xp > 0
+    ? Math.min(100, Math.max(0, (data.current_xp / data.next_level_xp) * 100))
+    : 0;
+
+  const bannerHtml = `
+    <div class="act-banner${hasBanner ? " has-banner" : ""}"
+         style="--b1:${bg}; --b2:${textColor}; --b3:#4888f0;">
+      <div class="act-banner-media">
+        <div class="act-banner-art" aria-hidden="true">
+          <i class="act-blob ab1"></i><i class="act-blob ab2"></i><i class="act-blob ab3"></i>
+          <span class="act-banner-sheen"></span>
+        </div>
+        ${hasBanner ? `<img class="act-banner-img" src="${data.banner}" alt="${data.username} banner">` : ``}
+        <div class="act-banner-shade"></div>
+      </div>
+      ${
+        isMobile
+          ? `<button class="act-back-btn" id="activityBackBtn" type="button">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg> Back
+            </button>`
+          : ``
+      }
+    </div>
+  `;
+
+  const rolesHtml = `
+    <div class="act-roles">
+      <span class="role-core">${data.core_role}</span>
+      ${data.extra_roles.map(r =>
+        `<span class="role-extra" style="background:${r.color}">${r.name}</span>`
+      ).join("")}
+    </div>
+  `;
+
+  const headHtml = `
+    <div class="act-head">
+      <div class="act-avatar" style="background:${bg}; color:${textColor};">
+        ${
+          hasImage
+            ? `<img src="${data.image}" alt="${data.username}">`
+            : `<span>${data.username[0].toUpperCase()}</span>`
+        }
+      </div>
+      <div class="act-meta">
+        <div class="act-username">${data.username}</div>
+        ${rolesHtml}
+      </div>
+    </div>
+  `;
+
+  const activitiesHtml = data.activities.length === 0
+    ? `<div class="no-activity">No activity yet</div>`
+    : data.activities.map(act => activityItemHtml(act, data)).join("");
+
+  return `
+    <div class="act-card">
+      ${bannerHtml}
+      ${headHtml}
+      <div class="act-body">
+        <div class="act-level">
+          <div class="act-level-row">
+            <span class="act-level-label">Level ${data.level}</span>
+            <span class="act-level-progress">${data.current_xp} / ${data.next_level_xp} XP</span>
+          </div>
+          <div class="xp-bar">
+            <div class="xp-fill" style="width:${progress}%"></div>
+          </div>
+        </div>
+
+        <div class="act-activities">
+          <div class="recent-activity-title">Recent activity</div>
+          <div class="act-activity-list">${activitiesHtml}</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+
 function renderUserActivity(data, isMobile, position) {
 
-  modalContent.innerHTML = "";
+  modalContent.innerHTML = buildActivityCard(data, isMobile);
 
   if (isMobile) {
-
-    const progress = (data.current_xp / data.next_level_xp) * 100;
-
-    modalContent.innerHTML = `
-    <div class="mobile-user-card">
-
-      <!-- 🔥 TOP BAR -->
-      <div class="mobile-top-bar">
-        <button class="back-btn-modalinit" id="activityBackBtn">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <path d="M15 6L9 12L15 18"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"/>
-          </svg> Back
-        </button>
-      </div>
-
-      <!-- USER -->
-      <div class="mobile-user-header">
-        ${
-          data.image && data.image.trim() !== ""
-            ? `<img class="mobile-avatar" src="${data.image}" alt="${data.username}">`
-            : `<div class="mobile-avatar mobile-avatar-fallback"
-                    style="display:flex;align-items:center;justify-content:center;
-                          background:${getColor(data.user_id)};
-                          color:${getTextColor(getColor(data.user_id))};
-                          font-weight:500;">
-                ${data.username[0].toUpperCase()}
-              </div>`
-        }
-
-        <div class="mobile-user-meta">
-          <div class="mobile-username">${data.username}</div>
-        </div>
-      </div>
-
-      <!-- XP -->
-      <div class="init-fillere">
-        <div class="mobile-level-row">
-          <span class="mobile-level-label">Level ${data.level}</span>
-          <span class="mobile-level-progress">
-            ${data.current_xp} / ${data.next_level_xp}XP
-          </span>
-        </div>
-
-        <div class="xp-bar">
-          <div class="xp-fill" style="width:${progress}%"></div>
-        </div>
-      </div>
-
-      <!-- ROLES -->
-      <div class="mobile-roles">
-        <span class="role-core">${data.core_role}</span>
-
-        ${data.extra_roles.map(r =>
-          `<span class="role-extra" style="background:${r.color}">
-            ${r.name}
-          </span>`
-        ).join("")}
-      </div>
-
-      <!-- ACTIVITY -->
-      <div class="iner-llebei">
-        <div class="recent-activity-title">
-          Recent activity
-        </div>
-
-        ${
-          data.activities.length === 0
-            ? `<div class="no-activity">No activity yet</div>`
-            : data.activities.map(act => {
-
-                // 🔥 Admin XP grant/removal — different shape, own render path
-                if (act.type === "admin_xp_action") {
-                  const sign = act.xp > 0 ? "+" : "";
-                  const xpClass = act.xp > 0 ? "activity-xp" : "activity-xp negative";
-
-                  return `
-                    <div class="activity-item">
-                      <div class="activity-left">
-                        ${act.message}
-                        <span class="activity-time-inline">
-                          ${timeAgo(act.completed_at)}
-                        </span>
-                      </div>
-                      <div class="${xpClass}">${sign}${act.xp} XP</div>
-                    </div>
-                  `;
-                }
-
-                // quest_completion (default)
-                const actor = data.is_current_user ? "You" : data.username;
-
-                return `
-                <div class="activity-item">
-
-                  <div class="activity-left">
-                    <span class="activity-user">${actor}</span>
-                    completed
-                    <span class="activity-quest">${act.subquest_name}</span>
-                    <span class="activity-time-inline">
-                      ${timeAgo(act.completed_at)}
-                    </span>
-                  </div>
-
-                  ${
-                    act.xp !== null
-                      ? `<div class="activity-xp">+${act.xp} XP</div>`
-                      : ``
-                  }
-
-                </div>
-                `;
-
-              }).join("")
-        }
-      </div>
-
-    </div>
-    `;
-
-    // ✅ attach back button AFTER render
     const backBtn = document.getElementById("activityBackBtn");
     if (backBtn) {
       backBtn.addEventListener("click", hideActivity);
     }
-
   } else {
-
-    if (data.activities.length === 0) {
-
-      const empty = document.createElement("div");
-      empty.className = "no-activity";
-      empty.textContent = "No activity yet";
-
-      modalContent.appendChild(empty);
-
-    } else {
-
-      data.activities.forEach(act => {
-
-        const div = document.createElement("div");
-        div.className = "activity-item";
-
-        // 🔥 Admin XP grant/removal — different shape, own render path
-        if (act.type === "admin_xp_action") {
-          const sign = act.xp > 0 ? "+" : "";
-          const xpClass = act.xp > 0 ? "activity-xp" : "activity-xp negative";
-
-          div.innerHTML = `
-            <div class="activity-left">
-              ${act.message}
-              <span class="activity-time-inline">
-                ${timeAgo(act.completed_at)}
-              </span>
-            </div>
-            <div class="${xpClass}">${sign}${act.xp} XP</div>
-          `;
-
-          modalContent.appendChild(div);
-          return;
-        }
-
-        // quest_completion (default)
-        const text = data.is_current_user
-          ? `You completed ${act.subquest_name}`
-          : `${data.username} completed ${act.subquest_name}`;
-
-        div.innerHTML = `
-          <div class="activity-left">
-            ${text}
-            <span class="activity-time-inline">
-              ${timeAgo(act.completed_at)}
-            </span>
-          </div>
-
-          ${
-            act.xp !== null
-              ? `<div class="activity-xp">+${act.xp} XP</div>`
-              : ``
-          }
-        `;
-
-        modalContent.appendChild(div);
-
-      });
-
-    }
-
+    // the card is taller now than the loading spinner was, so place it again
+    requestAnimationFrame(() => placeActivityModal(position));
   }
 }
 
@@ -1706,14 +2153,13 @@ function openExportModal({ scope = "all", sprintUuid = null } = {}) {
           <button class="btn-outline" id="exportCloseBtn">Close</button>
         </div>
       `;
-      // textContent so server messages can never inject HTML
       inner.querySelector("#exportLoadError").textContent = err.message;
       inner.querySelector("#exportCloseBtn").onclick = closeExportModal;
     });
 }
 
 function renderExportForm(inner, info, { scope, sprintUuid }) {
-  const cap = info.max_export;               // null = unlimited
+  const cap = info.max_export;
   const unlimited = cap === null || cap === undefined;
   const total = exportTotalCount || 0;
 
@@ -1776,7 +2222,6 @@ function renderExportForm(inner, info, { scope, sprintUuid }) {
       errorEl.style.display = "none";
     }
 
-    // same pattern as the email modal: "valid" class instead of disabled
     confirmBtn.classList.toggle("valid", hasValue && !overCap && !overTotal && total > 0);
   }
 
@@ -1797,7 +2242,6 @@ function renderExportForm(inner, info, { scope, sprintUuid }) {
   confirmBtn.onclick = async () => {
     if (isSending) return;
 
-    // nothing on the leaderboard → tell the user instead of silently doing nothing
     if (total === 0) {
       showError("Nothing to export yet.");
       return;
@@ -1823,7 +2267,6 @@ function renderExportForm(inner, info, { scope, sprintUuid }) {
         })
       });
 
-      // error pages (e.g. a 404 HTML page) aren't JSON, so don't let parsing throw
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
@@ -1845,11 +2288,10 @@ function renderExportForm(inner, info, { scope, sprintUuid }) {
 
 function initExportButton() {
   const btn = document.getElementById("exportBtn");
-  if (!btn || btn.dataset.bound === "1") return; // avoid double-binding on reload
+  if (!btn || btn.dataset.bound === "1") return;
   btn.dataset.bound = "1";
 
   btn.addEventListener("click", () => {
-    // empty leaderboard → no point opening the modal
     if (!exportTotalCount) {
       showError("Nothing to export yet.");
       return;
@@ -1879,7 +2321,7 @@ function checkOpenSprintFromURL() {
   checkOpenSprintFromURL();
   initExportButton();
   window.createSprint = createSprint;
-  window.openExportModal = openExportModal; // reuse from the sprint leaderboard module
+  window.openExportModal = openExportModal;
   window.LeaderboardModule = {
     init: loadLeaderboard
   };

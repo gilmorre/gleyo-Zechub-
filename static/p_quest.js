@@ -17,6 +17,7 @@ async function LetsitQuestUp() {
     if (!claimBtn) return;
 
     if (claimBtn.hasAttribute("disabled")) return;
+    if (window.__CLAIM_LIMIT_REACHED__) return; 
 
     claimBtn.setAttribute("disabled", "true");
     claimBtn.style.cursor = "wait";
@@ -34,6 +35,12 @@ async function LetsitQuestUp() {
 
   // ✅ now DOM exists
   setSprintModeUI(mode);
+}
+
+function getSubquestRank(sq){
+  if (sq.is_completed) return 2;
+  if (computeLockState(sq)) return 1;
+  return 0;
 }
 
 function escapeHtmlChv(str = ""){
@@ -60,11 +67,10 @@ window.__SCROLL_MEMORY__ = {
 
   window.__QUEST_MODE__ = "{{ quest_mode }}";
 function detectSprintMode(){
-  if (window.__QUEST_MODE__) return window.__QUEST_MODE__;
-
+  const q = window.__QUEST_MODE__;
+  if (q === "sprint" || q === "all") return q;
   const path = window.location.pathname.replace(/\/+$/, "");
-  if (path.endsWith("/quest/sprint")) return "sprint";
-  return "all";
+  return path.endsWith("/quest/sprint") ? "sprint" : "all";
 }
 
 const calendarSvg = `
@@ -559,6 +565,63 @@ function showGlobalEmptyState() {
 }
 
 
+function removeClaimLimitModal(){
+  document.querySelectorAll(".claim-limit-overlay").forEach(el => el.remove());
+  window.__CLAIM_LIMIT_REACHED__ = false;
+    initResponsivePreviewGrid();
+
+}
+
+function injectClaimLimitModal(data){
+  console.log("claim_limit:", data?.claim_limit); 
+  removeClaimLimitModal();
+
+  const cl = data?.claim_limit;
+  if (!cl || !cl.reached) return;
+
+  const host = document.getElementById("inject-main-card");
+  if (!host) return;
+
+  window.__CLAIM_LIMIT_REACHED__ = true;
+
+  if (getComputedStyle(host).position === "static") {
+    host.style.position = "relative";
+  }
+
+  const canManage = !!cl.can_manage;
+
+  const overlay = document.createElement("div");
+  overlay.className = "claim-limit-overlay";
+  overlay.innerHTML = `
+    <div class="claim-limit-modal" role="dialog" aria-modal="true">
+      <div class="claim-limit-title">Claim limit reached</div>
+      <div class="claim-limit-text">
+        ${escapeHtmlChv(cl.message || "This community has reached its monthly claim limit.")}
+      </div>
+      <div class="claim-limit-actions">
+        <button type="button" class="claim-limit-back" onclick="gobacktoquest(event)">Back</button>
+        ${canManage ? `
+          <a class="claim-limit-upgrade"
+             href="/community/${communitySlug}/settings/billing">Upgrade plan</a>
+        ` : ``}
+      </div>
+    </div>
+  `;
+
+  ["click", "mousedown", "touchstart"].forEach(evt =>
+    overlay.addEventListener(evt, e => e.stopPropagation())
+  );
+
+  host.appendChild(overlay);
+
+  const claimBtn = document.querySelector("#claim-task");
+  if (claimBtn) {
+    claimBtn.setAttribute("disabled", "true");
+    claimBtn.classList.remove("enabled");
+    claimBtn.classList.add("disable", "disabled-task");
+  }
+}
+
 async function loadAllQuests() {
   const root = document.getElementById("quests-root");
 
@@ -629,8 +692,8 @@ async function loadAllQuests() {
   getLayoutRoot().appendChild(renderModuleNavBar(window.__QUEST_CACHE__));
 
     // quests
-    window.__QUEST_CACHE__.forEach(quest => {
-      root.appendChild(renderQuest(quest));
+    window.__QUEST_CACHE__.forEach((quest, i) => {
+      root.appendChild(renderQuest(quest, i === 0));
     });
 
     // ❌ NO sprint switch here
@@ -974,16 +1037,18 @@ function utcHumanToLocalHuman(utcHumanStr){
   ));
 
   // convert to local
-  const d = new Date(utcDate.getTime());
-
+  const d = utcDate;
   const monthsArr = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   const day   = String(d.getDate()).padStart(2,"0");
   const month = monthsArr[d.getMonth()];
   const year  = d.getFullYear();
-  const hour  = String(d.getHours()).padStart(2,"0");
   const min   = String(d.getMinutes()).padStart(2,"0");
 
-  return `${day} ${month} ${hour}:${min} ${year}`; // ✅ USER LOCAL TIME
+  let h = d.getHours();
+  const ampm = h >= 12 ? "PM" : "AM";
+  h = h % 12 || 12;               
+
+  return `${day} ${month} ${year}, ${h}:${min} ${ampm}`;   
 }
  
 
@@ -1630,10 +1695,66 @@ function applyQuestFilters(questUUID, filters){
   });
 }
 
+function getScopeBoxes(){
+  let scope = document;
+  if (window.innerWidth <= 767) {
+    const wrapper = document.querySelector(".sprint-view-wrapper");
+    const view = wrapper?.querySelector(
+      window.__SPRINT_MODE__ === "sprint" ? ".sprint-view-sprint" : ".sprint-view-all"
+    );
+    if (view) scope = view;
+  }
+  const seen = new Set();
+  return [...scope.querySelectorAll(".preview-box")].filter(b => {
+    const id = b.dataset.quest + ":" + b.dataset.subquest;
+    if (seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
+}
+
+function isNavigableBox(box){
+  if (box.classList.contains("hidden")) return false;
+  if (box.classList.contains("sprint-hidden")) return false;
+  if (box.closest(".module-hidden")) return false;
+  if (box.classList.contains("locked")) return false;
+  if (box.classList.contains("completed")) return false;
+  if (box.classList.contains("pending")) return false;
+  if (box.classList.contains("try-again")) return false;
+  if (box.classList.contains("expired")) return false;
+  return true;
+}
+
+// nearest playable quest before / after the CURRENT one (by DOM position)
+function getArrowTargets(){
+  const boxes = getScopeBoxes();
+  const active = window.__ACTIVE_SUBQUEST__;
+  const curIdx = active
+    ? boxes.findIndex(b =>
+        b.dataset.quest === active.questUUID &&
+        b.dataset.subquest === active.subUUID)
+    : -1;
+
+  let prev = null, next = null;
+  for (let i = curIdx - 1; i >= 0; i--) {
+    if (isNavigableBox(boxes[i])) { prev = boxes[i]; break; }
+  }
+  for (let i = curIdx + 1; i < boxes.length; i++) {
+    if (isNavigableBox(boxes[i])) { next = boxes[i]; break; }
+  }
+  return { prev, next };
+}
+
+function setArrowState(btn, enabled){
+  if (!btn) return;
+  btn.disabled = !enabled;
+  btn.classList.toggle("arrow-disabled", !enabled);
+  btn.setAttribute("aria-disabled", String(!enabled));
+}
+ 
 
 
-
-function renderQuest(quest) {
+function renderQuest(quest, isFirst = false) {
   const root = document.createElement("div");
   root.className = "all-content";
   root.dataset.questUuid = quest.uuid;
@@ -1709,7 +1830,7 @@ function renderQuest(quest) {
   if (moduleState === "completed") {
     infoBox.classList.add("completed");
     const badge = document.createElement("div");
-    badge.className = "module-state module-completed";
+    badge.className = "module-state module-completed" + (isFirst ? " module-state-first" : "");
     badge.innerText = "Module Completed";
     root.appendChild(badge);
   }
@@ -1717,7 +1838,7 @@ function renderQuest(quest) {
   if (moduleState === "locked") {
     infoBox.classList.add("task-locked");
     const badge = document.createElement("div");
-    badge.className = "module-state module-locked";
+    badge.className = "module-state module-locked" + (isFirst ? " module-state-first" : "");
     badge.innerText = "Module Locked";
     root.appendChild(badge);
   }
@@ -1732,9 +1853,11 @@ function renderQuest(quest) {
   const previewContent = document.createElement("div");
   previewContent.className = "preview-content";
 
-  quest.subquests.forEach(sq => {
-    previewContent.appendChild(renderSubquest(sq, quest.uuid));
-  });
+  [...quest.subquests]
+    .sort((a, b) => getSubquestRank(a) - getSubquestRank(b))
+    .forEach(sq => {
+      previewContent.appendChild(renderSubquest(sq, quest.uuid));
+    });
 
   contentBlock.appendChild(previewContent);
 
@@ -2457,74 +2580,7 @@ function pushSubquestURL(questUUID, subUUID){
     );
   }
 }
-
-function initArrowNavigation(){
-
-  // 🔒 prevent multi-binding
-  if(window.__ARROW_NAV_BOUND__) return;
-  window.__ARROW_NAV_BOUND__ = true;
-
-  document.addEventListener("click", (e)=>{
-
-    const btn = e.target.closest(".arrow-btn");
-    if(!btn) return;
-
-    e.preventDefault();
-    e.stopPropagation();
-
-    /* 🔥 DOM order source of truth */
-    const allBoxes = [...document.querySelectorAll(".preview-box")];
-    if(!allBoxes.length) return;
-
-    /* 🔥 filter navigable */
-    const boxes = allBoxes.filter(box => {
-
-      if (box.classList.contains("hidden")) return false;
-      if (box.closest(".module-hidden")) return false;
-
-      if (box.classList.contains("locked")) return false;
-      if (box.classList.contains("completed")) return false;
-      if (box.classList.contains("pending")) return false;
-      if (box.classList.contains("try-again")) return false;
-
-      return true;
-    });
-
-    if(!boxes.length) return;
-
-    /* 🔥 route state = source of truth */
-    if(!window.__ACTIVE_SUBQUEST__){
-      activatePreviewBox(boxes[0]);
-      return;
-    }
-
-    const { questUUID, subUUID } = window.__ACTIVE_SUBQUEST__;
-
-    let index = boxes.findIndex(b =>
-      b.dataset.quest === questUUID &&
-      b.dataset.subquest === subUUID
-    );
-
-    /* fallback */
-    if(index === -1){
-      activatePreviewBox(boxes[0]);
-      return;
-    }
-
-    /* LEFT = UP */
-    if(btn.classList.contains("left")){
-      index = Math.max(index - 1, 0);
-    }
-
-    /* RIGHT = DOWN */
-    if(btn.classList.contains("right")){
-      index = Math.min(index + 1, boxes.length - 1);
-    }
-
-    activatePreviewBox(boxes[index]);   // 🔥 unified router path
-  });
-}
-
+ 
 
 function parseInlineStyles(text){
   let t = text;
@@ -3181,59 +3237,76 @@ function renderQuestComplete(data){
 }
 
 
-function getNavigablePreviewBoxes(){
-  let scope;
+function isNavigableBox(box){
+  if (box.classList.contains("hidden")) return false;
+  if (box.classList.contains("hiding")) return false;
+  if (box.classList.contains("sprint-hidden")) return false;
+  if (box.closest(".module-hidden")) return false;
+  if (box.classList.contains("locked")) return false;
+  if (box.classList.contains("completed")) return false;
+  if (box.classList.contains("pending")) return false;
+  if (box.classList.contains("try-again")) return false;
+  if (box.classList.contains("expired")) return false;
+  return true;
+}
 
-  // 🔥 detect active view (mobile sprint/all)
-  if (window.innerWidth <= 767) {
-    const wrapper = document.querySelector(".sprint-view-wrapper");
+function getArrowTargets(){
+  const boxes = getScopeBoxes();
+  const active = window.__ACTIVE_SUBQUEST__;
 
-    if (window.__SPRINT_MODE__ === "sprint") {
-      scope = wrapper?.querySelector(".sprint-view-sprint");
-    } else {
-      scope = wrapper?.querySelector(".sprint-view-all");
-    }
-  } else {
-    scope = document;
+  let curIdx = -1;
+  if (active) {
+    curIdx = boxes.findIndex(b =>
+      b.dataset.quest === active.questUUID &&
+      b.dataset.subquest === active.subUUID
+    );
+  }
+  if (curIdx === -1) {
+    curIdx = boxes.findIndex(b => b.classList.contains("active"));
   }
 
-  if(!scope) return [];
+  let prev = null;
+  let next = null;
 
-  return [...scope.querySelectorAll(".preview-box")]
-    .filter(box => {
+  for (let i = curIdx - 1; i >= 0; i--) {
+    if (isNavigableBox(boxes[i])) { prev = boxes[i]; break; }
+  }
+  for (let i = curIdx + 1; i < boxes.length; i++) {
+    if (isNavigableBox(boxes[i])) { next = boxes[i]; break; }
+  }
 
-      // hidden by filters / sprint
-      if (box.classList.contains("hidden")) return false;
-      if (box.closest(".module-hidden")) return false;
-
-      // blocked states
-      if (box.classList.contains("locked")) return false;
-      if (box.classList.contains("completed")) return false;
-      if (box.classList.contains("pending")) return false;
-      if (box.classList.contains("try-again")) return false;
-
-      return true;
-    });
+  return { prev, next };
 }
+
+function initPreviewKeyboardNav(){
+  if (window.__KEYBOARD_NAV_BOUND__) return;
+  window.__KEYBOARD_NAV_BOUND__ = true;
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+    if (e.target.closest && e.target.closest("input, textarea, select, [contenteditable='true']")) return;
+    if (document.querySelector(".invite-overlay, .chv-vote-overlay")) return;
+
+    const { prev, next } = getArrowTargets();
+    const target = e.key === "ArrowDown" ? next : prev;
+    if (!target) return;
+
+    e.preventDefault();
+    activatePreviewBox(target);
+  });
+}
+
 
 function activatePreviewBox(box){
-  if(!box) return;
-
-  // clear active
-  document.querySelectorAll(".preview-box.active")
-    .forEach(b => b.classList.remove("active"));
-
-  box.classList.add("active");
-
-  // 🔥 direct routing (NO DOM EVENTS)
+  if (!box) return;
   routeToSubquest(box);
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          scrollToSubquestByUUID(window.__INIT_SUBQUEST_UUID__);
-        });
-      })
-
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      scrollToSubquestByUUID(box.dataset.subquest);
+    });
+  });
 }
+
 
 
 
@@ -3306,6 +3379,7 @@ function bindShowInviteDelegate(){
     if(!taskId) return;
 
     destroyInviteOverlay();
+    removeClaimLimitModal();
 
     const overlay = createInviteOverlay(communitySlug, taskId);
     initInviteModal(overlay);   // no longer re-binds the document listener
@@ -3382,6 +3456,8 @@ function gobacktoquest(e){
 
   /* 🔥 Destroy modals / overlays */
   destroyInviteOverlay();
+    removeClaimLimitModal();
+
 
   /* 🔥 Clear active state */
   document.querySelectorAll(".preview-box.active")
@@ -5031,70 +5107,56 @@ function safeClassName(str){
 }
 
 
-function initPreviewKeyboardNav(){
+function setArrowState(btn, enabled){
+  if (!btn) return;
+  btn.removeAttribute("disabled");
+  btn.disabled = false;
+  btn.classList.toggle("arrow-disabled", !enabled);
+  btn.setAttribute("aria-disabled", String(!enabled));
+}
 
-  // 🔒 prevent multi-binding
-  if(window.__KEYBOARD_NAV_BOUND__) return;
-  window.__KEYBOARD_NAV_BOUND__ = true;
+function syncArrowButtons(){
+  const left  = document.querySelector(".claim-button .arrow-btn.left");
+  const right = document.querySelector(".claim-button .arrow-btn.right");
+  if (!left && !right) return;
+  const { prev, next } = getArrowTargets();
+  console.log("ARROWS", {
+    total: getScopeBoxes().length,
+    active: window.__ACTIVE_SUBQUEST__,
+    prev: prev && prev.dataset.subquest,
+    next: next && next.dataset.subquest,
+    mode: window.__SPRINT_MODE__,
+    width: window.innerWidth
+  });
+  setArrowState(left,  !!prev);
+  setArrowState(right, !!next);
+}
 
-  document.addEventListener("keydown", (e)=>{
+function initArrowNavigation(){
+  if (window.__ARROW_NAV_BOUND__) return;
+  window.__ARROW_NAV_BOUND__ = true;
 
-    if(e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest(".arrow-btn");
+    if (!btn) return;
 
     e.preventDefault();
     e.stopPropagation();
 
-    /* 🔥 get DOM order list */
-    const allBoxes = [...document.querySelectorAll(".preview-box")];
+    const { prev, next } = getArrowTargets();
+    const target = btn.classList.contains("left") ? prev : next;
+    if (!target) return;
 
-    if(!allBoxes.length) return;
+    activatePreviewBox(target);
+  }, true);
 
-    /* 🔥 filter navigable */
-    const boxes = allBoxes.filter(box => {
-
-      if (box.classList.contains("hidden")) return false;
-      if (box.closest(".module-hidden")) return false;
-
-      if (box.classList.contains("locked")) return false;
-      if (box.classList.contains("completed")) return false;
-      if (box.classList.contains("pending")) return false;
-      if (box.classList.contains("try-again")) return false;
-
-      return true;
-    });
-
-    if(!boxes.length) return;
-
-    /* 🔥 source of truth = route state */
-    if(!window.__ACTIVE_SUBQUEST__){
-      activatePreviewBox(boxes[0]);
-      return;
-    }
-
-    const { questUUID, subUUID } = window.__ACTIVE_SUBQUEST__;
-
-    let index = boxes.findIndex(b =>
-      b.dataset.quest === questUUID &&
-      b.dataset.subquest === subUUID
-    );
-
-    /* fallback */
-    if(index === -1){
-      activatePreviewBox(boxes[0]);
-      return;
-    }
-
-    if(e.key === "ArrowDown"){
-      index = Math.min(index + 1, boxes.length - 1);
-    }
-
-    if(e.key === "ArrowUp"){
-      index = Math.max(index - 1, 0);
-    }
-
-    activatePreviewBox(boxes[index]);
-
-  }, { passive:false });
+  const watch = () => {
+    const container = document.querySelector(".quest-complete");
+    if (!container) return;
+    new MutationObserver(() => syncArrowButtons())
+      .observe(container, { childList: true, subtree: true, attributes: true, attributeFilter: ["disabled"] });
+  };
+  watch();
 }
 
 
@@ -5579,58 +5641,68 @@ function createQuestCompleteSkeleton(container) {
 
 
 async function routeToSubquest(box){
-  if(!box) return;
- 
+  if (!box) return;
+
+  const questUUID = box.dataset.quest;
+  const subUUID   = box.dataset.subquest;
+  if (!questUUID || !subUUID) return;
+
+  const container = document.querySelector(".quest-complete");
+  const layout    = document.querySelector(".layout-root");
+  if (!container || !layout) return;
+
   const isPending   = box.classList.contains("pending");
   const isCompleted = box.classList.contains("completed");
   const isLocked    = box.classList.contains("locked");
-  const isCooldown = box.classList.contains("try-again");
-  const isNoRetry  = box.dataset.noRetry === "true";
-  const container = document.querySelector(".quest-complete");
-  const layout    = document.querySelector(".layout-root");
-  const questUUID = box.dataset.quest;
+  const isNoRetry   = box.dataset.noRetry === "true";
+  const isCoinHolderVote = box.dataset.coinHolderVote === "true";
+  const isStateView = isPending || isCompleted || isLocked || isNoRetry;
+
+  if (
+    !isStateView &&
+    window.__ACTIVE_SUBQUEST__ &&
+    window.__ACTIVE_SUBQUEST__.questUUID === questUUID &&
+    window.__ACTIVE_SUBQUEST__.subUUID === subUUID
+  ) {
+    return;
+  }
+
+  if (window.__FETCH_LOCK__) return;
+
   const showNext = hasNextPlayableQuest(box);
-  const subUUID   = box.dataset.subquest;
-  const isCoinHolderVote = box.dataset.coinHolderVote === "true"; 
-  if(!questUUID || !subUUID) return;
 
   pushSubquestURL(questUUID, subUUID);
   initResponsivePreviewGrid();
-  createQuestCompleteSkeleton(container);
 
-  if (isPending || isCompleted || isLocked || isNoRetry) {
+  document.querySelectorAll(".preview-box.active")
+    .forEach(b => b.classList.remove("active"));
+  box.classList.add("active");
 
+  container.classList.remove("quest-hidden");
+  layout.classList.add("quest-open");
+
+  if (isStateView) {
     let stateUI = "";
 
-    /* ===== PENDING ===== */
     if (isPending) {
       stateUI = renderQuestStateUI({
         img: "https://zupdpwnloewdkjqsymdm.supabase.co/storage/v1/object/public/uploads/5/channels/21/191680b9-5075-4765-80dd-1982f28297bf.png",
         text: "Quest in review",
-        showNext 
+        showNext
       });
-    }
-
-    /* ===== COMPLETED ===== */
-    else if (isCompleted) {
+    } else if (isCompleted) {
       stateUI = renderQuestStateUI({
         img: "https://zupdpwnloewdkjqsymdm.supabase.co/storage/v1/object/public/uploads/5/channels/21/7509f516-d6bd-4ac1-927f-816a3e3ececa.png",
         text: isCoinHolderVote ? "Vote casted" : "Quest Completed",
-        showNext 
+        showNext
       });
-    }
-
-    /* ===== NO RETRY ===== */
-    else if (isNoRetry) {
+    } else if (isNoRetry) {
       stateUI = renderQuestStateUI({
         img: "https://zupdpwnloewdkjqsymdm.supabase.co/storage/v1/object/public/uploads/5/channels/21/f227963b-ff82-4ea7-acaf-954ef84e5701.png",
         text: "You cannot retry this quest",
         showNext: false
       });
-    }
-
-    /* ===== LOCKED ===== */
-    else if (isLocked) {
+    } else {
       stateUI = renderQuestStateUI({
         img: "https://zupdpwnloewdkjqsymdm.supabase.co/storage/v1/object/public/uploads/5/channels/21/f227963b-ff82-4ea7-acaf-954ef84e5701.png",
         text: "Quest locked",
@@ -5638,136 +5710,81 @@ async function routeToSubquest(box){
       });
     }
 
-    container.innerHTML = "";
     container.innerHTML = stateUI;
 
-    // ⬆️ scroll content container back to top
-    const scrollTargetState = document.querySelector(".quest-complete.quest-content") || document.querySelector(".quest-content");
+    const scrollTargetState =
+      document.querySelector(".quest-complete.quest-content") ||
+      document.querySelector(".quest-content");
     if (scrollTargetState) scrollTargetState.scrollTop = 0;
 
     window.__ACTIVE_SUBQUEST__ = { questUUID, subUUID };
 
-    return; // ⛔ stop API fetch, but UI is rendered
-  }
-
-  /* =========================
-     🚫 SAME ROUTE GUARD
-  ========================= */
-  if(
-    window.__ACTIVE_SUBQUEST__ &&
-    window.__ACTIVE_SUBQUEST__.questUUID === questUUID &&
-    window.__ACTIVE_SUBQUEST__.subUUID === subUUID
-  ){
-    console.log("⛔ Same subquest → no refetch");
-    return; // 🔥 STOP HERE
-  }
-
-  /* =========================
-     🚫 FETCH LOCK
-  ========================= */
-  if(window.__FETCH_LOCK__){
-    console.log("⛔ Fetch in progress → blocked");
+    syncArrowButtons();
+    initPreviewKeyboardNav();
+    initArrowNavigation();
     return;
   }
 
   window.__FETCH_LOCK__ = true;
+  createQuestCompleteSkeleton(container);
 
-  /* =========================
-     ACTIVE STATE
-  ========================= */
-  document.querySelectorAll(".preview-box.active")
-    .forEach(b => b.classList.remove("active"));
-
-  box.classList.add("active");
-
-  container.classList.remove("quest-hidden");
-  layout.classList.add("quest-open");
-
-  if(!container || !layout) {
-    window.__FETCH_LOCK__ = false;
-    return;
-  }
-
-  try{
-    // 🔥 renamed from "/apiinit/" → "/api/qdata/"
-    // ("apiinit" was matching ad-blocker / crypto-scam filter-list rules
-    //  and causing ERR_BLOCKED_BY_CLIENT for some users)
+  try {
     const res = await fetch(`/api/qdata/${communitySlug}/quest/${questUUID}/${subUUID}`);
     const data = await res.json();
 
-    if(!res.ok){
+    if (!res.ok) {
       container.innerHTML = `<div class="quest-error">Failed to load quest</div>`;
-      window.__FETCH_LOCK__ = false;
+      window.__ACTIVE_SUBQUEST__ = { questUUID, subUUID };
+      syncArrowButtons();
       return;
     }
-    let stateUI = "";
 
     container.innerHTML = renderQuestComplete(data);
+    injectClaimLimitModal(data); 
+    
     initCooldownTimers();
 
-    let scrollTarget;
-    if (window.innerWidth <= 767) {
-      scrollTarget = document.querySelector(".quest-complete.quest-content");
-    } else {
-      scrollTarget = document.querySelector(".quest-content");
-    }
+    const scrollTarget = window.innerWidth <= 767
+      ? document.querySelector(".quest-complete.quest-content")
+      : document.querySelector(".quest-content");
     if (scrollTarget) scrollTarget.scrollTop = 0;
 
     initSocialTooltips(communitySlug);
 
-    /* backend source of truth */
-    const cooldownUntilRaw = data.subquest.cooldown_until || null;
-    const cooldownUntilDate = parseUtc(cooldownUntilRaw);
+    const cooldownUntilDate = parseUtc(data.subquest.cooldown_until || null);
 
-    /* if cooldown exists and is future (UTC-safe) */
-    if (
-      cooldownUntilDate &&
-      cooldownUntilDate.getTime() > Date.now()
-    ) {
-      // ✅ STATE
+    if (cooldownUntilDate && cooldownUntilDate.getTime() > Date.now()) {
       updateActivePreviewBoxState("cooldown", {
         cooldown_until: cooldownUntilDate.toISOString()
       });
-
-      // ✅ UI
       updateClaimButtonCooldown(cooldownUntilDate);
-
-      // ✅ TIMER ENGINE
       initCooldownTimers();
     }
 
     initRewardModals(data.rewards);
-
     initSubquestTasks();
     hookCoinHolderVoteTasks(document);
 
     const inviteTask = document.querySelector(".card-container-quest.invite-task");
-
-    if(inviteTask){
+    if (inviteTask) {
       const taskId = inviteTask.dataset.taskId;
       const overlay = createInviteOverlay(communitySlug, taskId);
       initInviteModal(overlay);
-
       hookInviteTaskProgress(container);
     }
 
-    /* 🔥 save active route */
     window.__ACTIVE_SUBQUEST__ = { questUUID, subUUID };
     window.__UI_STATE__ = data.ui_state || {};
 
     renderMobileModuleStrip();
     syncMobileModuleActive();
-    /* 🔥 rebind grid AFTER render */
+    syncArrowButtons();
     initPreviewKeyboardNav();
     initArrowNavigation();
 
-  }catch(err){
+  } catch (err) {
     console.error(err);
 
-    // fetch() only throws TypeError for network-level failures:
-    // offline, DNS failure, CORS, or an ad-blocker/privacy-extension
-    // veto (ERR_BLOCKED_BY_CLIENT). We can't tell those apart from
-    // JS, so give the user the most actionable message.
     if (err instanceof TypeError) {
       container.innerHTML = `
         <div class="quest-error">
@@ -5780,8 +5797,11 @@ async function routeToSubquest(box){
       container.innerHTML = `<div class="quest-error">Network error</div>`;
     }
 
-  }finally{
-    window.__FETCH_LOCK__ = false;  // 🔓 unlock
+    window.__ACTIVE_SUBQUEST__ = { questUUID, subUUID };
+    syncArrowButtons();
+
+  } finally {
+    window.__FETCH_LOCK__ = false;
   }
 }
 
@@ -5790,102 +5810,8 @@ async function routeToSubquest(box){
  
 
 function updateActivePreviewBoxState(state, options = {}) {
-  if (!window.__ACTIVE_SUBQUEST__) return;
-
-  const { questUUID, subUUID } = window.__ACTIVE_SUBQUEST__;
-
-  const box = document.querySelector(
-    `.preview-box[data-quest="${questUUID}"][data-subquest="${subUUID}"]`
-  );
-  if (!box) return;
-
-  /* ===== CLEAN OLD STATES ===== */
-  box.classList.remove("completed", "pending", "locked", "try-again");
-  box.dataset.noRetry = "false";
-
-  const oldTimer = box.querySelector(".timer-main");
-  if (oldTimer) oldTimer.remove();
-
-  const oldComplete = box.querySelector(".complete-main");
-  if (oldComplete) oldComplete.remove();
-
-  /* ============================
-     NO RETRY (INSTANT BADGE)
-  ============================ */
-  if (state === "no_retry") {
-    box.classList.add("try-again");
-    box.dataset.noRetry = "true";
-
-    const badge = document.createElement("div");
-    badge.className = "timer-main no-retry";
-    badge.innerHTML = `
-      <div class="timer-scount-retry">
-        <div class="cool-display">No Retry</div>
-      </div>
-    `;
-
-    box.appendChild(badge);
-    return; // 🔥 stop here
-  }
-
-  /* ============================
-     COOLDOWN
-  ============================ */
-  if (state === "cooldown") {
-    box.classList.add("try-again");
-
-    const badge = document.createElement("div");
-    badge.className = "timer-main";
-    badge.innerHTML = `
-      <div class="timer-scount">
-        <div class="cool-display" style="font-size:11px;font-weight:550;">
-          Try again in:
-          <span class="cooldown-retry"
-                data-cooldown-until="${options.cooldown_until}">
-            --
-          </span>
-        </div>
-      </div>
-    `;
-
-    box.appendChild(badge);
-    return;
-  }
-
-  /* ============================
-    COMPLETED
-  ============================ */
-  if (state === "completed") {
-    box.classList.add("completed");
-
-    const isCoinHolderVote = box.dataset.coinHolderVote === "true";
-    const wrapper = document.createElement("div");
-    wrapper.innerHTML = renderCompleted(isCoinHolderVote ? "Vote casted" : "Completed");
-
-    box.appendChild(wrapper.firstElementChild);
-    return;
-  }
-
-
-  /* ============================
-     PENDING
-  ============================ */
-  if (state === "pending") {
-    box.classList.add("pending");
-
-    const badge = document.createElement("div");
-    badge.className = "pending-reviews";
-    badge.innerHTML = `
-      <div class="pending-scount">
-        <div class="preview-display" style="font-size:11px;font-weight:550;">
-          in review
-        </div>
-      </div>
-    `;
-
-    box.appendChild(badge);
-    return;
-  }
+  updateActivePreviewBoxStateCore(state, options);
+  syncArrowButtons();
 }
 
 
@@ -6144,6 +6070,7 @@ function scrollToFirstTaskError() {
 
 
 async function handleClaim(subquestId, claimBtn){
+  if (window.__CLAIM_LIMIT_REACHED__) return; 
   if (!claimBtn.classList.contains("enabled")) return;
   const originalHTML = claimBtn.innerHTML;    
 

@@ -4,7 +4,7 @@ REWARD_ICONS = {
  ALL: `
         <svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#4285f4">
           <path
-            d="M232,128.00037A104.11767,104.11767,0,0,0,128.042,24.00086L128,23.96423l-.042.03663a103.99952,103.99952,0,0,0-.001,207.999l.043.0376.043-.0376A104.11763,104.11763,0,0,0,232,128.00037Zm-16.36768-8h-39.853c-1.5918-29.637-12.01123-57.01758-29.5044-78.08643A88.1919,88.1919,0,0,1,215.63232,120.00037Zm-119.37353,16h63.48242C157.93164,164.75623,146.44678,191.703,128,210.44177,109.55322,191.703,98.06836,164.75623,96.25879,136.00037Zm0-16C98.06836,91.24353,109.55322,64.29675,128,45.559c18.44678,18.73779,29.93164,45.68457,31.74121,74.44141Zm50.01562,94.08642c17.49317-21.06933,27.9126-48.45044,29.50489-78.08642h39.853A88.19181,88.19181,0,0,1,146.27441,214.08679Z"
+            d="M232,128.00037A104.11767,104.11767,0,0,0,128.042,24.00086L128,23.96423l-.042.03663a103.99952,103.99952,0,0,0-.001,207.999l.043.0376.043-.0376A104.11763,104.11763,0,0,0,232,128.00037Zm-16.36768-8h-39.853c-1.5918-29.637-12.01123-57.01758-29.5044-78.08643A88.1919,88.1919,0,0,1,215.63232,120.00037Zm-119.37353,16h63.48242C157.93164,164.75623,146.44678,191.703,128,210.44177,109.55322,191.703,98.06836,164.75623,96.25879,136.00037Zm0-16C98.06836,91.24353,109.55322,64.29675,128,45.559c18.44678,18.73779,29.93164,45.68457,31.74121,74.44141Zm50.01562,94.08642c17.49317-21.06933,27.9126-48.45044,29.50489-78.08642h39.853A88.19181,88.1918,0,0,1,146.27441,214.08679Z"
             fill="#4285f4"
           />
         </svg>
@@ -91,6 +91,8 @@ token: `  <svg fill="none" viewBox="0 0 24 24" style="margin-right: 5px; overflo
           </svg>`
 };
 
+let twitterState = "ok"; 
+
 const DraftSvg = `
 <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512" xml:space="preserve" fill="#000000">
   <g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path style="fill:#2D50A7;" d="M267.636,0c-12.853,0-23.273,10.42-23.273,23.273v93.091c0,12.853,10.42,23.273,23.273,23.273 c12.853,0,23.273-10.42,23.273-23.273V23.273C290.909,10.42,280.489,0,267.636,0z"></path> <path style="fill:#73A1FB;" d="M267.638,372.364c-12.853,0-23.273,10.42-23.273,23.273v93.091c0,12.853,10.42,23.273,23.273,23.273 c12.853,0,23.273-10.42,23.273-23.273v-93.091C290.911,382.784,280.491,372.364,267.638,372.364z"></path> <path style="fill:#355EC9;" d="M185.355,140.808L119.529,74.98c-9.086-9.089-23.822-9.089-32.912,0 c-9.089,9.089-9.089,23.824,0,32.912l65.826,65.828c4.544,4.544,10.501,6.817,16.455,6.817c5.955,0,11.913-2.273,16.455-6.817 C194.444,164.631,194.444,149.897,185.355,140.808z"></path> <g> <path style="fill:#C4D9FD;" d="M477.091,232.727h-46.545c-12.853,0-23.273,10.42-23.273,23.273 c0,12.853,10.42,23.273,23.273,23.273h46.545c12.853,0,23.273-10.42,23.273-23.273 C500.364,243.147,489.944,232.727,477.091,232.727z"></path> <path style="fill:#C4D9FD;" d="M382.83,338.283c-9.087-9.089-23.823-9.087-32.912,0c-9.089,9.089-9.087,23.823,0,32.912 l65.828,65.825c4.544,4.544,10.501,6.816,16.457,6.816c5.956,0,11.913-2.273,16.455-6.816c9.089-9.089,9.089-23.824,0-32.912 L382.83,338.283z"></path> </g> <path style="fill:#3D6DEB;" d="M151.273,256c0-12.853-10.42-23.273-23.273-23.273H34.909c-12.853,0-23.273,10.42-23.273,23.273 c0,12.853,10.42,23.273,23.273,23.273H128C140.853,279.273,151.273,268.853,151.273,256z"></path> <path style="fill:#5286FA;" d="M185.355,338.283c-9.087-9.089-23.824-9.089-32.912,0l-65.825,65.825 c-9.089,9.087-9.089,23.824,0,32.912c4.544,4.544,10.501,6.816,16.457,6.816c5.956,0,11.913-2.271,16.455-6.816l65.825-65.825 C194.444,362.108,194.444,347.372,185.355,338.283z"></path>
@@ -100,7 +102,7 @@ const DraftSvg = `
 
 const LiveSvg = `
 <svg viewBox="0 0 24 24" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" fill="currentColor">
-<g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <!-- Uploaded to: SVG Repo, www.svgrepo.com, Generator: SVG Repo Mixer Tools --> <title>ic_fluent_live_24_regular</title> <desc>Created with Sketch.</desc> <g id="🔍-Product-Icons" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd"> <g id="ic_fluent_live_24_regular" fill="currentColor" fill-rule="nonzero"> <path d="M5.98959236,4.92893219 C6.28248558,5.22182541 6.28248558,5.69669914 5.98959236,5.98959236 C2.67013588,9.30904884 2.67013588,14.6909512 5.98959236,18.0104076 C6.28248558,18.3033009 6.28248558,18.7781746 5.98959236,19.0710678 C5.69669914,19.363961 5.22182541,19.363961 4.92893219,19.0710678 C1.02368927,15.1658249 1.02368927,8.83417511 4.92893219,4.92893219 C5.22182541,4.63603897 5.69669914,4.63603897 5.98959236,4.92893219 Z M19.0710678,4.92893219 C22.9763107,8.83417511 22.9763107,15.1658249 19.0710678,19.0710678 C18.7781746,19.363961 18.3033009,19.363961 18.0104076,19.0710678 C17.7175144,18.7781746 17.7175144,18.3033009 18.0104076,18.0104076 C21.3298641,14.6909512 21.3298641,9.30904884 18.0104076,5.98959236 C17.7175144,5.69669914 17.7175144,5.22182541 18.0104076,4.92893219 C18.3033009,4.63603897 18.7781746,4.63603897 19.0710678,4.92893219 Z M8.81801948,7.75735931 C9.1109127,8.05025253 9.1109127,8.52512627 8.81801948,8.81801948 C7.06066017,10.5753788 7.06066017,13.4246212 8.81801948,15.1819805 C9.1109127,15.4748737 9.1109127,15.9497475 8.81801948,16.2426407 C8.52512627,16.5355339 8.05025253,16.5355339 7.75735931,16.2426407 C5.41421356,13.8994949 5.41421356,10.1005051 7.75735931,7.75735931 C8.05025253,7.46446609 8.52512627,7.46446609 8.81801948,7.75735931 Z M16.2426407,7.75735931 C18.5857864,10.1005051 18.5857864,13.8994949 16.2426407,16.2426407 C15.9497475,16.5355339 15.4748737,16.5355339 15.1819805,16.2426407 C14.8890873,15.9497475 14.8890873,15.4748737 15.1819805,15.1819805 C16.9393398,13.4246212 16.9393398,10.5753788 15.1819805,8.81801948 C14.8890873,8.52512627 14.8890873,8.05025253 15.1819805,7.75735931 C15.4748737,7.46446609 15.9497475,7.46446609 16.2426407,7.75735931 Z M12,10.5 C12.8284271,10.5 13.5,11.1715729 13.5,12 C13.5,12.8284271 12.8284271,13.5 12,13.5 C11.1715729,13.5 10.5,12.8284271 10.5,12 C10.5,11.1715729 11.1715729,10.5 12,10.5 Z"> </path> </g> </g> 
+<g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <title>ic_fluent_live_24_regular</title> <desc>Created with Sketch.</desc> <g id="🔍-Product-Icons" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd"> <g id="ic_fluent_live_24_regular" fill="currentColor" fill-rule="nonzero"> <path d="M5.98959236,4.92893219 C6.28248558,5.22182541 6.28248558,5.69669914 5.98959236,5.98959236 C2.67013588,9.30904884 2.67013588,14.6909512 5.98959236,18.0104076 C6.28248558,18.3033009 6.28248558,18.7781746 5.98959236,19.0710678 C5.69669914,19.363961 5.22182541,19.363961 4.92893219,19.0710678 C1.02368927,15.1658249 1.02368927,8.83417511 4.92893219,4.92893219 C5.22182541,4.63603897 5.69669914,4.63603897 5.98959236,4.92893219 Z M19.0710678,4.92893219 C22.9763107,8.83417511 22.9763107,15.1658249 19.0710678,19.0710678 C18.7781746,19.363961 18.3033009,19.363961 18.0104076,19.0710678 C17.7175144,18.7781746 17.7175144,18.3033009 18.0104076,18.0104076 C21.3298641,14.6909512 21.3298641,9.30904884 18.0104076,5.98959236 C17.7175144,5.69669914 17.7175144,5.22182541 18.0104076,4.92893219 C18.3033009,4.63603897 18.7781746,4.63603897 19.0710678,4.92893219 Z M8.81801948,7.75735931 C9.1109127,8.05025253 9.1109127,8.52512627 8.81801948,8.81801948 C7.06066017,10.5753788 7.06066017,13.4246212 8.81801948,15.1819805 C9.1109127,15.4748737 9.1109127,15.9497475 8.81801948,16.2426407 C8.52512627,16.5355339 8.05025253,16.5355339 7.75735931,16.2426407 C5.41421356,13.8994949 5.41421356,10.1005051 7.75735931,7.75735931 C8.05025253,7.46446609 8.52512627,7.46446609 8.81801948,7.75735931 Z M16.2426407,7.75735931 C18.5857864,10.1005051 18.5857864,13.8994949 16.2426407,16.2426407 C15.9497475,16.5355339 15.4748737,16.5355339 15.1819805,16.2426407 C14.8890873,15.9497475 14.8890873,15.4748737 15.1819805,15.1819805 C16.9393398,13.4246212 16.9393398,10.5753788 15.1819805,8.81801948 C14.8890873,8.52512627 14.8890873,8.05025253 15.1819805,7.75735931 C15.4748737,7.46446609 15.9497475,7.46446609 16.2426407,7.75735931 Z M12,10.5 C12.8284271,10.5 13.5,11.1715729 13.5,12 C13.5,12.8284271 12.8284271,13.5 12,13.5 C11.1715729,13.5 10.5,12.8284271 10.5,12 C10.5,11.1715729 11.1715729,10.5 12,10.5 Z"> </path> </g> </g> 
 </g>
 </svg>
 `;
@@ -112,19 +114,96 @@ const REWARD_UNIT_LABELS = {
   custom: ""    
 };
 
+const nameLoaderStyle = document.createElement('style');
+nameLoaderStyle.innerHTML = `
+.name-dots{
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  height:1em;
+  vertical-align:middle;
+}
+.name-dots span{
+  width:5px;
+  height:5px;
+  border-radius:50%;
+  background:currentColor;
+  opacity:.25;
+  animation:nameDotsPulse 1s infinite ease-in-out both;
+}
+.name-dots span:nth-child(2){ animation-delay:.15s; }
+.name-dots span:nth-child(3){ animation-delay:.3s; }
+@keyframes nameDotsPulse{
+  0%,80%,100%{ opacity:.25; transform:scale(.7); }
+  40%{ opacity:1; transform:scale(1); }
+}
+`;
+document.head.appendChild(nameLoaderStyle);
+
+function showNameLoading(el) {
+  if (!el) return;
+  el.innerHTML = `<span class="name-dots"><span></span><span></span><span></span></span>`;
+}
+
+function getModuleItems(moduleId) {
+  return document.querySelectorAll(`.quest-item[data-module-id="${moduleId}"]`);
+}
+
+function setItemModule(item, moduleId) {
+  item.dataset.moduleId = moduleId;
+  item.id = `subquests-${moduleId}`;
+}
+
+function persistModuleOpen(moduleId) {
+  fetch("/save_subquest_state", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRFToken": csrfToken
+    },
+    body: JSON.stringify({
+      community_id: communityId,
+      module_id: moduleId,
+      state: "open"
+    })
+  }).catch(console.error);
+}
+
+function finalizeMove(item, originModule, targetModule, targetUUID) {
+  const targetList = targetModule.querySelector('.subquests-list');
+  if (targetList) {
+    targetList.style.display = "";
+    targetList.appendChild(item);
+  }
+
+  setItemModule(item, targetUUID);
+
+  const subquestUUID = item.dataset.subquestUuid;
+  item.dataset.url = `/${communitySlug}/quest/admin/${targetUUID}/${subquestUUID}`;
+
+  getModuleItems(targetUUID).forEach(s => s.style.display = "flex");
+
+  const toggleBtn = targetModule.querySelector('.toggle-subquests');
+  const icon = toggleBtn ? toggleBtn.querySelector("svg") : null;
+  if (icon) icon.style.transform = "rotate(180deg)";
+
+  updateModuleUI(originModule);
+  updateModuleUI(targetModule);
+}
+
 function renderTaskTypeIcons(taskTypes) {
-  const types = [...new Set((taskTypes || []).map(t => (t || "").toLowerCase()))]
-    .filter(t => PLATFORM_ICONS[t]);
+  const keys = [...new Set((taskTypes || []).map(t => TASK_ICON_MAP[t] || (t || "").toLowerCase()))]
+    .filter(k => PLATFORM_ICONS[k]);
 
-  if (!types.length) return "";
+  if (!keys.length) return "";
 
-  const visible = types.slice(0, 3);
-  const extra = types.length - visible.length;
+  const visible = keys.slice(0, 3);
+  const extra = keys.length - visible.length;
 
-  const icons = visible.map(t => {
-    const platform = PLATFORM_ICONS[t];
+  const icons = visible.map(k => {
+    const platform = PLATFORM_ICONS[k];
     return `
-      <div class="task-type-badge" style="background-color:${platform.color};" title="${t}">
+      <div class="task-type-badge" style="background-color:${platform.color};" title="${k}">
         ${platform.icon}
       </div>
     `;
@@ -246,7 +325,6 @@ function updateTopAreaWidth() {
 
   const screenWidth = window.innerWidth;
 
-  // Only between 768 and 942
   if (screenWidth >= 768 && screenWidth <= 942) {
     const containerWidth = container.clientWidth;
     const leftWidth = left ? left.offsetWidth : 0;
@@ -278,28 +356,24 @@ async function syncSprintUI() {
     const btn = document.getElementById("createSprintBtn");
     if (!btn) return;
 
-    // no sprint → allow create
     if (!data.exists) return;
 
-    const now = new Date(); // user local time
+    const now = new Date();
     const start = data.start ? new Date(data.start) : null;
     const end = data.end ? new Date(data.end) : null;
 
     if (!start || !end) return;
 
-    // ❌ LIVE → remove
     if (now >= start && now <= end) {
       btn.remove();
       return;
     }
 
-    // ❌ UPCOMING → remove
     if (now < start) {
       btn.remove();
       return;
     }
 
-    // ✅ COMPLETED → keep button
     if (now > end) {
       return;
     }
@@ -394,14 +468,11 @@ async function initQuestApp() {
   const app = document.getElementById("app");
   if (!app) return;
 
-
-
   try {
     const res = await fetch(`/api/${communitySlug}/quests`);
     const data = await res.json();
-    console.log(data)
+    twitterState = data.twitter_state || "ok";
 
- 
     if (!data.quests || data.quests.length === 0) {
       app.innerHTML = "";
       renderWelcomeBlock("questContainer");
@@ -409,8 +480,6 @@ async function initQuestApp() {
     }
 
     app.innerHTML = "";
-
-
 
     createQuestModule(data.quests, communitySlug);
     initQuestUIBindings(); 
@@ -423,22 +492,19 @@ async function initQuestApp() {
       bindModuleActions(module);
     });
 
-
     initSubquestToggles(data.community_id);
     document.querySelectorAll('.quest-item').forEach(item => {
       attachContextMenuEvents(item);
     });
     initSubquestFiltering();
+    initMobileQuestMoveSystem(); 
     initQuestItemNavigation();
     initQuestDragSystem();
-    initMobileQuestMoveSystem(); 
     LoadContextitemInit();
 
-
-
-  requestAnimationFrame(() => {
-    updateTopAreaWidth();
-  });
+    requestAnimationFrame(() => {
+      updateTopAreaWidth();
+    });
 
     syncSprintUI()
 
@@ -456,7 +522,6 @@ function initSubquestFiltering() {
 
   if (!trigger || !dropdown) return;
 
-  // 🔹 helper: set label text before SVG
   function setTriggerText(text) {
     const textNode = Array.from(trigger.childNodes)
       .find(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim() !== "");
@@ -470,7 +535,6 @@ function initSubquestFiltering() {
     }
   }
 
- 
   trigger.addEventListener("click", function (e) {
     e.stopPropagation();
     e.preventDefault();
@@ -486,12 +550,10 @@ function initSubquestFiltering() {
 
   });
 
-  // 🧠 prevent inside click from closing
   dropdown.addEventListener("click", function (e) {
     e.stopPropagation();
   });
 
-  // 🎯 select filter
   dropdown.querySelectorAll(".filter-item").forEach(item => {
     item.addEventListener("click", function () {
       const value = item.dataset.value;
@@ -532,20 +594,11 @@ function applySubquestFilter(type) {
     item.style.display = show ? "flex" : "none";
   });
 
-  /* ===============================
-     EMPTY STATE LOGIC
-  =============================== */
   if (visibleCount === 0) {
-    // hide all content
     AllInitQconatin.style.display = "none";
-
-    // show svg empty state
     emptyState.style.display = "flex";
   } else {
-    // show content
     AllInitQconatin.style.display = "block";
-
-    // hide svg
     emptyState.style.display = "none";
   }
 }
@@ -558,8 +611,6 @@ window.activeQuestUUID = null;
 
 
 function guardMobileMove(e){
-   
-
   if(!mobileMoveMode) return false;
   if(e){
     e.preventDefault();
@@ -570,9 +621,6 @@ function guardMobileMove(e){
   return true; 
 }
 
-
- 
-
 function bindModuleActions(module) {
   const menuBtn = module.querySelector('.menu-btn');
   const dropdown = document.getElementById('myDropdown');
@@ -582,149 +630,123 @@ function bindModuleActions(module) {
 
   const moduleUUID = module.id.replace('module-', '');
 
-  /* =========================
-     RIGHT CLICK (DESKTOP)
-  ========================= */
+  function closeOtherDropdowns() {
+    if (IsopenDropdown) {
+      IsopenDropdown.style.display = 'none';
+      IsopenDropdown = null;
+    }
+  } 
+  
+  function closeModuleDropdown() {
+    if (!dropdown) return;
+
+    dropdown.classList.remove('show', 'flip-left', 'flip-up');
+    dropdown.style.display = 'none';
+
+    if (window.activeQuestUUID === moduleUUID) {
+      window.activeQuestUUID = null;
+    }
+  }
+
+function toggleModuleDropdown(x, y, e) {
+  if (!dropdown) return;
+
+  if (e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  if (dropdown.classList.contains('show')) {
+    dropdown.classList.remove('show', 'flip-left', 'flip-up');
+    dropdown.style.display = 'none';
+    return;
+  }
+
+  hideAllDropdowns();
+  closeOtherDropdowns();
+  hideMenu();
+
+  window.activeQuestUUID = moduleUUID;
+
+  dropdown.classList.add('show');
+  dropdown.style.display = 'flex';
+
+  positionDropdown(dropdown, x, y);
+}
+
+  // Desktop right-click toggle
   moduleHeader.addEventListener('contextmenu', (e) => {
     e.preventDefault();
     e.stopPropagation();
 
-    hideAllDropdowns();
-
-    // ✅ store active quest
-    window.activeQuestUUID = moduleUUID;
-    hideMenu();
     if (isTopDropdownTrigger(e.target)) return;
-    if (IsopenDropdown){
-      IsopenDropdown = null; 
-      IsopenDropdown.style.display ="none";
 
-           
-    }
- 
-
-
-    if (dropdown) {
-      dropdown.classList.add('show');
-      dropdown.style.display = 'block';
-      positionDropdown(dropdown, e.pageX, e.pageY);
-    }
+    toggleModuleDropdown(e.pageX, e.pageY);
   });
 
-  /* =========================
-     LONG PRESS (MOBILE)
-  ========================= */
+  // Mobile long-press toggle
   let pressTimer = null;
   let longPressTriggered = false;
+  let touchStartX = 0;
+  let touchStartY = 0;
 
-  moduleHeader.addEventListener(
-    'touchstart',
-    (e) => {
-      longPressTriggered = false;
+  moduleHeader.addEventListener('touchstart', (e) => {
+    longPressTriggered = false;
 
-      pressTimer = setTimeout(() => {
-        longPressTriggered = true;
+    const touch = e.touches[0];
+    if (!touch) return;
 
+    touchStartX = touch.clientX;
+    touchStartY = touch.clientY;
 
+    const target = e.target;
+    const x = touch.pageX;
+    const y = touch.pageY;
 
+    pressTimer = setTimeout(() => {
+      if (isTopDropdownTrigger(target)) return;
 
-         hideMenu();
+      longPressTriggered = true;
+      toggleModuleDropdown(x, y);
+    }, 600);
+  }, { passive: true });
 
-    
+  moduleHeader.addEventListener('touchend', (e) => {
+    clearTimeout(pressTimer);
 
+    if (longPressTriggered) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }, { passive: false });
 
-        window.activeQuestUUID = moduleUUID;
-        if(guardMobileMove(e)) return;
+  moduleHeader.addEventListener('touchmove', (e) => {
+    const touch = e.touches[0];
+    if (!touch) return;
 
-        if (dropdown) {
-          dropdown.classList.add('show');
-          dropdown.style.display = 'block';
-
-          const touch = e.touches[0];
-          positionDropdown(dropdown, touch.pageX, touch.pageY);
-        }
-
-        // ⛔ block ghost click
-        e.preventDefault();
-        e.stopPropagation();
-
-        if (isTopDropdownTrigger(e.target)) return;
-        if(IsopenDropdown){
-          IsopenDropdown.style.display ="none";
-
-          IsopenDropdown = null;      
-        }        
-      }, 600);
-    },
-    { passive: false }   // 🔥 IMPORTANT
-  );
-
-  moduleHeader.addEventListener(
-    'touchend',
-    (e) => {
+    if (
+      Math.abs(touch.clientX - touchStartX) > 10 ||
+      Math.abs(touch.clientY - touchStartY) > 10
+    ) {
       clearTimeout(pressTimer);
+    }
+  }, { passive: true });
 
-      // ⛔ if dropdown opened, block click-through
-      if (longPressTriggered) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    },
-    { passive: false }
-  );
+  moduleHeader.addEventListener('touchcancel', () => {
+    clearTimeout(pressTimer);
+  }, { passive: true });
 
-  moduleHeader.addEventListener(
-    'touchmove',
-    () => {
-      clearTimeout(pressTimer);
-    },
-    { passive: true }
-  );
-
-  /* =========================
-     MENU BUTTON (ALL DEVICES)
-  ========================= */
+  // Menu button toggle
   if (menuBtn && dropdown) {
     menuBtn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
 
-      // 🔥 close other UI first
-      hideAllDropdowns();
-      hideMenu();
-
-
-
-      // ✅ store active quest
-      window.activeQuestUUID = moduleUUID;
-
-      const isOpen = dropdown.classList.contains('flip-left')
-
-        console.log(isOpen)
-
-      /* =========================
-        🔁 TOGGLE MODE
-      ========================= */
-      if (isOpen) {
-        // CLOSE
-        dropdown.classList.remove('show');
-        dropdown.classList.remove('flip-left');
-        dropdown.style.display = "none";
-      } else {
-        if(dropdown.classList.contains("show"))
-        dropdown.classList.add('show');
-        dropdown.style.display = "flex";
-        positionDropdown(dropdown, e.pageX, e.pageY);
-      }      
       if (isTopDropdownTrigger(e.target)) return;
 
-      if (IsopenDropdown){
-        IsopenDropdown.style.display = "none";
-        IsopenDropdown = null;      
-      }
+      toggleModuleDropdown(e.pageX, e.pageY, e);  
     });
   }
-
 }
 
   function hideAllDropdowns() {
@@ -734,39 +756,58 @@ function bindModuleActions(module) {
     });
   }
 
-  function positionDropdown(dropdown, x, y) {
-    const padding = 10;
+function positionDropdown(dropdown, x, y) {
+  const padding = 10;
+  const gap = 14;
 
-    dropdown.classList.remove('flip-left', 'flip-up');
-    dropdown.style.visibility = 'hidden';
-    dropdown.style.display = 'flex';
-    dropdown.style.left = '0';
-    dropdown.style.top = '0';
+  dropdown.classList.remove('flip-left', 'flip-up');
 
-    const realWidth = dropdown.offsetWidth || 180;
-    const realHeight = dropdown.offsetHeight || 200;
+  dropdown.style.visibility = 'hidden';
+  dropdown.style.display = 'flex';
+  dropdown.style.left = '0px';
+  dropdown.style.top = '0px';
 
-    const spaceRight = window.innerWidth - x;
-    const spaceBottom = window.innerHeight - y;
+  const realWidth = dropdown.offsetWidth || 180;
+  const realHeight = dropdown.offsetHeight || 200;
 
-    let top = y;
-    let left = x;
+  const viewportX = x - window.scrollX;
+  const viewportY = y - window.scrollY;
 
-    if (spaceRight < realWidth + padding) {
-      dropdown.classList.add('flip-left');
-      left = x - realWidth;
-    }
+  const spaceRight = window.innerWidth - viewportX;
+  const spaceBelow = window.innerHeight - viewportY;
+  const spaceAbove = viewportY;
 
-    if (spaceBottom < realHeight + padding) {
-      dropdown.classList.add('flip-up');
-      top = y - realHeight;
-    }
+  let left = x;
+  let top = y + gap;
 
-    dropdown.style.left = `${left}px`;
-    dropdown.style.top = `${top}px`;
-    dropdown.style.visibility = 'visible';
+  // Flip horizontally when there isn't enough room on the right.
+  if (spaceRight < realWidth + padding) {
+    dropdown.classList.add('flip-left');
+    left = x - realWidth - gap;
+  } else {
+    left = x + gap;
   }
 
+  // Flip vertically when there isn't enough room below.
+  if (spaceBelow < realHeight + gap + padding) {
+    dropdown.classList.add('flip-up');
+    top = y - realHeight - gap;
+  }
+
+  // Keep the dropdown inside the viewport.
+  const minLeft = window.scrollX + padding;
+  const maxLeft = window.scrollX + window.innerWidth - realWidth - padding;
+
+  const minTop = window.scrollY + padding;
+  const maxTop = window.scrollY + window.innerHeight - realHeight - padding;
+
+  left = Math.max(minLeft, Math.min(left, maxLeft));
+  top = Math.max(minTop, Math.min(top, maxTop));
+
+  dropdown.style.left = `${left}px`;
+  dropdown.style.top = `${top}px`;
+  dropdown.style.visibility = 'visible';
+}
 
 function renderWelcomeBlock(containerId = "questContainer") {
   const app = document.getElementById("app");
@@ -856,11 +897,9 @@ function updateArchiveMenuState(questItem) {
   if (!archiveBtn || !unarchiveBtn) return;
 
   if (isArchived) {
-    // show UNARCHIVE
     unarchiveBtn.style.display = "flex";
     archiveBtn.style.display   = "none";
   } else {
-    // show ARCHIVE
     archiveBtn.style.display   = "flex";
     unarchiveBtn.style.display = "none";
   }
@@ -870,13 +909,12 @@ function syncInitialToggleState() {
   document.querySelectorAll(".toggle-subquests").forEach(btn => {
     const moduleId = btn.dataset.moduleId;
     const icon = btn.querySelector("svg");
-    const subquests = document.querySelectorAll(`#subquests-${moduleId}`);
+    const subquests = getModuleItems(moduleId);
 
     if (!subquests.length || !icon) return;
 
     const isOpen = subquests[0].style.display !== "none";
 
-    // 🔥 apply initial rotation
     icon.style.transform = isOpen ? "rotate(180deg)" : "rotate(0deg)";
   });
 }
@@ -886,9 +924,6 @@ function createQuestModule(quests, communitySlug, isMobile = false, subquestStat
   const app = document.getElementById("app");
   if (!app) return;
 
-  /* ===============================
-     CONTENT CONTAINER (TOP AREA)
-  =============================== */
   const contentContainer = document.createElement("div");
   contentContainer.className = "content-container";
   contentContainer.innerHTML = `
@@ -900,7 +935,9 @@ function createQuestModule(quests, communitySlug, isMobile = false, subquestStat
     </div>
 
     <div class="top-area">
-      <input type="search" placeholder="Search...">
+        <div class="edge-wrap">
+          <input type="text" id="SearchAdmintquest" placeholder="Search...">
+        </div>
       <a 
         href="/${communitySlug}/quest"
         data-path="/${communitySlug}/quest"
@@ -918,7 +955,7 @@ function createQuestModule(quests, communitySlug, isMobile = false, subquestStat
               <span id="dropdown-arrow" class="arrow">▼</span>
             </button>
           </div>
-        </div> 
+        </div>
       </div>
     </div>
 
@@ -926,15 +963,9 @@ function createQuestModule(quests, communitySlug, isMobile = false, subquestStat
     <div class="diver-nessess"></div>
   `;
 
-  /* ===============================
-     SCROLL CONTAINER
-  =============================== */
   const scrollContainer = document.createElement("div");
   scrollContainer.className = "scroll-container";
 
-  /* ===============================
-     NO RESULTS
-  =============================== */
   const noResults = document.createElement("div");
   noResults.id = "no-results-message";
   noResults.style.cssText = `
@@ -967,17 +998,11 @@ function createQuestModule(quests, communitySlug, isMobile = false, subquestStat
 
   scrollContainer.appendChild(emptyState);
 
-  /* ===============================
-     APPEND STRUCTURE
-  =============================== */
   app.appendChild(contentContainer);
   app.appendChild(scrollContainer);
   scrollContainer.appendChild(noResults);
   scrollContainer.appendChild(AllInitQconatin);
 
-  /* ===============================
-     MODULES
-  =============================== */
   quests.forEach(quest => {
     const is_open = quest.is_open === true;
 
@@ -1083,6 +1108,10 @@ function initMobileQuestMoveSystem(){
     const targetModule = e.target.closest('.content-init-q');
     if(!targetModule) return;
 
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+
     const targetQuestUUID = targetModule.id.replace("module-", "");
     const subquestUUID = mobileMoveItem?.dataset?.subquestUuid;
 
@@ -1092,49 +1121,16 @@ function initMobileQuestMoveSystem(){
       ? mobileOriginModule.id.replace("module-", "")
       : null;
 
-    // ❌ same module → cancel
     if(originQuestUUID === targetQuestUUID){
       cleanupMobileMove();
       showToast("Cancelled", "error");
       return;
     }
 
-    /* ============================
-       👁️ AUTO OPEN TARGET MODULE
-    ============================ */
-    const toggleBtn = targetModule.querySelector('.toggle-subquests');
+    const targetWasOpen = [...getModuleItems(targetQuestUUID)].some(
+      el => getComputedStyle(el).display !== "none"
+    );
 
-    if(toggleBtn){
-      const moduleId = toggleBtn.dataset.moduleId;
-      const subquests = document.querySelectorAll(`#subquests-${moduleId}`);
-      const icon = toggleBtn.querySelector("svg");
-
-      const isOpen = subquests.length && subquests[0].style.display !== "none";
-
-      if(!isOpen){
-        // open UI
-        subquests.forEach(sub => sub.style.display = "flex");
-        if(icon) icon.style.transform = "rotate(180deg)";
-
-        // 🔥 persist open state
-        fetch("/save_subquest_state", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-CSRFToken": csrfToken
-          },
-          body: JSON.stringify({
-            community_id: communityId,
-            module_id: moduleId,
-            state: "open"
-          })
-        }).catch(()=>{});
-      }
-    }
-
-    /* ============================
-       BACKEND MOVE
-    ============================ */
     try{
       const res = await fetch('/move_subquest', {
         method: 'POST',
@@ -1152,14 +1148,12 @@ function initMobileQuestMoveSystem(){
 
       if(data.status === 'success'){
 
-        // UI move
-        const targetList = targetModule.querySelector('.subquests-list');
-        if(targetList){
-          targetList.appendChild(mobileMoveItem);
+        finalizeMove(mobileMoveItem, mobileOriginModule, targetModule, targetQuestUUID);
+
+        if(!targetWasOpen){
+          persistModuleOpen(targetQuestUUID);
         }
-        mobileMoveItem.dataset.moduleId = targetQuestUUID;
-        updateModuleUI(mobileOriginModule);
-        updateModuleUI(targetModule);
+
         showSuccess(`
           <div style="display:flex;align-items:center;gap:10px;">
             ${SuccessAvgInitColored}
@@ -1224,12 +1218,6 @@ html.quest-mobile-lock{
 `;
 
 
-/* ================================
-   QUEST DRAG & DROP SYSTEM
-   Real draggable subquest movement
-   Auto-scroll + module targeting
-================================ */
-
 let dragState = {
   item: null,
   ghost: null,
@@ -1239,9 +1227,6 @@ let dragState = {
   dragging: false
 };
 
-/* ================================
-   CSS (INJECT ONCE)
-================================ */
 const dragStyle = document.createElement('style');
 dragStyle.innerHTML = `
 .quest-drag-ghost {
@@ -1266,23 +1251,14 @@ document.head.appendChild(dragStyle);
 
 
 
-/* ================================
-   INIT SYSTEM
-================================ */
 function initQuestDragSystem(){
   document.addEventListener('pointerdown', onDragStart, true);
   document.addEventListener('pointermove', onDragMove, true);
   document.addEventListener('pointerup', onDragEnd, true);
 }
 
-/* ================================
-   START DRAG
-================================ */
 function onDragStart(e){
 
-  /* =========================
-     MOBILE START
-  ========================= */
   if(isMobileView()) {
     return;
   }
@@ -1302,15 +1278,12 @@ function onDragStart(e){
 
   handle.style.cursor = 'grabbing';
 
-  // ghost
   const ghost = questItem.cloneNode(true);
   ghost.classList.add('quest-drag-ghost');
 
-  // 🧹 strip badges — ghost only needs the title while dragging
   const badgeRow = ghost.querySelector('.sub-quest-init-place, .task-type-stack')?.closest('div[style*="gap"]');
   if (badgeRow) badgeRow.remove();
 
-  // also catch the standalone sub-quest-init-place if no wrapper div was used
   ghost.querySelectorAll('.sub-quest-init-place, .task-type-stack').forEach(el => el.remove());
 
   ghost.style.width = 'auto';
@@ -1323,9 +1296,6 @@ function onDragStart(e){
   questItem.classList.add('dragging');
 }
 
-/* ================================
-   DRAG MOVE
-================================ */
 function onDragMove(e){
   if(!dragState.dragging) return;
 
@@ -1355,21 +1325,17 @@ function onDragMove(e){
   const el = document.elementFromPoint(e.clientX, e.clientY);
   const module = el ? el.closest('.content-init-q.scrollable') : null;
 
-  /* =========================
-     🔁 REVERT PREVIOUS TEMP OPEN
-  ========================= */
   if(dragState.currentModule && dragState.currentModule !== module){
     const prev = dragState.currentModule;
 
     if(prev.dataset.tempOpen === "true"){
       const wasOpen = prev.dataset.wasOpen === "true";
 
-      // revert only if originally closed
       if(!wasOpen){
         const btn = prev.querySelector('.toggle-subquests');
         if(btn){
           const id = btn.dataset.moduleId;
-          const subs = document.querySelectorAll(`#subquests-${id}`);
+          const subs = getModuleItems(id);
           subs.forEach(s => s.style.display = "none");
 
           const icon = btn.querySelector('svg');
@@ -1377,7 +1343,6 @@ function onDragMove(e){
         }
       }
 
-      // cleanup flags
       delete prev.dataset.tempOpen;
       prev.classList.remove("temp-open");
     }
@@ -1385,9 +1350,6 @@ function onDragMove(e){
     prev.classList.remove("module-drop-target");
   }
 
-  /* =========================
-     RESET VISUAL TARGETS
-  ========================= */
   document.querySelectorAll('.content-init-q').forEach(m=>{
     m.classList.remove('module-drop-target');
   });
@@ -1397,9 +1359,6 @@ function onDragMove(e){
     return;
   }
 
-  /* =========================
-     🎯 NEW TARGET
-  ========================= */
   module.classList.add('module-drop-target');
   dragState.currentModule = module;
 
@@ -1407,22 +1366,17 @@ function onDragMove(e){
   if (!toggleBtn) return;
 
   const moduleId = toggleBtn.dataset.moduleId;
-  const subquests = document.querySelectorAll(`#subquests-${moduleId}`);
+  const subquests = getModuleItems(moduleId);
   if (!subquests.length) return;
 
   const isOpen = subquests[0].style.display !== "none";
 
-  // store original state once
   if (!module.dataset.hasOwnProperty("wasOpen")) {
     module.dataset.wasOpen = isOpen ? "true" : "false";
   }
 
-  /* =========================
-     👁️ TEMP PREVIEW OPEN
-  ========================= */
   if (!isOpen && module.dataset.tempOpen !== "true") {
 
-    // preview open
     subquests.forEach(sub => sub.style.display = "flex");
 
     const icon = toggleBtn.querySelector('svg');
@@ -1433,9 +1387,6 @@ function onDragMove(e){
   }
 }
 
-/* ================================
-   END DRAG
-================================ */
 let suppressNextClickQ = false;
 
 function updateModuleUI(module) {
@@ -1450,7 +1401,6 @@ function updateModuleUI(module) {
 
   const hasItems = subquests.length > 0;
 
-  // ✅ NO ITEMS → FORCE CLOSE EVERYTHING
   if (!hasItems) {
     icon.style.transform = "rotate(0deg)";
 
@@ -1458,13 +1408,11 @@ function updateModuleUI(module) {
     return;
   }
 
-  // ✅ CHECK VISIBILITY PROPERLY
   const isOpen = [...subquests].some(
     el => getComputedStyle(el).display !== "none"
   );
 
-  // ✅ SYNC UI
-  subquestList.style.display = isOpen ? "block" : "none";
+  subquestList.style.display = isOpen ? "" : "none";
 
   icon.style.transform = isOpen
     ? "rotate(180deg)"
@@ -1494,21 +1442,18 @@ function onDragEnd(e){
     ? currentModule.id.replace("module-", "")
     : null;
 
-  // ❌ no valid drop
   if(!currentModule || !targetQuestUUID || !subquestUUID){
     cleanupHybrid();
     return;
   }
 
-  // ❌ same module → no backend, no persist
   if(originQuestUUID === targetQuestUUID){
     cleanupHybrid();
     return;
   }
 
-  /* ============================
-     BACKEND MOVE
-  ============================ */
+  const targetWasOpen = currentModule.dataset.wasOpen === "true";
+
   fetch('/move_subquest', {
     method: 'POST',
     headers: {
@@ -1524,52 +1469,16 @@ function onDragEnd(e){
   .then(data => {
     if(data.status === 'success'){
 
-      // move UI
-      const targetList = currentModule.querySelector('.subquests-list');
-      if(targetList){
-        targetList.appendChild(item);
-        
+      finalizeMove(item, originModule, currentModule, targetQuestUUID);
+
+      if (!targetWasOpen) {
+        persistModuleOpen(targetQuestUUID);
       }
-      item.dataset.moduleId = targetQuestUUID;
-      updateModuleUI(originModule);
-      updateModuleUI(currentModule);
-      /* ============================
-         ✅ PERSIST STATE ONLY ON DROP
-      ============================ */
-
-      const wasOpen = currentModule.dataset.wasOpen === "true";
-
-      if (!wasOpen) {
-
-        const toggleBtn = currentModule.querySelector('.toggle-subquests');
-        if (!toggleBtn) return;
-
-        const moduleId = toggleBtn.dataset.moduleId;
-        const subquests = document.querySelectorAll(`#subquests-${moduleId}`);
-        const icon = toggleBtn.querySelector("svg");
-
-        // 🔥 force real open UI
-        subquests.forEach(sub => sub.style.display = "flex");
-        if(icon) icon.style.transform = "rotate(180deg)";
-
-        // 🔥 persist explicitly
-        fetch("/save_subquest_state", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-CSRFToken": csrfToken
-          },
-          body: JSON.stringify({
-            community_id: communityId,
-            module_id: moduleId,
-            state: "open"   
-          })
-        }).catch(console.error);
-      }
-
 
     } else {
       console.error("Move failed:", data);
+      updateModuleUI(originModule);
+      updateModuleUI(currentModule);
     }
   })
   .catch(err=>{
@@ -1579,9 +1488,6 @@ function onDragEnd(e){
   cleanupHybrid();
 }
 
-/* ============================
-   CLEANUP FUNCTION
-============================ */
 function cleanupHybrid(){
   const { item, ghost } = dragState;
 
@@ -1607,9 +1513,6 @@ function cleanupHybrid(){
 
 
 
-/* ================================
-   AUTO SCROLL
-================================ */
 function autoScroll(y){
   const container = document.querySelector('.scroll-container');
   if(!container) return;
@@ -1618,10 +1521,8 @@ function autoScroll(y){
   const threshold = 80;
   const speed = 12;
 
-  // ❌ if pointer is outside container → no scroll
   if(y < rect.top || y > rect.bottom) return;
 
-  // ✅ only scroll when inside container
   if(y < rect.top + threshold){
     container.scrollTop -= speed;
   }
@@ -1632,9 +1533,6 @@ function autoScroll(y){
 }
 
 
-/* ================================
-   CURSOR EFFECT
-================================ */
 document.addEventListener('mouseover', e=>{
   const h = e.target.closest('.diver-quest-123321 svg');
   if(h) h.style.cursor = 'grab';
@@ -1671,9 +1569,6 @@ const dropdownMode = document.getElementById('myDropdown');
 
 function initQuestItemNavigation() {
 
-  /* ===================================
-     QUEST ITEM NAVIGATION (UNCHANGED)
-  =================================== */
   document.addEventListener("click", (e) => {
     const questItem = e.target.closest(".quest-item");
     if (!questItem) return;
@@ -1694,9 +1589,6 @@ function initQuestItemNavigation() {
 
     const isDragging = dragState?.dragging === true;
 
-    /* =========================
-       🛑 GUARD MODE
-    ========================= */
     if (
       suppressNextClickQ ||        
       isDragging ||                  
@@ -1712,9 +1604,6 @@ function initQuestItemNavigation() {
       return;
     }
 
-    /* =========================
-       ✅ NORMAL NAVIGATION
-    ========================= */
     const url = questItem.dataset.url;
     if (url) {
       loadMainSettingsSection(url, event);
@@ -1723,42 +1612,30 @@ function initQuestItemNavigation() {
   }, true); 
 
 
-
-
-  
-
-
-
   document.addEventListener("click", (e) => {
 
     const clickedQuestItem   = e.target.closest(".quest-item");
     const clickedContextMenu = e.target.closest("#contextMenu");
     const clickedModuleMenu  = e.target.closest("#myDropdown");
-    const clickedSmartDrop   = e.target.closest(".smart-dropdown"); // if exists
+    const clickedSmartDrop   = e.target.closest(".smart-dropdown");
     const clickedToggle      = e.target.closest(".toggle-subquests");
+    const clickedMenuBtn     = e.target.closest(".menu-btn");
 
     const isDragging = dragState?.dragging === true;
-    /* =========================
-       🛑 GUARDS
-    ========================= */
+
     if (isDragging) return;
 
-    // quest-item click → navigation system handles it
     if (clickedQuestItem) return;
 
-    // clicks inside menus → ignore
     if (
       clickedContextMenu ||
       clickedModuleMenu ||
       clickedSmartDrop
     ) return;
 
-    // toggle buttons should not auto-close
     if (clickedToggle) return;
+    if (clickedMenuBtn) return; 
 
-    /* =========================
-       ❌ OUTSIDE CLICK → CLOSE ALL
-    ========================= */
     hideAllMenus?.(e);
 
     if (contextMenu) {
@@ -1778,7 +1655,7 @@ function initQuestItemNavigation() {
       IsopenDropdown.style.display = "none";
       IsopenDropdown = null;
     }
-  }, true); // capture phase
+  }, true);
 }
 
 
@@ -1818,18 +1695,12 @@ function attachContextMenuEvents(item) {
     }
   }
 
-  /* =========================
-     RIGHT CLICK (DESKTOP)
-  ========================= */
   item.addEventListener('contextmenu', (e) => {
     e.preventDefault();
     e.stopPropagation();
     showMenu(e.pageX, e.pageY, e);
   });
 
-  /* =========================
-     LONG PRESS (MOBILE)
-  ========================= */
   item.addEventListener('touchstart', (e) => {
     longPressTriggered = false;
 
@@ -1838,12 +1709,10 @@ function attachContextMenuEvents(item) {
     startY = touch.pageY;
 
     pressTimer = setTimeout(() => {
-      // Only trigger if finger hasn't moved too much
       longPressTriggered = true;
 
       showMenu(startX, startY, e);
 
-      // Prevent ghost click
       e.preventDefault();
       e.stopPropagation();
     }, 600);
@@ -1863,7 +1732,6 @@ function attachContextMenuEvents(item) {
     const dx = Math.abs(touch.pageX - startX);
     const dy = Math.abs(touch.pageY - startY);
 
-    // Cancel if moved more than 10px
     if (dx > 10 || dy > 10) {
       clearTimeout(pressTimer);
     }
@@ -1888,16 +1756,13 @@ function questUX({
   highlight = false,
   delay = 250
 }) {
-  // toast
   if (toast) {
     if (toastType === "error") showError(toast);
     else showSuccess(toast);
   }
 
-  // force open module
   if (module) forceOpenModule(module);
 
-  // scroll + highlight
   if (scrollContainer && node) {
     requestAnimationFrame(() => {
       scrollContainer.scrollTo({
@@ -1922,16 +1787,11 @@ function DelquestUX({
   highlight = false,
   delay = 250
 }) {
-  // toast
   if (toast) {
     if (toastType === "error") showError(toast);
     else showSuccess(toast);
   }
 
- 
-  
-
-  // scroll + highlight
   if (scrollContainer && node) {
     requestAnimationFrame(() => {
       scrollContainer.scrollTo({
@@ -1949,11 +1809,6 @@ function DelquestUX({
 function LoadContextitemInit() {
   let currentSubquest = null;
 
-  /* =========================
-     MENU ACTIONS
-  ========================= */
-
-  /* ===== RENAME ===== */
   contextMenu.querySelector('.menu-item:nth-child(1)').addEventListener('click', function () {
     if (!window.currentSubquest) return;
 
@@ -1967,28 +1822,38 @@ function LoadContextitemInit() {
     showInputModal({
       title: "Rename Quest",
       message: "Enter a new name for this quest",
-      placeholdeszsr: "Quest name...",
+      placeholder: "Quest name...",
       defaultValue: oldName,
       confirmText: "Rename",
-      onConfirm: (newName) => {
+      onConfirm: async (newName) => {
         newName = newName.replace(/\s+/g, " ").trim();
-        if (!newName) return;
+        if (!newName || newName === oldName || !nameEl) return;
 
-        fetch(`/rename_subquest/${uuid}`, {
-          method: 'POST',
-          headers: {
-            "Content-Type": "application/json",
-            "X-CSRFToken": csrfToken
-          },
-          body: JSON.stringify({ name: newName })
-        })
-        .then(res => res.json())
-        .then(data => {
-          if (data.status === 'success') {
-            const nameEl = window.currentSubquest.querySelector('.quest-link');
-            if (nameEl) nameEl.textContent = data.name;
+        showNameLoading(nameEl);
+
+        try {
+          const res = await fetch(`/rename_subquest/${uuid}`, {
+            method: 'POST',
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRFToken": csrfToken
+            },
+            body: JSON.stringify({ name: newName })
+          });
+
+          const data = await res.json();
+
+          if (res.ok && (data.status === 'success' || data.success === true)) {
+            nameEl.textContent = data.name || newName;
+          } else {
+            nameEl.textContent = oldName;
+            showError(data.message || "Rename failed");
           }
-        });
+        } catch (err) {
+          console.error("Rename subquest error:", err);
+          nameEl.textContent = oldName;
+          showError("Rename failed");
+        }
       }
     });
 
@@ -2005,28 +1870,21 @@ function LoadContextitemInit() {
     const questItem = window.currentSubquest; 
     hideMenu();
 
-    /* =========================
-      MOBILE MOVE MODE
-    ========================= */
     if(isMobileView()){
       mobileMoveMode = true;
       mobileMoveItem = questItem;
       mobileOriginModule = questItem.closest('.content-init-q');
 
-      // visual feedback
       questItem.classList.add('mobile-move-active');
       document.documentElement.classList.add('quest-mobile-lock');
 
-      showToast("Tap a module to move here", "success");  // helper hint
+      showToast("Tap a module to move here", "success");
       return;
     }
 
   });
 
 
- 
-
-  /* ===== DELETE ===== */
   contextMenu.querySelector('.menu-item:nth-child(8)').addEventListener('click', function (e) {
     if (!window.currentSubquest) return;
     e.preventDefault();
@@ -2076,7 +1934,6 @@ function LoadContextitemInit() {
     hideMenu();
   });
 
-  /* ===== ARCHIVE / UNARCHIVE ===== */
   contextMenu.querySelector('.menu-item:nth-child(5)').addEventListener('click', toggleArchive);
   contextMenu.querySelector('.menu-item:nth-child(6)').addEventListener('click', toggleArchive);
 
@@ -2132,7 +1989,6 @@ function LoadContextitemInit() {
     hideMenu();
   }
 
-  /* ===== OPEN ===== */
   contextMenu.querySelector('.menu-item:nth-child(3)').addEventListener('click', function (e) {
     if (!window.currentSubquest) return;
     e.preventDefault();
@@ -2144,7 +2000,6 @@ function LoadContextitemInit() {
     hideMenu();
   });
 
-  /* ===== DUPLICATE ===== */
   contextMenu.querySelector('.menu-item:nth-child(2)').addEventListener('click', function (e) {
       e.preventDefault();
       e.stopPropagation();
@@ -2153,11 +2008,10 @@ function LoadContextitemInit() {
       if (!window.currentSubquest) return;
 
       const uuid = window.currentSubquest.dataset.subquestUuid;
+      const sourceModuleId = window.currentSubquest.dataset.moduleId;
 
       const subquestContainer = window.currentSubquest.closest('.subquests-list');
       if (!subquestContainer) return;
-
-      const questUUID = subquestContainer.id.replace('subquests_add-', '');
 
       fetch(`/duplicate_subquest/${uuid}`, {
         method: 'POST',
@@ -2177,6 +2031,7 @@ function LoadContextitemInit() {
           newItem.dataset.active = "true";
           newItem.dataset.draft = "false";
           newItem.dataset.url = window.currentSubquest.dataset.url;
+          setItemModule(newItem, sourceModuleId);
 
           newItem.innerHTML = `
             <div class="diver-quest-123321">
@@ -2210,7 +2065,6 @@ function LoadContextitemInit() {
             subquestList.appendChild(newItem);
             attachContextMenuEvents(newItem);
 
-            // 🔔 warn the admin if a token reward was silently dropped
             const toastMsg = data.skipped_token_reward
               ? "Quest duplicated — token reward was not copied"
               : "Quest duplicated successfully";
@@ -2245,27 +2099,13 @@ function forceOpenModule(module) {
   const subquests = module.querySelectorAll('.quest-item');
   const icon = toggleBtn.querySelector("svg");
 
-  // already open → do nothing
   const isAnyVisible = [...subquests].some(s => s.style.display === "flex");
   if (isAnyVisible) return;
 
-  // 🔥 force UI open
   subquests.forEach(sub => sub.style.display = "flex");
   if (icon) icon.style.transform = "rotate(180deg)";
   console.log("called Force opened")
-  // 🔥 persist backend
-  fetch("/save_subquest_state", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-CSRFToken": csrfToken
-    },
-    body: JSON.stringify({
-      community_id: communityId,
-      module_id: moduleId,
-      state: "open"
-    })
-  }).catch(console.error);
+  persistModuleOpen(moduleId);
 }
 
 
@@ -2275,7 +2115,6 @@ function highlightQuest(node, delay = 250) {
   setTimeout(() => {
     node.classList.add('smart-highlight');
 
-    // cleanup class after animation
     setTimeout(() => {
       node.classList.remove('smart-highlight');
     }, 1200);
@@ -2297,6 +2136,12 @@ function initAddSubquestHandlers() {
     const scrollContainer = module.closest('.scroll-container');
 
     addQuestBtn.addEventListener('click', async () => {
+      if (addQuestBtn.dataset.loading === "true") return;    
+      addQuestBtn.dataset.loading = "true";
+
+      const originalHTML = addQuestBtn.innerHTML;
+      addQuestBtn.innerHTML = IsloadingInit;
+
       console.log(`🟢 Adding subquest to module ${moduleId}...`);
 
       try {
@@ -2326,8 +2171,7 @@ function initAddSubquestHandlers() {
         newSubquest.className = 'quest-item';
         newSubquest.style.display = 'flex';
 
-        newSubquest.id = `subquests-${moduleId}`;
-        newSubquest.dataset.moduleId = moduleId;
+        setItemModule(newSubquest, moduleId);
         newSubquest.dataset.url = `/${communitySlug}/quest/admin/${moduleId}/${data.subquest_uuid}`;
         newSubquest.dataset.draft = "true";     
         newSubquest.dataset.archive = "false";
@@ -2360,9 +2204,6 @@ function initAddSubquestHandlers() {
 
         subquestContainer.appendChild(newSubquest);
 
-        /* =========================
-           🎞 ANIMATION
-        ========================= */
         requestAnimationFrame(() => {
           newSubquest.style.display = 'flex';
           newSubquest.style.opacity = '0';
@@ -2375,16 +2216,10 @@ function initAddSubquestHandlers() {
           });
         });
 
-        /* =========================
-           🧠 CONTEXT MENU
-        ========================= */
         if (typeof attachContextMenuEvents === 'function') {
           attachContextMenuEvents(newSubquest);
         }
 
-        /* =========================
-           📜 AUTO SCROLL
-        ========================= */
         if (scrollContainer) {
           requestAnimationFrame(() => {
             scrollContainer.scrollTo({
@@ -2392,7 +2227,6 @@ function initAddSubquestHandlers() {
               behavior: 'smooth'
             });
 
-            // 🎯 smart highlight after scroll
             highlightQuest(newSubquest, 280);
           });
         }
@@ -2400,6 +2234,9 @@ function initAddSubquestHandlers() {
         console.log(`✅ Successfully added subquest to module ${moduleId}`);
       } catch (err) {
         console.error('💥 JS Fetch error:', err);
+      } finally {
+        addQuestBtn.innerHTML = originalHTML;
+        delete addQuestBtn.dataset.loading;
       }
     });
   });
@@ -2426,7 +2263,6 @@ function createShareModal() {
         ${fetchingSvg}
       </div>
 
-      <!-- DESKTOP ROW -->
       <div class="share-row" id="share-actions" style="display:none;">
 
         <div class="share-item" data-type="copy">
@@ -2471,27 +2307,21 @@ function createShareModal() {
   document.body.appendChild(modal);
   const shareBox = modal.querySelector(".share-box");
 
-  // close when clicking outside box
   modal.addEventListener("click", (e) => {
     if (!shareBox.contains(e.target)) {
       closeShareModal();
     }
   });
 
-  // prevent inside clicks from bubbling
   shareBox.addEventListener("click", (e) => {
     e.stopPropagation();
   });
 
-  /* ================= EVENTS ================= */
-
   requestAnimationFrame(() => modal.classList.add("open"));
 
-  // close
   modal.querySelector(".share-close").onclick = closeShareModal;
   modal.querySelector(".share-backdrop").onclick = closeShareModal;
 
-  // share buttons
   modal.querySelectorAll(".share-item").forEach(item => {
     item.onclick = async () => {
       const type = item.dataset.type;
@@ -2499,7 +2329,6 @@ function createShareModal() {
       const encoded = encodeURIComponent(url);
       let shareLink = "";
 
-      // ===== COPY =====
       if (type === "copy") {
         try {
           await navigator.clipboard.writeText(url);
@@ -2517,7 +2346,6 @@ function createShareModal() {
         return;
       }
 
-      // ===== LINKS =====
       if (type === "x") {
         shareLink = `https://twitter.com/intent/tweet?url=${encoded}`;
       }
@@ -2531,12 +2359,10 @@ function createShareModal() {
         shareLink = `https://www.linkedin.com/sharing/share-offsite/?url=${encoded}`;
       }
 
-      // 🔥 OPEN FIRST (still user gesture)
       if (shareLink) {
         window.open(shareLink, "_blank");
       }
 
-      // 🧠 THEN animate close
       await closeShareModal();
     };
   });
@@ -2550,11 +2376,9 @@ async function loadSharePreview(moduleUUID) {
   const header = document.getElementById("share-header");
   const actions = document.getElementById("share-actions");
 
-  // hide UI
   header.style.display = "none";
   actions.style.display = "none";
 
-  // show spinner
   container.innerHTML = fetchingSvg;
 
   try {
@@ -2566,10 +2390,8 @@ async function loadSharePreview(moduleUUID) {
       return;
     }
 
-    // inject preview
     container.innerHTML = data.html;
 
-    // show UI after load
     header.style.display = "flex";
     actions.style.display = "flex";
 
@@ -2580,7 +2402,7 @@ async function loadSharePreview(moduleUUID) {
 
 
 
-function openShareModal(url) {
+function openShareModal(url, moduleUUID, subquestUUID) {
   createShareModal();
 
   const modal = document.getElementById("share-modal");
@@ -2588,12 +2410,7 @@ function openShareModal(url) {
 
   modal.classList.add("open");
 
-  // extract uuid from url
-  const parts = url.split("/");
-  const moduleUUID = parts[parts.length - 1];
-
-  // fetch preview
-  loadSharePreview(moduleUUID);
+  loadSharePreview(moduleUUID, subquestUUID);
 }
 
 
@@ -2602,11 +2419,9 @@ function closeShareModal() {
     const modal = document.getElementById("share-modal");
     if (!modal) return resolve();
 
-    // start close animation
     modal.classList.remove("open");
 
-    // wait for transition to finish
-    const duration = 250; // must match CSS transition time
+    const duration = 250;
 
     let done = false;
 
@@ -2619,7 +2434,6 @@ function closeShareModal() {
 
     modal.addEventListener("transitionend", finish);
 
-    // safety fallback (in case transitionend doesn't fire)
     setTimeout(finish, duration + 50);
   });
 }
@@ -2695,11 +2509,6 @@ function initModuleCRUDHandlers() {
   document.addEventListener('click', (e) => {
     let target = e.target;
 
-
-
-    /* =========================
-       ✏️ EDIT MODULE
-    ========================= */
     let editBtn = target;
     while (editBtn && !editBtn.classList.contains('edit-mode-module')) {
       editBtn = editBtn.parentElement;
@@ -2717,19 +2526,16 @@ function initModuleCRUDHandlers() {
   }
 
 
-    /* =========================
-       📝 RENAME MODULE
-    ========================= */
     const renameBtn = target.closest('.rename-module');
     if (renameBtn) {
 
-      const moduleId = window.activeQuestUUID;   // ✅ STATE ONLY
+      const moduleId = window.activeQuestUUID;
       if (!moduleId) return;
 
       const titleEl = document.getElementById(`module-name-${moduleId}`);
       if (!titleEl) return;
 
-      const oldName = titleEl.textContent || "";
+      const oldName = (titleEl.textContent || "").replace(/\s+/g, " ").trim();
 
       showInputModal({
         title: "Rename Module",
@@ -2737,24 +2543,35 @@ function initModuleCRUDHandlers() {
         placeholder: "Module name...",
         defaultValue: oldName,
         confirmText: "Rename",
-        onConfirm: (newName) => {
+        onConfirm: async (newName) => {
           newName = newName.replace(/\s+/g, " ").trim();
           if (!newName || newName === oldName) return;
 
-          fetch(`/rename_module/${moduleId}`, {
-            method: 'POST',
-            headers: {
-              "Content-Type": "application/json",
-              "X-CSRFToken": csrfToken
-            },
-            body: JSON.stringify({ title: newName })
-          })
-          .then(res => res.json())
-          .then(data => {
-            if (data.status === 'success') {
-              titleEl.textContent = newName; // ✅ live update
+          showNameLoading(titleEl);
+
+          try {
+            const res = await fetch(`/rename_module/${moduleId}`, {
+              method: 'POST',
+              headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": csrfToken
+              },
+              body: JSON.stringify({ title: newName })
+            });
+
+            const data = await res.json();
+
+            if (res.ok && (data.status === 'success' || data.success === true)) {
+              titleEl.textContent = data.title || data.name || newName;
+            } else {
+              titleEl.textContent = oldName;
+              showError(data.message || "Rename failed");
             }
-          });
+          } catch (err) {
+            console.error("Rename module error:", err);
+            titleEl.textContent = oldName;
+            showError("Rename failed");
+          }
         }
       });
 
@@ -2762,13 +2579,10 @@ function initModuleCRUDHandlers() {
       return;
     }
 
-    /* =========================
-       🗑 DELETE MODULE
-    ========================= */
     const deleteBtn = target.closest('.delete-module');
     if (deleteBtn) {
 
-      const moduleId = window.activeQuestUUID;   // ✅ STATE ONLY
+      const moduleId = window.activeQuestUUID;
       if (!moduleId) return;
 
       const moduleEl = document.getElementById(`module-${moduleId}`);
@@ -2807,46 +2621,32 @@ function initModuleCRUDHandlers() {
     }
     const shareBtn = target.closest('.share-module');
     if (shareBtn) {
-
-      const moduleId = window.activeQuestUUID;   
+      const moduleId = window.activeQuestUUID;
       if (!moduleId) {
         showError("Module not found");
         return;
       }
 
-      const shareUrl = `${window.location.origin}/${communitySlug}/quest/${moduleId}`;
+      const firstSubquest = getModuleItems(moduleId)[0];
+      const subquestUUID = firstSubquest?.dataset.subquestUuid;
 
-      /* =========================
-        📱 MOBILE SHARE (iOS / Android)
-      ========================= */
-      if (navigator.share) {
-        // ⚡ gesture-safe
-        navigator.share({
-          title: 'Check out this module!',
-          text: 'Here’s a module I wanted to share with you:',
-          url: shareUrl
-        })
-        .then(() => hideMenuModule())
-        .catch(() => hideMenuModule());
-      }
-
-      /* =========================
-        💻 DESKTOP SHARE MODAL
-      ========================= */
-      else {
+      if (!subquestUUID) {
+        showError("This module can't be shared yet. Add a quest first.");
         hideMenuModule();
-        openShareModal(shareUrl);   // 🔥 your custom modal
+        return;
       }
+
+      const shareUrl = `${window.location.origin}/${communitySlug}/quest/${moduleId}/${subquestUUID}`;
+
+      hideMenuModule();
+      openShareModal(shareUrl, moduleId, subquestUUID);
 
       return;
     }
-   /* =========================
-       📄 DUPLICATE MODULE
-    ========================= */
     const duplicateBtn = target.closest('.duplicate-module');
     if (duplicateBtn) {
 
-      const moduleId = window.activeQuestUUID;   // ✅ STATE ONLY
+      const moduleId = window.activeQuestUUID;
       if (!moduleId) return;
 
       fetch(`/duplicate_module/${moduleId}`, {
@@ -2862,7 +2662,7 @@ function initModuleCRUDHandlers() {
       })
       .then(data => {
         if (data.status === 'success') {
-          location.reload(); // or dynamic inject later
+          location.reload();
         }
       })
       .catch(err => console.error('Duplicate error:', err));
@@ -2875,12 +2675,8 @@ function initModuleCRUDHandlers() {
 }
 
 function initQuestUIBindings() {
-  const searchInput = document.querySelector('.top-area input[type="search"]');
+  const searchInput = document.getElementById("SearchAdmintquest");
   if (!searchInput) return;
-
-  /* =========================
-     🔍 SEARCH FILTER
-  ========================= */
 
   searchInput.addEventListener('input', function () {
     const searchValue = this.value.trim().toLowerCase();
@@ -2888,7 +2684,6 @@ function initQuestUIBindings() {
     const filterTrigger = document.querySelector(".filter-trigger");
     if (!filterTrigger) return;
 
-    // 🔥 current active filter (all | active | draft | archive)
     const activeFilter = filterTrigger.dataset.filter || "all";
 
     let anyMatch = false;
@@ -2906,25 +2701,21 @@ function initQuestUIBindings() {
           quest.querySelector('a')?.textContent.toLowerCase() ||
           quest.textContent.toLowerCase();
 
-        // 🔹 filter state
         const isDraft   = quest.dataset.draft === "true";
         const isArchive = quest.dataset.archive === "true";
         const isActive  = quest.dataset.active === "true";
 
-        // 🔹 filter gate
         let allowedByFilter = false;
         if (activeFilter === "all") allowedByFilter = true;
         if (activeFilter === "draft") allowedByFilter = isDraft;
         if (activeFilter === "archive") allowedByFilter = isArchive;
         if (activeFilter === "active") allowedByFilter = isActive;
 
-        // ❌ not part of active filter → force hide
         if (!allowedByFilter) {
           quest.style.display = "none";
           return;
         }
 
-        // 🔍 search match
         const match =
           searchValue === "" ||
           moduleTitle.includes(searchValue) ||
@@ -2939,14 +2730,10 @@ function initQuestUIBindings() {
         }
       });
 
-      // module visibility depends only on visible children
       const hasVisible = [...questItems].some(q => q.style.display === "flex");
       module.style.display = hasVisible ? "block" : "none";
     });
 
-    /* =========================
-      NO RESULTS (SEARCH ONLY)
-    ========================= */
     const noResultsMessage = document.getElementById('no-results-message');
     if (noResultsMessage) {
       if (!anyMatch && searchValue !== "") {
@@ -2955,21 +2742,8 @@ function initQuestUIBindings() {
         noResultsMessage.style.display = "none";
       }
     }
-
-    // ❌ DO NOT TOUCH empty-state
-    // ❌ DO NOT TOUCH allinit-conatin
   });
 
-
-  /* =========================
-     📦 MODULE BINDINGS
-  ========================= */
-
-
-
-  /* =========================
-     🌍 GLOBAL CLOSERS
-  ========================= */
   document.addEventListener('click', (e) => {
     if (
       !e.target.closest('.dropdown') &&
@@ -2994,25 +2768,22 @@ function initQuestUIBindings() {
 }
 
 
-  function initSubquestToggles(communityId) {
+function initSubquestToggles(communityId) {
   document.querySelectorAll(".toggle-subquests").forEach(btn => {
 
-
-
     btn.addEventListener("click", e => {
-        e.stopPropagation();
+      e.stopPropagation();
+
+      // close every open menu/dropdown first
+      hideAllDropdowns();
+      hideAllMenus(e);
+
       const moduleId = btn.dataset.moduleId;
 
       const icon = btn.querySelector("svg");
-      const subquests = document.querySelectorAll(
-        `.quest-item[data-module-id="${moduleId}"]`
-      );
-    console.log("subquest lendth",subquests.length)
+      const subquests = getModuleItems(moduleId);
+      console.log("subquest lendth", subquests.length)
 
-
-      /* =========================
-         ❌ NO SUBQUESTS
-      ========================= */
       if (!subquests.length) {
         showError(`
           <div style="display:flex; align-items:center; gap:8px;">
@@ -3028,12 +2799,12 @@ function initQuestUIBindings() {
         return;
       }
 
-      /* =========================
-         TOGGLE LOGIC
-      ========================= */
       const currentlyOpen = [...subquests].some(
         el => getComputedStyle(el).display !== "none"
       );
+
+      const list = btn.closest('.content-init-q')?.querySelector('.subquests-list');
+      if (list && !currentlyOpen) list.style.display = "";
 
       subquests.forEach(sub => {
         sub.style.display = currentlyOpen ? "none" : "flex";
@@ -3047,9 +2818,6 @@ function initQuestUIBindings() {
 
       const newState = currentlyOpen ? "closed" : "open";
 
-      /* =========================
-         SAVE STATE
-      ========================= */
       fetch("/save_subquest_state", {
         method: "POST",
         headers: {
@@ -3093,7 +2861,6 @@ function SmartDropdown(trigger, dropdown, options = {}) {
 
   function open() {
 
-    // close any other dropdown
     if (IsopenDropdown && IsopenDropdown !== dropdown) {
       IsopenDropdown.style.display = "none";
       IsopenDropdown = null;
@@ -3105,7 +2872,6 @@ function SmartDropdown(trigger, dropdown, options = {}) {
     const tRect = trigger.getBoundingClientRect();
     const cRect = container.getBoundingClientRect();
 
-    // measure dropdown
     dropdown.style.visibility = "hidden";
     dropdown.style.display = "flex";
 
@@ -3152,11 +2918,9 @@ function SmartDropdown(trigger, dropdown, options = {}) {
     }
   }
 
-  // close on scroll / resize
   window.addEventListener("scroll", close, true);
   window.addEventListener("resize", close);
 
-  // 👇 IMPORTANT: open immediately when called
   toggle();
 
   return { open, close, toggle };
@@ -3168,7 +2932,6 @@ function initTopDropdowns() {
 
   if (!trigger || !menu) return;
 
-  // Remove previous listener if SPA re-inits
   trigger.replaceWith(trigger.cloneNode(true));
 
   const newTrigger = document.getElementById('dropdown-arrow');
@@ -3187,7 +2950,752 @@ function initTopDropdowns() {
 
 
 
+const RAW = [
+    ["Follow us on X", "Social", ["twitter"], 20, "Follow the community account on X so you never miss an announcement, update or event. Once you've followed, come back and verify to claim your XP."],
+    ["Retweet the pinned post", "Social", ["twitter"], 25, "Retweet our pinned announcement to help spread the word. The more people see it, the faster the community grows, and you earn XP for helping."],
+    ["Quote-tweet with your take", "Social", ["twitter"], 40, "Quote-tweet the announcement and add your own thoughts. Tell your followers in your own words why you're part of this community and what excites you about it."],
+    ["Like & reply to the announcement", "Social", ["twitter"], 20, "Like the announcement and leave a thoughtful reply. Keep it genuine, since low-effort or spam replies may be rejected."],
+    ["Join the Discord", "Social", ["discord"], 20, "Join the community Discord server to chat with other members, get help, and hear about events first. Accept the invite, then come back and verify your membership."],
+    ["Get your Discord role", "Social", ["discord"], 30, "Already in the Discord? Head to the verification channel, follow the steps there, and claim your member role to unlock the members-only channels."],
+    ["Join the Telegram community", "Social", ["telegram"], 20, "Join the community Telegram group for quick updates and live conversation. Open the invite, tap join, then come back and verify."],
+    ["Subscribe on YouTube", "Social", ["youtube"], 20, "Subscribe to the community YouTube channel for tutorials, recordings of community calls and workshops, and project updates. Hit subscribe, then come back and verify."],
+    ["Like & comment on our latest video", "Social", ["file-upload"], 30, "Watch our latest video, give it a like and leave a thoughtful comment about what you took away from it, then upload a screenshot showing both so we can verify it. Comments that add nothing may be rejected."],
+    ["Follow on Farcaster", "Social", ["visit-link", "file-upload"], 20, "Follow the community on Farcaster to keep up with updates in the decentralized social ecosystem. Open the profile, follow, then upload a screenshot showing that you're following so we can verify it."],
+    ["Join the Zcash forum", "Social", ["visit-link", "text"], 30, "Create an account on the Zcash community forum and say hello in the introductions thread. Paste your username below so we can confirm it."],
+    ["Share on LinkedIn", "Social", ["url"], 30, "Share a post about the community on LinkedIn, in your own words and with a short note on why it matters to you. Paste the link to your post below."],
+    ["Invite 3 friends", "Social", ["invite"], 60, "Bring three friends into the community using your personal invite link. The task completes automatically once three people have joined through it."],
+    ["Follow on TikTok", "Social", ["visit-link"], 20, "Follow the community on TikTok for short, snackable explainers and behind-the-scenes clips."],
 
+    ["Create a shielded wallet", "Zcash", ["text"], 50, "Set up a wallet that supports shielded addresses and write a short note on which wallet you picked and why. Never share your seed phrase, only the name of the wallet."],
+    ["Receive your first shielded ZEC", "Zcash", ["file-upload"], 60, "Receive ZEC to a shielded address and upload a screenshot of your balance. Make sure your seed phrase and full address are not visible in the image."],
+    ["Send a shielded transaction", "Zcash", ["url"], 80, "Send a shielded transaction and share the confirmation. Paste a link to the transaction on a block explorer so we can verify it went through."],
+    ["Explain unified addresses", "Zcash", ["text"], 50, "Write a short explanation of unified addresses in your own words: what they are, why they exist, and how they make life easier for users."],
+    ["Back up your seed phrase", "Zcash", ["puzzle"], 30, "Write your recovery phrase down offline and store it somewhere safe. To confirm you understand the importance, answer the security question from the guide. Never type your actual phrase here."],
+    ["Try Zodl wallet", "Zcash", ["visit-link", "file-upload"], 40, "Install the Zodl wallet from the official page, set it up, and upload a screenshot of your balance screen so we can see you got it running."],
+    ["Try Zkool wallet", "Zcash", ["visit-link", "file-upload"], 40, "Install Zkool, explore its features, and upload a screenshot of the app showing your account."],
+    ["Run a lightwalletd server", "Zcash", ["url"], 120, "Set up lightwalletd on your own server and share your public endpoint. We'll check that it's reachable and syncing before approving."],
+    ["Read the Zcash overview", "Zcash", ["visit-link"], 25, "Read the protocol overview page to understand how Zcash works and what makes shielded transactions private."],
+    ["Find a transaction on an explorer", "Zcash", ["visit-link", "text"], 35, "Open a block explorer, look up a transaction, and tell us what you learned: what fields are visible and what stays hidden for shielded transactions."],
+    ["Learn about the Ironwood pool", "Zcash", ["quiz"], 50, "Read up on the Ironwood shielded pool, then answer a short quiz to prove it stuck."],
+    ["Send a shielded memo", "Zcash", ["text"], 60, "Send a shielded transaction with an encrypted memo and describe the experience: which wallet you used, and how the memo showed up on the other side."],
+    ["Vote with your ZEC", "Zcash", ["coin_holder_vote"], 100, "Deposit ZEC into Gleyo and cast your vote for the project you want to see funded. Your vote is weighted by the amount you deposit, and your ZEC never leaves the reward hub."],
+
+    ["Quiz: Zcash basics", "Learning", ["quiz"], 40, "Pass the beginner Zcash quiz and show you understand the fundamentals."],
+    ["Quiz: Privacy 101", "Learning", ["quiz"], 40, "Test your knowledge of digital privacy, from metadata to encryption and surveillance."],
+    ["Watch the ZecHub video", "Learning", ["visit-link", "puzzle"], 25, "Watch the video all the way through. A passphrase is mentioned during it, so enter it below to prove you watched."],
+    ["Read a whitepaper section", "Learning", ["visit-link", "text"], 35, "Read a section of the whitepaper and summarize it in 3 sentences, in your own words."],
+    ["Complete the starter tutorial", "Learning", ["visit-link"], 50, "Finish the starter tutorial end to end. Take your time, it covers everything you need to get going."],
+    ["Write a 3-line summary", "Learning", ["text"], 30, "Summarize what you learned this week in three lines."],
+    ["Take the community poll", "Learning", ["poll"], 15, "Answer the weekly poll and help shape what the community focuses on next."],
+    ["Glossary challenge", "Learning", ["quiz"], 45, "Match privacy terms to their meanings and see how many you get right."],
+
+    ["Introduce yourself", "Community", ["text"], 20, "Tell the community who you are and why you're here. Where are you from, what do you do, and what do you hope to get out of this?"],
+    ["Verify you're human", "Community", ["p.o.h"], 30, "Complete a quick proof of humanity check. It keeps the leaderboard fair and keeps bots out."],
+    ["Daily check-in", "Community", [], 10, "Check in once a day with a quick note on what you're up to.", "daily", false],
+    ["7-day check-in streak", "Community", [], 2, "Check in seven days in a row. Miss a day and the streak resets.", "daily", true],
+    ["Vote on a proposal", "Community", ["poll"], 25, "Read the current proposal and cast your vote. Every voice counts."],
+    ["Give product feedback", "Community", ["text"], 40, "Share one thing we could improve and tell us why it matters to you."],
+    ["Rate your experience", "Community", ["Optionscale(star)"], 15, "Rate your experience in the community so far from 1 to 5 stars."],
+    ["Would you recommend us?", "Community", ["Optionscale(numbers)"], 15, "On a scale from 1 to 10, how likely are you to recommend this community to a friend?"],
+    ["Report a bug", "Community", ["text", "file-upload"], 50, "Report a reproducible bug with clear steps, and attach a screenshot or recording if you can."],
+    ["Help a newcomer", "Community", ["url"], 45, "Answer a newcomer's question in Discord, then paste the link to your message below."],
+    ["Attend the community call", "Community", ["puzzle", "text"], 50, "Join the live call, enter the code word announced during it, and share one takeaway."],
+
+    ["Write a thread", "Content", ["url"], 80, "Write a thread (5+ posts) about the community on X and paste the link to the first post below."],
+    ["Make a meme", "Content", ["file-upload"], 40, "Create an original meme about the community and upload it."],
+    ["Create a tutorial video", "Content", ["url"], 150, "Record a how-to video and share the link. Clear audio and a clear walkthrough matter more than fancy editing."],
+    ["Write a blog post", "Content", ["url"], 120, "Publish a 500+ word article about the community or the tech behind it and share the link."],
+    ["Translate a guide", "Content", ["file-upload", "text"], 100, "Translate a guide into your language and upload the file. Tell us which guide and which language."],
+    ["Design a banner", "Content", ["file-upload"], 70, "Design a banner for the community and upload the final file."],
+    ["Short explainer clip", "Content", ["url"], 90, "Make a 60-second explainer on any part of the community or the tech, and share the link."],
+    ["Submit a testimonial", "Content", ["text"], 35, "Share your honest experience with the community, good and bad."],
+
+    ["Fork a repo", "Dev", ["github"], 30, "Fork the starter repo and give it a star so we can see you're ready to build."],
+    ["Open a pull request", "Dev", ["url"], 100, "Open a pull request and paste the link. Make sure it describes what changed and why."],
+    ["Build a demo with the SDK", "Dev", ["url"], 150, "Ship a small demo using the SDK and share the link to the repo or live demo."],
+    ["Submit a GitHub issue", "Dev", ["url"], 40, "Open a well-written issue with steps to reproduce and share the link."],
+    ["Review a pull request", "Dev", ["url"], 70, "Leave a useful review on an open pull request and share the link to your review."],
+    ["Deploy a testnet app", "Dev", ["url"], 130, "Deploy something on testnet and share the link so others can try it."],
+    ["Write documentation", "Dev", ["url"], 90, "Improve or add docs and share the link to your change."],
+    ["Hackathon submission", "Dev", ["url", "file-upload"], 200, "Submit your project to the hackathon with a link to the repo or demo and a screenshot or pitch deck."],
+
+    ["Register for the workshop", "Events", ["visit-link"], 20, "Sign up for the upcoming workshop using the registration page so we can save you a spot."],
+    ["Attend the live workshop", "Events", ["puzzle"], 80, "Attend live and enter the code word announced during the session."],
+    ["Submit a workshop recap", "Events", ["text"], 60, "Write a short recap of what you learned and how you plan to use it."],
+    ["Bring a friend to the workshop", "Events", ["invite"], 50, "Invite someone new to attend with you using your personal invite link."],
+
+    ["Join a partner community", "Partnerships", ["partnership"], 40, "Join one of our partner communities and get verified there. We check that you're a member before awarding XP."],
+    ["Complete a partner quest", "Partnerships", ["partnership_quest"], 70, "Complete a quest in a partner community and claim it there. We verify that the claim went through before awarding XP."],
+    ["Join the partner's Discord", "Partnerships", ["discord", "partnership"], 50, "Join our partner's Discord server, then verify your membership in their community."],
+    ["Follow the partner on X", "Partnerships", ["twitter"], 20, "Follow our partner's account on X to stay up to date on what we're building together."],
+    ["Cross-community collab", "Partnerships", ["partnership", "text"], 90, "Join the partner community, introduce yourself there, and tell us here what you shared with them."]
+  ];
+
+  const TYPE_MAP = {
+    link: "visit-link",
+    custom: "text",
+    upload: "file-upload",
+    number: "numbers",
+    poh: "p.o.h",
+    "coin-holder-vote": "coin_holder_vote"
+  };
+  const TASK_TYPE_MAP = {
+    "twitter": "twitter",
+    "discord": "discord",
+    "telegram": "telegram",
+    "youtube": "youtube",
+    "github": "github",
+    "visit-link": "visit-link",
+    "link": "visit-link",
+    "file-upload": "file-upload",
+    "upload": "file-upload",
+    "text": "text",
+    "custom": "text",
+    "url": "url",
+    "numbers": "numbers",
+    "number": "numbers",
+    "puzzle": "puzzle",
+    "poll": "poll",
+    "quiz": "quiz",
+    "invite": "invite",
+    "partnership": "partnership",
+    "partnership_quest": "partnership_quest",
+    "p.o.h": "p.o.h",
+    "poh": "p.o.h",
+    "coin_holder_vote": "coin_holder_vote",
+    "Optionscale(star)": "Optionscale(star)",
+    "Optionscale(numbers)": "Optionscale(numbers)"
+  };
+
+  const TASK_ICON_MAP = {
+    "twitter": "twitter",
+    "discord": "discord",
+    "telegram": "telegram",
+    "youtube": "youtube",
+    "github": "github",
+    "visit-link": "visit-link",
+    "file-upload": "file-upload",
+    "text": "text",
+    "url": "url",
+    "numbers": "numbers",
+    "puzzle": "puzzle",
+    "poll": "poll",
+    "quiz": "quiz",
+    "invite": "invite",
+    "partnership": "partnership",
+    "partnership_quest": "partnership_quest",
+    "p.o.h": "p.o.h",
+    "coin_holder_vote": "coin_holder_vote",
+    "Optionscale(star)": "optionscale(star)",
+    "Optionscale(numbers)": "optionscale(numbers)"
+  };
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+  function fileTypesFor(name) {
+    if (/translate/i.test(name)) return ["document"];
+    if (/bug/i.test(name)) return ["image", "video"];
+    if (/hackathon/i.test(name)) return ["presentation", "image", "document"];
+    return ["image"];
+  }
+
+  function buildTaskConfig(type, name, description) {
+    switch (type) {
+      case "visit-link":
+        return { link: "https://example.com", preview: { title: name, description: description, image: "" } };
+
+      case "text":
+        return { title: name, description: description, placeholder: "Type here...", auto_validate: false };
+
+      case "url":
+        return { title: name, description: description, placeholder: "https://example.com", auto_validate: false, track_invites: false };
+
+      case "numbers":
+        return { title: name, description: description, placeholder: "12345", auto_validate: false };
+
+      case "file-upload":
+        return {
+          fileCount: /hackathon|bug/i.test(name) ? 2 : 1,
+          fileTypes: fileTypesFor(name)
+        };
+
+      case "puzzle":
+        return { title: name, description: description, answer: "", placeholder: "Enter secret code...", auto_validate: true };
+
+      case "poll":
+        return {
+          title: name,
+          description: description,
+          options: /proposal/i.test(name) ? ["Yes", "No", "Abstain"] : ["Option A", "Option B", "Option C"],
+          multiple: false,
+          other: false
+        };
+
+      case "quiz":
+        return {
+          title: name,
+          description: description,
+          options: ["Option A", "Option B", "Option C"],
+          correct: [0],
+          allowMultipleSelection: false,
+          multiple: false,
+          hasCorrectAnswers: true
+        };
+
+      case "invite":
+        return {
+          numInvites: /\b3\b|three/i.test(name) ? 3 : 1,
+          subquest_uuid: "",
+          subquest_name: "",
+          require_twitter_match: false
+        };
+
+      case "youtube":
+        return { link: "https://youtube.com/", name: "Community channel", icon: "" };
+
+      case "github":
+        return {
+          link: "",
+          repo_name: "",
+          repo_owner: "",
+          owner_avatar: "",
+          star: true,
+          fork: /fork/i.test(name)
+        };
+
+      case "partnership":
+        return {
+          community_name: "Partner community",
+          about: "Join the partner community.",
+          link: "https://gleyo.app/",
+          icon: "",
+          community_id: ""
+        };
+
+      case "partnership_quest":
+        return {
+          community_name: "Partner community",
+          subquest_name: "Partner quest",
+          link: "https://gleyo.app/",
+          icon: "",
+          community_id: ""
+        };
+
+      case "p.o.h":
+        return { link: "" };
+
+      case "coin_holder_vote":
+        return {
+          zecPerVote: "0.001",
+          payoutAddress: "",
+          projects: [
+            { name: "Project A", description: "Describe the first project here." },
+            { name: "Project B", description: "Describe the second project here." }
+          ]
+        };
+
+      case "Optionscale(star)":
+        return { title: name, description: description, starCount: 5 };
+
+      case "Optionscale(numbers)":
+        return {
+          title: name,
+          description: description,
+          scale: { from: 1, to: 10 },
+          labels: { left: "Not Likely", right: "Very Likely" }
+        };
+
+      case "twitter": {
+        if (/retweet|quote|like|reply/i.test(name)) {
+          return {
+            mode: "engage",
+            tweet_link: "",
+            tweet_preview: "Your announcement will appear here.",
+            tweet_author: "Your community",
+            tweet_handle: "yourcommunity",
+            tweet_avatar: "",
+            tweet_date: new Date().toISOString(),
+            tweet_verified: false,
+            tweet_verified_type: "none",
+            like: /like/i.test(name),
+            retweet: /retweet|quote/i.test(name),
+            reply: /reply|quote/i.test(name),
+            reply_text: ""
+          };
+        }
+        return {
+          mode: "follow",
+          profile_link: "https://x.com/",
+          profile_name: "Your community",
+          profile_handle: "yourcommunity",
+          profile_avatar: "",
+          verified: false,
+          verified_type: "none"
+        };
+      }
+
+      case "discord":
+        return { link: "https://discord.gg/", name: "Community Discord", icon: "" };
+
+      case "telegram":
+        return { link: "https://t.me/", name: "Community Telegram", icon: "" };
+
+      default:
+        return { title: name, description: description };
+    }
+  }
+
+  const TEMPLATES = RAW.map(([name, category, task_types, xp, description, recurrence, streak_enabled], i) => {
+    const types = [...new Set(task_types.map(t => TYPE_MAP[t] || t))];
+
+    return {
+      id: "tpl-" + String(i + 1).padStart(3, "0"),
+      name,
+      category,
+      description,
+      xp,
+      recurrence: recurrence || null,
+      streak_enabled: streak_enabled === true,
+      task_types: types,
+      tasks: types.map(type => ({
+        type,
+        config: buildTaskConfig(type, name, description)
+      })),
+      rewards: [{
+        reward_type: "xp",
+        distribution_type: "ALL",
+        reward_data: { amount: xp }
+      }]
+    };
+  });
+
+  let modal;
+  let creating = false;
+  let state = { q: "", activeId: null };
+  let listScroll = 0;
+  const previewCache = new Map();
+  const mobileMQ = window.matchMedia("(max-width: 640px)");
+  const isMobileTpl = () => mobileMQ.matches;
+
+  document.querySelectorAll("#tpl-modal").forEach(el => el.remove());
+
+  function skeleton() {
+    return `
+      <div class="tpl-skel">
+        <div style="height:26px;width:55%"></div>
+        <div style="height:14px;width:90%"></div>
+        <div style="height:14px;width:75%"></div>
+        <div style="height:120px"></div>
+        <div style="height:150px"></div>
+      </div>`;
+  }
+
+  function build() {
+    if (modal) return;
+
+    modal = document.createElement("div");
+    modal.id = "tpl-modal";
+    modal.innerHTML = `
+      <div class="tpl-box">
+
+        <div class="tpl-left">
+          <div class="tpl-left-head">
+            <div class="tpl-left-top">
+              <h3>Create a new quest</h3>
+              <button class="tpl-close tpl-close-left" aria-label="Close">✕</button>
+            </div>
+            <button class="tpl-scratch" id="tpl-scratch">
+              <b>Start from scratch</b>
+              <span>Begin with a blank slate</span>
+            </button>
+            <div class="tpl-or">or</div>
+            <div class="tpl-search-wrap">
+              <input id="tpl-search" class="tpl-search" type="text" placeholder="Search ${TEMPLATES.length} templates...">
+            </div>
+          </div>
+          <div class="tpl-list" id="tpl-list"></div>
+        </div>
+
+        <div class="tpl-right">
+          <div class="tpl-right-head">
+            <div class="tpl-right-lead">
+              <button class="tpl-back" aria-label="Back">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+                  <path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+              <span class="tpl-right-title" id="tpl-right-title">Select a template</span>
+            </div>
+            <button class="tpl-close" aria-label="Close">✕</button>
+          </div>
+          <div class="tpl-preview tpl-preview-locked" id="tpl-preview"></div>
+          <div class="tpl-foot">
+            <div class="tpl-dd" id="tpl-dd">
+              <input type="hidden" id="tpl-module">
+              <button type="button" class="tpl-dd-trigger" id="tpl-dd-trigger">
+                <span class="tpl-dd-label" id="tpl-dd-label">Select module</span>
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+                  <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+              <div class="tpl-dd-menu" id="tpl-dd-menu"></div>
+            </div>
+            <button class="tpl-use" id="tpl-use">Use template</button>
+          </div>
+        </div>
+
+      </div>`;
+    document.body.appendChild(modal);
+
+    const dd = modal.querySelector("#tpl-dd");
+
+    modal.addEventListener("click", e => {
+      if (e.target === modal) { close(); return; }
+      if (!e.target.closest("#tpl-dd")) dd.classList.remove("open");
+    });
+
+    modal.querySelectorAll(".tpl-close").forEach(btn => btn.addEventListener("click", close));
+    modal.querySelector(".tpl-back").addEventListener("click", showList);
+
+    modal.querySelector("#tpl-search").addEventListener("input", e => {
+      state.q = e.target.value.trim().toLowerCase();
+      renderList();
+    });
+
+    modal.querySelector("#tpl-list").addEventListener("click", e => {
+      const item = e.target.closest(".tpl-item");
+      if (!item) return;
+      selectTemplate(item.dataset.id);
+    });
+
+    modal.querySelector("#tpl-dd-trigger").addEventListener("click", e => {
+      e.stopPropagation();
+      dd.classList.toggle("open");
+    });
+
+    modal.querySelector("#tpl-dd-menu").addEventListener("click", e => {
+      const item = e.target.closest(".tpl-dd-item");
+      if (!item) return;
+      e.stopPropagation();
+      setModule(item.dataset.id);
+      dd.classList.remove("open");
+    });
+
+    modal.querySelector("#tpl-use").addEventListener("click", e => {
+      if (!state.activeId) return;
+      useTemplate(state.activeId, e.currentTarget);
+    });
+
+    modal.querySelector("#tpl-scratch").addEventListener("click", startFromScratch);
+  }
+
+  function setModule(id) {
+    const items = modal.querySelectorAll(".tpl-dd-item");
+    let name = "Select module";
+
+    items.forEach(el => {
+      const on = el.dataset.id === id;
+      el.classList.toggle("selected", on);
+      if (on) name = el.querySelector(".tpl-dd-name").textContent;
+    });
+
+    modal.querySelector("#tpl-module").value = id || "";
+    modal.querySelector("#tpl-dd-label").textContent = name;
+  }
+
+  function fillModules() {
+    const mods = [...document.querySelectorAll(".content-init-q.scrollable")];
+    const menu = modal.querySelector("#tpl-dd-menu");
+    const prev = modal.querySelector("#tpl-module").value;
+
+    menu.innerHTML = mods.map(m => {
+      const id = m.id.replace("module-", "");
+      const name = m.querySelector(".module-title")?.textContent.trim() || "Module";
+      return `
+        <div class="tpl-dd-item" data-id="${id}">
+          <span class="tpl-dd-name">${esc(name)}</span>
+          <svg class="tpl-dd-check" viewBox="0 0 24 24" width="14" height="14" fill="none">
+            <path d="M5 12l5 5L20 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>`;
+    }).join("");
+
+    const stillThere = mods.some(m => m.id === "module-" + prev);
+    setModule(stillThere ? prev : (mods[0]?.id.replace("module-", "") || ""));
+  }
+
+  function filteredTemplates() {
+    return TEMPLATES.filter(t =>
+      !state.q || (t.name + " " + t.description + " " + t.category).toLowerCase().includes(state.q)
+    );
+  }
+
+  function renderList() {
+    const list = filteredTemplates();
+    const box = modal.querySelector("#tpl-list");
+
+    if (!list.length) {
+      box.innerHTML = `<div class="tpl-empty">No template found</div>`;
+      return;
+    }
+
+    let html = "";
+    let lastCat = null;
+
+    list.forEach(t => {
+      if (t.category !== lastCat) {
+        html += `<div class="tpl-cat">${esc(t.category)}</div>`;
+        lastCat = t.category;
+      }
+      html += `
+        <div class="tpl-item ${t.id === state.activeId ? "active" : ""} ${isTwitterLocked(t) ? "tpl-item-locked" : ""}" data-id="${t.id}">
+          <span class="tpl-item-name">${esc(t.name)}</span>
+          ${renderTaskTypeIcons(t.task_types)}
+        </div>`;
+    });
+
+    box.innerHTML = html;
+  }
+
+  const isTwitterLocked = tpl =>
+    twitterState !== "ok" && tpl.task_types.includes("twitter");
+
+  function lockedPreviewHTML() {
+    const upgrade = twitterState === "upgrade";
+    const href = upgrade
+      ? `/community/${communitySlug}/settings/billing`
+      : `/community/${communitySlug}/settings/integrations/twitter`;
+    const title = upgrade ? "Twitter tasks need a paid plan" : "Connect your X account";
+    const link  = upgrade ? "Upgrade your plan" : "Connect your X account";
+    const rest  = upgrade ? "to use Twitter tasks." : "in settings to use Twitter tasks.";
+
+    return `
+      <div class="tpl-locked">
+        <div class="tpl-locked-icon">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M3 3L21 21M17 10V8C17 5.23858 14.7614 3 12 3C11.0283 3 10.1213 3.27719 9.35386 3.75681M7.08383 7.08338C7.02878 7.38053 7 7.6869 7 8V10.0288M19.5614 19.5618C19.273 20.0348 18.8583 20.4201 18.362 20.673C17.7202 21 16.8802 21 15.2 21H8.8C7.11984 21 6.27976 21 5.63803 20.673C5.07354 20.3854 4.6146 19.9265 4.32698 19.362C4 18.7202 4 17.8802 4 16.2V14.8C4 13.1198 4 12.2798 4.32698 11.638C4.6146 11.0735 5.07354 10.6146 5.63803 10.327C5.99429 10.1455 6.41168 10.0647 7 10.0288M19.9998 14.4023C19.9978 12.9831 19.9731 12.227 19.673 11.638C19.3854 11.0735 18.9265 10.6146 18.362 10.327C17.773 10.0269 17.0169 10.0022 15.5977 10.0002M10 10H8.8C8.05259 10 7.47142 10 7 10.0288" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> </g>
+          </svg>
+        </div>
+        <h4>${title}</h4>
+        <p><a class="task-link" href="${href}" target="_blank" rel="noopener noreferrer">${link}</a> ${rest}</p>
+      </div>`;
+  }  
+
+  function setActiveInList(id) {
+    modal.querySelectorAll(".tpl-item").forEach(el => {
+      el.classList.toggle("active", el.dataset.id === id);
+    });
+  }
+
+  function showList() {
+    if (!modal) return;
+    modal.querySelector(".tpl-box").classList.remove("show-preview");
+    modal.querySelector("#tpl-list").scrollTop = listScroll;
+  }
+
+async function selectTemplate(id) {
+  const tpl = TEMPLATES.find(t => t.id === id);
+  if (!tpl || !modal) return;
+
+  state.activeId = id;
+  setActiveInList(id);
+  modal.querySelector("#tpl-right-title").textContent = tpl.name;
+
+  const pane = modal.querySelector("#tpl-preview");
+  const useBtn = modal.querySelector("#tpl-use");
+
+  if (isMobileTpl()) {
+    listScroll = modal.querySelector("#tpl-list").scrollTop;
+    modal.querySelector(".tpl-box").classList.add("show-preview");
+  }
+
+  if (isTwitterLocked(tpl)) {
+    pane.innerHTML = lockedPreviewHTML();
+    pane.scrollTop = 0;
+    useBtn.disabled = true;
+    return;
+  }
+  useBtn.disabled = false;
+
+  if (previewCache.has(id)) {
+    pane.innerHTML = previewCache.get(id);
+    pane.scrollTop = 0;
+    return;
+  }
+
+  pane.innerHTML = skeleton();
+
+  try {
+    const res = await fetch(`/${communitySlug}/preview_template`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken },
+      body: JSON.stringify({
+        subquest_name: tpl.name,
+        subquest_desc: [{ type: "text", html: esc(tpl.description) }],
+        tasks: tpl.tasks,
+        rewards: tpl.rewards,
+        recurrence: tpl.recurrence,
+        user_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"
+      })
+    });
+
+    if (!modal || state.activeId !== id) return;
+
+    // Server says it's locked: trust it, whatever the client thought
+    if (res.status === 403) {
+      let body = {};
+      try { body = await res.json(); } catch (e) {}
+      if (body.error === "twitter_locked") {
+        twitterState = body.state || "upgrade";
+        renderList();                      // marks all Twitter templates as locked
+        pane.innerHTML = lockedPreviewHTML();
+        useBtn.disabled = true;
+        return;
+      }
+    }
+
+    const html = await res.text();
+    if (!res.ok) throw new Error("preview failed");
+
+    previewCache.set(id, html);
+    pane.innerHTML = html;
+    pane.scrollTop = 0;
+
+    if (typeof initSubquestTasks === "function") initSubquestTasks();
+  } catch (err) {
+    console.error(err);
+    if (modal && state.activeId === id) {
+      pane.innerHTML = `<div class="tpl-empty">Could not load preview</div>`;
+    }
+  }
+}
+
+async function useTemplate(templateId, btn) {
+  if (creating) return;
+
+  const tpl = TEMPLATES.find(t => t.id === templateId);   // find tpl FIRST
+  if (!tpl) return;
+  if (isTwitterLocked(tpl)) return;                        // then check lock
+
+  const moduleId = modal ? modal.querySelector("#tpl-module").value : "";
+  if (!moduleId) return showError("Create a module first");
+
+  creating = true;
+  const original = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = IsloadingInit;
+  btn.style.cursor = "wait";
+
+  try {
+    const res = await fetch(`/create_subquest_from_template/${moduleId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken },
+      body: JSON.stringify({
+        community_slug: communitySlug,
+        quest_uuid: moduleId,
+        subquest_name: tpl.name,
+        subquest_desc: [{ type: "text", html: esc(tpl.description) }],
+        tasks: tpl.tasks,
+        rewards: tpl.rewards,
+        recurrence: tpl.recurrence,
+        streak_enabled: tpl.streak_enabled
+      })
+    });
+
+    const data = await res.json();
+
+    if (res.ok && data.success) {
+      close();
+      loadMainSettingsSection(data.redirect);
+      return;
+    }
+    showToast(data.error || "Failed to use template");
+  } catch (err) {
+    console.error(err);
+    showToast("Failed to use template");
+  }
+
+  creating = false;
+  btn.disabled = false;
+  btn.innerHTML = original;
+  btn.style.cursor = "";
+}
+
+  async function startFromScratch() {
+    const moduleId = modal.querySelector("#tpl-module").value;
+    if (!moduleId) return showError("Create a module first");
+
+    try {
+      const res = await fetch(`/create_subquest/${moduleId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken }
+      });
+      const data = await res.json();
+
+      if (data.status === "success") {
+        close();
+        loadMainSettingsSection(`/${communitySlug}/quest/admin/${moduleId}/${data.subquest_uuid}`);
+      } else {
+        showError(data.message || "Could not create quest");
+      }
+    } catch (err) {
+      console.error(err);
+      showError("Network error");
+    }
+  }
+
+  function open() {
+    if (modal || document.getElementById("tpl-modal")) return;
+
+    build();
+    fillModules();
+    state = { q: "", activeId: null };
+    listScroll = 0;
+    creating = false;
+    renderList();
+    modal.classList.add("open");
+
+    if (!isMobileTpl()) {
+      const first = filteredTemplates().find(t => !isTwitterLocked(t));
+      if (first) selectTemplate(first.id);
+    }
+  }
+
+  function close() {
+    const el = modal || document.getElementById("tpl-modal");
+    if (el) {
+      el.style.display = "none";
+      el.remove();
+    }
+    document.querySelectorAll("#tpl-modal").forEach(m => m.remove());
+    modal = null;
+    creating = false;
+    state = { q: "", activeId: null };
+  }
+
+  const onTemplatesClick = e => {
+    if (!e.target.closest(".btn-text")) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (modal || document.getElementById("tpl-modal")) return;
+    open();
+  };
+
+  const onTemplatesKey = e => {
+    if (e.key !== "Escape" || !modal) return;
+    const dd = modal.querySelector("#tpl-dd");
+    if (dd && dd.classList.contains("open")) {
+      dd.classList.remove("open");
+      return;
+    }
+    close();
+  };
+
+  if (window.__tplHandlers) {
+    document.removeEventListener("click", window.__tplHandlers.click, true);
+    document.removeEventListener("keydown", window.__tplHandlers.key);
+  }
+  window.__tplHandlers = { click: onTemplatesClick, key: onTemplatesKey };
+  document.addEventListener("click", onTemplatesClick, true);
+  document.addEventListener("keydown", onTemplatesKey);
 
   window.QuestModule = {
     init: initQuestApp

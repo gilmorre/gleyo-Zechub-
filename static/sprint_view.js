@@ -3,29 +3,60 @@ let hoverTimeout = null;
 let hideTimeout = null;
 let isHoveringTrigger = false;
 let isHoveringModal = false;
+let activityRequestId = 0;
 
-// ── pagination state ──────────────────────────────────
 const INITIAL_LIMIT = 30;
 const PAGE_SIZE = 15;
-const SCROLL_THRESHOLD = 250; // px from bottom before triggering next load
+const SCROLL_THRESHOLD = 250;
 
 let currentOffset = 0;
 let hasMore = true;
 let isLoadingMore = false;
 let scrollContainer = null;
-let rewardDividerInserted = false; // 🔒 must survive across page fetches — only reset on full reload
+let rewardDividerInserted = false;
 
-// ── export state ──────────────────────────────────────
-let exportTotalCount = 0; // set from loadLeaderboardSprint
+let exportTotalCount = 0;
 
-// ── tie-badge tracking ──────────────────────────────────
-// ties can span across pages (e.g. last row of page 1 and first row of
-// page 2 have equal xp), so all of this has to be module-level, not
-// local to one render call — same reasoning as rewardDividerInserted above.
-let lastRankedUser = null;   // { xp } of the most recently rendered row
-let lastRankedRowEl = null;  // the <li> for that row
-let tieGroupStartRowEl = null; // the <li> that already got the badge for the CURRENT streak of ties
+let lastRankedUser = null;
+let lastRankedRowEl = null;
+let tieGroupStartRowEl = null;
 
+let rewardTiers = [];
+let rewardCurrency = "ZEC";
+
+const zecSvg = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8.5 8.5h7l-7 7h7"/><path d="M12 6v2.5M12 15.5V18"/></svg>`;
+
+function loadRewardTiers() {
+  rewardTiers = [];
+  rewardCurrency = "ZEC";
+
+  const el = document.getElementById("rewardTiersData");
+  if (!el) return;
+
+  try {
+    const parsed = JSON.parse(el.textContent);
+    rewardTiers = Array.isArray(parsed) ? parsed : [];
+  } catch (err) {
+    rewardTiers = [];
+  }
+
+  rewardCurrency = el.dataset.currency || "ZEC";
+}
+
+function prizeForRank(rank) {
+  const r = Number(rank);
+  if (!r) return null;
+
+  for (const t of rewardTiers) {
+    if (r >= t.from && r <= t.to) return t;
+  }
+
+  return null;
+}
+
+function prizeAmount(tier) {
+  return String(tier.per_winner).trim().split(" ")[0];
+}
 
 function getColor(id) {
   const colors = [
@@ -72,9 +103,9 @@ function getTextColor(bgColor) {
   const brightness = r * 0.299 + g * 0.587 + b * 0.114;
 
   if (brightness > 160) {
-    return adjustColor(bgColor, -60); // darker
+    return adjustColor(bgColor, -60);
   } else {
-    return adjustColor(bgColor, 60); // lighter
+    return adjustColor(bgColor, 60);
   }
 }
 
@@ -93,20 +124,15 @@ function appendSkeletonRows(list, count) {
   const wrap = document.createElement("div");
   wrap.className = "lb-skeleton-batch";
   wrap.innerHTML = makeSkeletonRows(count);
-  // move the <li> children directly into the list, keep the wrapper
-  // out of the DOM tree so it doesn't break <ul> semantics
   const rows = Array.from(wrap.children);
   rows.forEach(row => list.appendChild(row));
-  return rows; // so caller can remove exactly these once real data arrives
+  return rows;
 }
 
 const starsvg = `<svg viewBox="0 0 24 24" width="14" height="14" style="margin-right: 5px; flex-shrink:0;" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" fill="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
   <path d="M9.15316 5.40838C10.4198 3.13613 11.0531 2 12 2C12.9469 2 13.5802 3.13612 14.8468 5.40837L15.1745 5.99623C15.5345 6.64193 15.7144 6.96479 15.9951 7.17781C16.2757 7.39083 16.6251 7.4699 17.3241 7.62805L17.9605 7.77203C20.4201 8.32856 21.65 8.60682 21.9426 9.54773C22.2352 10.4886 21.3968 11.4691 19.7199 13.4299L19.2861 13.9372C18.8096 14.4944 18.5713 14.773 18.4641 15.1177C18.357 15.4624 18.393 15.8341 18.465 16.5776L18.5306 17.2544C18.7841 19.8706 18.9109 21.1787 18.1449 21.7602C17.3788 22.3417 16.2273 21.8115 13.9243 20.7512L13.3285 20.4768C12.6741 20.1755 12.3469 20.0248 12 20.0248C11.6531 20.0248 11.3259 20.1755 10.6715 20.4768L10.0757 20.7512C7.77268 21.8115 6.62118 22.3417 5.85515 21.7602C5.08912 21.1787 5.21588 19.8706 5.4694 17.2544L5.53498 16.5776C5.60703 15.8341 5.64305 15.4624 5.53586 15.1177C5.42868 14.773 5.19043 14.4944 4.71392 13.9372L4.2801 13.4299C2.60325 11.4691 1.76482 10.4886 2.05742 9.54773C2.35002 8.60682 3.57986 8.32856 6.03954 7.77203L6.67589 7.62805C7.37485 7.4699 7.72433 7.39083 8.00494 7.17781C8.28555 6.96479 8.46553 6.64194 8.82547 5.99623L9.15316 5.40838Z" />
 </svg>`;
 
-// pill badge — placed on the FIRST (higher-ranked) row of a tied-xp
-// streak, since that's the user who reached this xp amount first and
-// therefore wins the tiebreak against everyone else in the group.
 function makeTieBadge(xp) {
   const badge = document.createElement("span");
   badge.className = "tie-first-badge";
@@ -132,6 +158,12 @@ function renderUserRow(user, endZoneReached) {
   const hasImage = user.image && user.image.trim() !== "";
   const bg = getColor(user.user_id);
   const textColor = getTextColor(bg);
+
+  const tier = prizeForRank(user.rank);
+  const prizeHtml = tier
+    ? `<span class="participant-prize">${zecSvg}${prizeAmount(tier)} ${rewardCurrency}</span>`
+    : "";
+
   li.innerHTML = `
       ${
         hasImage
@@ -141,7 +173,10 @@ function renderUserRow(user, endZoneReached) {
 
     <div class="participant-info">
       <span class="participant-name">${user.username}</span>
-      <span class="participant-xp">${user.xp.toLocaleString()} XP</span>
+      <span class="participant-meta">
+        ${prizeHtml}
+        <span class="participant-xp">${user.xp.toLocaleString()} XP</span>
+      </span>
     </div>
   `;
 
@@ -181,25 +216,17 @@ function renderUserRow(user, endZoneReached) {
 
   }
 
-  // ── tie detection against the immediately-preceding rendered row ──
-  // (works across page boundaries since lastRankedUser/lastRankedRowEl
-  // are module-level, not reset per page fetch)
   if (lastRankedUser && lastRankedUser.xp === user.xp) {
     if (!tieGroupStartRowEl) {
-      // this is the FIRST time we've noticed this streak of ties —
-      // badge goes on the PREVIOUS row (the top of the tied group),
-      // not this one
       const prevInfo = lastRankedRowEl.querySelector(".participant-info");
-      const prevXpEl = lastRankedRowEl.querySelector(".participant-xp");
-      if (prevInfo && prevXpEl && !lastRankedRowEl.dataset.tieBadgeAdded) {
-        prevInfo.insertBefore(makeTieBadge(lastRankedUser.xp), prevXpEl);
+      const prevMeta = lastRankedRowEl.querySelector(".participant-meta");
+      if (prevInfo && prevMeta && !lastRankedRowEl.dataset.tieBadgeAdded) {
+        prevInfo.insertBefore(makeTieBadge(lastRankedUser.xp), prevMeta);
         lastRankedRowEl.dataset.tieBadgeAdded = "1";
       }
       tieGroupStartRowEl = lastRankedRowEl;
     }
-    // else: already badged the top of this group — later tied rows get nothing
   } else {
-    // xp changed — any tie streak that was running has ended
     tieGroupStartRowEl = null;
   }
 
@@ -225,16 +252,6 @@ function makeRewardZoneDivider() {
   return divider;
 }
 
-// renders a page of users into the list, appending (not replacing).
-// `endZone` uses each user's absolute `rank` (from the backend) rather
-// than a local loop index, so the divider still lands in the right
-// place regardless of which page it falls on.
-//
-// 🔥 rewardDividerInserted is a MODULE-LEVEL flag, not local to this call —
-// this function runs once per page fetch (initial load + every scroll load),
-// so a locally-scoped flag would reset every time and re-insert the divider
-// on every subsequent page. It only resets in loadLeaderboardSprint() on a
-// full reload.
 function appendUsersToList(list, users, endZone) {
   const showZone = !isNaN(endZone) && endZone > 0;
 
@@ -249,8 +266,6 @@ function appendUsersToList(list, users, endZone) {
 
 function getScrollContainer() {
   if (scrollContainer) return scrollContainer;
-  // this is the element with the calc()'d height / overflow set
-  // elsewhere in the app (see updateInfoBottomHeight)
   scrollContainer = document.querySelector(".info-bottom") || window;
   return scrollContainer;
 }
@@ -297,14 +312,13 @@ function openExportModal({ scope = "sprint", sprintUuid = null } = {}) {
           <button class="btn-outline" id="exportCloseBtn">Close</button>
         </div>
       `;
-      // textContent so server messages can never inject HTML
       inner.querySelector("#exportLoadError").textContent = err.message;
       inner.querySelector("#exportCloseBtn").onclick = closeExportModal;
     });
 }
 
 function renderExportForm(inner, info, { scope, sprintUuid }) {
-  const cap = info.max_export;               // null = unlimited
+  const cap = info.max_export;
   const unlimited = cap === null || cap === undefined;
   const total = exportTotalCount || 0;
 
@@ -367,7 +381,6 @@ function renderExportForm(inner, info, { scope, sprintUuid }) {
       errorEl.style.display = "none";
     }
 
-    // same pattern as the email modal: "valid" class instead of disabled
     confirmBtn.classList.toggle("valid", hasValue && !overCap && !overTotal && total > 0);
   }
 
@@ -388,7 +401,6 @@ function renderExportForm(inner, info, { scope, sprintUuid }) {
   confirmBtn.onclick = async () => {
     if (isSending) return;
 
-    // nothing on the leaderboard → tell the user instead of silently doing nothing
     if (total === 0) {
       showError("Nothing to export yet.");
       return;
@@ -414,7 +426,6 @@ function renderExportForm(inner, info, { scope, sprintUuid }) {
         })
       });
 
-      // error pages (e.g. a 404 HTML page) aren't JSON, so don't let parsing throw
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
@@ -440,15 +451,11 @@ function initExportButton() {
   btn.dataset.bound = "1";
 
   btn.addEventListener("click", () => {
-    // empty leaderboard → no point opening the modal
     if (!exportTotalCount) {
       showError("Nothing to export yet.");
       return;
     }
 
-    // this module is the sprint page, so the scope is always "sprint".
-    // The sprint uuid comes from the button if the template sets it,
-    // otherwise from the last segment of the URL (/leaderboard/<uuid>).
     const pathParts = window.location.pathname.split("/");
     const sprintUuidFromUrl = pathParts[pathParts.length - 1];
 
@@ -506,7 +513,6 @@ async function loadMoreParticipants() {
   } catch (err) {
     console.error("Failed to load more participants:", err);
     skeletonRows.forEach(row => row.remove());
-    // allow retry on next scroll rather than permanently giving up
   } finally {
     isLoadingMore = false;
   }
@@ -524,11 +530,9 @@ async function loadLeaderboardSprint() {
   const rankUsername = document.querySelector(".rank-username");
   const rankXp = document.querySelector(".rank-xp");
 
-  // the template is injected dynamically, so bind the export button
-  // every time the leaderboard (re)loads
   initExportButton();
+  loadRewardTiers();
 
-  // reset pagination + tie-tracking state on (re)load
   currentOffset = 0;
   hasMore = true;
   isLoadingMore = false;
@@ -554,9 +558,6 @@ async function loadLeaderboardSprint() {
     const currentUser = data.current_user;
     const participantsCount = document.querySelector(".participants-count");
 
-    // ✅ use the backend's true total, not the length of just this page —
-    // users.length only ever reflects the first INITIAL_LIMIT rows, so it
-    // was never the real participant count once a sprint grew past 30.
     const totalCount = typeof data.total_count === "number"
       ? data.total_count
       : (users ? users.length : 0);
@@ -565,7 +566,6 @@ async function loadLeaderboardSprint() {
     if (participantsCount) {
       participantsCount.textContent = `${totalCount} participants`;
     }
-    // EMPTY LEADERBOARD
     if (!users || users.length === 0) {
       emptyMessage.style.display = "flex";
       list.style.display = "none";
@@ -583,7 +583,6 @@ async function loadLeaderboardSprint() {
     currentOffset = data.next_offset;
     hasMore = !!data.has_more;
 
-    // wire up infinite scroll once, against whichever container actually scrolls
     const container = getScrollContainer();
     container.removeEventListener("scroll", onScrollCheck);
     container.addEventListener("scroll", onScrollCheck, { passive: true });
@@ -626,95 +625,181 @@ async function loadLeaderboardSprint() {
 
 }
   
-  const panel = document.getElementById('announcementPanel');
-  const overlay = document.getElementById('mobileOverlay');
-  let startX = 0;
-  let currentX = 0;
-  let dragging = false;
 
-  window.toggleAnnouncement=toggleAnnouncement
-  function toggleAnnouncement() {
+const panel = document.getElementById("announcementPanel");
+const detailsReward = panel?.querySelector(".details-reward");
+const infoButton = document.getElementById("infoToggleBtn");
+
+if (panel) {
+  let overlay = document.getElementById("mobileOverlay");
+
+  // Create the overlay if the HTML does not contain one.
+  if (!overlay) {
+    overlay = document.createElement("div");
+    overlay.id = "mobileOverlay";
+    document.body.appendChild(overlay);
+  }
+
+  Object.assign(overlay.style, {
+    position: "fixed",
+    inset: "0",
+    background: "rgba(0, 0, 0, 0.45)",
+    zIndex: "9998",
+    opacity: "0",
+    visibility: "hidden",
+    pointerEvents: "none",
+    transition: "opacity 220ms ease, visibility 220ms ease"
+  });
+
+  panel.style.zIndex = "9999";
+
+  function setInfoIconHidden(hidden) {
+    document.querySelectorAll(".diver-svg, .toggle-icon").forEach(el => {
+      el.classList.toggle("hidden", hidden);
+    });
+  }
+
+  function setPanelOpen(open) {
+    panel.classList.toggle("show", open);
+
     if (window.innerWidth <= 991) {
-      panel.classList.toggle('show');
-      overlay.classList.toggle('active');
+      overlay.classList.toggle("active", open);
 
-      // ✅ Add/remove scroll lock cleanly
-      if (panel.classList.contains('show')) {
-        document.body.classList.add('no-scroll');
-      } else {
-        document.body.classList.remove('no-scroll');
+      Object.assign(overlay.style, {
+        opacity: open ? "1" : "0",
+        visibility: open ? "visible" : "hidden",
+        pointerEvents: open ? "auto" : "none"
+      });
+
+      document.body.classList.toggle("no-scroll", open);
+      setInfoIconHidden(open);
+    }
+
+    if (!open) {
+      panel.style.transform = "";
+
+      if (detailsReward) {
+        detailsReward.scrollTo({
+          top: 0,
+          left: 0,
+          behavior: "instant"
+        });
       }
-
-      toggleIcon.classList.toggle('hidden');
-    } else {
-      panel.classList.toggle('show');
     }
   }
 
-  function closeAnnouncement() {
-    panel.classList.remove('show');
-    overlay.classList.remove('active');
-    document.body.classList.remove('no-scroll');
-    document.querySelector('.toggle-icon').classList.remove('hidden');
+  function toggleAnnouncement() {
+    setPanelOpen(!panel.classList.contains("show"));
   }
 
-  document.addEventListener("keydown", (e) => {
+  function closeAnnouncement() {
+    setPanelOpen(false);
+  }
+
+  window.toggleAnnouncement = toggleAnnouncement;
+  window.closeAnnouncement = closeAnnouncement;
+
+  // Clicking the backdrop closes the panel.
+  overlay.addEventListener("click", closeAnnouncement);
+
+  // Close when clicking anywhere outside the panel or its toggle button.
+  document.addEventListener("pointerdown", e => {
+    if (
+      window.innerWidth > 991 ||
+      !panel.classList.contains("show")
+    ) {
+      return;
+    }
+
+    if (
+      !panel.contains(e.target) &&
+      !infoButton?.contains(e.target)
+    ) {
+      closeAnnouncement();
+    }
+  });
+
+  document.addEventListener("keydown", e => {
     if (e.key === "Escape") closeAnnouncement();
   });
 
-
-  const detailsReward = panel?.querySelector(".details-reward");
-
-
-  function closeAnnouncement() {
-    panel.classList.remove("show");
-    document.body.classList.remove("no-scroll");
-
-    // 🔥 instantly reset scroll
-    if (detailsReward) {
-      detailsReward.scrollTo({
-        top: 0,
-        left: 0,
-        behavior: "instant" // no animation
-      });
-    }
-  }
-
-
-
+  // Mobile drag-to-dismiss using pointer events.
   const dragHandle = document.getElementById("dragHandle");
-  let startY = 0;
-  let currentY = 0;
-  let draggingY = false;
 
-  dragHandle.addEventListener("touchstart", (e) => {
-    e.preventDefault();
-    draggingY = true;
-    startY = e.touches[0].clientY;
-  });
+  if (dragHandle) {
+    dragHandle.style.touchAction = "none";
+    dragHandle.style.cursor = "grab";
 
-  dragHandle.addEventListener("touchmove", (e) => {
-    if (!draggingY) return;
+    let startY = 0;
+    let currentY = 0;
+    let dragging = false;
+    let activePointerId = null;
 
-    currentY = e.touches[0].clientY;
-    const deltaY = currentY - startY;
+    dragHandle.addEventListener("pointerdown", e => {
+      if (window.innerWidth > 991 || e.button !== 0) return;
+      if (!panel.classList.contains("show")) return;
 
-    if (deltaY > 0) {
-      panel.style.transform = `translateY(${deltaY}px)`;
+      dragging = true;
+      activePointerId = e.pointerId;
+      startY = e.clientY;
+      currentY = startY;
+
+      panel.style.transition = "none";
+      dragHandle.style.cursor = "grabbing";
+
+      dragHandle.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    });
+
+    dragHandle.addEventListener("pointermove", e => {
+      if (!dragging || e.pointerId !== activePointerId) return;
+
+      currentY = e.clientY;
+
+      const deltaY = Math.max(0, currentY - startY);
+      panel.style.transform = `translate3d(0, ${deltaY}px, 0)`;
+    });
+
+    function finishDrag(e) {
+      if (!dragging || e.pointerId !== activePointerId) return;
+
+      currentY = e.clientY;
+
+      const deltaY = currentY - startY;
+      dragging = false;
+      activePointerId = null;
+
+      panel.style.transition = "";
+      dragHandle.style.cursor = "grab";
+
+      if (deltaY > 80) {
+        closeAnnouncement();
+      } else {
+        panel.style.transform = "";
+      }
     }
-  });
 
-  dragHandle.addEventListener("touchend", () => {
-    if (!draggingY) return;
+    dragHandle.addEventListener("pointerup", finishDrag);
 
-    const deltaY = currentY - startY;
-    draggingY = false;
-    panel.style.transform = "";
+    dragHandle.addEventListener("pointercancel", () => {
+      dragging = false;
+      activePointerId = null;
+      panel.style.transition = "";
+      panel.style.transform = "";
+      dragHandle.style.cursor = "grab";
+    });
 
-    if (deltaY > 80) {
-      closeAnnouncement(); // 🔥 scroll reset happens here
-    }
-  });
+    dragHandle.addEventListener("lostpointercapture", () => {
+      if (!dragging) return;
+
+      dragging = false;
+      activePointerId = null;
+      panel.style.transition = "";
+      panel.style.transform = "";
+      dragHandle.style.cursor = "grab";
+    });
+  }
+}
 
 
 
@@ -735,7 +820,6 @@ async function loadLeaderboardSprint() {
         return `${month} ${day}, ${hours}:${minutes} ${ampm}`;
     }
 
-    // sprint date range
     const startEl = document.getElementById("timezone-start");
     const endEl = document.getElementById("timezone-end");
 
@@ -797,7 +881,6 @@ const end   = new Date(endEl.dataset.utc);
         countdownLabel.textContent = label;
         } 
         else {
-        // ✅ SPRINT ENDED (HTML)
         countdownLabel.innerHTML = `
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
             <path d="M17,24H7.005a4.014,4.014,0,0,1-3.044-1.4,3.94,3.94,0,0,1-.917-3.158A12.522,12.522,0,0,1,7.445,12a12.522,12.522,0,0,1-4.4-7.444A3.94,3.94,0,0,1,3.961,1.4,4.014,4.014,0,0,1,7.005,0H17a4.017,4.017,0,0,1,3.044,1.4,3.943,3.943,0,0,1,.918,3.155A12.556,12.556,0,0,1,16.551,12a12.557,12.557,0,0,1,4.406,7.448,3.944,3.944,0,0,1-.918,3.156A4.017,4.017,0,0,1,17,24ZM17,2H7.005a2.015,2.015,0,0,0-1.528.7,1.921,1.921,0,0,0-.456,1.556c.376,2.5,1.924,4.84,4.6,6.957a1,1,0,0,1,0,1.568C6.945,14.9,5.4,17.242,5.021,19.741A1.921,1.921,0,0,0,5.477,21.3a2.015,2.015,0,0,0,1.528.7H17a2.014,2.014,0,0,0,1.528-.7,1.917,1.917,0,0,0,.456-1.554c-.373-2.487-1.92-4.829-4.6-6.962a1,1,0,0,1,0-1.564c2.681-2.133,4.228-4.475,4.6-6.963A1.916,1.916,0,0,0,18.523,2.7,2.014,2.014,0,0,0,17,2ZM15.681,20H8.318a1,1,0,0,1-.927-1.374,11.185,11.185,0,0,1,3.471-4.272l.518-.412a1,1,0,0,1,1.245,0l.509.406a11.3,11.3,0,0,1,3.473,4.276A1,1,0,0,1,15.681,20Zm-5.647-2h3.928A11.57,11.57,0,0,0,12,16,11.3,11.3,0,0,0,10.034,18Z"/>
@@ -846,7 +929,8 @@ const end   = new Date(endEl.dataset.utc);
     tooltip.className = "tooltip-text";
     tooltip.textContent = "Edit";
     tooltip.style.opacity = "0";
-    document.body.appendChild(tooltip);
+    tooltip.style.transform = "translateY(-4px)";
+    document.getElementById("inject-main-card").appendChild(tooltip);
 
     let visible = false;
 
@@ -856,10 +940,8 @@ const end   = new Date(endEl.dataset.utc);
         const rect = wrapper.getBoundingClientRect();
         if (!rect || tooltip.offsetHeight === 0) return;
 
-        tooltip.style.top =
-        `${rect.top - tooltip.offsetHeight - 8}px`;
-        tooltip.style.left =
-        `${rect.right - tooltip.offsetWidth}px`;
+        tooltip.style.top = `${rect.bottom + 8}px`;
+        tooltip.style.left = `${rect.right - tooltip.offsetWidth}px`;
     }
 
     wrapper.addEventListener("mouseenter", () => {
@@ -872,7 +954,7 @@ const end   = new Date(endEl.dataset.utc);
     wrapper.addEventListener("mouseleave", () => {
         visible = false;
         tooltip.style.opacity = "0";
-        tooltip.style.transform = "translateY(4px)";
+        tooltip.style.transform = "translateY(-4px)";
     });
 
     window.addEventListener("scroll", positionTooltip, true);
@@ -885,12 +967,11 @@ const end   = new Date(endEl.dataset.utc);
 
  
     const wrapperSpr = document.getElementById("edit-button-wrapper");
-    if (!wrapperSpr) return; // no button in DOM
+    if (!wrapperSpr) return;
 
     const endDate = new Date(wrapperSpr.dataset.sprintEnd);
     const hasEnded = wrapperSpr.dataset.hasEnded === "true";
 
-    // Hide immediately if backend already marked ended
     if (hasEnded) {
         wrapperSpr.remove();
         return;
@@ -898,8 +979,7 @@ const end   = new Date(endEl.dataset.utc);
 
 
 
-    // Timer check
-    let timer; // ✅ declare before use
+    let timer;
     function checkSprintEnded() {
         const now = new Date();
         if (now >= endDate) {
@@ -908,7 +988,7 @@ const end   = new Date(endEl.dataset.utc);
         }
     }
 
-    checkSprintEnded(); // initial run
+    checkSprintEnded();
     timer = setInterval(checkSprintEnded, 10000); 
     }
 
@@ -964,11 +1044,59 @@ function timeAgo(date) {
   return "just now";
 }
 
+/* ==========================================================
+   Desktop profile hover card placement
+   The card must stay INSIDE the main left panel:
+   - starts next to the cursor
+   - flips to the left of the cursor if there is no room on the right
+   - flips above the cursor if there is no room below
+   - then gets clamped so it can never cross the panel edges
+   (mobile uses the fixed full-screen layout from the CSS)
+   ========================================================== */
+function placeActivityModal(position) {
+  if (window.innerWidth <= 767 || !position) return;
+
+  const panelEl =
+    document.getElementById("leftPanel") ||
+    document.querySelector(".info-left");
+
+  const bounds = panelEl
+    ? panelEl.getBoundingClientRect()
+    : { left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight };
+
+  const gap = 12;       // breathing room from the panel edges
+  const offset = 12;    // distance from the cursor
+
+  const w = modal.offsetWidth;
+  const h = modal.offsetHeight;
+
+  let left = position.x + offset;
+  let top = position.y + offset;
+
+  // no room on the right of the cursor -> open to its left
+  if (left + w > bounds.right - gap) {
+    left = position.x - w - offset;
+  }
+
+  // vertical: never jump above the cursor. Start at the cursor and, if the
+  // card is taller than the space below, only slide it up by the overflow
+  // (the clamp below), so it stays as low as the panel allows.
+
+  // final safety clamp, always inside the panel
+  left = Math.max(bounds.left + gap, Math.min(left, bounds.right - w - gap));
+  top = Math.max(bounds.top + gap, Math.min(top, bounds.bottom - h - gap));
+
+  modal.style.left = left + "px";
+  modal.style.top = top + window.scrollY + "px";
+}
+
 async function showUserActivity(username, position) {
 
   const isMobile = window.innerWidth <= 767;
+  const requestId = ++activityRequestId;
 
-  // 👉 show loader instantly
+  modal.classList.add("profile-mode");
+
   modalContent.innerHTML = `
     <div class="activity-loading">
       ${fetchingSvg}
@@ -977,222 +1105,157 @@ async function showUserActivity(username, position) {
 
   modal.classList.remove("hidden");
 
-  // 👉 position only for desktop
   if (!isMobile && position) {
-    const offset = 12;
-    modal.style.top = position.y + window.scrollY + offset + "px";
-    modal.style.left = position.x + offset + "px";
+    placeActivityModal(position);
   }
 
   try {
     const res = await fetch(`/api/${communitySlug}/user/${username}/activity`);
     const data = await res.json();
 
+    if (requestId !== activityRequestId) return;
+
     renderUserActivity(data, isMobile, position);
 
   } catch (err) {
+    if (requestId !== activityRequestId) return;
     modalContent.innerHTML = `<div class="error">Failed to load</div>`;
   }
 }
 
 
+function activityItemHtml(act, data) {
+  if (act.type === "admin_xp_action") {
+    const sign = act.xp > 0 ? "+" : "";
+    const xpClass = act.xp > 0 ? "activity-xp" : "activity-xp negative";
+
+    return `
+      <div class="activity-item">
+        <div class="activity-left">
+          ${act.message}
+          <span class="activity-time-inline">${timeAgo(act.completed_at)}</span>
+        </div>
+        <div class="${xpClass}">${sign}${act.xp} XP</div>
+      </div>
+    `;
+  }
+
+  const actor = data.is_current_user ? "You" : data.username;
+
+  return `
+    <div class="activity-item">
+      <div class="activity-left">
+        <span class="activity-user">${actor}</span>
+        completed
+        <span class="activity-quest">${act.subquest_name}</span>
+        <span class="activity-time-inline">${timeAgo(act.completed_at)}</span>
+      </div>
+      ${act.xp !== null ? `<div class="activity-xp">+${act.xp} XP</div>` : ``}
+    </div>
+  `;
+}
+
+
+function buildActivityCard(data, isMobile) {
+  const bg = getColor(data.user_id);
+  const textColor = getTextColor(bg);
+
+  const hasBanner = data.banner && data.banner.trim() !== "";
+  const hasImage = data.image && data.image.trim() !== "";
+
+  const progress = data.next_level_xp > 0
+    ? Math.min(100, Math.max(0, (data.current_xp / data.next_level_xp) * 100))
+    : 0;
+
+  const bannerHtml = `
+    <div class="act-banner${hasBanner ? " has-banner" : ""}"
+         style="--b1:${bg}; --b2:${textColor}; --b3:#4888f0;">
+      <div class="act-banner-media">
+        <div class="act-banner-art" aria-hidden="true">
+          <i class="act-blob ab1"></i><i class="act-blob ab2"></i><i class="act-blob ab3"></i>
+          <span class="act-banner-sheen"></span>
+        </div>
+        ${hasBanner ? `<img class="act-banner-img" src="${data.banner}" alt="${data.username} banner">` : ``}
+        <div class="act-banner-shade"></div>
+      </div>
+      ${
+        isMobile
+          ? `<button class="act-back-btn" id="activityBackBtn" type="button">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg> Back
+            </button>`
+          : ``
+      }
+    </div>
+  `;
+
+  const rolesHtml = `
+    <div class="act-roles">
+      <span class="role-core">${data.core_role}</span>
+      ${data.extra_roles.map(r =>
+        `<span class="role-extra" style="background:${r.color}">${r.name}</span>`
+      ).join("")}
+    </div>
+  `;
+
+  const headHtml = `
+    <div class="act-head">
+      <div class="act-avatar" style="background:${bg}; color:${textColor};">
+        ${
+          hasImage
+            ? `<img src="${data.image}" alt="${data.username}">`
+            : `<span>${data.username[0].toUpperCase()}</span>`
+        }
+      </div>
+      <div class="act-meta">
+        <div class="act-username">${data.username}</div>
+        ${rolesHtml}
+      </div>
+    </div>
+  `;
+
+  const activitiesHtml = data.activities.length === 0
+    ? `<div class="no-activity">No activity yet</div>`
+    : data.activities.map(act => activityItemHtml(act, data)).join("");
+
+  return `
+    <div class="act-card">
+      ${bannerHtml}
+      ${headHtml}
+      <div class="act-body">
+        <div class="act-level">
+          <div class="act-level-row">
+            <span class="act-level-label">Level ${data.level}</span>
+            <span class="act-level-progress">${data.current_xp} / ${data.next_level_xp} XP</span>
+          </div>
+          <div class="xp-bar">
+            <div class="xp-fill" style="width:${progress}%"></div>
+          </div>
+        </div>
+
+        <div class="act-activities">
+          <div class="recent-activity-title">Recent activity</div>
+          <div class="act-activity-list">${activitiesHtml}</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 
 function renderUserActivity(data, isMobile, position) {
 
-  modalContent.innerHTML = "";
+  modalContent.innerHTML = buildActivityCard(data, isMobile);
 
   if (isMobile) {
-
-    const progress = (data.current_xp / data.next_level_xp) * 100;
-
-    modalContent.innerHTML = `
-    <div class="mobile-user-card">
-
-      <!-- 🔥 TOP BAR -->
-      <div class="mobile-top-bar">
-        <button class="back-btn-modalinit" id="activityBackBtn">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <path d="M15 6L9 12L15 18"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"/>
-          </svg> Back
-        </button>
-      </div>
-
-      <!-- USER -->
-      <div class="mobile-user-header">
-        ${
-          data.image && data.image.trim() !== ""
-            ? `<img class="mobile-avatar" src="${data.image}" alt="${data.username}">`
-            : `<div class="mobile-avatar mobile-avatar-fallback"
-                    style="display:flex;align-items:center;justify-content:center;
-                          background:${getColor(data.user_id)};
-                          color:${getTextColor(getColor(data.user_id))};
-                          font-weight:500;">
-                ${data.username[0].toUpperCase()}
-              </div>`
-        }
-
-        <div class="mobile-user-meta">
-          <div class="mobile-username">${data.username}</div>
-        </div>
-      </div>
-
-      <!-- XP -->
-      <div class="init-fillere">
-        <div class="mobile-level-row">
-          <span class="mobile-level-label">Level ${data.level}</span>
-          <span class="mobile-level-progress">
-            ${data.current_xp} / ${data.next_level_xp}XP
-          </span>
-        </div>
-
-        <div class="xp-bar">
-          <div class="xp-fill" style="width:${progress}%"></div>
-        </div>
-      </div>
-
-      <!-- ROLES -->
-      <div class="mobile-roles">
-        <span class="role-core">${data.core_role}</span>
-
-        ${data.extra_roles.map(r =>
-          `<span class="role-extra" style="background:${r.color}">
-            ${r.name}
-          </span>`
-        ).join("")}
-      </div>
-
-      <!-- ACTIVITY -->
-      <div class="iner-llebei">
-        <div class="recent-activity-title">
-          Recent activity
-        </div>
-
-        ${
-          data.activities.length === 0
-            ? `<div class="no-activity">No activity yet</div>`
-            : data.activities.map(act => {
-
-                // 🔥 Admin XP grant/removal — different shape, own render path
-                if (act.type === "admin_xp_action") {
-                  const sign = act.xp > 0 ? "+" : "";
-                  const xpClass = act.xp > 0 ? "activity-xp" : "activity-xp negative";
-
-                  return `
-                    <div class="activity-item">
-                      <div class="activity-left">
-                        ${act.message}
-                        <span class="activity-time-inline">
-                          ${timeAgo(act.completed_at)}
-                        </span>
-                      </div>
-                      <div class="${xpClass}">${sign}${act.xp} XP</div>
-                    </div>
-                  `;
-                }
-
-                // quest_completion (default)
-                const actor = data.is_current_user ? "You" : data.username;
-
-                return `
-                <div class="activity-item">
-
-                  <div class="activity-left">
-                    <span class="activity-user">${actor}</span>
-                    completed
-                    <span class="activity-quest">${act.subquest_name}</span>
-                    <span class="activity-time-inline">
-                      ${timeAgo(act.completed_at)}
-                    </span>
-                  </div>
-
-                  ${
-                    act.xp !== null
-                      ? `<div class="activity-xp">+${act.xp} XP</div>`
-                      : ``
-                  }
-
-                </div>
-                `;
-
-              }).join("")
-        }
-      </div>
-
-    </div>
-    `;
-
-    // ✅ attach back button AFTER render
     const backBtn = document.getElementById("activityBackBtn");
     if (backBtn) {
       backBtn.addEventListener("click", hideActivity);
     }
-
   } else {
-
-    if (data.activities.length === 0) {
-
-      const empty = document.createElement("div");
-      empty.className = "no-activity";
-      empty.textContent = "No activity yet";
-
-      modalContent.appendChild(empty);
-
-    } else {
-
-      data.activities.forEach(act => {
-
-        const div = document.createElement("div");
-        div.className = "activity-item";
-
-        // 🔥 Admin XP grant/removal — different shape, own render path
-        if (act.type === "admin_xp_action") {
-          const sign = act.xp > 0 ? "+" : "";
-          const xpClass = act.xp > 0 ? "activity-xp" : "activity-xp negative";
-
-          div.innerHTML = `
-            <div class="activity-left">
-              ${act.message}
-              <span class="activity-time-inline">
-                ${timeAgo(act.completed_at)}
-              </span>
-            </div>
-            <div class="${xpClass}">${sign}${act.xp} XP</div>
-          `;
-
-          modalContent.appendChild(div);
-          return;
-        }
-
-        // quest_completion (default)
-        const text = data.is_current_user
-          ? `You completed ${act.subquest_name}`
-          : `${data.username} completed ${act.subquest_name}`;
-
-        div.innerHTML = `
-          <div class="activity-left">
-            ${text}
-            <span class="activity-time-inline">
-              ${timeAgo(act.completed_at)}
-            </span>
-          </div>
-
-          ${
-            act.xp !== null
-              ? `<div class="activity-xp">+${act.xp} XP</div>`
-              : ``
-          }
-        `;
-
-        modalContent.appendChild(div);
-
-      });
-
-    }
-
+    // the card is taller now than the loading spinner was, so place it again
+    requestAnimationFrame(() => placeActivityModal(position));
   }
 }
 

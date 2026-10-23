@@ -375,13 +375,14 @@ class SprintUserXP(db.Model):
     xp = db.Column(db.Integer, default=0, nullable=False)
 
     user = db.relationship("Users", backref="sprint_xp")
-    sprint = db.relationship("Sprint", backref="user_xp")
+    sprint = db.relationship(
+        "Sprint",
+        backref=db.backref("user_xp", cascade="all, delete-orphan"),
+    )
 
     __table_args__ = (
         db.UniqueConstraint("user_id", "sprint_id", name="unique_user_sprint_xp"),
     )
-
-
 
 class EarlyAccessApplication(db.Model):
     id = db.Column(db.Integer, primary_key=True)

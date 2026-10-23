@@ -22,7 +22,7 @@ class Subquest(db.Model):
     uuid = db.Column(db.String(36), unique=True, nullable=False, default=lambda: str(uuid.uuid4()))
     sprint_id = db.Column(
         db.Integer,
-        db.ForeignKey('sprints.id', ondelete="SET NULL"),
+        db.ForeignKey('sprints.id', ondelete="SET NULL"), 
         nullable=True
     )
     sprint_name = db.Column(db.String(255), nullable=True)
@@ -53,6 +53,17 @@ class Subquest(db.Model):
     user_timezone   = db.Column(db.String(64), nullable=True)
 
     is_draft = db.Column(db.Boolean, nullable=False, default=True)
+
+    # True once the "new quest" notifications (chat message, socket, email,
+    # discord, push) have been sent. Stays True even if the quest is moved
+    # back to draft and published again, so we never notify twice.
+    publish_notified = db.Column(
+        db.Boolean,
+        nullable=False,
+        default=False,
+        server_default=db.false()
+    )
+
     image_url = db.Column(db.String(255), nullable=True)
 
     created_at = db.Column(db.DateTime, server_default=func.now())
@@ -128,8 +139,8 @@ class SubquestRun(db.Model):
 
     subquest_id = db.Column(
         db.Integer,
-        db.ForeignKey("subquest.id", ondelete="SET NULL"),  # ✅ KEY CHANGE
-        nullable=True,  # ⚠️ must be nullable now
+        db.ForeignKey("subquest.id", ondelete="SET NULL"),
+        nullable=True,
         index=True
     )
 
@@ -159,21 +170,3 @@ class SubquestRun(db.Model):
     __table_args__ = (
         db.UniqueConstraint("subquest_id", "user_id", name="uq_subquest_user_run"),
     )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

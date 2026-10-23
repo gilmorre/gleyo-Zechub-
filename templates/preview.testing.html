@@ -2552,6 +2552,12 @@ body.light .confi-modal {
   color: var(--subtext);
 }
 
+#init-main-reaction img {
+  width: 1.25em;
+  height: 1.25em;
+  object-fit: contain;
+  vertical-align: middle;
+}
 
 .sheet-not-found, .init-sheet-not-found{
     color: var(--subtext) !important;
@@ -6419,6 +6425,18 @@ audio, .audio-bar {
   z-index: -1;
 }
 
+.reaction-filter-emoji {
+  font-size: inherit;
+}
+
+img.reaction-filter-emoji {
+  width: 1.25em;
+  height: 1.25em;
+  object-fit: contain;
+  flex-shrink: 0;
+  display: block;
+}
+
 .ticket-action:hover {
   background: var(--system-hover);
   --edge-hi: rgba(210, 230, 255, 0.55);
@@ -6520,6 +6538,7 @@ audio, .audio-bar {
   flex-direction: column;
   box-sizing: border-box !important;
 }
+
 }
 
 #admin-main,
@@ -11943,13 +11962,15 @@ async function getReactionUsers(messageId, emojiFilename) {
 
 
 function renderReactedUsers(users) {
-  const list = document.querySelector(".reacted-users-list");
+  const list = document.querySelector(
+    ".show-who-reacted-container .reacted-users-list"
+  );
   if (!list) return;
 
   list.innerHTML = "";
 
-  if (!users.length) {
-    list.innerHTML = `<div class="no-reactions">No reactions yet</div>`;
+  if (!users || !users.length) {
+    list.innerHTML = `<div style="padding:12px;color:#777;">No reactions</div>`;
     return;
   }
 
@@ -11957,15 +11978,21 @@ function renderReactedUsers(users) {
     const row = document.createElement("div");
     row.className = "reacted-user";
 
+    const avatarHTML = buildAvatarHTML({
+      avatar: normalizeAvatar(user.avatar),
+      userId: user.id,
+      username: user.name
+    }).replace('class="avatar', 'class="reacted-user-avatar avatar')
+      .replace('class="avatar avatar-fallback"', 'class="reacted-user-avatar avatar-fallback"');
+
     row.innerHTML = `
-      <img class="reacted-user-avatar" src="${user.avatar}">
-      <div class="reacted-user-name">${user.name}</div>
+      ${avatarHTML}
+      <div class="reacted-user-name">${escapeHTML(user.name)}</div>
     `;
 
     list.appendChild(row);
   });
 }
-
 
 
 
@@ -11986,13 +12013,31 @@ function emojiFilenameToUnicode(filename) {
     return "";
   }
 }
-function updateMainReactionEmoji(emoji) {
-  const mainEmoji = document.getElementById("init-main-reaction");
-  if (!mainEmoji || !emoji) return;
+function updateMainReactionEmoji(visual) {
+  const root = document.getElementById("reactModal") || document;
+  const el = root.querySelector("#init-main-reaction");
+  if (!el) return;
 
-  mainEmoji.textContent = emoji;
+  if (typeof visual === "string") {
+    visual = { type: "char", char: visual, name: "" };
+  }
+
+  if (visual.type === "img") {
+    el.innerHTML = `<img src="${visual.src}" draggable="false" loading="lazy" decoding="async">`;
+  } else {
+    el.textContent = visual.char;
+  }
+
+  const label = el.parentElement;
+  if (label) {
+    let textNode = el.nextSibling;
+    if (!textNode || textNode.nodeType !== Node.TEXT_NODE) {
+      textNode = document.createTextNode("");
+      label.appendChild(textNode);
+    }
+    textNode.nodeValue = visual.name ? ":" + visual.name : "";
+  }
 }
-
 
 
 function initReactionLongPress() {
@@ -12070,77 +12115,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initReactionLongPress();
 });
 
-function buildReactionFiltersFromMessage(messageWrapper, activeEmoji) {
-  const filterRow = document.querySelector(
-    "#reactModal .reaction-filter-row"
-  );
-  if (!filterRow || !messageWrapper) return;
-
-  // ✅ clear existing filters
-  filterRow.innerHTML = "";
-
-  const reactionsContainer = messageWrapper.querySelector(".reactions-container");
-  if (!reactionsContainer) return;
-
-  const reactions = reactionsContainer.querySelectorAll(".reaction");
-
-  reactions.forEach(reaction => {
-    let emoji = reaction.dataset.emoji || reaction.textContent.trim();
-
-    if (emoji.startsWith("emoji_u")) {
-      emoji = emojiFilenameToUnicode(emoji);
-    }
-
-    const count = reaction.dataset.count || "";
-
-    const filter = document.createElement("div");
-    filter.className = "reaction-filter";
-
-    const emojiSpan = document.createElement("span");
-    emojiSpan.className = "reaction-filter-emoji";
-    emojiSpan.textContent = emoji;
-
-    // count span
-    if (count) {
-      const countSpan = document.createElement("span");
-      countSpan.className = "reaction-filter-count";
-      countSpan.textContent = count;
-      filter.appendChild(emojiSpan);
-      filter.appendChild(countSpan);
-    } else {
-      filter.appendChild(emojiSpan);
-    }
-
-
-    if (emoji === activeEmoji) {
-      filter.classList.add("active");
-    }
-
-filter.addEventListener("click", async () => {
-  document
-    .querySelectorAll(".reaction-filter")
-    .forEach(el => el.classList.remove("active"));
-
-  filter.classList.add("active");
-
-  updateMainReactionEmoji(emoji);
-
-  const messageId = messageWrapper.dataset.msgIds;
-
-  // use filename (emoji_uXXXX) for DB
-  const emojiFilename =
-    reaction.dataset.emoji || reaction.textContent.trim();
-
-  const data = await getReactionUsers(messageId, emojiFilename);
-
-  renderReactedUsers(data.users);
-});
-
-
-
-    filterRow.appendChild(filter);
-  });
-}
+ 
 
 
 function initReactionModal() {
@@ -12259,34 +12234,102 @@ function openReactionModal(messageWrapper, activeEmoji) {
   const sheet = modal?.querySelector(".show-who-reacted-container");
   if (!modal || !sheet) return;
 
-  // ✅ reset drag state
   sheet.style.transform = "";
   sheet.style.transition = "";
 
-  // ✅ build filters dynamically
   if (messageWrapper) {
-      const messageId = messageWrapper.dataset.msgIds;
-
-      // load first emoji users immediately
-      const firstReaction = messageWrapper
-        .querySelector(".reaction");
-
-      if (firstReaction) {
-        const emojiFilename = firstReaction.dataset.emoji;
-        getReactionUsers(messageId, emojiFilename).then(data => {
-          renderReactedUsers(data.users);
-        });
-      }
-
-
     buildReactionFiltersFromMessage(messageWrapper, activeEmoji);
-    updateMainReactionEmoji(activeEmoji);
-
   }
+
   if (MessageBody) {
-    MessageBody.classList.add("overflow-hidden")
+    MessageBody.classList.add("overflow-hidden");
   }
   modal.classList.add("open");
+}
+
+function buildReactionFiltersFromMessage(messageWrapper, activeEmoji) {
+  const filterRow = document.querySelector("#reactModal .reaction-filter-row");
+  if (!filterRow || !messageWrapper) return;
+
+  filterRow.innerHTML = "";
+
+  const reactionsContainer = messageWrapper.querySelector(".reactions-container");
+  if (!reactionsContainer) return;
+
+  const reactions = reactionsContainer.querySelectorAll(".reaction");
+
+  reactions.forEach(reaction => {
+    const emojiKey = reaction.dataset.emoji || reaction.textContent.trim();
+    if (!emojiKey) return;
+
+    const img = reaction.querySelector("img");
+    let emojiChar = reaction.querySelector(".reaction-emoji")?.textContent?.trim() || "";
+
+    if (!img && !emojiChar) {
+      emojiChar = emojiKey.startsWith("emoji_u")
+        ? emojiFilenameToUnicode(emojiKey)
+        : reaction.textContent.trim();
+    }
+
+    const count =
+      reaction.querySelector(".reaction-count")?.textContent ||
+      reaction.dataset.count ||
+      "";
+
+    const filter = document.createElement("div");
+    filter.className = "reaction-filter";
+    filter.dataset.emoji = emojiKey;
+
+    let emojiEl;
+    if (img) {
+      emojiEl = document.createElement("img");
+      emojiEl.src = img.src;
+      emojiEl.className = "reaction-filter-emoji";
+      emojiEl.draggable = false;
+      emojiEl.loading = "lazy";
+      emojiEl.decoding = "async";
+    } else {
+      emojiEl = document.createElement("span");
+      emojiEl.className = "reaction-filter-emoji";
+      emojiEl.textContent = emojiChar;
+    }
+    filter.appendChild(emojiEl);
+
+    if (count) {
+      const countSpan = document.createElement("span");
+      countSpan.className = "reaction-filter-count";
+      countSpan.textContent = count;
+      filter.appendChild(countSpan);
+    }
+
+    const visual = img
+      ? { type: "img", src: img.src }
+      : { type: "char", char: emojiChar };
+
+    if (emojiKey === activeEmoji || (emojiChar && emojiChar === activeEmoji)) {
+      filter.classList.add("active");
+    }
+
+    filter.addEventListener("click", async () => {
+      filterRow
+        .querySelectorAll(".reaction-filter")
+        .forEach(el => el.classList.remove("active"));
+
+      filter.classList.add("active");
+
+      updateMainReactionEmoji(visual);
+
+      const messageId = messageWrapper.dataset.msgIds;
+      const data = await getReactionUsers(messageId, emojiKey);
+
+      renderReactedUsers(data.users);
+    });
+
+    filterRow.appendChild(filter);
+  });
+
+  const target = filterRow.querySelector(".reaction-filter.active") || filterRow.firstElementChild;
+  if (target) target.click();
 }
 
 
@@ -12452,13 +12495,32 @@ function closeReactionModal() {
     font-size: 15px;
     color: var(--text);
   }
+
+@property --edge-hi {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: rgba(255, 255, 255, 0.42);
+}
+@property --edge-lo {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: rgba(255, 255, 255, 0.05);
+}
+
+:root {
+  --edge-hi: rgba(255, 255, 255, 0.42);
+  --edge-lo: rgba(255, 255, 255, 0.05);
+  --edge-w: 1px;
+}
+
 .reaction-view-modal {
   position: absolute;
   width: 220px;
   max-height: 220px;
   min-height: 120px;
-  background: var(--bg-card);
+  background: var(--card-bg-glassy);
   border-radius: 18px;
+  backdrop-filter: blur(4px);
   box-shadow: var(--box-shadow);
   display: flex;
   flex-direction: column;
@@ -12472,6 +12534,27 @@ function closeReactionModal() {
     transform 0.18s ease;
 
   z-index: 1000;
+}
+
+/* gradient edge, same as the profile card / modals */
+.reaction-view-modal::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: var(--edge-w);
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    var(--edge-hi) 0%,
+    var(--edge-lo) 28%,
+    var(--edge-lo) 72%,
+    var(--edge-hi) 100%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
 }
 
 .reaction-view-modal.open {
@@ -12613,7 +12696,7 @@ function renderReactedUsers(users) {
   );
   if (!list) return;
 
-  list.innerHTML = ""; // 🔥 CLEAR OLD USERS
+  list.innerHTML = "";
 
   if (!users || !users.length) {
     list.innerHTML = `<div style="padding:12px;color:#777;">No reactions</div>`;
@@ -12624,9 +12707,16 @@ function renderReactedUsers(users) {
     const row = document.createElement("div");
     row.className = "reacted-user";
 
+    const avatarHTML = buildAvatarHTML({
+      avatar: normalizeAvatar(user.avatar),
+      userId: user.id,
+      username: user.name
+    }).replace('class="avatar', 'class="reacted-user-avatar avatar')
+      .replace('class="avatar avatar-fallback"', 'class="reacted-user-avatar avatar-fallback"');
+
     row.innerHTML = `
-      <img class="reacted-user-avatar" src="${normalizeAvatar(user.avatar) || ''}">
-      <div class="reacted-user-name">${user.name}</div>
+      ${avatarHTML}
+      <div class="reacted-user-name">${escapeHTML(user.name)}</div>
     `;
 
     list.appendChild(row);
@@ -12677,18 +12767,40 @@ function renderReactionViewUsers(users) {
 
   list.innerHTML = "";
 
+  if (!users || !users.length) {
+    list.innerHTML = `<div class="reaction-view-empty" style="padding:12px;color:#777;">No reactions</div>`;
+    return;
+  }
+
+  const frag = document.createDocumentFragment();
+
   users.forEach(user => {
     const row = document.createElement("div");
     row.className = "reaction-view-user";
+
+    // build the avatar (image or initials fallback) the same way as the other list
+    const avatarHTML = buildAvatarHTML({
+      avatar: normalizeAvatar(user.avatar),
+      userId: user.id,
+      username: user.name
+    });
+
     row.innerHTML = `
-      <img class="reaction-view-avatar" src="${user.avatar}">
-      <div class="reaction-view-name">${user.name}</div>
+      ${avatarHTML}
+      <div class="reaction-view-name">${escapeHTML(user.name)}</div>
     `;
-    list.appendChild(row);
+
+    // add our class to the avatar element without string-replacing HTML
+    const avatarEl = row.firstElementChild;
+    if (avatarEl) avatarEl.classList.add("reaction-view-avatar");
+
+    frag.appendChild(row);
   });
+
+  list.appendChild(frag);
 }
 
-function buildDesktopReactionFilters(messageWrapper, activeEmojiFilename) {
+function buildDesktopReactionFilters(messageWrapper, activeEmojiKey) {
   const column = document.querySelector(".reaction-filter-column");
   if (!column || !messageWrapper) return;
 
@@ -12697,41 +12809,44 @@ function buildDesktopReactionFilters(messageWrapper, activeEmojiFilename) {
   const reactions = messageWrapper.querySelectorAll(".reaction");
 
   reactions.forEach(reaction => {
-    const emojiFilename = reaction.dataset.emoji;
-    if (!emojiFilename) return;
+    const emojiKey = reaction.dataset.emoji;
+    if (!emojiKey) return;
 
     const img = reaction.querySelector("img");
-    if (!img) return;
+    const emojiChar = reaction.querySelector(".reaction-emoji")?.textContent;
+
+    // need at least one of them
+    if (!img && !emojiChar) return;
 
     const count =
       reaction.querySelector(".reaction-count")?.textContent || "1";
 
     const filter = document.createElement("div");
     filter.className = "reaction-filter";
-    filter.dataset.emoji = emojiFilename;
+    filter.dataset.emoji = emojiKey;
 
-    filter.innerHTML = `
-      <img src="${img.src}" draggable="false" loading="lazy" decoding="async">
-      <span class="count">${count}</span>
-    `;
+    const visualHTML = img
+      ? `<img src="${img.src}" draggable="false" loading="lazy" decoding="async">`
+      : `<span class="reaction-emoji">${emojiChar}</span>`;
 
-    if (emojiFilename === activeEmojiFilename) {
+    filter.innerHTML = `${visualHTML}<span class="count">${count}</span>`;
+
+    const visual = img ? { type: "img", src: img.src } : { type: "char", char: emojiChar };
+
+    if (emojiKey === activeEmojiKey) {
       filter.classList.add("active");
-      updateDesktopMainReaction(img.src, emojiFilename);
+      updateDesktopMainReaction(visual, emojiKey);
     }
 
     filter.addEventListener("click", async () => {
-      document
-        .querySelectorAll(".reaction-filter")
+      column.querySelectorAll(".reaction-filter")
         .forEach(el => el.classList.remove("active"));
 
       filter.classList.add("active");
-
-      updateDesktopMainReaction(img.src, emojiFilename);
+      updateDesktopMainReaction(visual, emojiKey);
 
       const messageUUID = messageWrapper.dataset.msgIds;
-      const data = await getDesktopReactionUsers(messageUUID, emojiFilename);
-
+      const data = await getDesktopReactionUsers(messageUUID, emojiKey);
       renderReactedUsers(data.users);
     });
 
@@ -12739,17 +12854,17 @@ function buildDesktopReactionFilters(messageWrapper, activeEmojiFilename) {
   });
 }
 
-function updateDesktopMainReaction(imgSrc, emojiFilename) {
-  const holder = document.getElementById("init-main-reaction");
-  if (!holder) return;
+function updateDesktopMainReaction(visual, emojiKey) {
+  const el = document.getElementById("init-main-reaction");
+  if (!el) return;
 
-  holder.innerHTML = `<img src="${imgSrc}" draggable="false" loading="lazy" decoding="async">`;
-
-  const title = holder.closest(".desktop-reaction-title");
-  if (title) {
-    title.lastChild.textContent =
-      `:${emojiFilename.replace("emoji_", "").replace(".svg", "")}`;
+  if (visual.type === "img") {
+    el.innerHTML = `<img src="${visual.src}" draggable="false" loading="lazy" decoding="async">`;
+  } else {
+    el.textContent = visual.char;
   }
+
+  // update the ":name" text next to it however you were doing it before
 }
 
 
@@ -12826,27 +12941,19 @@ document
     const bigModal = document.querySelector(".show-modal-react");
 
     const messageUUID = miniModal.dataset.messageUuid;
-    const emojiFilename = miniModal.dataset.emoji;
+    const emojiKey = miniModal.dataset.emoji;
 
     const messageWrapper = document.querySelector(
       `.message-wrapper[data-msg-ids="${messageUUID}"]`
     );
 
-    closeReactionViewModal()
+    closeReactionViewModal();
     bigModal.style.display = "flex";
 
-    buildDesktopReactionFilters(messageWrapper, emojiFilename);
+    // this already sets the main reaction for the active one
+    buildDesktopReactionFilters(messageWrapper, emojiKey);
 
-    const data = await getDesktopReactionUsers(messageUUID, emojiFilename);
-
-    const activeReactionImg = messageWrapper.querySelector(
-      `.reaction[data-emoji="${emojiFilename}"] img`
-    );
-
-    if (activeReactionImg) {
-      updateDesktopMainReaction(activeReactionImg.src, emojiFilename);
-    }
-
+    const data = await getDesktopReactionUsers(messageUUID, emojiKey);
     renderReactedUsers(data.users);
   });
 

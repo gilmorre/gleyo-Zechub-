@@ -3,7 +3,6 @@
 
 @media (max-width: 991px) {
 
-
   .info-left.maner{
     width: 100%;
     height: 100%;
@@ -14,30 +13,38 @@
     margin: 0;
   }
 
-
-
 }
 
 .activity-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   padding: 6px 0;
 }
 
+@media (min-width:767px){
 
-.activity-modal{
-  position:absolute;
-  background:var(--bg-surface);
-  border: 0.9px solid var(--border);
-  border-radius: 20px;
-  padding: 18px 15px;
-  width: auto;
-  min-width: 300px;
-  max-width: 470px;
-  z-index: 999;
-  box-shadow:0 10px 30px rgba(0,0,0,0.5);
+  .activity-modal{
+    position:absolute;
+    background:var(--bg-surface);
+    border: 0.9px solid var(--border);
+    border-radius: 20px;
+    padding: 18px 15px;
+    width: auto;
+    min-width: 300px;
+    max-width: 470px;
+    z-index: 999;
+    box-shadow:0 10px 30px rgba(0,0,0,0.5);
+  }
+
+  .activity-modal.profile-mode {
+    padding: 0;
+    width: 340px;
+    min-width: 340px;
+    max-width: 340px;
+    overflow: hidden;
+  }
 }
 
 .activity-content{
@@ -47,10 +54,6 @@
   font-size:13px;
 }
 
-
-
-/* MOBILE FULLSCREEN */
-
 @media (max-width:767px){
 
   .activity-modal{
@@ -59,7 +62,9 @@
     width:100% !important;
     min-width:100% !important;
     max-width:100% !important;
-    height: var(100dvh - 0) !important;
+    /* inset:0 + top:60px already stretches it to the bottom of the screen.
+       (the old "height: var(100dvh - 0)" was invalid CSS and was ignored) */
+    height: auto !important;
     top: 60px !important;
     background-color: transparent;
 
@@ -82,12 +87,9 @@
     flex-direction: column;
   }
 
-
 }
 
-
 @media (max-width: 991px) {
-
 
   .contain-container {
     display: flex;
@@ -96,9 +98,7 @@
     justify-content: space-between;
   }
 
-
 }
-
 
 .info-card {
   display: flex;
@@ -110,7 +110,6 @@
 .info-top {
   width: 100%;
 }
-
 
 @media (min-width: 767px) {
   .info-left.maner {
@@ -130,8 +129,6 @@
   .cta-popup-overlay {
     display: none;
   }
-  
-
 
 @media (max-width: 1093px) {
   .left-panel {
@@ -148,7 +145,6 @@
 
 }
 
-
 }
 @media (max-width: 991px) and (min-width: 768px) {
   .main-wrapper {
@@ -157,7 +153,6 @@
     height: calc(100dvh - 20px);
   }
 }
-
 
 @media (max-width: 767px) {
  
@@ -175,12 +170,9 @@
     overflow: hidden;
   }
 
-
   #rightPanel {
     display: none;
   }
-
-
 
   #dragHandle {
     width: 100%;
@@ -224,21 +216,14 @@
     overflow-y: auto;
   }
 
-  /* WHEN OPEN */
   .announcement-container.show {
     transform: translateY(0);
   }
 
-
-  
   .tooltip-text {
     display: none !important;
   }
 }
-
-
-
-
 
 @media (min-width: 768px) {
 
@@ -250,18 +235,14 @@
     overflow: hidden;
   }
 
- 
-
-
   .announcement-container {
     flex: 0 0 30%;
     background: var(--bg-sidebar)!important;
 
-
   }
   
 .tooltip-text {
-  position: fixed; /* 🔥 important */
+  position: fixed;
   background: var(--bg-sidebar);
   border: 1px solid var(--border);
   color: var(--text-main);
@@ -279,24 +260,14 @@
   z-index: 99999;
 }
 
-
   .tooltip-wrapper:hover .tooltip-text {
     opacity: 1;
   }
 
-  
-
-
- 
   .drag-handle {
     display: none;
   }
 }
-
-
-
-
-
 
 .info-top {
   position: relative;
@@ -313,14 +284,6 @@
   overflow: hidden;
 }
 
-
-
-
-
-
-
-
-
 .info-content {
   display: flex;
   flex-direction: column;
@@ -328,13 +291,6 @@
   width: 100%;
 }
 
-
-
-
-
-
-
-/* ---------- TITLE ---------- */
 .sprint-title {
   font-size: 1.4rem;
   font-weight: 600;
@@ -346,9 +302,6 @@
 .reward-info-row.Gleyo {
   display: inline-flex !important;
 }
-
-
-
 
 .info-bottom-wrapper {
   padding: 14px 0;
@@ -393,7 +346,6 @@
   padding: 14px;
 }
 
-
 .info-bottom::before {
   content: "";
   position: absolute;
@@ -411,11 +363,6 @@
   z-index: 0;
 }
 
-
- 
-
-
-
 .participants-list {
   list-style: none;
   padding: 0;
@@ -425,9 +372,6 @@
   flex-direction: column;
   gap: 8px;
 }
-
-
-
 
 .participant-item {
   display: flex;
@@ -458,7 +402,6 @@
   flex-shrink: 0;
 }
 
-
 .participant-info {
   display: flex;
   justify-content: space-between;
@@ -478,12 +421,9 @@
   color: var(--text-main);
 }
 
-
-
 .participant-item:hover {
   background: var(--bg-hover-hover);
 }
-
 
 .participants-list::-webkit-scrollbar {
   width: 6px;
@@ -494,15 +434,9 @@
   border-radius: 10px;
 }
 
-
-
 body.no-scroll {
   overflow: hidden !important;
 }
-
-
-
-
 
 .participants-meta {
   display: inline-flex;
@@ -518,7 +452,6 @@ body.no-scroll {
 
   padding: 6px 10px;
   background: rgba(255, 255, 255, 0.08);
-  border: 1px solid #e5e7eb19;
 }
 
 .participants-icon {
@@ -526,6 +459,66 @@ body.no-scroll {
   width: 16px;
   color: var(--text-main);
   height: 16px;
+}
+
+@property --edge-hi {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: rgba(255, 255, 255, 0.42);
+}
+
+@property --edge-lo {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: rgba(255, 255, 255, 0.05);
+}
+
+:root {
+  --edge-hi: rgba(255, 255, 255, 0.42);
+  --edge-lo: rgba(255, 255, 255, 0.05);
+  --edge-w: 1px;
+}
+
+@media (min-resolution: 2dppx) {
+  :root {
+    --edge-w: 0.75px;
+  }
+}
+
+.participants-meta,
+.reward-zone-label,
+.top-rank-row,
+.export-btn {
+  position: relative;
+  isolation: isolate;
+  border: none !important;
+}
+
+.participants-meta::before,
+.reward-zone-label::before,
+.top-rank-row::before,
+.export-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: var(--edge-w);
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    var(--edge-hi) 0%,
+    var(--edge-lo) 28%,
+    var(--edge-lo) 72%,
+    var(--edge-hi) 100%
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
 }
 
 .participants-icon svg {
@@ -541,13 +534,6 @@ body.no-scroll {
   white-space: nowrap;
 }
 
-
-
-
-
-
-
-
 .info-left.maner{
   position: relative;
   overflow: hidden; 
@@ -562,15 +548,6 @@ body.no-scroll {
   pointer-events: none;
 }
 
-
-
-
-
-
- 
-
-
- 
 .right-panel-grid {
   height: 100%;
   display: flex;
@@ -579,10 +556,6 @@ body.no-scroll {
   gap: 18px;
 }
 
-
-
-
-/* LIVE SPRINT HIGHLIGHT */
 .cta-card.live {
   border: 1px solid rgba(255, 80, 80, 0.4);
   background: rgba(255, 80, 80, 0.08);
@@ -597,12 +570,9 @@ body.no-scroll {
   gap: 14px;
 }
 
-/* SCROLLBAR SAFE */
 .right-section::-webkit-scrollbar {
   width: 6px;
 }
-
-
 
 .cta-card {
   max-height: calc(30dvh - 19px) !important;
@@ -615,11 +585,6 @@ body.no-scroll {
   min-height: calc(70dvh - 19px) !important;
   
 }
-
-
-
-
-
 
 .past-sprints {
   display: flex;
@@ -661,8 +626,6 @@ body.no-scroll {
   color: var(--text-main) !important;
 }
 
-
-
 .cardendec a:hover {
   background: var(--bg-hover-hover);
 }
@@ -697,10 +660,6 @@ body.no-scroll {
 .cta-card.live div {
   color: #ff5a5a;
 }
-
-
-
-
 
 .cta-card p {
   font-size: 13px;
@@ -744,14 +703,9 @@ body.no-scroll {
   gap: 14px;
 }
 
-
-
-
 .switch-between-sprints-wrap, .topbar {
   z-index: 99;
 }
-
-
 
 .info-left.maner {
   position: relative;
@@ -778,6 +732,26 @@ body.no-scroll {
   min-width: 320px;
 }
 
+.top-rank-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: space-between;
+  margin-top: 4px !important;
+
+  margin-right: auto !important;
+
+  opacity: 0.95;
+  border-radius: 18px;
+  margin: 0;
+
+  padding: 9px 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px dashed #e5e7eb19;
+  min-width: 320px;
+}
+
+
 @media (max-width: 768px) {
   .top-rank-row {
     min-width: 0;
@@ -793,7 +767,6 @@ body.no-scroll {
   min-width: 0;
 }
 
-/* 👇 RANK NUMBER */
 .rank-number {
   font-size: 0.85rem;
   font-weight: 700;
@@ -834,7 +807,6 @@ body.no-scroll {
   white-space: nowrap;
 }
 
-
 .empty-message {
   display: flex;
   flex-direction: column;
@@ -859,7 +831,6 @@ body.no-scroll {
 
 }
 
-
 .participants-section {
   position: relative;
   display: flex;
@@ -867,15 +838,12 @@ body.no-scroll {
   justify-content: center;
 }
 
-
-
 .switch-between-sprints-wrap{
   width: 100%;
   padding: 0 8px;
   margin-bottom: 48px !important;
 }
 
-/* container */
 .switch-between-sprints{
   position: relative;
   display: flex;
@@ -898,7 +866,6 @@ body.no-scroll {
     0 6px 22px rgba(0,0,0,0.55);
 }
 
-/* sliding pill */
 .switch-pill{
   position: absolute;
   top: 4px;
@@ -921,7 +888,6 @@ body.no-scroll {
   z-index: 1;
 }
 
-/* buttons */
 .switch-tab{
   all: unset;
   flex: 1;
@@ -964,7 +930,6 @@ body.no-scroll {
   }
 }
 
-
 @media (max-width: 767px) {
  
   .main-wrapper {
@@ -1004,12 +969,9 @@ body.no-scroll {
     padding-right: 8px !important;
   }
 
-  
   .right-panel {
     flex: 0 0 45% !important;
   }
-
-
 
   .info-left.maner {
     flex: 0 0 55%;
@@ -1041,13 +1003,11 @@ body.no-scroll {
     overflow-y: auto;
   }
 
-  /* WHEN OPEN */
   .right-panel.show {
     transform: translateY(0);
   }
 
 }
-
 
 @media (max-width: 767px) {
   .right-panel {
@@ -1063,24 +1023,19 @@ body.no-scroll {
   padding: 0 3px;
 }
 
-
-
-/* 🔒 General locked base */
 .lock-base {
   opacity: 0.4;
   cursor: not-allowed;
   position: relative;
-  pointer-events: auto; /* allow hover */
+  pointer-events: auto;
 }
 
-/* ✅ Hover tooltips show */
 .lock-swatch:hover::after,
 .lock-icon:hover::after,
 .lock-btn:hover::after {
   opacity: 1;
 }
 
-/* 🔒 Tooltip for swatches */
 .lock-swatch::after {
   content: "🔒 Premium color";
   position: absolute;
@@ -1098,7 +1053,6 @@ body.no-scroll {
   pointer-events: none;
 }
 
-/* 🔒 Tooltip for icons */
 .lock-icon::after {
   content: "🔒 Premium feature";
   position: absolute;
@@ -1116,7 +1070,6 @@ body.no-scroll {
   pointer-events: none;
 }
 
-/* 🔒 Tooltip for confirm button */
 .lock-btn::after {
   content: "🔒 Premium action";
   position: absolute;
@@ -1157,7 +1110,6 @@ body.no-scroll {
 }
 .export-btn:hover { background: rgba(255,255,255,0.14); }
 
-/* ---------- EXPORT MODAL (extras on top of modal-glass) ---------- */
 .export-loading {
   display: flex;
   justify-content: center;
@@ -1234,12 +1186,350 @@ body.no-scroll {
 
 #exportConfirmBtn:hover {
   background-color: #3a75d3;
+
+}
+
+
+.activity-modal.profile-mode .activity-content {
+  gap: 0;
+}
+
+.activity-modal.profile-mode .activity-loading,
+.activity-modal.profile-mode .error {
+  padding: 28px 18px;
+  display: flex;
+  justify-content: center;
+}
+
+.act-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.act-banner {
+  position: relative;
+  height: 110px;            
+  flex: 0 0 auto;       
+  align-self: stretch;
+  box-sizing: border-box;
+  margin: 8px 8px 0;
+  border-radius: 16px;
+  background: #1a1a2a;
+  overflow: hidden;
+}
+
+.act-banner-media {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  isolation: isolate;
+  border-radius: 16px;
+  clip-path: inset(0 round 16px);
+  -webkit-clip-path: inset(0 round 16px);
+  -webkit-mask-image: -webkit-radial-gradient(white, black);
+  transform: translateZ(0);
+}
+
+.act-banner-art {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #25253d, #14141f);
+}
+
+.act-banner.has-banner .act-banner-art {
+  display: none;
+}
+
+.act-blob {
+  position: absolute;
+  width: 60%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  filter: blur(34px);
+  opacity: .7;
+  mix-blend-mode: screen;
+  will-change: transform;
+}
+
+.act-blob.ab1 { background: var(--b1, #6B5B95); left: -10%; top: -45%; animation: actDrift1 14s ease-in-out infinite alternate; }
+.act-blob.ab2 { background: var(--b2, #92A8D1); right: -15%; top: 5%; animation: actDrift2 18s ease-in-out infinite alternate; }
+.act-blob.ab3 { background: var(--b3, #4888f0); left: 28%; bottom: -70%; width: 48%; animation: actDrift3 16s ease-in-out infinite alternate; }
+
+.act-banner-sheen {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 40%, rgba(255,255,255,.10) 50%, transparent 60%);
+  background-size: 250% 100%;
+  animation: actSheen 8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.act-banner-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  animation: actFade .5s ease both;
+}
+
+.act-banner-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,.35), transparent 55%);
+  pointer-events: none;
+}
+
+.act-back-btn {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 7px 12px 7px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.18);
+  background: rgba(0,0,0,.38);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.act-head {
+  position: relative;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: -26px;
+  padding: 0 16px 0 24px;
+}
+
+.act-avatar {
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 20px;
+  border: 3px solid var(--bg-surface);
+  box-sizing: border-box;
+}
+
+.act-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.act-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+}
+
+.act-username {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-main);
+  line-height: 1.2;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 6px rgba(0,0,0,.45);
+}
+
+.act-roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.act-body {
+  padding: 18px 16px 16px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.act-level {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.act-level-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+}
+
+.act-level-label {
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.act-level-progress {
+  color: var(--text-muted);
+}
+
+.act-activities {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.act-activity-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.act-activity-list .activity-item {
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.act-activity-list .activity-item:first-child {
+  padding-top: 4px;
+}
+
+.act-activity-list .activity-item:last-child {
+  border-bottom: none;
+  padding-bottom: 4px;
+}
+
+.act-activity-list .activity-left {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-style: normal;
+  line-height: 1.45;
+  color: var(--text-main);
+  overflow-wrap: anywhere;
+}
+
+.act-activity-list .activity-user {
+  font-weight: 600;
+  font-style: normal;
+}
+
+.act-activity-list .activity-quest {
+  font-weight: 600;
+  font-style: normal;
+}
+
+.act-activity-list .activity-time-inline {
+  display: block;
+  margin: 2px 0 0;
+  font-size: 11.5px;
+  font-style: normal;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.act-activity-list .activity-xp {
+  flex-shrink: 0;
+  white-space: nowrap;
+  align-self: center;
+}
+
+/* ==========================================================
+   MOBILE profile card
+   .activity-content no longer scrolls: it only clips.
+   The banner + header stay pinned at the top and .act-body
+   (level + recent activity) is the one that scrolls.
+   ========================================================== */
+@media (max-width: 767px) {
+  .activity-modal.profile-mode {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    overflow: visible;
+  }
+
+  .activity-modal.profile-mode .activity-content {
+    padding: 0 !important;
+    overflow: hidden !important;      /* was auto: this was the scroller */
+    min-height: 0;
+    gap: 0;
+  }
+
+  .activity-modal.profile-mode .act-card {
+    flex: 1 1 auto;
+    min-height: 0;                    /* lets .act-body shrink and scroll */
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .act-banner {
+    min-height: 130px;
+    border-radius: 20px;
+  }
+
+  .act-banner-media {
+    border-radius: 20px;
+    clip-path: inset(0 round 20px);
+    -webkit-clip-path: inset(0 round 20px);
+  }
+
+  .act-head {
+    flex: 0 0 auto;
+    margin-top: -32px;
+  }
+
+  .act-avatar {
+    width: 64px;
+    height: 64px;
+    font-size: 24px;
+    border-color: var(--bg-sidebar);
+  }
+
+  .act-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding-top: 20px;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    overflow-y: auto;                 /* the scroller */
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .act-activity-list {
+    max-height: none;
+    overflow: visible;
+  }
+}
+
+@keyframes actDrift1 { to { transform: translate(35%, 25%) scale(1.25); } }
+@keyframes actDrift2 { to { transform: translate(-40%, -15%) scale(.85); } }
+@keyframes actDrift3 { to { transform: translate(-30%, -20%) scale(1.3); } }
+@keyframes actSheen { 0% { background-position: 150% 0; } 60%,100% { background-position: -50% 0; } }
+@keyframes actFade { from { opacity: 0; filter: blur(8px); } to { opacity: 1; filter: blur(0); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .act-blob, .act-banner-sheen, .act-banner-img { animation: none; }
 }
 </style>
-{# --- CREATE STATE HOLDERS --- #}
 {% set ns = namespace(live=None, upcoming=None) %}
 
-{# --- SCAN SPRINTS ONCE --- #}
 {% for sprint in sprints %}
   {% if ns.live is none and sprint.start_date <= current_time and sprint.end_date >= current_time %}
     {% set ns.live = sprint %}
@@ -1248,7 +1538,12 @@ body.no-scroll {
   {% endif %}
 {% endfor %}
 
-{# --- PRIORITY RENDER --- #}
+{% set past_sprints = [] %}
+{% for sprint in sprints %}
+  {% if sprint.end_date < current_time and sprint != ns.upcoming %}
+    {% set _ = past_sprints.append(sprint) %}
+  {% endif %}
+{% endfor %}
 
 <div class="main-wrapper{% if community.is_paid %} badged{% else%}{%endif%}">
 
@@ -1376,14 +1671,10 @@ body.no-scroll {
 <div class="right-panel" id="rightPanel">
   <div id="rightPanelContent" class="right-panel-grid">
 
-    <!-- ======================================
-         MAIN / CURRENT STATE (ONE CARD ONLY)
-    ======================================= -->
     <div class="right-section main-sprint-state">
 
       {% if ns.live %}
 
-        <!-- LIVE — visible to everyone -->
         <div class="cta-card live">
           <div>
             Sprint is Live
@@ -1399,7 +1690,6 @@ body.no-scroll {
 
       {% elif ns.upcoming %}
 
-        <!-- STARTS SOON — visible to everyone -->
         <div class="cta-card sooner">
           <div>
             Sprint Starts Soon
@@ -1418,7 +1708,6 @@ body.no-scroll {
 
       {% elif can_manage_sprints %}
 
-        <!-- NO ACTIVE SPRINT — admin/editor only sees the create CTA -->
         <div class="cta-card">
           <h3>✨ Plan a Sprint</h3>
           <p>Mobilize your community and build momentum together.</p>
@@ -1427,7 +1716,6 @@ body.no-scroll {
 
       {% else %}
 
-        <!-- NO ACTIVE SPRINT — everyone else gets a passive, non-clickable message -->
         <div class="cta-card idle">
           <h3>No sprint yet</h3>
           <p>Check back soon — this community hasn't started a sprint.</p>
@@ -1437,26 +1725,21 @@ body.no-scroll {
 
     </div>
 
-    <!-- ======================================
-         PAST SPRINTS (OWN SECTION) — viewing results stays open to everyone
-    ======================================= -->
-    {% if sprints|length >= 2 %}
+    {% if past_sprints %}
     <div class="right-section past-sprints">
 
-      {% for sprint in sprints %}
-        {% if sprint.end_date < current_time %}
-          <div class="cta-carden">
-            <div class="cardendec">
-              <p><strong>{{ sprint.title }}</strong> has ended.</p>
-              <a href="/{{ community.slug }}/leaderboard/{{ sprint.uuid }}"
-                data-path="/{{ community.slug }}/leaderboard/{{ sprint.uuid }}"
-                onclick="event.preventDefault(); loadMainSettingsSection(this.dataset.path)"
-              >
-                View Results
-              </a>
-            </div>
+      {% for sprint in past_sprints %}
+        <div class="cta-carden">
+          <div class="cardendec">
+            <p><strong>{{ sprint.title }}</strong> has ended.</p>
+            <a href="/{{ community.slug }}/leaderboard/{{ sprint.uuid }}"
+              data-path="/{{ community.slug }}/leaderboard/{{ sprint.uuid }}"
+              onclick="event.preventDefault(); loadMainSettingsSection(this.dataset.path)"
+            >
+              View Results
+            </a>
           </div>
-        {% endif %}
+        </div>
       {% endfor %}
 
     </div>

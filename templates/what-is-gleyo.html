@@ -77,6 +77,17 @@
       width: 100%;
     }
 
+    html, body, .what-is-gleyo-container {
+      scrollbar-width: none;      
+      -ms-overflow-style: none;     
+    }
+
+    html::-webkit-scrollbar,
+    body::-webkit-scrollbar,
+    .what-is-gleyo-container::-webkit-scrollbar {
+      display: none;              
+    }
+    
     @media (max-width: 768px) {
       html, body {
         height: 100% !important;
@@ -342,16 +353,34 @@
       opacity: 1;
     }
 
+    /* Smooth open/close: animate grid row from 0fr to 1fr */
     .faq-answer {
-      display: none;
-      margin-top: 10px;
+      display: grid;
+      grid-template-rows: 0fr;
+      opacity: 0;
+      margin-top: 0;
       color: var(--muted);
       font-size: 14px;
       line-height: 1.6;
+      transition: grid-template-rows 0.3s ease, opacity 0.3s ease, margin-top 0.3s ease;
+    }
+
+    .faq-answer-inner {
+      overflow: hidden;
+      min-height: 0;
     }
 
     .faq-item.active .faq-answer {
-      display: block;
+      grid-template-rows: 1fr;
+      opacity: 1;
+      margin-top: 10px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .faq-answer,
+      .faq-icon {
+        transition: none;
+      }
     }
 
     footer {
@@ -447,7 +476,7 @@
             <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>
         </div>
-        <div class="faq-answer">Gleyo is a ZEC-native quest and community growth platform built on Zcash — users connect their Zcash wallet, complete quests, and withdraw rewards in ZEC directly to their shielded address.</div>
+        <div class="faq-answer"><div class="faq-answer-inner">Gleyo is a ZEC-native quest and community growth platform built on Zcash — users connect their Zcash wallet, complete quests, and withdraw rewards in ZEC directly to their shielded address.</div></div>
       </div>
 
       <div class="faq-item">
@@ -457,7 +486,7 @@
             <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>
         </div>
-        <div class="faq-answer">Zcash communities, DAOs, Web3 projects, founders and creators who want to reward contributors privately in ZEC.</div>
+        <div class="faq-answer"><div class="faq-answer-inner">Zcash communities, DAOs, Web3 projects, founders and creators who want to reward contributors privately in ZEC.</div></div>
       </div>
 
       <div class="faq-item">
@@ -467,7 +496,7 @@
             <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>
         </div>
-        <div class="faq-answer">ZEC is the only token with native shielded privacy at the protocol level. By being ZEC-only, Gleyo ensures every reward is private, non-custodial, and goes directly to the user's shielded wallet with no middleman.</div>
+        <div class="faq-answer"><div class="faq-answer-inner">ZEC is the only token with native shielded privacy at the protocol level. By being ZEC-only, Gleyo ensures every reward is private, non-custodial, and goes directly to the user's shielded wallet with no middleman.</div></div>
       </div>
 
       <div class="faq-item">
@@ -477,7 +506,7 @@
             <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>
         </div>
-        <div class="faq-answer">Any Zcash wallet that supports shielded Orchard addresses works — including Zold, Zkool, and Zingo. You simply connect your Zcash wallet address to receive ZEC rewards directly to your shielded address.</div>
+        <div class="faq-answer"><div class="faq-answer-inner">Any Zcash wallet that supports shielded Orchard addresses works — including Zold, Zkool, and Zingo. You simply connect your Zcash wallet address to receive ZEC rewards directly to your shielded address.</div></div>
       </div>
 
       <div class="faq-item">
@@ -487,7 +516,7 @@
             <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>
         </div>
-        <div class="faq-answer">Gleyo is free for users. Joining communities, completing quests, and withdrawing your ZEC rewards costs nothing. Communities run on paid plans, and you can see the details on the <a href="/pricing" style="color: var(--accent);">pricing page</a>.</div>
+        <div class="faq-answer"><div class="faq-answer-inner">Gleyo is free for users. Joining communities, completing quests, and withdrawing your ZEC rewards costs nothing. Communities run on paid plans, and you can see the details on the <a href="/pricing" style="color: var(--accent);">pricing page</a>.</div></div>
       </div>
 
     </div>
@@ -500,10 +529,16 @@
 </div>
 
 <script>
-document.querySelectorAll(".faq-question").forEach(q => {
-  q.onclick = () => {
-    q.parentElement.classList.toggle("active");
-  };
+const faqItems = document.querySelectorAll(".faq-item");
+
+faqItems.forEach(item => {
+  item.querySelector(".faq-question").addEventListener("click", () => {
+    const isOpen = item.classList.contains("active");
+
+    faqItems.forEach(other => other.classList.remove("active"));
+
+    if (!isOpen) item.classList.add("active");
+  });
 });
 </script>
 

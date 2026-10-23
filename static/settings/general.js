@@ -1,9 +1,10 @@
 (function () {
 
-  /* ---------- BANNER CONFIG ---------- */
-  const BANNER_W = 1200;       // output width  (px)
-  const BANNER_H = 400;        // output height (px)  → 3:1
-  const BANNER_MAX_MB = 8;     // max file size accepted before cropping
+  let bannerChanged = false;
+  let bannerBlob = null;
+  let saveBtn = null;
+  let currentEmail = "";
+  const BANNER_W = 1200, BANNER_H = 400, BANNER_MAX_MB = 8;
 
   function showOTPStatus(container, html, type = "wait") {
     const statusEl = container.querySelector("#resendStatus");
@@ -27,8 +28,6 @@
 
   function showChangeEmailModal() {
     if (document.getElementById("changeEmailModal")) return;
-
-    let currentEmail = "";   // ✅ was an implicit global before
 
     const modal = document.createElement("div");
     modal.id = "changeEmailModal";
@@ -227,10 +226,10 @@
         otpInput.addEventListener("input", (e) => {
           let val = e.target.value.replace(/\D/g, "");
 
-          // ❌ clear error immediately on any change
+          // clear error immediately on any change
           boxes.forEach(b => b.classList.remove("error"));
 
-          // 📋 smart paste handling
+          // smart paste handling
           if (val.length > 1) {
             val
               .split("")
@@ -326,7 +325,7 @@
           return;
         }
 
-        // ✅ SUCCESS
+        // SUCCESS
         document.querySelector(".email-value").textContent = currentEmail;
         cleanup();
       };
@@ -362,15 +361,6 @@
   let avatarChanged = false;
   let originalAvatarSrc = null;
 
-  /* banner state */
-  let bannerChanged = false;
-  let bannerBlob = null;
-
-  let saveWrapper = null;
-  let saveBtn = null;           // ✅ was an implicit global before
-  let usernameInput = null;
-  let originalUsername = null;
-
   function hideSave() {
     if (saveBtn) saveBtn.classList.add("hidden");
   }
@@ -379,34 +369,11 @@
     if (saveWrapper) return;
 
     saveWrapper = document.createElement("div");
-    saveWrapper.className = "save-community-wrapper";
+    saveWrapper.className = "save-username-wrapper";
 
     saveBtn = document.createElement("button");
-    saveBtn.className = "save-community-btn hidden";
+    saveBtn.className = "save-username-btn hidden";
     saveBtn.textContent = "Save changes";
-
-    // applies whatever the server says was saved (also used on partial failure)
-    const syncFromResponse = (community) => {
-      if (!community) return;
-
-      originalCommunityState = {
-        name: community.name,
-        website: community.website || "",
-        about: community.about || "",
-        blockchain: community.blockchain || "",
-      };
-
-      if (community.logo_url) {
-        document.getElementById("communityLogo").src = community.logo_url;
-        avatarChanged = false;
-      }
-
-      if (community.banner_url) {
-        document.querySelector(".banner-img").src = community.banner_url;
-        bannerChanged = false;
-        bannerBlob = null;
-      }
-    };
 
     saveBtn.onclick = async () => {
       saveBtn.disabled = true;
@@ -415,64 +382,79 @@
       try {
         const formData = new FormData();
 
-        // TEXT FIELDS
-        if (communityName.value.trim() !== originalCommunityState.name) {
-          formData.append("name", communityName.value.trim());
+        const cleanUsername = usernameInput.value
+          .toLowerCase()
+          .replace(/\s+/g, "");
+
+        // only send username if changed
+        if (cleanUsername !== originalUsername) {
+          formData.append("username", cleanUsername);
         }
 
-        if (communityWebsite.value.trim() !== originalCommunityState.website) {
-          formData.append("website", communityWebsite.value.trim());
-        }
-
-        if (communityAbout.value.trim() !== originalCommunityState.about) {
-          formData.append("about", communityAbout.value.trim());
-        }
-
-        // LOGO
+        // only send avatar if changed
         if (avatarChanged) {
-          const file = document.getElementById("avatarInput")?.files?.[0];
-          if (file) {
-            formData.append("logo", file);
+          const avatarInput = document.getElementById("avatarInput");
+          const file = avatarInput?.files?.[0];
+
+          if (file && file.name && file.size > 0) {
+            formData.append("avatar", file);
           }
         }
 
-        // BANNER (already cropped to 1200×400)
+        // only send banner if changed (already cropped to 1200x400)
+        // the filename matters: the backend checks banner_file.filename
         if (bannerChanged && bannerBlob) {
           formData.append("banner", bannerBlob, "banner.webp");
         }
 
+        // nothing changed (safety)
         if (![...formData.keys()].length) {
           hideSave();
           return;
         }
 
-        const res = await fetch(
-          `/api/community/{{ community.slug }}/settings/general`,
-          {
-            method: "POST",
-            headers: {
-              "X-CSRFToken": csrfToken
-            },
-            credentials: "same-origin",
-            body: formData
-          }
-        );
+        const res = await fetch("/api/account/profile", {
+          method: "POST",
+          headers: {
+            "X-CSRFToken": csrfToken
+          },
+          credentials: "same-origin",
+          body: formData
+        });
 
         const data = await res.json();
 
         if (!res.ok) {
           // partial failure: keep whatever did save, then show the error
-          syncFromResponse(data.community);
-          throw new Error(data.message || data.error || "Update failed");
+          if (data.username) originalUsername = data.username;
+
+          if (data.avatar_url) {
+            originalAvatarSrc = data.avatar_url;
+            avatarChanged = false;
+          }
+
+          if (data.banner_url) {
+            bannerChanged = false;
+            bannerBlob = null;
+          }
+
+          throw new Error(data.message || data.error || "Failed to update profile");
         }
 
-        if (data.status === "no_changes") {
-          hideSave();
-          return;
+        // sync frontend state
+        if (data.username) {
+          originalUsername = data.username;
         }
 
-        // 🔄 sync state
-        syncFromResponse(data.community);
+        if (data.avatar_url) {
+          originalAvatarSrc = data.avatar_url;
+          document.querySelector(".avatar img").src = data.avatar_url;
+        }
+
+        if (data.banner_url) {
+          const bannerImg = document.querySelector(".banner-img");
+          if (bannerImg) bannerImg.src = data.banner_url;
+        }
 
         avatarChanged = false;
         bannerChanged = false;
@@ -493,75 +475,15 @@
   }
 
 
-  /* ---------- BANNER PICKER ---------- */
-  function initBannerPicker() {
-    const btn = document.getElementById("bannerEditBtn");
-    const input = document.getElementById("bannerInput");
-    const banner = document.querySelector(".profile-banner");
-    const img = document.querySelector(".banner-img");
-    if (!btn || !input || !banner || !img) return;
 
-    btn.addEventListener("click", () => input.click());
 
-    input.addEventListener("change", async () => {
-      const file = input.files[0];
-      input.value = "";
-      if (!file) return;
-
-      if (!/^image\/(png|jpe?g|webp)$/.test(file.type)) {
-        showToast("Banner must be a PNG, JPG or WebP image");
-        return;
-      }
-
-      if (file.size > BANNER_MAX_MB * 1024 * 1024) {
-        showToast(`Banner must be under ${BANNER_MAX_MB}MB`);
-        return;
-      }
-
-      btn.classList.add("loading");
-
-      try {
-        const bmp = await createImageBitmap(file);
-
-        if (bmp.width < BANNER_W || bmp.height < BANNER_H) {
-          showToast(`Banner must be at least ${BANNER_W}×${BANNER_H}px`);
-          return;
-        }
-
-        // centre-crop to exactly 3:1, then resize
-        const scale = Math.max(BANNER_W / bmp.width, BANNER_H / bmp.height);
-        const sw = BANNER_W / scale;
-        const sh = BANNER_H / scale;
-        const sx = (bmp.width - sw) / 2;
-        const sy = (bmp.height - sh) / 2;
-
-        const canvas = document.createElement("canvas");
-        canvas.width = BANNER_W;
-        canvas.height = BANNER_H;
-        canvas.getContext("2d").drawImage(bmp, sx, sy, sw, sh, 0, 0, BANNER_W, BANNER_H);
-
-        const blob = await new Promise(r => canvas.toBlob(r, "image/webp", 0.9));
-        if (!blob) throw new Error("encode failed");
-
-        bannerBlob = blob;
-        bannerChanged = true;
-
-        img.src = URL.createObjectURL(blob);
-        img.classList.remove("hidden-from-view");
-        banner.classList.add("has-banner");
-
-        showSave();
-      } catch (_) {
-        showToast("Couldn’t read that image");
-      } finally {
-        btn.classList.remove("loading");
-      }
-    });
-  }
-
+  let saveWrapper = null;
+  let usernameInput = null;
+  let originalUsername = null;
 
   function CallImagePickr() {
-    initBannerPicker();   // ✅ banner first, so it works even if avatar bits are missing
+    // banner picker is wired here too, so existing call sites keep working
+    initBannerPicker();
 
     const avatarOverlay = document.querySelector(".avatar-overlay");
     const avatarInput = document.getElementById("avatarInput");
@@ -581,25 +503,87 @@
       const file = avatarInput.files[0];
       if (!file) return;
 
-      // ✅ validate file type
+      // validate file type
       if (!file.type.startsWith("image/")) {
         showToast("Only image files are allowed");
         avatarInput.value = "";
         return;
       }
 
-      // ✅ preview image immediately
+      // preview image immediately
       const reader = new FileReader();
       reader.onload = () => {
         avatarFalback.classList.add("hidden-from-view")
         avatarImg.classList.remove("hidden-from-view")
         avatarImg.src = reader.result;
         avatarChanged = true;
-        showSave(); // 🔥 THIS is the key
+        showSave();
       };
       reader.readAsDataURL(file);
     });
 
+  }
+
+
+  function initBannerPicker() {
+    const btn = document.getElementById("bannerEditBtn");
+    const input = document.getElementById("bannerInput");
+    const banner = document.querySelector(".profile-banner");
+    const img = document.querySelector(".banner-img");
+    if (!btn || !input || !banner || !img) return;
+
+    // guard against double binding (CallImagePickr + a direct call)
+    if (btn.dataset.bound === "1") return;
+    btn.dataset.bound = "1";
+
+    btn.addEventListener("click", () => input.click());
+
+    input.addEventListener("change", async () => {
+      const file = input.files[0];
+      input.value = "";
+      if (!file) return;
+
+      if (!/^image\/(png|jpe?g|webp)$/.test(file.type)) {
+        showToast("Banner must be a PNG, JPG or WebP image");
+        return;
+      }
+      if (file.size > BANNER_MAX_MB * 1024 * 1024) {
+        showToast(`Banner must be under ${BANNER_MAX_MB}MB`);
+        return;
+      }
+
+      btn.classList.add("loading");
+      try {
+        const bmp = await createImageBitmap(file);
+        if (bmp.width < BANNER_W || bmp.height < BANNER_H) {
+          showToast(`Banner must be at least ${BANNER_W}×${BANNER_H}px`);
+          return;
+        }
+
+        // centre-crop to exactly 3:1, then resize
+        const scale = Math.max(BANNER_W / bmp.width, BANNER_H / bmp.height);
+        const sw = BANNER_W / scale, sh = BANNER_H / scale;
+        const sx = (bmp.width - sw) / 2, sy = (bmp.height - sh) / 2;
+
+        const canvas = document.createElement("canvas");
+        canvas.width = BANNER_W; canvas.height = BANNER_H;
+        canvas.getContext("2d").drawImage(bmp, sx, sy, sw, sh, 0, 0, BANNER_W, BANNER_H);
+
+        const blob = await new Promise(r => canvas.toBlob(r, "image/webp", 0.9));
+        if (!blob) throw new Error("encode failed");
+
+        bannerBlob = blob;
+        bannerChanged = true;
+        img.src = URL.createObjectURL(blob);
+        img.classList.remove("hidden-from-view");
+        banner.classList.add("has-banner");
+        showSave();
+      } catch (_) {
+        showToast("Couldn’t read that image");
+      } finally {
+        btn.classList.remove("loading");
+      }
+    });
   }
 
   function showSave() {
@@ -809,7 +793,7 @@
 
         boxes.forEach(b => b.classList.remove("error"));
 
-        // 📋 paste handling
+        // paste handling
         if (val.length > 1) {
           val
             .slice(0, 6)
@@ -994,8 +978,10 @@
 
   window.initUsernameEditor = initUsernameEditor;
   window.CallImagePickr = CallImagePickr;
-  window.openDeleteAccountModal = openDeleteAccountModal;
-  window.showChangeEmailModal = showChangeEmailModal;
-  window.closeDeleteAccountModalWhenDeleted = closeDeleteAccountModalWhenDeleted; // ✅ needed by inline onclick
+  window.initBannerPicker = initBannerPicker;
+  window.openDeleteAccountModal = openDeleteAccountModal
+  window.showChangeEmailModal = showChangeEmailModal
+  // used by an inline onclick in showDeletionScheduled()
+  window.closeDeleteAccountModalWhenDeleted = closeDeleteAccountModalWhenDeleted;
 
 })();

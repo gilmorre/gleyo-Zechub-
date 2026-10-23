@@ -363,11 +363,13 @@ input[type="number"] {
   border-radius:6px;flex-shrink:0;
 }
 
+.tx-dot.exp { background: rgba(240,80,112,.12); }
+.tx-amt.exp { color: var(--red, #f05070); text-decoration: line-through; }
+.sbadge.exp { background: rgba(240,80,112,.15); color: var(--red, #f05070); }
 
 .sheet {    
-  -webkit-mask-image: -webkit-radial-gradient(white, black); 
-  mask-image: radial-gradient(white, black);
-  scrollbar-gutter: stable both-edges; 
+  clip-path: inset(0 round 24px);
+  scrollbar-gutter: stable both-edges;
 }
 
 .s-title {

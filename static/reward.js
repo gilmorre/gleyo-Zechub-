@@ -79,9 +79,23 @@ async function fetchZecPrice() {
 
 
 function txStatusClass(tx) {
-  if (tx.status === 'confirmed' || tx.status === 'paid') return 'in';   
-  if (tx.status === 'failed') return 'out';                            
-  return 'pend';                                                       
+  if (tx.status === 'confirmed' || tx.status === 'paid') return 'in';
+  if (tx.status === 'failed')  return 'out';
+  if (tx.status === 'expired') return 'exp';
+  return 'pend';
+}
+
+// USDC/USDT are already USD; only ZEC needs the price conversion
+function txUsd(tx) {
+  return (tx.token || '').toUpperCase() === 'ZEC'
+    ? tx.amount * ZEC_PRICE_USD
+    : tx.amount;
+}
+
+// No money moved on an expired tx, so show no sign
+function txSign(tx) {
+  if (tx.status === 'expired') return '';
+  return tx.type === 'in' ? '+' : '−';
 }
 
 function refreshUsdDisplays() {
@@ -412,6 +426,7 @@ function prependPendingTx(amt, dest) {
     status: 'pending',
     amount: amt,
     token:  'ZEC',
+    network: 'Zcash',
     remark: `Withdrawal · ${dest.slice(0, 6)}…${dest.slice(-4)}`,
     date:   dateStr
   };
@@ -438,10 +453,8 @@ function renderRecentTx() {
   }
 
   container.innerHTML = recent.map(tx => {
-    const isIn      = tx.type === 'in';
-    const isPending = tx.status === 'pending';
-    const isZec     = (tx.token || '').toUpperCase() === 'ZEC';
-    const amtStr    = isZec ? fmtRewardZec(tx.amount) : truncDecimals(tx.amount, 2);
+    const isZec  = (tx.token || '').toUpperCase() === 'ZEC';
+    const amtStr = isZec ? fmtRewardZec(tx.amount) : truncDecimals(tx.amount, 2);
     return `
       <div class="tx-row">
         ${txDot(tx)}
@@ -451,7 +464,7 @@ function renderRecentTx() {
         </div>
         <div class="tx-right">
           <div class="tx-amt ${txStatusClass(tx)}">
-            ${isIn ? '+' : '−'}${amtStr} ${tx.token}
+            ${txSign(tx)}${amtStr} ${tx.token}
           </div>
         </div>
       </div>`;
@@ -641,6 +654,16 @@ function txDot(tx) {
       </div>`;
   }
 
+  if (cls === 'exp') {
+    return `
+      <div class="tx-dot exp">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="9" stroke="#f05070" stroke-width="1.8"/>
+          <path d="M8 12h8" stroke="#f05070" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      </div>`;
+  }
+
   if (cls === 'out') {
     return `
       <div class="tx-dot out">
@@ -700,10 +723,8 @@ function openAll() {
     <div class="s-title">All Transactions</div>
     <div class="s-sub" style="margin-bottom:14px">Complete history</div>
     ${ALL_TX.map((tx, i) => {
-      const isIn      = tx.type === 'in';
-      const isPending = tx.status === 'pending';
-      const isZec     = (tx.token || '').toUpperCase() === 'ZEC';
-      const amtStr    = isZec ? fmtRewardZec(tx.amount) : truncDecimals(tx.amount, 2);
+      const isZec  = (tx.token || '').toUpperCase() === 'ZEC';
+      const amtStr = isZec ? fmtRewardZec(tx.amount) : truncDecimals(tx.amount, 2);
       return `
         <div class="stx" onclick="openTxFromAPI(${i})">
           ${txDot(tx)}
@@ -713,9 +734,9 @@ function openAll() {
           </div>
           <div class="tx-right">
             <div class="tx-amt ${txStatusClass(tx)}">
-              ${isIn ? '+' : '−'}${amtStr} ${tx.token}
+              ${txSign(tx)}${amtStr} ${tx.token}
             </div>
-            <div class="tx-usd">≈ $${truncDecimals(tx.amount * ZEC_PRICE_USD, 2)} USD</div>
+            <div class="tx-usd">≈ $${truncDecimals(txUsd(tx), 2)} USD</div>
           </div>
           <svg width="6" height="10" viewBox="0 0 6 10" fill="none">
             <path d="M1 1L5 5L1 9" stroke="currentColor" stroke-width="1.4"/>
@@ -728,28 +749,29 @@ function openAll() {
 function openTxFromAPI(i) {
   const tx     = ALL_TX[i];
   if (!tx) return;
-  const isIn   = tx.type === 'in';
   const isZec  = (tx.token || '').toUpperCase() === 'ZEC';
   const amtStr = isZec ? fmtRewardZec(tx.amount) : truncDecimals(tx.amount, 2);
 
   let color;
   if (tx.status === 'confirmed' || tx.status === 'paid') {
-    color = isIn ? 'var(--green)' : 'var(--green)';
+    color = 'var(--green)';
   } else if (tx.status === 'failed') {
     color = 'var(--red)';
+  } else if (tx.status === 'expired') {
+    color = 'var(--sub)';
   } else {
     color = 'var(--amber)'; // pending
   }
 
-  const sign   = isIn ? '+' : '−';
-  const usdVal = truncDecimals(tx.amount * ZEC_PRICE_USD, 2);
+  const sign   = txSign(tx);
+  const usdVal = truncDecimals(txUsd(tx), 2);
 
   const hashRow = tx.tx_hash
     ? `<div class="dr"><span class="dk">Tx Hash</span><span class="dv" style="font-family:var(--mono);font-size:.7rem">${tx.tx_hash.slice(0, 14)}…${tx.tx_hash.slice(-8)}</span></div>`
     : '';
 
   document.getElementById('txContent').innerHTML = `
-    <div class="sbadge ${tx.status === 'failed' ? 'out' : (tx.status === 'confirmed' || tx.status === 'paid') ? 'in' : 'pend'}">${tx.status}</div>
+    <div class="sbadge ${txStatusClass(tx)}">${tx.status}</div>
     <div class="d-amt" style="color:${color}">${sign}${amtStr} ${tx.token}</div>
     <div class="d-usd">≈ $${usdVal} USD</div>
     <div class="dg">
@@ -757,7 +779,7 @@ function openTxFromAPI(i) {
       <div class="dr"><span class="dk">Date</span><span class="dv">${fmtLocalDate(tx.date)}</span></div>
       <div class="dr"><span class="dk">Status</span><span class="dv">${tx.status}</span></div>
       ${hashRow}
-      <div class="dr"><span class="dk">Network</span><span class="dv">Zcash Mainnet</span></div>
+      <div class="dr"><span class="dk">Network</span><span class="dv">${tx.network || 'Zcash'}</span></div>
     </div>`;
   document.getElementById('txOv').classList.add('open');
 }

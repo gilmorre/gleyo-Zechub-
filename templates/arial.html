@@ -145,26 +145,94 @@ input{
   border:1px solid var(--border);
 }
 
-.toggle-knob{
-  width:18px;
-  height:18px;
-  border-radius:50%;
-  background:#fff;
-  position:absolute;
-  top:2px;
-  left:2px;
-  transition:transform 0.25s cubic-bezier(.2,.8,.2,1);
-  box-shadow:0 2px 6px rgba(0,0,0,0.4);
+@property --edge-hi {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: rgba(255, 255, 255, 0.42);
 }
 
-/* ON state */
-.toggle-switch.on{
-  background:#4285f4;
-  box-shadow:0 0 0 1px rgba(66,133,244,0.4);
+@property --edge-lo {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: rgba(255, 255, 255, 0.05);
 }
 
-.toggle-switch.on .toggle-knob{
-  transform:translateX(20px);
+.toggle-switch {
+  --edge-hi: rgba(255, 255, 255, 0.253);
+  --edge-lo: rgba(255, 255, 255, 0.05);
+  --edge-w: 1px;
+  position: relative;
+  width: 58px;
+  height: 30px;
+  flex-shrink: 0;
+  margin-top: 4px;
+  background: rgba(120, 120, 128, 0.5);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+@media (min-resolution: 2dppx) {
+  .toggle-switch {
+    --edge-w: 0.75px;
+  }
+}
+
+.toggle-switch input {
+  display: none;
+}
+
+.toggle-switch::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: var(--edge-w);
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    var(--edge-hi) 0%,
+    var(--edge-lo) 28%,
+    var(--edge-lo) 72%,
+    var(--edge-hi) 100%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.toggle-knob {
+  position: absolute;
+  left: 3px;
+  top: 2px;
+  width: 34px;
+  height: 24px;
+  background: #fff;
+  border-radius: 999px;
+  box-shadow:
+    0 3px 8px rgba(0, 0, 0, 0.35),
+    0 0 0 2px rgba(255, 255, 255, 0.16);
+  transition:
+    transform 0.4s cubic-bezier(0.34, 1.4, 0.64, 1),
+    width 0.25s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+.toggle-switch:active .toggle-knob {
+  width: 40px;
+}
+
+.toggle-switch.on {
+  background: #4285f4;
+  box-shadow: none;
+}
+
+.toggle-switch.on .toggle-knob {
+  transform: translateX(18px);
+}
+
+.toggle-switch.on:active .toggle-knob {
+  transform: translateX(12px);
 }
 
 .panel-select-init  {
@@ -401,9 +469,39 @@ display: inline-flex !important;
   transition: color 0.2s ease;
 }
 
-.clear-all-btn:hover {
-  background: var(--bg-hover-hover);
-  color: var(--text-main) !important;
+.clear-all-btn, .sprint-list {
+    position: relative;
+    isolation: isolate;
+}
+
+.clear-all-btn:hover, .sprint-list:hover {
+    background: var(--bg-hover-hover);
+    color: var(--text-main) !important;
+}
+
+.clear-all-btn:hover::before, .sprint-list:hover::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    border-radius: inherit;
+    background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.253) 0%,
+        rgba(255, 255, 255, 0.05) 28%,
+        rgba(255, 255, 255, 0.05) 72%,
+        rgba(255, 255, 255, 0.253) 100%
+    );
+    -webkit-mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    pointer-events: none;
+    z-index: 1;
 }
 
 
@@ -637,69 +735,108 @@ ul li:hover {
 }
 
 .custombody {
-  position: absolute;       
+  --edge-hi: rgba(255, 255, 255, 0.253);
+  --edge-lo: rgba(255, 255, 255, 0.05);
+  --edge-w: 1px;
+  position: absolute;
   width: max-content;
   min-width: 15%;
-  background-color: #1e1e2f;
+  background-color: var(--card-bg-glassy);
   z-index: 99999;
-  border: 0.9px solid var(--border);
+  border: var(--edge-w) solid transparent;
   padding: 20px;
+  backdrop-filter: blur(3px);
   border-radius: 16px;
-  display: none;             
+  display: none;
+}
+
+.custombody::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: var(--edge-w);
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    var(--edge-hi) 0%,
+    var(--edge-lo) 28%,
+    var(--edge-lo) 72%,
+    var(--edge-hi) 100%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
 }
 
 .customtext {
+  --edge-hi: rgba(255, 255, 255, 0.253);
+  --edge-lo: rgba(255, 255, 255, 0.05);
+  --edge-w: 1px;
   resize: none;
-  background-color: #1e1e2f;
-  border: 1px solid var(--border);
+  background:
+    linear-gradient(#1e1e2f, #1e1e2f) padding-box,
+    linear-gradient(
+      135deg,
+      var(--edge-hi) 0%,
+      var(--edge-lo) 28%,
+      var(--edge-lo) 72%,
+      var(--edge-hi) 100%
+    ) border-box;
+  border: var(--edge-w) solid transparent;
   outline: none;
   color: var(--text-main);
   border-radius: 13px;
   font-size: 13px;
-  width:  100%;
+  width: 100%;
   box-sizing: border-box;
   margin-top: 5px;
   height: 10vh;
   padding: 10px;
   caret-color: var(--sub-accent);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  scrollbar-width: thin;             
-  scrollbar-color: #6a6d7c transparent;    
+  scrollbar-width: thin;
+  scrollbar-color: #6a6d7c transparent;
+  transition: --edge-hi 0.25s ease, --edge-lo 0.25s ease;
 }
 
-.customtext {
-  border-color: var(--sub-accent);
+@media (min-resolution: 2dppx) {
+  .custombody,
+  .customtext {
+    --edge-w: 0.75px;
+  }
 }
 
+.customtext:focus {
+  --edge-hi: #4285f4;
+  --edge-lo: rgba(255, 255, 255, 0.06);
+}
 
 .customtext::placeholder {
   color: var(--text-muted);
   opacity: 0.7;
 }
 
-
-
 .customtext::-webkit-scrollbar {
-  width: 8px;              
-  height: 8px;           
+  width: 8px;
+  height: 8px;
 }
 
 .customtext::-webkit-scrollbar-track {
-  background: #1e1e2f;     
+  background: #1e1e2f;
   border-radius: 10px;
 }
 
 .customtext::-webkit-scrollbar-thumb {
-  background-color: #6a6d7c;  
+  background-color: #6a6d7c;
   border-radius: 10px;
-  border: 2px solid #1e1e2f;  
+  border: 2px solid #1e1e2f;
 }
 
 .customtext::-webkit-scrollbar-thumb:hover {
-  background-color: #9fa2b4; 
+  background-color: #9fa2b4;
 }
-
-
 .custom-popup-modal {
   position: fixed;
   inset: 0;
@@ -904,24 +1041,65 @@ ul li:hover {
   position: relative;  
 }
 
-#xpInputWrapper {
-  display: none; 
+#xpInputWrapper, .level-dropdown {
+  --edge-hi: rgba(255, 255, 255, 0.253);
+  --edge-lo: rgba(255, 255, 255, 0.05);
+  --edge-w: 1px;
+  display: none;
   position: absolute;
-  background: #151524;
+  box-sizing: border-box;
+  background: var(--card-bg-glassy);
   padding: 6px 12px;
+  backdrop-filter: blur(3px);
   width: 150px !important;
+  border: var(--edge-w) solid transparent;
   border-radius: 14px;
   z-index: 2000;
   flex-direction: row;
   align-items: center;
   gap: 6px;
-  box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+  transition: --edge-hi 0.25s ease, --edge-lo 0.25s ease;
 }
 
-#xpInputWrapper input {
-  border: 1px solid var(--border);
-  outline: none;
-  background: transparent;
+@media (min-resolution: 2dppx) {
+  #xpInputWrapper, .level-dropdown {
+    --edge-w: 0.75px;
+  }
+}
+
+#xpInputWrapper::before, .level-dropdown::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: var(--edge-w);
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    var(--edge-hi) 0%,
+    var(--edge-lo) 28%,
+    var(--edge-lo) 72%,
+    var(--edge-hi) 100%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+#xpInputWrapper:focus-within, .level-dropdown:focus-within {
+  --edge-hi: #4285f4;
+  --edge-lo: rgba(255, 255, 255, 0.06);
+}
+
+#xpInputWrapper input, .level-dropdown input {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background-color: transparent !important;
+  -webkit-appearance: none;
+  appearance: none;
   color: var(--text-main);
   font-size: 14px;
   padding: 6px 8px;
@@ -929,29 +1107,66 @@ ul li:hover {
   width: 100%;
 }
 
+.level-dropdown input[type=number]::-webkit-outer-spin-button,
+.level-dropdown input[type=number]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.level-dropdown input[type=number] {
+  -moz-appearance: textfield;
+}
+
+#xpInputWrapper input:focus,
+#xpInputWrapper input:focus-visible {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
 .renocontainer {
-  position: absolute; 
+  --edge-hi: rgba(255, 255, 255, 0.253);
+  --edge-lo: rgba(255, 255, 255, 0.05);
+  --edge-w: 1.5px;
+  position: absolute;
   display: none;
-
-  background: rgba(34, 34, 54, 0.712);
-  backdrop-filter: blur(14px);
-  border: 0.9px solid var(--border);
+  background: var(--card-bg-glassy);
+  backdrop-filter: blur(10px);
+  border: var(--edge-w) solid var(--border);
   border-radius: 18px;
-
   overflow-y: auto;
   padding: 15px 20px;
   padding-bottom: 70px !important;
-
   width: fit-content;
-  min-width: 140px;  
-  max-width: 440px;  
-  width: max-content;  
-  max-width: 340px;  
-
-
+  min-width: 140px;
+  max-width: 440px;
+  width: max-content;
+  max-width: 340px;
   z-index: 99999;
+}
 
+@media (min-resolution: 2dppx) {
+  .renocontainer {
+    --edge-w: 1.25px;
+  }
+}
 
+@supports (background-clip: border-area) {
+  .renocontainer {
+    border-color: transparent;
+    background-color: transparent;
+    background-image:
+      linear-gradient(rgba(34, 34, 54, 0.712), rgba(34, 34, 54, 0.712)),
+      linear-gradient(
+        135deg,
+        var(--edge-hi) 0%,
+        var(--edge-lo) 28%,
+        var(--edge-lo) 72%,
+        var(--edge-hi) 100%
+      );
+    background-origin: border-box;
+    background-clip: padding-box, border-area;
+  }
 }
 
 
@@ -997,41 +1212,63 @@ ul li:hover {
 }
 
 .tab-buttons div {
+  --edge-hi: rgba(255, 255, 255, 0.253);
+  --edge-lo: rgba(255, 255, 255, 0.05);
+  --edge-w: 1px;
+  position: relative;
   display: inline-flex;
   box-sizing: border-box;
-
   align-items: center;
-  white-space: normal !important;  
+  white-space: normal !important;
   color: var(--text-main) !important;
   gap: 5px;
-  border: 0.9px solid var(--border);
+  border: var(--edge-w) solid transparent;
   padding: 10px 10px;
   font-weight: 550;
   border-radius: 12px;
   font-size: 12px;
   cursor: pointer;
+  transition: --edge-hi 0.25s ease, --edge-lo 0.25s ease;
+}
+
+@media (min-resolution: 2dppx) {
+  .tab-buttons div {
+    --edge-w: 0.75px;
+  }
+}
+
+.tab-buttons div::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: var(--edge-w);
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    var(--edge-hi) 0%,
+    var(--edge-lo) 28%,
+    var(--edge-lo) 72%,
+    var(--edge-hi) 100%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
 }
 
 .tab-buttons div:hover {
+  --edge-hi: rgba(255, 255, 255, 0.75);
+  --edge-lo: rgba(255, 255, 255, 0.08);
   background-color: var(--bg-hover-hover);
-  outline: 0.8px solid var(--border); 
-  outline-offset: 0.8px;     
 }
 
 .tab-buttons div.active-tab {
+  --edge-hi: #4285f4;
+  --edge-lo: rgba(255, 255, 255, 0.06);
   background: #5865f21b !important;
-  border-color: #4286f495 !important;
-  border: 0.9px solid var(--border);
-
 }
-
-.tab-buttons div.active-tab:hover {
-  background: #5663ec1b !important;
-  border-color: #4286f495;
-
-  outline: 0.8px solid #4286f4; 
-  outline-offset: 0.8px;         
-}
+ 
 
 .subcontent1 p, .subcontent2 p, .subcontent3 p, .subcontent4 p{
   font-size: 14px !important;
@@ -1302,8 +1539,12 @@ input {
 
  
 
-.custom-dropdown .selected, .custom-drop .selected {
-  border: 1px solid var(--border);
+.custom-dropdown .selected,
+.custom-drop .selected {
+  --edge-hi: rgba(255, 255, 255, 0.253);
+  --edge-lo: rgba(255, 255, 255, 0.05);
+  --edge-w: 1px;
+  border: var(--edge-w) solid transparent;
   border-radius: 10px;
   cursor: pointer;
   width: fit-content;
@@ -1317,20 +1558,83 @@ input {
   color: var(--text-main);
 }
 
+@media (min-resolution: 2dppx) {
+  .custom-dropdown .selected,
+  .custom-drop .selected {
+    --edge-w: 0.75px;
+  }
+}
 
-.options.cooldown, .options.recurrence, .reward-dropdown, .condition {
-  position: absolute; 
+.custom-dropdown .selected::before,
+.custom-drop .selected::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: var(--edge-w);
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    var(--edge-hi) 0%,
+    var(--edge-lo) 28%,
+    var(--edge-lo) 72%,
+    var(--edge-hi) 100%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+
+.options.cooldown,
+.options.recurrence,
+.reward-dropdown,
+.condition {
+  --edge-hi: rgba(255, 255, 255, 0.253);
+  --edge-lo: rgba(255, 255, 255, 0.05);
+  --edge-w: 1.5px;
+  position: absolute;
   display: none;
-
-  background: rgba(34, 34, 54, 0.712);
-  backdrop-filter: blur(14px);
-  border: 0.9px solid var(--border);
-  border-radius: 10px;
+  background: var(--card-bg-glassy);
+  backdrop-filter: blur(3px);
+  border: var(--edge-w) solid var(--border);
+  border-radius: 15px;
   overflow-y: auto;
-  min-width: 140px;  
-  width: max-content;  
-
+  max-height: 250px;
+  min-width: 140px;
+  width: max-content;
   z-index: 99999;
+}
+
+@media (min-resolution: 2dppx) {
+  .options.cooldown,
+  .options.recurrence,
+  .reward-dropdown,
+  .condition {
+    --edge-w: 1.25px;
+  }
+}
+
+@supports (background-clip: border-area) {
+  .options.cooldown,
+  .options.recurrence,
+  .reward-dropdown,
+  .condition {
+    border-color: transparent;
+    background-color: transparent;
+    background-image:
+      linear-gradient(var(--card-bg-glassy), var(--card-bg-glassy)),
+      linear-gradient(
+        135deg,
+        var(--edge-hi) 0%,
+        var(--edge-lo) 28%,
+        var(--edge-lo) 72%,
+        var(--edge-hi) 100%
+      );
+    background-origin: border-box;
+    background-clip: padding-box, border-area;
+  }
 }
 .options.cooldown .option, .options.recurrence .option, .reward-dropdown .option, .condition .option {
   padding: 10px 14px;
@@ -1346,11 +1650,9 @@ input {
   gap: 8px;
 }
 
-.options.cooldown option .options:hover, .options.recurrence .option:hover, .reward-dropdown .option:hover, .condition .option:hover {
+.options.cooldown .option:hover, .options.recurrence .option:hover, .reward-dropdown .option:hover, .condition .option:hover {
   background: var(--bg-hover-hover);
   color: #fff;
-
-
 }
 
 
@@ -1367,63 +1669,10 @@ input {
 }
 
 
-
-.options {
-  display: none;  
-  position: absolute; 
-  top: 100%; 
-  left: 0;
-  background: #fff;
-  color: #000;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  min-width: 150px;
-  z-index: 10;
-}
-
+ 
  
 
  
-
-
-
-.options {
-  display: none;
-  position: absolute;
-  top: 0;           
-  left: 100%; 
-  background-color: #1e1e2f;
-  border: 1px solid #cccccc57;
-  border-radius: 8px;
-  margin-top: 0;    
-  max-height: 150px;
-  overflow-y: auto;
-  z-index: 10;
-  width: 220px;     
-}
-
-@media (max-width: 991px) {
-  .options {
-    display: none;
-    position: absolute;
-
-    top: 0;           
-    left: 100%;      
-    background-color: #1e1e2f;
-    border: 1px solid #cccccc57;
-    border-radius: 8px;
-    margin-top: 0;   
-    max-height: 150px;
-    overflow-y: auto;
-    z-index: 10;
-    width: 170px;   
-  }
-
-
-}
-
-
-
 
 .series{
   background-color: transparent;
@@ -1492,11 +1741,16 @@ input {
 }
 
 .media-remove {
+  --edge-hi: rgba(255, 255, 255, 0.253);
+  --edge-lo: rgba(255, 255, 255, 0.05);
+  --edge-w: 1px;
+
   position: absolute;
   top: 6px;
   right: 6px;
   background: var(--bg-hover);
   color: var(--text-main);
+  border: none;
   border-radius: 50%;
   width: 30px;
   height: 30px;
@@ -1505,15 +1759,58 @@ input {
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  isolation: isolate;
 }
 
-.media-remove svg{
+@media (min-resolution: 2dppx) {
+  .media-remove {
+    --edge-w: 0.75px;
+  }
+}
+
+.media-remove::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: var(--edge-w);
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    var(--edge-hi) 0%,
+    var(--edge-lo) 28%,
+    var(--edge-lo) 72%,
+    var(--edge-hi) 100%
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 2;
+  transition: background 0.2s ease;
+}
+
+.media-remove svg {
   width: 17px;
   height: 17px;
 }
 
 .media-remove:hover {
   background: var(--bg-hover-hover);
+}
+
+.media-remove:hover::before {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.75) 0%,
+    rgba(255, 255, 255, 0.18) 28%,
+    rgba(255, 255, 255, 0.18) 72%,
+    rgba(255, 255, 255, 0.75) 100%
+  );
 }
 
 .image-picker {
@@ -1638,49 +1935,78 @@ input {
 }
 
 
-.tabs {
+.side-header {
   display: flex;
-  border: none; 
-  border-radius: 8px;  
-  overflow: hidden; 
-  background: transparent;
-  outline: none !important;
-  margin-bottom: 30px;
-  color: var(--text-main);
-  width: fit-content; 
+  align-items: center;
+  gap: 10px;
+  width: 100%;
 }
 
-.tab {
+.side-header .hide-settings-info {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tabs {
+  position: relative;
+  display: flex;
   flex: 1;
-  padding: 10px 16px;
-  border: none;
-  background: transparent;
-  font-size: 14px;
-  font-weight: 500;
+  min-width: 0;
+  padding: 4px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--bg-surface-init), var(--bg-surface-in-active));
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  box-shadow: inset 0 0 0 1px var(--border), 0 6px 22px rgba(0, 0, 0, 0.55);
+}
+
+.tabs .tab-pill {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: calc(50% - 4px);
+  height: calc(100% - 8px);
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--bg-surface-active), var(--bg-active));
+  box-shadow: inset 0 0 0 1px var(--bg-active-border), 0 4px 14px rgba(0, 0, 0, 0.45);
+  transform: translateX(0);
+  transition: transform 0.52s cubic-bezier(0.2, 0.9, 0.2, 1);
+  z-index: 1;
+}
+
+.tabs .tab {
+  all: unset;
+  flex: 1;
+  z-index: 2;
   cursor: pointer;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
+  text-align: center;
+  padding: 8px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  transition: color 0.25s ease, opacity 0.25s ease;
+}
+
+.tabs .tab svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
+.tabs .tab:hover {
+  color: var(--text-main-items);
+  opacity: 0.9;
+}
+
+.tabs .tab.active {
   color: var(--text-main);
 }
-
-.tab svg {
-  width: 14px;
-  height: 14px;
-}
-
-
-
-.tab.active {
-  color: #4285f4;
-
-}
-
-.tab.active i {
-  color: #4285f4;
-}
-
- 
 
 
 .setting input[type="text"] {
@@ -1728,25 +2054,57 @@ input {
 }
 
  
-.conshift {
-  display: inline-flex;         
+.conshift, .shifted.reward .shift {
+  --edge-hi: rgba(255, 255, 255, 0.253);
+  --edge-lo: rgba(255, 255, 255, 0.05);
+  --edge-w: 1px;
+  position: relative;
+  display: inline-flex;
   justify-content: center;
   align-items: center;
   margin-left: auto;
   font-size: 14px;
   padding: 10px;
   white-space: nowrap;
-  border-radius: 10px;
+  border: var(--edge-w) solid transparent;
+  border-radius: 16px;
   cursor: pointer;
-  width: auto !important;     
+  width: auto !important;
   font-weight: bold;
   gap: 6px;
+  transition: --edge-hi 0.25s ease, --edge-lo 0.25s ease;
 }
 
+@media (min-resolution: 2dppx) {
+  .conshift, .shifted.reward .shift {
+    --edge-w: 0.75px;
+  }
+}
+
+.conshift::before, .shifted.reward .shift::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: var(--edge-w);
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    var(--edge-hi) 0%,
+    var(--edge-lo) 28%,
+    var(--edge-lo) 72%,
+    var(--edge-hi) 100%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
 
 .conshift:hover {
+  --edge-hi: rgba(255, 255, 255, 0.75);
+  --edge-lo: rgba(255, 255, 255, 0.08);
   background: var(--bg-hover-hover);
-
 }
 
 .conshift i {
@@ -1757,100 +2115,197 @@ input {
  
 
 .modulepanate {
+  --edge-hi: rgba(255, 255, 255, 0.253);
+  --edge-lo: rgba(255, 255, 255, 0.05);
+  --edge-w: 1px;
+  position: relative;
   font-size: 12px;
   margin-left: 15px;
   padding: 10px;
-  border-radius: 8px;
+  border: var(--edge-w) solid transparent;
+  border-radius: 14px;
   cursor: pointer;
-  display: inline-block; 
+  display: inline-block;
   white-space: nowrap;
-  width: auto;          
-  max-width: max-content; 
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-sizing: border-box;
+  transition: --edge-hi 0.25s ease, --edge-lo 0.25s ease;
+}
+
+@media (min-resolution: 2dppx) {
+  .modulepanate {
+    --edge-w: 0.75px;
+  }
+}
+
+.modulepanate::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: var(--edge-w);
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    var(--edge-hi) 0%,
+    var(--edge-lo) 28%,
+    var(--edge-lo) 72%,
+    var(--edge-hi) 100%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
 }
 
 .modulepanate:hover {
-  background: rgba(255, 255, 255, 0.05);
+  --edge-hi: rgba(255, 255, 255, 0.75);
+  --edge-lo: rgba(255, 255, 255, 0.08);
+  background: var(--bg-hover-hover);
 }
 
+.reno-fieldset {
+  --edge-hi: rgba(255, 255, 255, 0.253);
+  --edge-lo: rgba(255, 255, 255, 0.05);
+  --edge-w: 1px;
+  position: relative;
+  margin: 14px 0 0;
+  padding: 0 4px 4px;
+  min-width: 0;
+  border-radius: 25px;
+  border: var(--edge-w) solid transparent;
+  background:
+    linear-gradient(var(--field-fill, var(--bg-surface-lower-q)), var(--field-fill, var(--bg-surface-lower-q))) padding-box,
+    linear-gradient(
+      135deg,
+      var(--edge-hi) 0%,
+      var(--edge-lo) 28%,
+      var(--edge-lo) 72%,
+      var(--edge-hi) 100%
+    ) border-box;
+  transition: --edge-hi 0.25s ease, --edge-lo 0.25s ease;
+}
+
+@media (min-resolution: 2dppx) {
+  .reno-fieldset {
+    --edge-w: 0.75px;
+  }
+}
+
+.reno-fieldset:focus-within {
+  --edge-hi: #4285f4;
+  --edge-lo: rgba(255, 255, 255, 0.06);
+}
+
+.reno-fieldset:focus-within legend {
+  color: var(--text-muted);
+}
+
+.reno-fieldset legend {
+  font-size: 13px;
+  margin-left: 9px;
+  padding: 0 3px;
+  color: var(--text-main);
+  width: auto;
+  background: linear-gradient(to bottom, transparent 44%, var(--field-fill, #11111c) 44%);
+}
+
+.reno-fieldset input {
+  width: 100%;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  padding: 6px 8px;
+  font-size: 15px;
+  color: var(--text-main);
+  caret-color: #fff;
+}
  
-.number-input-wrapper:focus-within {
-  border-color: var(--sub-accent);
-}
-
 .number-input-wrapper {
+  --edge-hi: rgba(255, 255, 255, 0.253);
+  --edge-lo: rgba(255, 255, 255, 0.05);
+  --edge-w: 1px;
+  position: relative;
   display: inline-flex;
   align-items: center;
-  border: 1px solid var(--border);
+  border: var(--edge-w) solid transparent;
   border-radius: 11px;
   margin-left: 15px;
+  max-width: 140px;
   padding: 0 !important;
   height: 40px;
   margin-top: 7px;
   overflow: hidden;
   font-family: sans-serif;
+  transition: --edge-hi 0.25s ease, --edge-lo 0.25s ease;
 }
 
-.number-input-wrapper input[type="number"] {
-  width: 100px;
-  padding: 0 6px;
-  border: none;
-  background-color: #1e1e2f;
-  outline: none;
-  height: 100%;
-  text-align: left;
-  color: var(--text-main);
-  border-radius: 0 !important;
-  font-size: 14px;
-  -moz-appearance: textfield;  
+@media (min-resolution: 2dppx) {
+  .number-input-wrapper {
+    --edge-w: 0.75px;
+  }
 }
-.number-input-wrapper input[type="number"]::-webkit-inner-spin-button,
-.number-input-wrapper input[type="number"]::-webkit-outer-spin-button {
-  -webkit-appearance: none; 
-  margin: 0;
+
+.number-input-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: var(--edge-w);
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    var(--edge-hi) 0%,
+    var(--edge-lo) 28%,
+    var(--edge-lo) 72%,
+    var(--edge-hi) 100%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
 }
+
+.number-input-wrapper:focus-within {
+  --edge-hi: #4285f4;
+  --edge-lo: rgba(255, 255, 255, 0.06);
+}
+
+.number-input-wrapper input[type="text"] {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background-color: transparent !important;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.number-input-wrapper input[type="text"]:focus,
+.number-input-wrapper input[type="text"]:focus-visible {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.number-input-wrapper .clear,
+.spinner button {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.spinner {
+  border-left: none !important;
+}
+
 .sub-logo{
   display: none;
 }
 #sidePanelToggle {
   display: none;
-}
-
-.number-input-wrapper .clear {
-  background: #1e1e2f;
-  border: none;
-  padding: 0 8px;
-  height: 100%;
-  font-size: 16px;
-  cursor: pointer;
-  color: var(--text-main);
-  opacity: 0.8;
-}
-
-
-.spinner {
-  display: flex;
-  height: 100%;
-  min-height: 100%;
-  flex-direction: column;
-  border-left: 1px solid var(--bg-hover);
-}
-.spinner button {
-  background: #1e1e2f;
-  border: none;
-  padding: 5px 6px;
-  opacity: 0.8;
-  cursor: pointer;
-  color: var(--text-main);
-  font-size: 10px;
-  line-height: 1;
-}
-.number-input-wrapper .clear:hover {
-  opacity: 0.5;
-}
-
-.spinner button:hover{
-  opacity: 0.5;
-
 }
 
 
@@ -1976,7 +2431,6 @@ input {
 }
 
 .task-non{
-
   background: var(--bg-surface-in-active) !important;
   margin-bottom: 15px;
 }
@@ -2097,13 +2551,12 @@ input {
   padding-top: 0 !important;
   width: auto;
   max-width: 60%;
-  border-radius: 24px;
+  border-radius: 30px;
   overflow-y: auto;
   max-height: 70vh;
-  background-clip: padding-box; 
-  -webkit-mask-image: -webkit-radial-gradient(white, black); 
-  mask-image: radial-gradient(white, black);
-  scrollbar-gutter: stable both-edges; 
+  background-clip: padding-box;
+  clip-path: inset(0 round 24px);
+  scrollbar-gutter: stable both-edges;
 }
 
 
@@ -2204,9 +2657,9 @@ input {
 .quest-left {
   display: flex;
   flex-direction: column;
-  width: 65%;
-  max-width: 65%;
-  min-width: 65%;
+  width: 60%;
+  max-width: 60%;
+  min-width: 60%;
   height: 100%;
   overflow: hidden;
   box-sizing: border-box;
@@ -2215,18 +2668,18 @@ input {
 
 .side-panel {
   height: 100%;
-  padding: 25px;
   border-left: 0.9px solid var(--border);
   background-color: var(--bg-sidebar);
-  width: 35%;
-  min-width: 35%;
-  max-width: 35%;
+  width: 40%;
+  overflow-y: auto !important;
+  min-width: 40%;
+  max-width: 40%;
   border-top-left-radius: 26px !important;
   border-top-right-radius: 26px !important;
   border-bottom-left-radius: 20px !important;
   border-bottom-right-radius: 20px !important;
   overflow-y: auto;
-  padding-top: 20px;
+  padding-top: 2px;
   box-sizing: border-box !important;
 }
 
@@ -2251,20 +2704,7 @@ input {
 }
 
 
-
-
-.side-panel {
-  position: relative;
-  overflow: auto;
-  background-clip: padding-box; 
-  -webkit-mask-image: -webkit-radial-gradient(white, black); 
-  mask-image: radial-gradient(white, black);
-  scrollbar-gutter: stable both-edges; 
-  scrollbar-width: thin; 
-  scrollbar-color: #929292 rgba(255, 255, 255, 0.05);  
-}
-
-
+ 
 
 
 .task-wrapper:not(:last-child) {
@@ -2293,8 +2733,7 @@ input {
 
 
 
-.quest-creator .task-builder h1,
-.quest-creator .side-panel h2 {
+.quest-creator .task-builder h1 {
   margin-bottom: 20px;
 
 }
@@ -2355,7 +2794,9 @@ input {
   gap: 60px;
   margin-bottom: 30px;
 }
-
+.contain-all-side { 
+  padding: 0 12px;
+}
 @media (max-width: 1061px) {
   
    .side-panel {
@@ -2368,6 +2809,7 @@ input {
     height: calc(100dvh - 145px);
     z-index: 77;
     padding-bottom: 100px !important;
+    padding: 25px;
 
     height: 100% !important;
     width: 100% !important;
@@ -2618,7 +3060,7 @@ input {
  
 .settings-container {
   display: flex;
-  margin: 0;
+  margin-top: 40px;
   padding: 0;
   flex-direction: column;
 }
@@ -2654,12 +3096,12 @@ input {
   position: fixed;
   inset: 0;
   background: radial-gradient(
-      circle at 20% 20%,
-      rgba(255,255,255,0.06),
-      transparent 40%
-    ),
-    rgba(0,0,0,0.65);
-  display: none;  
+    circle at 20% 20%,
+    rgba(255,255,255,0.06),
+    transparent 40%
+  ),
+  rgba(0,0,0,0.65);
+  display: none;
   align-items: center;
   justify-content: center;
   z-index: 9999;
@@ -2682,26 +3124,25 @@ input {
   -webkit-backdrop-filter: blur(18px);
   border-radius: 30px;
   border: 1px solid var(--border);
-  max-height: 80dvh;  
+  max-height: 80dvh;
   min-height: 80dvh;
-
-  height: 80dvh;     
+  height: 80dvh;
   width: 100%;
   transition: all 0.45s cubic-bezier(.4,0,.2,1);
-  box-shadow: 
+  box-shadow:
     0 30px 60px rgba(0,0,0,0.45),
     inset 0 0 0.5px rgba(255,255,255,0.4);
   overflow: hidden;
   animation: previewPop 0.25s ease;
 }
 
-
 .preview-header-arriall {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-shrink: 0;
   padding: 14px 16px;
-  background: rgba(34, 197, 94, 0.08); 
+  background: rgba(34, 197, 94, 0.08);
   backdrop-filter: blur(6px);
   border-bottom: 1px solid rgba(34, 197, 94, 0.25);
   font-size: 13px;
@@ -2726,57 +3167,215 @@ input {
   font-size: 13px;
   transition: all 0.2s ease;
 }
+
 .preview-cancel:hover {
   background: var(--bg-hover);
   transform: scale(1.05);
 }
 
-
 .preview-content-aerrra {
-  flex: 1; 
-  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  padding: 12px 0;
   font-size: 13px;
   padding-bottom: 0 !important;
   color: var(--text-main);
   line-height: 1.5;
-  overflow-y: auto;
-  background-color: transparent; 
+  background-color: transparent;
   border-radius: 0 0 30px 30px;
 }
 
-.preview-content::-webkit-scrollbar {
+.preview-content-aerrra::-webkit-scrollbar {
   display: none;
 }
-.preview-content {
+
+.preview-content-aerrra {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
 
 @media(max-width: 767px) {
-  .preview-box-arra  {
+  .preview-box-arra {
     background: var(--bg-sidebar);
     max-height: 90dvh;
     min-height: 50dvh;
   }
 }
 
-
 @media(min-width: 1060px) {
-
-@keyframes previewPop {
-  0% {
-    transform: scale(0.92) translateY(10px);
-    opacity: 0;
-  }
-  60% {
-    transform: scale(1.05) translateY(-2px);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(1) translateY(0);
-    opacity: 1;
+  @keyframes previewPop {
+    0% {
+      transform: scale(0.92) translateY(10px);
+      opacity: 0;
+    }
+    60% {
+      transform: scale(1.05) translateY(-2px);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(1) translateY(0);
+      opacity: 1;
+    }
   }
 }
+
+.valueDisplay {
+  min-width: 20px;
+  max-width: 80px;
+  display: inline-block;
+  padding: 2px 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: middle;
+  transition: width 0.2s ease;
+}
+
+.condition-block {
+  position: relative;
+}
+
+.quest-complete {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.quest-complete.initall {
+  display: flex !important;
+}
+
+.closer-all-ppp-qq-init {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  height: 100%;
+  overflow: hidden !important;
+}
+
+body .quest-content {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  height: 100%;
+  padding: 3px 12px !important;
+  overflow-y: auto !important;
+  overflow-x: hidden;
+  display: flex !important;
+  flex-direction: column !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.quest-content::-webkit-scrollbar {
+  display: none;
+}
+
+.quest-content .render-content-init-q {
+  flex: 1 0 auto;
+}
+
+.quest-state-ui {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 90%;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.claim-button {
+  background: var(--bg-app);
+  position: sticky;
+  bottom: 0;
+  z-index: 14;
+  display: flex;
+  flex-shrink: 0;
+}
+
+.claim-button .claim-task {
+  font-weight: 550 !important;
+  transition:
+    background-color 0.25s ease,
+    box-shadow 0.25s ease,
+    transform 0.2s ease,
+    opacity 0.2s ease;
+}
+
+@media(min-width: 1059px) {
+  .claim-button {
+    align-items: center !important;
+    justify-content: flex-end !important;
+    height: 80px !important;
+    padding: 12px 12px !important;
+    border-top: 1px solid var(--border-lighter);
+  }
+
+  .claim-button .claim-task.enabled {
+    color: #fff !important;
+  }
+
+  .claim-button .claim-task.disabled {
+    background-color: var(--bg-surface-lighter) !important;
+  }
+
+  .claim-button .claim-task {
+    background-color: var(--bg-surface-lighter);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 16px;
+    border: 1px solid transparent;
+    text-align: center;
+    padding: 15px 28px;
+    cursor: not-allowed;
+    width: fit-content !important;
+    color: var(--text-main);
+    font-size: 15px;
+  }
+}
+
+@media(max-width: 1059px) {
+  .claim-button {
+    justify-content: center;
+    align-items: center !important;
+    gap: 12px;
+    border-top-left-radius: 23px;
+    border-top-right-radius: 23px;
+    height: 60px;
+    padding: 0 !important;
+    width: 100%;
+    min-width: 100%;
+    padding-bottom: 10px !important;
+    box-sizing: border-box;
+    background-color: var(--bg-sidebar-opaque);
+    backdrop-filter: blur(7px);
+    border-top: none !important;
+  }
+
+  .claim-button .claim-task {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 19px;
+    height: 100% !important;
+    border: 1px solid transparent;
+    text-align: center;
+    padding: 15px 28px;
+    background-color: var(--bg-surface);
+    cursor: not-allowed;
+    width: 100% !important;
+    color: var(--text-main);
+    font-size: 15px;
+  }
 }
 
 
@@ -2819,64 +3418,55 @@ input {
   display: none; /* hidden by default */
 }
 
-.level-dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  margin-top: 6px;
-  background: var(--bg-app-init);
-  border-radius: 8px;
-  box-shadow: 0 6px 12px rgba(0,0,0,0.2);
-  padding: 10px;
-  z-index: 2000;  
-  display: none;
-}
-.level-dropdown input{
-  font-size: 14px !important;
-}
-
-.level-dropdown input::placeholder{
-  color: var(--text-muted);
-  opacity: 0.9;
-}
-
-.condition-block {
-  position: relative;  
-}
-.level-dropdown input[type=number]::-webkit-outer-spin-button,
-.level-dropdown input[type=number]::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-.level-dropdown input[type=number] {
-  -moz-appearance: textfield;
-}
-
+ 
 
 
 #sprintModal {
-  position: absolute; 
+  --edge-hi: rgba(255, 255, 255, 0.253);
+  --edge-lo: rgba(255, 255, 255, 0.05);
+  --edge-w: 1.5px;
+  position: absolute;
   display: none;
-
-  background: rgba(34, 34, 54, 0.712);
+  background: var(--card-bg-glassy);
   backdrop-filter: blur(14px);
-  border: 0.9px solid var(--border);
+  border: var(--edge-w) solid var(--border);
   border-radius: 18px;
-
   overflow-y: auto;
   padding: 15px 20px;
   padding-bottom: 60px !important;
-
-  min-width: 140px;  
-  width: max-content;  
-
+  min-width: 140px;
+  width: max-content;
   z-index: 99999;
+}
+
+@media (min-resolution: 2dppx) {
+  #sprintModal {
+    --edge-w: 1.25px;
+  }
+}
+
+@supports (background-clip: border-area) {
+  #sprintModal {
+    border-color: transparent;
+    background-color: transparent;
+    background-image:
+      linear-gradient(var(--card-bg-glassy), var(--card-bg-glassy)),
+      linear-gradient(
+        135deg,
+        var(--edge-hi) 0%,
+        var(--edge-lo) 28%,
+        var(--edge-lo) 72%,
+        var(--edge-hi) 100%
+      );
+    background-origin: border-box;
+    background-clip: padding-box, border-area;
+  }
 }
 
 /* Modal content */
 #sprintModal .modal-content {
   position: relative;
+  min-width: 250px;
 }
 
 .close-sprint {
@@ -2884,6 +3474,9 @@ input {
   height: 13px
 }
 .close-sprint {
+  --edge-hi: rgba(255, 255, 255, 0.253);
+  --edge-lo: rgba(255, 255, 255, 0.05);
+  --edge-w: 1px;
   position: absolute;
   top: -7px;
   right: -13px;
@@ -2892,19 +3485,49 @@ input {
   font-weight: bold;
   color: var(--text-main);
   cursor: pointer;
-  width: 30px;     
-  height: 30px;    
-  line-height: 30px;  
-  text-align: center;  
-  border-radius: 50%;  
-  transition: color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+  width: 30px;
+  height: 30px;
+  line-height: 30px;
+  text-align: center;
+  border: var(--edge-w) solid transparent;
+  border-radius: 50%;
+  transition: color 0.2s ease, background-color 0.2s ease, transform 0.2s ease,
+              --edge-hi 0.25s ease, --edge-lo 0.25s ease;
+}
+
+@media (min-resolution: 2dppx) {
+  .close-sprint {
+    --edge-w: 0.75px;
+  }
+}
+
+.close-sprint::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: var(--edge-w);
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    var(--edge-hi) 0%,
+    var(--edge-lo) 28%,
+    var(--edge-lo) 72%,
+    var(--edge-hi) 100%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.close-sprint:hover {
+  --edge-hi: rgba(255, 255, 255, 0.75);
+  --edge-lo: rgba(255, 255, 255, 0.08);
 }
 
 .close-sprint:hover {
   color: #fff;
-  background-color: var(--bg-hover-hover);
-
-  transform: scale(1.1);
 }
 
 
@@ -3127,14 +3750,44 @@ input {
 }
 
 .zec-inline-reward {
+  --edge-hi: rgba(255, 255, 255, 0.253);
+  --edge-lo: rgba(255, 255, 255, 0.05);
   position: absolute;
   left: 0;
   z-index: 99;
+  max-width: 390px;
+  isolation: isolate;
   padding: 12px 14px;
-  background: var(--bg-sidebar);
-  border: 1px solid var(--border2);
-  border-radius: 14px;
-  box-shadow: 0 8px 32px rgba(0,0,0,.45);
+  background: var(--card-bg-glassy);
+  border: 1px solid transparent;
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  border-radius: 17px;
+}
+
+.zec-inline-reward::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    var(--edge-hi) 0%,
+    var(--edge-lo) 28%,
+    var(--edge-lo) 72%,
+    var(--edge-hi) 100%
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: -1;
 }
 
  
@@ -3156,56 +3809,116 @@ input {
 }
 
 .streak-xp-pill {
+  display: inline-flex;
+  position: relative;
+  align-items: center;
+  gap: 4px;
   font-size: 11px;
-  padding: 2px 8px;
-  background: #fff7ed;
-  color: #c2410c;
+  line-height: 1;
+  padding: 5px 11px;
+  background: rgba(139, 92, 246, 0.16);
+  color: #c4b5fd;
   border-radius: 20px;
-  font-weight: 500;
+  font-weight: 600;
+  letter-spacing: .1px;
   white-space: nowrap;
+  --edge-hi: rgba(196, 181, 253, 0.9);
+  --edge-lo: rgba(196, 181, 253, 0.12);
+  --edge-w: 1.25px;
+}
+
+
+.streak-xp-pill::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: var(--edge-w);
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    var(--edge-hi) 0%,
+    var(--edge-lo) 28%,
+    var(--edge-lo) 72%,
+    var(--edge-hi) 100%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
 }
 
 .streak-toggle {
   position: relative;
-  display: inline-block;
-  width: 34px;
-  height: 19px;
-  cursor: pointer;
+  width: 58px;
+  height: 30px;
   flex-shrink: 0;
-  margin: 0;
 }
+
 .streak-toggle input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-  position: absolute;
+  display: none;
 }
+
 .streak-slider {
   position: absolute;
   inset: 0;
-  background: var(--bg-hover);
-  border-radius: 20px;
-  transition: background 0.2s;
+  background: rgba(120, 120, 128, 0.5);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.3s ease;
 }
-.streak-slider::before {
-  content: '';
+
+.streak-slider::after {
+  content: "";
   position: absolute;
-  width: 14px;
-  height: 14px;
-  left: 2.5px;
-  top: 2.5px;
-  background: #ffffffd9;
-  border-radius: 50%;
-  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  inset: 0;
+  padding: var(--edge-w);
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    var(--edge-hi) 0%,
+    var(--edge-lo) 28%,
+    var(--edge-lo) 72%,
+    var(--edge-hi) 100%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
 }
+
+.streak-slider::before {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  width: 34px;
+  height: 24px;
+  background: #fff;
+  border-radius: 999px;
+  box-shadow:
+    0 3px 8px rgba(0, 0, 0, 0.35),
+    0 0 0 2px rgba(255, 255, 255, 0.16);
+  transition:
+    transform 0.4s cubic-bezier(0.34, 1.4, 0.64, 1),
+    width 0.25s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+.streak-toggle:active .streak-slider::before {
+  width: 40px;
+}
+
 .streak-toggle input:checked + .streak-slider {
   background: #4285f4;
-  outline: 0.9px solid #4286f4da;
-  outline-offset: 2px;
 }
-.streak-toggle input:checked + .streak-slider::before {
-  transform: translateX(15px);
 
+.streak-toggle input:checked + .streak-slider::before {
+  transform: translateX(18px);
+}
+
+.streak-toggle:active input:checked + .streak-slider::before {
+  transform: translateX(12px);
 }
 
 /* ============================
@@ -3927,6 +4640,41 @@ input {
   background: rgba(243, 183, 36, 0.18);
   border-color: #F3B724;
 } 
+
+.task-item.task-locked {
+  opacity: 0.8;
+  filter: grayscale(30%) !important;
+
+  cursor: not-allowed;
+}
+.task-item.task-locked .task-desc a {
+  text-decoration: underline;
+  color: inherit;
+  cursor: pointer;
+}
+
+.task-desc .task-link {
+  display: inline !important;   /* stops the link from taking the whole line */
+  width: auto !important;
+  color: #4285f4;
+  font-size: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: #4286f469;
+  text-underline-offset: 2px;
+  transition: text-decoration-color 0.2s ease, opacity 0.2s ease;
+}
+
+.task-desc .task-link:hover {
+  text-decoration-color: #4488f4ac;
+  opacity: 0.85;
+}
+
+/* make sure the description itself flows as normal text */
+.task-non .task-desc {
+  display: block;
+  line-height: 1.4;
+}
 </style>
 
 
@@ -4016,13 +4764,14 @@ input {
             <div class="main-text-area">
                 <div class="text-block" id="first-text-block" contenteditable="true" data-placeholder="Tell adventurers what they must do to complete this quest.."></div>
 
+                
+                <svg version="1.0" class="image-picker" id="pickMedia" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512.000000 512.000000" preserveAspectRatio="xMidYMid meet" fill="currentColor">
 
-              <svg class="image-picker" id="pickMedia"
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none">
-                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 2v3m0 3V5m0 0h3m-3 0h-3"/><path fill="currentColor" fill-rule="evenodd" d="M13 2H5a3 3 0 0 0-3 3v10.5c0 .086.011.17.032.25A1 1 0 0 0 2 16v3a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3v-7a1 1 0 0 0-.032-.25A1 1 0 0 0 22 11.5V11h-2v.016c-4.297.139-7.4 1.174-9.58 2.623.826.293 1.75.71 2.656 1.256 1.399.84 2.821 2.02 3.778 3.583a1 1 0 1 1-1.706 1.044c-.736-1.203-1.878-2.178-3.102-2.913-1.222-.734-2.465-1.192-3.327-1.392a15.466 15.466 0 0 0-3.703-.386h-.022c-.348.005-.68.02-.994.045V5a1 1 0 0 1 1-1h8V2zM8.5 6a2.68 2.68 0 0 0-1.522.488C6.408 6.898 6 7.574 6 8.5c0 .926.408 1.601.978 2.011A2.674 2.674 0 0 0 8.5 11c.41 0 1.003-.115 1.522-.489.57-.41.978-1.085.978-2.011 0-.926-.408-1.601-.978-2.012A2.674 2.674 0 0 0 8.5 6z" clip-rule="evenodd"/>
-              </svg>
+                  <g transform="translate(0.000000,512.000000) scale(0.100000,-0.100000)" stroke="none">
+                  <path d="M1655 4839 c-499 -28 -789 -122 -1003 -323 -242 -228 -340 -512 -372 -1076 -13 -227 -13 -1533 0 -1760 30 -528 118 -807 321 -1024 228 -244 513 -343 1079 -376 227 -13 1533 -13 1760 0 313 18 543 58 703 122 355 143 567 414 646 828 46 242 61 483 61 1001 0 374 0 376 -22 409 -34 50 -71 72 -125 77 -59 5 -117 -25 -147 -77 -20 -34 -21 -55 -27 -510 -6 -423 -19 -684 -38 -731 -4 -11 -85 56 -321 268 -173 156 -343 302 -376 323 -133 84 -264 122 -424 123 -177 1 -311 -40 -473 -147 -53 -36 -114 -70 -134 -77 -46 -15 -149 -7 -193 16 -19 9 -267 247 -550 529 -568 563 -567 563 -736 606 -215 55 -429 -1 -614 -162 l-80 -69 0 228 c0 524 44 863 135 1047 112 226 291 343 615 400 168 30 323 39 790 45 541 7 523 4 568 91 40 78 19 155 -58 208 -33 22 -33 22 -439 21 -223 -1 -469 -6 -546 -10z m-390 -2129 c40 -19 158 -131 570 -540 476 -472 526 -519 588 -548 164 -78 345 -82 505 -12 25 11 78 43 120 71 146 100 248 129 379 110 120 -17 195 -60 349 -198 495 -447 614 -556 614 -567 0 -7 -18 -39 -41 -72 -142 -205 -330 -294 -722 -340 -172 -21 -1617 -32 -1915 -15 -527 30 -758 112 -919 325 -144 191 -191 446 -200 1086 l-5 375 182 157 c214 185 242 200 365 195 57 -3 94 -10 130 -27z"/>
+                  <path d="M3872 4833 c-18 -9 -43 -30 -55 -47 -21 -30 -22 -39 -25 -353 l-3 -322 -317 -3 c-299 -3 -319 -4 -352 -24 -101 -59 -104 -195 -6 -268 26 -20 44 -21 349 -26 l322 -5 5 -322 c5 -305 6 -323 26 -349 33 -45 70 -67 121 -71 59 -5 117 25 147 77 20 33 21 53 24 353 l3 317 311 0 c265 0 315 2 344 16 50 24 77 68 82 133 5 70 -22 115 -88 149 -43 21 -53 22 -347 22 l-303 0 0 303 c0 294 -1 304 -22 347 -42 83 -134 114 -216 73z"/>
+                  </g>
+                </svg>
             </div>
 
 
@@ -4075,402 +4824,380 @@ input {
 
     <aside class="side-panel">
       <div class="contain-all-side">
+        <div class="side-header">
 
 
-      <div style="display: flex; align-items: center; justify-content: space-between; padding: 0; margin: 0">
-        <h2 style="color: var(--text-main); font-size: 17px !important;">Quest Settings</h2>
-        <div class="hide-settings-info" data-tooltip="Close Quest Settings" >
-          <svg xmlns="http://www.w3.org/2000/svg" width="18.5" height="18.5" viewBox="0 0 24 24">
-            <rect x="2" y="4" width="17.5" height="15" rx="4" ry="4" fill="none" stroke="currentColor" stroke-width="1.5"/>
-            <rect x="7" y="4" width="1.5" height="15" rx="0.6" ry="0.6" fill="currentColor"/>
-          </svg>
-        </div>
-      </div>
-      <div class="tabs">
-        <button class="tab active">
-          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
-            <path d="M8.5 3.75a3.25 3.25 0 0 0-3.154 2.5H3a.75.75 0 0 0 0 1.5h2.346a3.246 3.246 0 1 0 3.154-4Zm0 5A1.75 1.75 0 1 1 10.25 7 1.752 1.752 0 0 1 8.5 8.75ZM14.25 7A.75.75 0 0 1 15 6.25h6a.75.75 0 0 1 0 1.5h-6a.75.75 0 0 1-.75-.75ZM21 16.25h-2.346a3.25 3.25 0 1 0 0 1.5H21a.75.75 0 0 0 0-1.5Zm-5.5 2.5A1.75 1.75 0 1 1 17.25 17a1.752 1.752 0 0 1-1.75 1.75ZM9.75 17a.75.75 0 0 1-.75.75H3a.75.75 0 0 1 0-1.5h6a.75.75 0 0 1 .75.75Z"/>
-          </svg>
+          <div class="tabs">
+            <div class="tab-pill"></div>
 
-          Properties
-        </button>
-        <button class="tab">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path
-              fill-rule="evenodd"
-              clip-rule="evenodd"
-              d="M11.9426 1.25H12.0574C14.3658 1.24999 16.1748 1.24998 17.5863 1.43975C19.031 1.63399 20.1711 2.03933 21.0659 2.93414C21.9607 3.82895 22.366 4.96897 22.5603 6.41371C22.75 7.82519 22.75 9.63423 22.75 11.9426V12.0574C22.75 14.3658 22.75 16.1748 22.5603 17.5863C22.366 19.031 21.9607 20.1711 21.0659 21.0659C20.1711 21.9607 19.031 22.366 17.5863 22.5603C16.1748 22.75 14.3658 22.75 12.0574 22.75H11.9426C9.63423 22.75 7.82519 22.75 6.41371 22.5603C4.96897 22.366 3.82895 21.9607 2.93414 21.0659C2.03933 20.1711 1.63399 19.031 1.43975 17.5863C1.24998 16.1748 1.24999 14.3658 1.25 12.0574V11.9426C1.24999 9.63423 1.24998 7.82519 1.43975 6.41371C1.63399 4.96897 2.03933 3.82895 2.93414 2.93414C3.82895 2.03933 4.96897 1.63399 6.41371 1.43975C7.82519 1.24998 9.63423 1.24999 11.9426 1.25ZM6.61358 2.92637C5.33517 3.09825 4.56445 3.42514 3.9948 3.9948C3.42514 4.56445 3.09825 5.33517 2.92637 6.61358C2.75159 7.91356 2.75 9.62178 2.75 12C2.75 14.3782 2.75159 16.0864 2.92637 17.3864C3.09825 18.6648 3.42514 19.4355 3.9948 20.0052C4.56445 20.5749 5.33517 20.9018 6.61358 21.0736C7.91356 21.2484 9.62177 21.25 12 21.25C14.3782 21.25 16.0864 21.2484 17.3864 21.0736C18.6648 20.9018 19.4355 20.5749 20.0052 20.0052C20.5749 19.4355 20.9018 18.6648 21.0736 17.3864C21.2484 16.0864 21.25 14.3782 21.25 12C21.25 9.62178 21.2484 7.91356 21.0736 6.61358C20.9018 5.33517 20.5749 4.56445 20.0052 3.9948C19.4355 3.42514 18.6648 3.09825 17.3864 2.92637C16.0864 2.75159 14.3782 2.75 12 2.75C9.62177 2.75 7.91356 2.75159 6.61358 2.92637ZM15.3588 8.64124C15.6517 8.93414 15.6517 9.40901 15.3588 9.7019L10.9822 14.0784L13.4142 14.0784C13.8284 14.0784 14.1642 14.4142 14.1642 14.8284C14.1642 15.2426 13.8284 15.5784 13.4142 15.5784L9.17157 15.5784C8.75736 15.5784 8.42157 15.2426 8.42157 14.8284V10.5858C8.42157 10.1716 8.75736 9.83579 9.17157 9.83579C9.58579 9.83579 9.92157 10.1716 9.92157 10.5858V13.0178L14.2981 8.64124C14.591 8.34835 15.0659 8.34835 15.3588 8.64124Z"
-              fill="currentColor"
-            />
-          </svg>
-
-          Results
-        </button>
-      </div>
-      <div class="settings-container">
-        <div class="setting" style="display: flex !important; align-items: center; justify-content: space-between !important;">
-          <label style="display: flex;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
-            </svg>
-            Recurrence
-          </label>
-
-          <div class="custom-dropdown recurrence-label">
-            <div class="selected">
-              <span>{{ subquest.recurrence or 'None' }}</span>
-              <span class="arro">
-              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <polyline
-                  points="5 8.5 12 15.5 19 8.5"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
+            <button class="tab active">
+              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+                <path d="M8.5 3.75a3.25 3.25 0 0 0-3.154 2.5H3a.75.75 0 0 0 0 1.5h2.346a3.246 3.246 0 1 0 3.154-4Zm0 5A1.75 1.75 0 1 1 10.25 7 1.752 1.752 0 0 1 8.5 8.75ZM14.25 7A.75.75 0 0 1 15 6.25h6a.75.75 0 0 1 0 1.5h-6a.75.75 0 0 1-.75-.75ZM21 16.25h-2.346a3.25 3.25 0 1 0 0 1.5H21a.75.75 0 0 0 0-1.5Zm-5.5 2.5A1.75 1.75 0 1 1 17.25 17a1.752 1.752 0 0 1-1.75 1.75ZM9.75 17a.75.75 0 0 1-.75.75H3a.75.75 0 0 1 0-1.5h6a.75.75 0 0 1 .75.75Z"/>
               </svg>
-              </span>
+              Properties
+            </button>
+
+            <button class="tab">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M11.9426 1.25H12.0574C14.3658 1.24999 16.1748 1.24998 17.5863 1.43975C19.031 1.63399 20.1711 2.03933 21.0659 2.93414C21.9607 3.82895 22.366 4.96897 22.5603 6.41371C22.75 7.82519 22.75 9.63423 22.75 11.9426V12.0574C22.75 14.3658 22.75 16.1748 22.5603 17.5863C22.366 19.031 21.9607 20.1711 21.0659 21.0659C20.1711 21.9607 19.031 22.366 17.5863 22.5603C16.1748 22.75 14.3658 22.75 12.0574 22.75H11.9426C9.63423 22.75 7.82519 22.75 6.41371 22.5603C4.96897 22.366 3.82895 21.9607 2.93414 21.0659C2.03933 20.1711 1.63399 19.031 1.43975 17.5863C1.24998 16.1748 1.24999 14.3658 1.25 12.0574V11.9426C1.24999 9.63423 1.24998 7.82519 1.43975 6.41371C1.63399 4.96897 2.03933 3.82895 2.93414 2.93414C3.82895 2.03933 4.96897 1.63399 6.41371 1.43975C7.82519 1.24998 9.63423 1.24999 11.9426 1.25ZM6.61358 2.92637C5.33517 3.09825 4.56445 3.42514 3.9948 3.9948C3.42514 4.56445 3.09825 5.33517 2.92637 6.61358C2.75159 7.91356 2.75 9.62178 2.75 12C2.75 14.3782 2.75159 16.0864 2.92637 17.3864C3.09825 18.6648 3.42514 19.4355 3.9948 20.0052C4.56445 20.5749 5.33517 20.9018 6.61358 21.0736C7.91356 21.2484 9.62177 21.25 12 21.25C14.3782 21.25 16.0864 21.2484 17.3864 21.0736C18.6648 21.0018 19.4355 20.5749 20.0052 20.0052C20.5749 19.4355 20.9018 18.6648 21.0736 17.3864C21.2484 16.0864 21.25 14.3782 21.25 12C21.25 9.62178 21.2484 7.91356 21.0736 6.61358C20.9018 5.33517 20.5749 4.56445 20.0052 3.9948C19.4355 3.42514 18.6648 3.09825 17.3864 2.92637C16.0864 2.75159 14.3782 2.75 12 2.75C9.62177 2.75 7.91356 2.75159 6.61358 2.92637ZM15.3588 8.64124C15.6517 8.93414 15.6517 9.40901 15.3588 9.7019L10.9822 14.0784L13.4142 14.0784C13.8284 14.0784 14.1642 14.4142 14.1642 14.8284C14.1642 15.2426 13.8284 15.5784 13.4142 15.5784L9.17157 15.5784C8.75736 15.5784 8.42157 15.2426 8.42157 14.8284V10.5858C8.42157 10.1716 8.75736 9.83579 9.17157 9.83579C9.58579 9.83579 9.92157 10.1716 9.92157 10.5858V13.0178L14.2981 8.64124C14.591 8.34835 15.0659 8.34835 15.3588 8.64124Z" fill="currentColor"/>
+              </svg>
+              Results
+            </button>
+          </div>
+          <div class="hide-settings-info" data-tooltip="Close Quest Settings">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18.5" height="18.5" viewBox="0 0 24 24">
+              <rect x="2" y="4" width="17.5" height="15" rx="4" ry="4" fill="none" stroke="currentColor" stroke-width="1.5"/>
+              <rect x="7" y="4" width="1.5" height="15" rx="0.6" ry="0.6" fill="currentColor"/>
+            </svg>
+          </div>          
+        </div>
+
+        <div class="settings-container">
+          <div class="setting" style="display: flex !important; align-items: center; justify-content: space-between !important;">
+            <label style="display: flex;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+              </svg>
+              Recurrence
+            </label>
+
+            <div class="custom-dropdown recurrence-label">
+              <div class="selected">
+                <span>{{ subquest.recurrence or 'None' }}</span>
+                <span class="arro">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <polyline
+                    points="5 8.5 12 15.5 19 8.5"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+                </span>
+              </div>
             </div>
           </div>
-        </div>
-        <div class="streak-row {% if subquest.recurrence and subquest.recurrence.lower() == 'daily' %}visible{% endif %}" id="streakRow">
-          
-          <div style="display: flex !important; align-items: center; justify-content: space-between !important; width: 100% !important; padding-right: 3px;">
+          <div class="streak-row {% if subquest.recurrence and subquest.recurrence.lower() == 'daily' %}visible{% endif %}" id="streakRow">
             
-            <label style="display: flex; align-items: center; gap: 6px; margin: 0; font-size: 14px; color: var(--text-main)">
-              <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.047 8.287 8.287 0 0 0 9 9.601a8.983 8.983 0 0 1 3.361-6.867 8.21 8.21 0 0 0 3 2.48Z" />
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 18a3.75 3.75 0 0 0 .495-7.468 5.99 5.99 0 0 0-1.925 3.547 5.975 5.975 0 0 1-2.133-1.001A3.75 3.75 0 0 0 12 18Z" />
-              </svg>
+            <div style="display: flex !important; align-items: center; justify-content: space-between !important; width: 100% !important; padding-right: 3px;">
+              
+              <label style="display: flex; align-items: center; gap: 6px; margin: 0; font-size: 14px; color: var(--text-main)">
+                <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.047 8.287 8.287 0 0 0 9 9.601a8.983 8.983 0 0 1 3.361-6.867 8.21 8.21 0 0 0 3 2.48Z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 18a3.75 3.75 0 0 0 .495-7.468 5.99 5.99 0 0 0-1.925 3.547 5.975 5.975 0 0 1-2.133-1.001A3.75 3.75 0 0 0 12 18Z" />
+                </svg>
 
-              Streak
-              <span class="streak-xp-pill">+ XP/interval</span>
-            </label>
+                Streak
+                <span class="streak-xp-pill">+ XP/interval</span>
+              </label>
 
-            <label class="streak-toggle" style="margin: 0;">
-              <input type="checkbox" id="streakToggle"
-                {% if subquest.streak_enabled %}checked{% endif %}>
-              <span class="streak-slider"></span>
-            </label>
+              <label class="streak-toggle" style="margin: 0;">
+                <input type="checkbox" id="streakToggle"
+                  {% if subquest.streak_enabled %}checked{% endif %}>
+                <span class="streak-slider"></span>
+              </label>
 
+            </div>
           </div>
-        </div>
-        
-        <div class="setting"  style="display: flex !important; align-items: center; justify-content: space-between !important;">
-          <label style="display: flex; align-items: center;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-
-            Cooldown
-          </label>
-          <div class="custom-drop">
-            <div class="selected">
-              <span>{{ subquest.cooldown or 'None' }}</span>
-              <span class="arro">
-              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <polyline
-                  points="5 8.5 12 15.5 19 8.5"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
+          
+          <div class="setting"  style="display: flex !important; align-items: center; justify-content: space-between !important;">
+            <label style="display: flex; align-items: center;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
 
+              Cooldown
+            </label>
+            <div class="custom-drop">
+              <div class="selected">
+                <span>{{ subquest.cooldown or 'None' }}</span>
+                <span class="arro">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <polyline
+                    points="5 8.5 12 15.5 19 8.5"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
 
-              </span>
+
+                </span>
+              </div>
+
             </div>
 
+          </div> 
+
+          <div class="setting column-setting">
+            <label style="display: flex; align-items: center;">
+              <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 256 256" enable-background="new 0 0 256 256" xml:space="preserve" width="14" height="14">
+              <g><g><path fill="currentColor" d="M69,10c-19.5,0-35.4,15.9-35.4,35.4c0,4.1,0.9,8.1,2.2,11.8h-2.2c-13,0-23.6,10.6-23.6,23.6V128h106.2V57.2h23.6V128H246V80.8c0-13-10.6-23.6-23.6-23.6h-2.2c1.3-3.7,2.2-7.7,2.2-11.8c0-19.5-15.9-35.4-35.4-35.4c-16.7,0-32.9,11.4-45.3,23.6h-27.3C101.9,21.4,85.7,10,69,10z M69,33.6c10.6,0,24.1,11.3,35,23.6H69c-6.5,0-11.8-5.3-11.8-11.8S62.5,33.6,69,33.6z M187,33.6c6.5,0,11.8,5.3,11.8,11.8s-5.3,11.8-11.8,11.8h-35C162.6,45.3,176.2,33.6,187,33.6z M10,151.6v70.8c0,13,10.6,23.6,23.6,23.6h82.6v-94.4H10z M139.8,151.6V246h82.6c13,0,23.6-10.6,23.6-23.6v-70.8H139.8z"/></g></g>
+              </svg>
+              Reward
+            </label>
+
+            <div id="rewardContainerParent" style="display: none; flex-direction: column; gap: 10px; display: flex; margin-bottom: 20px;">
+
+            </div>
+
+
+            <div class="reward-space-conatiner">
+              <button style="display: none; white-space: nowrap;"  id="clearAllRewards" class="clear-all-btn" title="Clear All Rewards" >
+              <svg width="15" height="15" class="triggerDeletePopup" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- Trash lid -->
+                <path d="M20.5 6H3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+
+                <!-- Trash body -->
+                <path d="M6.5 6C6.55588 6 6.58382 6 6.60915 5.99936C7.43259 5.97849 8.15902 5.45491 8.43922 4.68032C8.44784 4.65649 8.45667 4.62999 8.47434 4.57697L8.57143 4.28571C8.65431 4.03708 8.69575 3.91276 8.75071 3.8072C8.97001 3.38607 9.37574 3.09364 9.84461 3.01877C9.96213 3 10.0932 3 10.3553 3H13.6447C13.9068 3 14.0379 3 14.1554 3.01877C14.6243 3.09364 15.03 3.38607 15.2493 3.8072C15.3043 3.91276 15.3457 4.03708 15.4286 4.28571L15.5257 4.57697C15.5433 4.62992 15.5522 4.65651 15.5608 4.68032C15.841 5.45491 16.5674 5.97849 17.3909 5.99936C17.4162 6 17.4441 6 17.5 6" stroke="currentColor" stroke-width="1.5"></path>
+
+                <!-- Trash handle/body curve -->
+                <path d="M18.3735 15.3991C18.1965 18.054 18.108 19.3815 17.243 20.1907C16.378 21 15.0476 21 12.3868 21H11.6134C8.9526 21 7.6222 21 6.75719 20.1907C5.89218 19.3815 5.80368 18.054 5.62669 15.3991L5.16675 8.5M18.8334 8.5L18.6334 11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+
+                <!-- Two vertical bars -->
+                <line x1="10" y1="9" x2="10" y2="17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></line>
+                <line x1="14" y1="9" x2="14" y2="17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></line>
+              </svg> Clear All
+              </button>
+
+
+
+              <div class="shifted reward"> 
+                <div class="shift" style="font-size: 14px !important;" >
+                  <!-- Plus Icon -->
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" fill="currentColor" style="margin-right: 4px;">
+                    <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  Add a Reward
+                </div>
+
+
+
+              </div>
+        
+            </div>
+            
+          
+
+
+          </div> 
+
+          <div class="setting chv-date-setting" data-setting="chv-start-date"
+              style="display:none; align-items:center; justify-content:space-between;">
+            <label style="display: flex; align-items: center;">
+              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" width="14" height="14"
+                  stroke="currentColor" stroke-width="2" style="margin-right:5px;"
+                  stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="17" rx="4" ry="4"/>
+                <line x1="7.25" y1="2.5" x2="7.25" y2="5.5" />
+                <line x1="15.25" y1="2.5" x2="15.25" y2="5.5" />
+                <line x1="6" y1="9" x2="18" y2="9" />
+              </svg>
+              Vote Start
+            </label>
+
+            <div class="custom-drop chv-start-date-trigger" {% if subquest.vote_start_date_display %}data-utc-value="{{ subquest.vote_start_date_display }}"{% endif %}>
+              <div class="selected">
+                <span class="valueText">{{ subquest.vote_start_date_display or 'Select date' }}</span>
+                <span class="arro">
+                  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <polyline points="5 8.5 12 15.5 19 8.5" fill="none" stroke="currentColor"
+                      stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </span>
+              </div>
+            </div>
           </div>
 
-        </div>
+          <div class="setting chv-date-setting" data-setting="chv-end-date"
+              style="display:none; align-items:center; justify-content:space-between;">
+            <label style="display: flex; align-items: center;">
+              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" width="14" height="14"
+                  stroke="currentColor" stroke-width="2" style="margin-right:5px;"
+                  stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="17" rx="4" ry="4"/>
+                <line x1="7.25" y1="2.5" x2="7.25" y2="5.5" />
+                <line x1="15.25" y1="2.5" x2="15.25" y2="5.5" />
+                <line x1="6" y1="9" x2="18" y2="9" />
+              </svg>
+              Vote End
+            </label>
+
+            <div class="custom-drop chv-end-date-trigger" {% if subquest.vote_end_date_display %}data-utc-value="{{ subquest.vote_end_date_display }}"{% endif %}>
+              <div class="selected">
+                <span class="valueText">{{ subquest.vote_end_date_display or 'Select date' }}</span>
+                <span class="arro">
+                  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <polyline points="5 8.5 12 15.5 19 8.5" fill="none" stroke="currentColor"
+                      stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </span>
+              </div>
+            </div>
+          </div> 
+
+          <div class="setting  column-setting"  data-setting="condition">
+            <label style="display: flex; align-items: center;">
+              <svg xmlns="http://www.w3.org/2000/svg" 
+                  width="14" height="14" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  stroke-width="2" 
+                  stroke-linecap="round" 
+                  stroke-linejoin="round" 
+                  class="feather feather-check-circle">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+              Condition
+            </label>
 
 
+            <div id="conditionContainerParent"  class="conditionContainerWrapper" style="display: none; flex-direction: column; gap: 10px; display: flex; margin-bottom: 20px;">
 
-        <div class="setting column-setting">
-          <label style="display: flex; align-items: center;">
-            <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 256 256" enable-background="new 0 0 256 256" xml:space="preserve" width="14" height="14">
-            <g><g><path fill="currentColor" d="M69,10c-19.5,0-35.4,15.9-35.4,35.4c0,4.1,0.9,8.1,2.2,11.8h-2.2c-13,0-23.6,10.6-23.6,23.6V128h106.2V57.2h23.6V128H246V80.8c0-13-10.6-23.6-23.6-23.6h-2.2c1.3-3.7,2.2-7.7,2.2-11.8c0-19.5-15.9-35.4-35.4-35.4c-16.7,0-32.9,11.4-45.3,23.6h-27.3C101.9,21.4,85.7,10,69,10z M69,33.6c10.6,0,24.1,11.3,35,23.6H69c-6.5,0-11.8-5.3-11.8-11.8S62.5,33.6,69,33.6z M187,33.6c6.5,0,11.8,5.3,11.8,11.8s-5.3,11.8-11.8,11.8h-35C162.6,45.3,176.2,33.6,187,33.6z M10,151.6v70.8c0,13,10.6,23.6,23.6,23.6h82.6v-94.4H10z M139.8,151.6V246h82.6c13,0,23.6-10.6,23.6-23.6v-70.8H139.8z"/></g></g>
-            </svg>
-            Reward
-          </label>
+            </div>
 
-          <div id="rewardContainerParent" style="display: none; flex-direction: column; gap: 10px; display: flex; margin-bottom: 20px;">
+            <div style="display: flex !important;  gap: 50px;">
 
-          </div>
+            <button id="clearAllCondition" class="clear-all-btn" title="Clear All Condition" style="white-space: nowrap;">
+              <svg width="15" height="15" class="triggerDeletePopup" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- Trash lid -->
+                <path d="M20.5 6H3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
 
+                <!-- Trash body -->
+                <path d="M6.5 6C6.55588 6 6.58382 6 6.60915 5.99936C7.43259 5.97849 8.15902 5.45491 8.43922 4.68032C8.44784 4.65649 8.45667 4.62999 8.47434 4.57697L8.57143 4.28571C8.65431 4.03708 8.69575 3.91276 8.75071 3.8072C8.97001 3.38607 9.37574 3.09364 9.84461 3.01877C9.96213 3 10.0932 3 10.3553 3H13.6447C13.9068 3 14.0379 3 14.1554 3.01877C14.6243 3.09364 15.03 3.38607 15.2493 3.8072C15.3043 3.91276 15.3457 4.03708 15.4286 4.28571L15.5257 4.57697C15.5433 4.62992 15.5522 4.65651 15.5608 4.68032C15.841 5.45491 16.5674 5.97849 17.3909 5.99936C17.4162 6 17.4441 6 17.5 6" stroke="currentColor" stroke-width="1.5"></path>
 
-          <div class="reward-space-conatiner">
-            <button style="display: none; white-space: nowrap;"  id="clearAllRewards" class="clear-all-btn" title="Clear All Rewards" >
-            <svg width="15" height="15" class="triggerDeletePopup" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <!-- Trash lid -->
-              <path d="M20.5 6H3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+                <!-- Trash handle/body curve -->
+                <path d="M18.3735 15.3991C18.1965 18.054 18.108 19.3815 17.243 20.1907C16.378 21 15.0476 21 12.3868 21H11.6134C8.9526 21 7.6222 21 6.75719 20.1907C5.89218 19.3815 5.80368 18.054 5.62669 15.3991L5.16675 8.5M18.8334 8.5L18.6334 11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
 
-              <!-- Trash body -->
-              <path d="M6.5 6C6.55588 6 6.58382 6 6.60915 5.99936C7.43259 5.97849 8.15902 5.45491 8.43922 4.68032C8.44784 4.65649 8.45667 4.62999 8.47434 4.57697L8.57143 4.28571C8.65431 4.03708 8.69575 3.91276 8.75071 3.8072C8.97001 3.38607 9.37574 3.09364 9.84461 3.01877C9.96213 3 10.0932 3 10.3553 3H13.6447C13.9068 3 14.0379 3 14.1554 3.01877C14.6243 3.09364 15.03 3.38607 15.2493 3.8072C15.3043 3.91276 15.3457 4.03708 15.4286 4.28571L15.5257 4.57697C15.5433 4.62992 15.5522 4.65651 15.5608 4.68032C15.841 5.45491 16.5674 5.97849 17.3909 5.99936C17.4162 6 17.4441 6 17.5 6" stroke="currentColor" stroke-width="1.5"></path>
-
-              <!-- Trash handle/body curve -->
-              <path d="M18.3735 15.3991C18.1965 18.054 18.108 19.3815 17.243 20.1907C16.378 21 15.0476 21 12.3868 21H11.6134C8.9526 21 7.6222 21 6.75719 20.1907C5.89218 19.3815 5.80368 18.054 5.62669 15.3991L5.16675 8.5M18.8334 8.5L18.6334 11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
-
-              <!-- Two vertical bars -->
-              <line x1="10" y1="9" x2="10" y2="17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></line>
-              <line x1="14" y1="9" x2="14" y2="17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></line>
-            </svg> Clear All
+                <!-- Two vertical bars -->
+                <line x1="10" y1="9" x2="10" y2="17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></line>
+                <line x1="14" y1="9" x2="14" y2="17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></line>
+              </svg> Clear All
             </button>
 
 
-
-            <div class="shifted"> 
-              <div class="shift" style="font-size: 14px !important;" >
-                <!-- Plus Icon -->
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" fill="currentColor" style="margin-right: 4px;">
-                  <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <div class="shifted condtion">
+              <div class="conshift" style="font-size: 13px !important ; font-weight: 600;color: #F5F5F5 !important; ">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="#27ae60" style="vertical-align:middle;">
+                  <path d="M12 5v14m7-7H5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
-                Add a Reward
+                Add condition
               </div>
 
 
-
             </div>
-      
+
+          </div>
+
           </div>
           
-        
-
-
-        </div>
-
-
-        <div class="setting chv-date-setting" data-setting="chv-start-date"
-            style="display:none; align-items:center; justify-content:space-between;">
-          <label style="display: flex; align-items: center;">
-            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" width="14" height="14"
-                stroke="currentColor" stroke-width="2" style="margin-right:5px;"
-                stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="4" width="18" height="17" rx="4" ry="4"/>
-              <line x1="7.25" y1="2.5" x2="7.25" y2="5.5" />
-              <line x1="15.25" y1="2.5" x2="15.25" y2="5.5" />
-              <line x1="6" y1="9" x2="18" y2="9" />
+          <div class="setting"  style="display: flex !important; align-items: center; justify-content: space-between !important;">
+            <label style="display: flex; align-items: center;">
+            <svg xmlns="http://www.w3.org/2000/svg"  width="14" height="14"  fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6.429 9.75 2.25 12l4.179 2.25m0-4.5 5.571 3 5.571-3m-11.142 0L2.25 7.5 12 2.25l9.75 5.25-4.179 2.25m0 0L21.75 12l-4.179 2.25m0 0 4.179 2.25L12 21.75 2.25 16.5l4.179-2.25m11.142 0-5.571 3-5.571-3" />
             </svg>
-            Vote Start
-          </label>
+              Module
+            </label>
+            <div class="modulepanate">{{ quest.title }}</div>
+          </div> 
 
-          <div class="custom-drop chv-start-date-trigger" {% if subquest.vote_start_date_display %}data-utc-value="{{ subquest.vote_start_date_display }}"{% endif %}>
-            <div class="selected">
-              <span class="valueText">{{ subquest.vote_start_date_display or 'Select date' }}</span>
-              <span class="arro">
-                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <polyline points="5 8.5 12 15.5 19 8.5" fill="none" stroke="currentColor"
-                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div class="setting chv-date-setting" data-setting="chv-end-date"
-            style="display:none; align-items:center; justify-content:space-between;">
-          <label style="display: flex; align-items: center;">
-            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" width="14" height="14"
-                stroke="currentColor" stroke-width="2" style="margin-right:5px;"
-                stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="4" width="18" height="17" rx="4" ry="4"/>
-              <line x1="7.25" y1="2.5" x2="7.25" y2="5.5" />
-              <line x1="15.25" y1="2.5" x2="15.25" y2="5.5" />
-              <line x1="6" y1="9" x2="18" y2="9" />
-            </svg>
-            Vote End
-          </label>
-
-          <div class="custom-drop chv-end-date-trigger" {% if subquest.vote_end_date_display %}data-utc-value="{{ subquest.vote_end_date_display }}"{% endif %}>
-            <div class="selected">
-              <span class="valueText">{{ subquest.vote_end_date_display or 'Select date' }}</span>
-              <span class="arro">
-                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <polyline points="5 8.5 12 15.5 19 8.5" fill="none" stroke="currentColor"
-                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </span>
-            </div>
-          </div>
-        </div>
-
-
-        <div class="setting  column-setting"  data-setting="condition">
-          <label style="display: flex; align-items: center;">
-            <svg xmlns="http://www.w3.org/2000/svg" 
-                width="14" height="14" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                stroke-width="2" 
-                stroke-linecap="round" 
-                stroke-linejoin="round" 
-                class="feather feather-check-circle">
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-              <polyline points="22 4 12 14.01 9 11.01"></polyline>
-            </svg>
-            Condition
-          </label>
-
-
-          <div id="conditionContainerParent"  class="conditionContainerWrapper" style="display: none; flex-direction: column; gap: 10px; display: flex; margin-bottom: 20px;">
-
-          </div>
-
-          <div style="display: flex !important;  gap: 50px;">
-
-          <button id="clearAllCondition" class="clear-all-btn" title="Clear All Condition" style="white-space: nowrap;">
-            <svg width="15" height="15" class="triggerDeletePopup" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <!-- Trash lid -->
-              <path d="M20.5 6H3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
-
-              <!-- Trash body -->
-              <path d="M6.5 6C6.55588 6 6.58382 6 6.60915 5.99936C7.43259 5.97849 8.15902 5.45491 8.43922 4.68032C8.44784 4.65649 8.45667 4.62999 8.47434 4.57697L8.57143 4.28571C8.65431 4.03708 8.69575 3.91276 8.75071 3.8072C8.97001 3.38607 9.37574 3.09364 9.84461 3.01877C9.96213 3 10.0932 3 10.3553 3H13.6447C13.9068 3 14.0379 3 14.1554 3.01877C14.6243 3.09364 15.03 3.38607 15.2493 3.8072C15.3043 3.91276 15.3457 4.03708 15.4286 4.28571L15.5257 4.57697C15.5433 4.62992 15.5522 4.65651 15.5608 4.68032C15.841 5.45491 16.5674 5.97849 17.3909 5.99936C17.4162 6 17.4441 6 17.5 6" stroke="currentColor" stroke-width="1.5"></path>
-
-              <!-- Trash handle/body curve -->
-              <path d="M18.3735 15.3991C18.1965 18.054 18.108 19.3815 17.243 20.1907C16.378 21 15.0476 21 12.3868 21H11.6134C8.9526 21 7.6222 21 6.75719 20.1907C5.89218 19.3815 5.80368 18.054 5.62669 15.3991L5.16675 8.5M18.8334 8.5L18.6334 11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
-
-              <!-- Two vertical bars -->
-              <line x1="10" y1="9" x2="10" y2="17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></line>
-              <line x1="14" y1="9" x2="14" y2="17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></line>
-            </svg> Clear All
-          </button>
-
-
-          <div class="shifted condtion">
-            <div class="conshift" style="font-size: 13px !important ; font-weight: 600;color: #F5F5F5 !important; ">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="#27ae60" style="vertical-align:middle;">
-                <path d="M12 5v14m7-7H5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <div class="setting column-setting" data-setting="sprint" style="width: 100%; display: flex; justify-content: space-between !important;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 8.689c0-.864.933-1.406 1.683-.977l7.108 4.061a1.125 1.125 0 0 1 0 1.954l-7.108 4.061A1.125 1.125 0 0 1 3 16.811V8.69ZM12.75 8.689c0-.864.933-1.406 1.683-.977l7.108 4.061a1.125 1.125 0 0 1 0 1.954l-7.108 4.061a1.125 1.125 0 0 1-1.683-.977V8.69Z" />
               </svg>
-              Add condition
+              Sprint
             </div>
-
-
-          </div>
-
-        </div>
-
-        </div>
-        
-        <div class="setting"  style="display: flex !important; align-items: center; justify-content: space-between !important;">
-          <label style="display: flex; align-items: center;">
-          <svg xmlns="http://www.w3.org/2000/svg"  width="14" height="14"  fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M6.429 9.75 2.25 12l4.179 2.25m0-4.5 5.571 3 5.571-3m-11.142 0L2.25 7.5 12 2.25l9.75 5.25-4.179 2.25m0 0L21.75 12l-4.179 2.25m0 0 4.179 2.25L12 21.75 2.25 16.5l4.179-2.25m11.142 0-5.571 3-5.571-3" />
-          </svg>
-            Module
-          </label>
-          <div class="modulepanate">{{ quest.title }}</div>
-        </div>
-
-
-        <div class="setting" data-setting="sprint">
-          <label style="display: flex; align-items: center;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M3 8.689c0-.864.933-1.406 1.683-.977l7.108 4.061a1.125 1.125 0 0 1 0 1.954l-7.108 4.061A1.125 1.125 0 0 1 3 16.811V8.69ZM12.75 8.689c0-.864.933-1.406 1.683-.977l7.108 4.061a1.125 1.125 0 0 1 0 1.954l-7.108 4.061a1.125 1.125 0 0 1-1.683-.977V8.69Z" />
-            </svg>
-            Sprint
-          </label>
-          <div class="shift sprint-list" data-initr="{{ subquest.sprint_id }}">
-            {% if subquest.sprint_name %}
-              Sprint: {{ subquest.sprint_name }}
-            {% else %}
-              Add to sprint
-            {% endif %}
-          </div>
-        </div>
-
-
-
-
-
-        <div class="setting"  style="display: flex !important; align-items: center; justify-content: space-between !important;" data-setting="max_claims">
-          <label style="display: flex; align-items: center;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 50 50">
-            
-              <line x1="5" y1="40" x2="5" y2="10" stroke="white" stroke-width="3" />
-              <line x1="15" y1="40" x2="15" y2="10" stroke="white" stroke-width="3" />
-              <line x1="25" y1="40" x2="25" y2="10" stroke="white" stroke-width="3" />
-              <line x1="35" y1="40" x2="35" y2="10" stroke="white" stroke-width="3" />
-
-              <line x1="0" y1="10" x2="40" y2="40" stroke="white" stroke-width="3" />
-            </svg>            
-            Max Claims
-          </label>
-
-          <div class="number-input-wrapper">
-            <input 
-              type="number"
-              name="max_claim"
-              inputmode="numeric"
-              pattern="[0-9]*"
-              value="{{ subquest.max_claim if subquest.max_claim is not none else '' }}"
-              min="0">
-
-            <button class="clear" onclick="clearValue(this)"style="height: 100%;">×</button>
-            <div class="spinner" style="height: 100%;">
-              <button onclick="stepValue(this, 1)">▲</button>
-              <button onclick="stepValue(this, -1)">▼</button>
+            <div class="shift sprint-list" data-initr="{{ subquest.sprint_id }}">
+              {% if subquest.sprint_name %}
+                Sprint: {{ subquest.sprint_name }}
+              {% else %}
+                Add to sprint
+              {% endif %}
             </div>
-          </div>
+          </div> 
 
-        </div>
-
-
-
-        <div class="setting" style="width: 100%;" data-setting="instant_approval"> 
-          <label class="toggle-row" style="display: flex; align-items: center; justify-content: space-between; width: 100%; ">
-
-            <div style="display: flex; gap: 4px; position: relative !important;">
-
-            
-            <svg xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 100 125"
-                fill="currentColor"
-                width="26"
-                height="26"
-                style="bottom: -6px; left: -7px; position: absolute;">
+          <div class="setting column-setting"  style="display: flex !important; align-items: center; justify-content: space-between !important;" data-setting="max_claims">
+            <label style="display: flex; align-items: center;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 50 50">
               
-              <g id="main">
-                <path d="m33.03,32.8c5-4.88,11.6-7.56,18.58-7.56s13.13,2.51,18.05,7.06c4.9,4.53,7.91,10.67,8.46,17.29.09,1.12,1.03,1.97,2.14,1.97.06,0,.12,0,.18,0,1.18-.1,2.06-1.14,1.96-2.32-.65-7.69-4.14-14.82-9.83-20.08-5.2-4.8-11.81-7.64-18.82-8.13v-3.41h3.01c1.19,0,2.15-.96,2.15-2.15s-.96-2.15-2.15-2.15h-10.3c-1.19,0-2.15.96-2.15,2.15s.96,2.15,2.15,2.15h3.01v3.41c-7.31.5-14.14,3.55-19.44,8.71-.85.83-.87,2.19-.04,3.04.83.85,2.19.87,3.04.04Z"/>
+                <line x1="5" y1="40" x2="5" y2="10" stroke="white" stroke-width="3" />
+                <line x1="15" y1="40" x2="15" y2="10" stroke="white" stroke-width="3" />
+                <line x1="25" y1="40" x2="25" y2="10" stroke="white" stroke-width="3" />
+                <line x1="35" y1="40" x2="35" y2="10" stroke="white" stroke-width="3" />
 
-                <path d="m64.63,38.82c-.79-.79-2.05-.84-2.9-.12l-8.43,7.13c-.54-.15-1.1-.23-1.68-.23-3.44,0-6.24,2.8-6.24,6.24s2.8,6.24,6.24,6.24,6.24-2.8,6.24-6.24c0-.56-.07-1.1-.21-1.62l7.12-8.51c.72-.85.66-2.11-.13-2.9Z"/>
+                <line x1="0" y1="10" x2="40" y2="40" stroke="white" stroke-width="3" />
+              </svg>            
+              Max Claims
+            </label>
 
-                <path d="m58.19,77.64c-2.14.54-4.35.82-6.58.82-6.96,0-13.55-2.67-18.54-7.52-.85-.83-2.21-.81-3.04.04-.83.85-.81,2.21.04,3.04,5.8,5.63,13.45,8.73,21.53,8.73,2.58,0,5.15-.32,7.63-.95,1.15-.29,1.84-1.46,1.55-2.61-.29-1.15-1.46-1.84-2.61-1.55Z"/>
-              </g>
+            <div class="number-input-wrapper">
+              <input 
+                type="text"
+                name="max_claim"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                value="{{ subquest.max_claim if subquest.max_claim is not none else 'None' }}"
+                min="0">
 
-              <g id="controls">
-                <path d="m13.76,41.35h16.07c1.19,0,2.15-.96,2.15-2.15s-.96-2.15-2.15-2.15H13.76c-1.19,0-2.15.96-2.15,2.15s.96,2.15,2.15,2.15Z"/>
-                <path d="m28.76,51.85c0-1.19-.96-2.15-2.15-2.15H8.15c-1.19,0-2.15.96-2.15,2.15s.96,2.15,2.15,2.15h18.47c1.19,0,2.15-.96,2.15-2.15Z"/>
-                <path d="m31.97,64.5c0-1.19-.96-2.15-2.15-2.15H13.76c-1.19,0-2.15.96-2.15,2.15s.96,2.15,2.15,2.15h16.07c1.19,0,2.15-.96,2.15-2.15Z"/>
-              </g>
-
-              <g id="badge">
-                <path d="m89.27,59.12c-3.05-3.05-7.1-4.73-11.42-4.73s-8.37,1.68-11.42,4.73c-3.05,3.05-4.73,7.1-4.73,11.42s1.68,8.37,4.73,11.42,7.1,4.73,11.42,4.73,8.37-1.68,11.42-4.73c3.05-3.05,4.73-7.1,4.73-11.42s-1.68-8.37-4.73-11.42Zm-11.42,23.27c-6.54,0-11.85-5.32-11.85-11.85s5.32-11.85,11.85-11.85,11.85,5.32,11.85,11.85-5.32,11.85-11.85,11.85Z"/>
-                <path d="m81.72,65.21l-6.29,6.29-1.61-1.61c-.84-.84-2.2-.84-3.04,0-.84.84-.84,2.2,0,3.04l3.12,3.12c.42.42.97.63,1.52.63s1.1-.21,1.52-.63l7.8-7.8c.84-.84.84-2.2,0-3.04-.84-.84-2.2-.84-3.04,0Z"/>
-              </g>
-
-            </svg>
-
-            <span class="toggle-label" style="position: relative; left: 25px">Instant Approval</span>
             </div>
 
-            <div class="toggle-switch {{ 'on' if subquest.autovalidation else '' }}"
-                data-value="{{ 1 if subquest.autovalidation else 0 }}">
-              <div class="toggle-knob"></div>
-            </div>
+          </div> 
 
-            <input type="hidden" name="autovalidation"
-                  value="{{ 1 if subquest.autovalidation else 0 }}">
-          </label>
+          <div class="setting" style="width: 100%; display: none !important;" data-setting="instant_approval"> 
+            <label class="toggle-row" style="display: flex; align-items: center; justify-content: space-between; width: 100%; ">
+
+              <div style="display: flex; gap: 4px; position: relative !important;">
+
+              
+              <svg xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 100 125"
+                  fill="currentColor"
+                  width="26"
+                  height="26"
+                  style="bottom: -6px; left: -7px; position: absolute;">
+                
+                <g id="main">
+                  <path d="m33.03,32.8c5-4.88,11.6-7.56,18.58-7.56s13.13,2.51,18.05,7.06c4.9,4.53,7.91,10.67,8.46,17.29.09,1.12,1.03,1.97,2.14,1.97.06,0,.12,0,.18,0,1.18-.1,2.06-1.14,1.96-2.32-.65-7.69-4.14-14.82-9.83-20.08-5.2-4.8-11.81-7.64-18.82-8.13v-3.41h3.01c1.19,0,2.15-.96,2.15-2.15s-.96-2.15-2.15-2.15h-10.3c-1.19,0-2.15.96-2.15,2.15s.96,2.15,2.15,2.15h3.01v3.41c-7.31.5-14.14,3.55-19.44,8.71-.85.83-.87,2.19-.04,3.04.83.85,2.19.87,3.04.04Z"/>
+
+                  <path d="m64.63,38.82c-.79-.79-2.05-.84-2.9-.12l-8.43,7.13c-.54-.15-1.1-.23-1.68-.23-3.44,0-6.24,2.8-6.24,6.24s2.8,6.24,6.24,6.24,6.24-2.8,6.24-6.24c0-.56-.07-1.1-.21-1.62l7.12-8.51c.72-.85.66-2.11-.13-2.9Z"/>
+
+                  <path d="m58.19,77.64c-2.14.54-4.35.82-6.58.82-6.96,0-13.55-2.67-18.54-7.52-.85-.83-2.21-.81-3.04.04-.83.85-.81,2.21.04,3.04,5.8,5.63,13.45,8.73,21.53,8.73,2.58,0,5.15-.32,7.63-.95,1.15-.29,1.84-1.46,1.55-2.61-.29-1.15-1.46-1.84-2.61-1.55Z"/>
+                </g>
+
+                <g id="controls">
+                  <path d="m13.76,41.35h16.07c1.19,0,2.15-.96,2.15-2.15s-.96-2.15-2.15-2.15H13.76c-1.19,0-2.15.96-2.15,2.15s.96,2.15,2.15,2.15Z"/>
+                  <path d="m28.76,51.85c0-1.19-.96-2.15-2.15-2.15H8.15c-1.19,0-2.15.96-2.15,2.15s.96,2.15,2.15,2.15h18.47c1.19,0,2.15-.96,2.15-2.15Z"/>
+                  <path d="m31.97,64.5c0-1.19-.96-2.15-2.15-2.15H13.76c-1.19,0-2.15.96-2.15,2.15s.96,2.15,2.15,2.15h16.07c1.19,0,2.15-.96,2.15-2.15Z"/>
+                </g>
+
+                <g id="badge">
+                  <path d="m89.27,59.12c-3.05-3.05-7.1-4.73-11.42-4.73s-8.37,1.68-11.42,4.73c-3.05,3.05-4.73,7.1-4.73,11.42s1.68,8.37,4.73,11.42,7.1,4.73,11.42,4.73,8.37-1.68,11.42-4.73c3.05-3.05,4.73-7.1,4.73-11.42s-1.68-8.37-4.73-11.42Zm-11.42,23.27c-6.54,0-11.85-5.32-11.85-11.85s5.32-11.85,11.85-11.85,11.85,5.32,11.85,11.85-5.32,11.85-11.85,11.85Z"/>
+                  <path d="m81.72,65.21l-6.29,6.29-1.61-1.61c-.84-.84-2.2-.84-3.04,0-.84.84-.84,2.2,0,3.04l3.12,3.12c.42.42.97.63,1.52.63s1.1-.21,1.52-.63l7.8-7.8c.84-.84.84-2.2,0-3.04-.84-.84-2.2-.84-3.04,0Z"/>
+                </g>
+
+              </svg>
+
+              <span class="toggle-label" style="position: relative; left: 25px">Instant Approval</span>
+              </div>
+
+              <div class="toggle-switch {{ 'on' if subquest.autovalidation else '' }}"
+                  data-value="{{ 1 if subquest.autovalidation else 0 }}">
+                <div class="toggle-knob"></div>
+              </div>
+
+              <input type="hidden" name="autovalidation"
+                    value="{{ 1 if subquest.autovalidation else 0 }}">
+            </label>
+          </div> 
+
         </div>
-
-
-
-      </div>
       </div>
     </aside>
   </div>
@@ -4909,7 +5636,8 @@ input {
               <path d="M16 5.5l5-1.5v15l-5 1.5V5.5z"/>
             </svg>
           </span><div class="task-text"><div class="task-title">Partnership Quest</div><div class="task-desc">Verify a claimed quest in a partner community</div></div></div>
-          <div data-file="proof_of_humanity" class="task-item"><span class="icon purple"><svg class="icon-fix" fill="#fff" stroke="#fff" viewBox="0 0 24 24" width="16px" height="16px"
+          <div data-file="proof_of_humanity" class="task-item"><span class="icon purple">
+            <svg class="icon-fix" fill="#fff" stroke="#fff" viewBox="0 0 24 24" width="16px" height="16px"
               xmlns="http://www.w3.org/2000/svg">
             <g transform="scale(0.2213)">
               <path fill="#fff" stroke="#fff" d="M90.288,24.301l-9.181,3.078l1.054,3.144c-0.401-0.54-0.813-1.07-1.244-1.587l-1.727-5.15l4.583-1.535l-3.08-9.183 
@@ -4929,7 +5657,8 @@ input {
                 l1.723,5.135l5.389-1.807l-1.665-4.967l5.39-1.807l1.808,5.389l-5.391,1.808L78.711,46.361z M85.455,33.885l-1.807-5.389 
                 l5.389-1.807l1.808,5.39L85.455,33.885z"></path>
             </g>
-          </svg></span><div class="task-text"><div class="task-title">Proof of humanity</div><div class="task-desc">Click to verify identity</div></div></div>
+          </svg>
+        </span><div class="task-text"><div class="task-title">Proof of humanity</div><div class="task-desc">Click to verify identity</div></div></div>
           
           <div class="section-title bottom">Social</div>
 
@@ -4949,11 +5678,38 @@ input {
             <path d="M20.318 4.36a19.8 19.8 0 0 0-4.885-1.517.075.075 0 0 0-.078.038c-.212.375-.445.866-.609 1.25a18.3 18.3 0 0 0-5.487 0 12 12 0 0 0-.618-1.25.075.075 0 0 0-.078-.038 19.9 19.9 0 0 0-4.885 1.517.06.06 0 0 0-.031.027C.534 9.036-.32 13.57.1 18.048q.005.033.032.056a19.9 19.9 0 0 0 5.992 3.03.075.075 0 0 0 .084-.028q.695-.945 1.227-1.994a.075.075 0 0 0-.016-.089l-.027-.017a13.5 13.5 0 0 1-1.872-.892.075.075 0 0 1-.03-.1l.022-.028q.191-.143.372-.292a.075.075 0 0 1 .077-.01c3.928 1.794 8.181 1.794 12.062 0a.075.075 0 0 1 .08.01q.181.149.372.292a.075.075 0 0 1-.006.127 12 12 0 0 1-1.873.891.075.075 0 0 0-.045.045.075.075 0 0 0 .004.062c.36.697.773 1.363 1.226 1.994a.075.075 0 0 0 .084.028 19.8 19.8 0 0 0 6.001-3.03.075.075 0 0 0 .032-.056c.501-5.176-.839-9.673-3.55-13.658a.045.045 0 0 0-.03-.029m-12.297 10.96c-1.184 0-2.157-1.085-2.157-2.419s.956-2.419 2.157-2.419c1.21 0 2.176 1.095 2.157 2.419 0 1.333-.956 2.419-2.157 2.419m7.974 0c-1.183 0-2.157-1.085-2.157-2.419s.956-2.419 2.157-2.419c1.21 0 2.177 1.095 2.157 2.419 0 1.333-.947 2.419-2.157 2.419"/>
           </svg></span><div class="task-text"><div class="task-title">Discord</div><div class="task-desc">Join a Discord server</div></div></div>
 
-            <div data-file="twitter" class="task-item"><span class="icon" style="background-color: #e05526db;" style="display: none;">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#fff" class="bi bi-twitter-x" viewBox="0 0 16 16">
-                <path d="M12.6.75h2.454l-5.36 6.142L16 15.25h-4.937l-3.867-5.07-4.425 5.07H.316l5.733-6.57L0 .75h5.063l3.495 4.633L12.601.75Zm-.86 13.028h1.36L4.323 2.145H2.865z"/>
-              </svg>
-            </span><div class="task-text"><div class="task-title">Twitter</div><div class="task-desc">Tweet, retweet, reply, like, follow or join a Twitter Space</div></div></div> 
+          {% if twitter_state == 'ok' %}
+            <div data-file="twitter" class="task-item">
+              <span class="icon" style="background-color: #e05526;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#fff" class="bi bi-twitter-x" viewBox="0 0 16 16">
+                  <path d="M12.6.75h2.454l-5.36 6.142L16 15.25h-4.937l-3.867-5.07-4.425 5.07H.316l5.733-6.57L0 .75h5.063l3.495 4.633L12.601.75Zm-.86 13.028h1.36L4.323 2.145H2.865z"/>
+                </svg>
+              </span>
+              <div class="task-text">
+                <div class="task-title">Twitter</div>
+                <div class="task-desc">Tweet, retweet, reply, like, follow or join a Twitter Space</div>
+              </div>
+            </div>
+          {% else %}
+            <div class="task-non task-locked-box">
+              <span class="icon" style="background-color: #e05526;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#fff" class="bi bi-twitter-x" viewBox="0 0 16 16">
+                  <path d="M12.6.75h2.454l-5.36 6.142L16 15.25h-4.937l-3.867-5.07-4.425 5.07H.316l5.733-6.57L0 .75h5.063l3.495 4.633L12.601.75Zm-.86 13.028h1.36L4.323 2.145H2.865z"/>
+                </svg>
+              </span>
+              <div class="task-text">
+                <div class="task-title">Twitter</div>
+                <div class="task-desc">
+                  {% if twitter_state == 'upgrade' %}
+                    <a href="/community/{{ community.slug }}/settings/billing" target="_blank" rel="noopener noreferrer" class="task-link">Upgrade your plan</a> to use Twitter tasks
+                  {% else %}
+                    Connect your X account in <a href="/community/{{ community.slug }}/settings/integrations/twitter" class="task-link">settings</a> to use Twitter tasks
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          {% endif %}
+
  
           <div data-file="test" class="task-item"><span class="icon telegram"><svg xmlns="http://www.w3.org/2000/svg" 
               width="16" height="16" 

@@ -194,7 +194,7 @@ from backend.auth.github import bp, check_if_starred, get_repo_forks
 from backend.auth.entitlements import (
     FeatureLocked, TEAM_ROLES, check_can_add_team_member,
     check_can_accept_team_invite, check_can_join, check_can_take_role, chat_locked,
-    team_is_full, user_is_on_team, limit, has_feature, require_feature,
+    team_is_full, user_is_on_team, limit, has_feature, require_feature, claim_limit_payload,
     plan_key, plan_label, check_can_add_emoji, FeatureLocked
 )
 from backend.promotions.twitter_promotion_models import TwitterPromotionRequest
@@ -245,7 +245,7 @@ from backend.quests.subquest_review_hist import TaskReviewHistory
 from backend.quests.subquestreward import SubquestReward
 from backend.quests.Subquestcondition import SubquestCondition
 from backend.quests.SubquestCooldown import SubquestCooldown
-from backend.quests.sprint_models import Sprint
+from backend.quests.sprint_models import Sprint, SprintRewardTier
 from backend.quests.state_models import UserCommunityFabState
 from backend.communities.user_condition_status import UserConditionStatus
 from backend.communities.xplevel import UserXP
@@ -505,33 +505,44 @@ def get_real_ip():
     return forwarded.split(",")[0].strip() if forwarded else request.remote_addr
 
 
+ADMIN_PREFIX = "/dbadmin"
+
 @app.before_request
 def global_protection():
     ip = get_real_ip()
     path = request.path.lower()
+    is_admin_path = path == ADMIN_PREFIX or path.startswith(ADMIN_PREFIX + "/")
 
-    # ✅ 1. HARD BLOCK banned IPs
     if ip in blocked_ips:
         return "", 403
 
-    # ✅ 2. BAN on first suspicious hit
-    if any(p in path for p in BAD_PATTERNS):
+    # don't pattern-ban the admin panel (Flask-Admin has its own is_accessible check)
+    if not is_admin_path and any(p in path for p in BAD_PATTERNS):
         blocked_ips.add(ip)
         print(f"BANNED {ip} → {path}")
         return "", 403
 
-
+    # don't strip trailing slashes on admin, Flask-Admin needs them
+    if (not is_admin_path
+            and request.method in ("GET", "HEAD")
+            and len(request.path) > 1
+            and request.path.endswith("/")):
+        clean_path = request.path.rstrip("/") or "/"
+        query = request.query_string.decode()
+        target = clean_path + ("?" + query if query else "")
+        return redirect(target, code=301)
 
     if request.endpoint in ALLOWED_ROUTES:
         return
-        
+
+
     if not current_user.is_authenticated:
+        if request.path == "/":
+            return redirect(url_for("login"))
         next_url = request.full_path if request.query_string else request.path
-
         flash("Please log in to access this page.", "error")
-
         return redirect(url_for("login", next=next_url))
-    
+
     sid = session.get("sid")
     if not sid:
         return redirect(url_for("logoutinner"))
@@ -544,10 +555,6 @@ def global_protection():
 
     if not user_session:
         return redirect(url_for("logoutinner"))
-
-
-
-
 
 
 
@@ -1910,7 +1917,7 @@ def new_code_for(email: str) -> None:
         "code": code,
         "expires": expiry,
     }
-
+    print(f"code: {code}")
     session["pending_email"] = email
     session["code_sent_time"] = time.time()
 
@@ -6014,9 +6021,34 @@ def rewardmember(community_slug):
         private_locked=private_ctx["private_locked"],   # 🔒 NEW
     )
 
+def expire_stale_deposits(user_id):
+    now = datetime.utcnow()
+    cutoff = now - timedelta(minutes=30)
+
+    count = UserTransaction.query.filter(
+        UserTransaction.user_id == user_id,
+        UserTransaction.type == "in",
+        UserTransaction.status == "pending",
+        db.or_(
+            UserTransaction.expires_at < now,
+            db.and_(
+                UserTransaction.expires_at.is_(None),
+                UserTransaction.created_at < cutoff,
+            ),
+        ),
+    ).update({"status": "expired"}, synchronize_session=False)
+
+    if count:
+        db.session.commit()
+    return count
+
+
 @app.route('/api/user/transactions')
 @login_required
 def get_user_transactions():
+    expire_stale_deposits(current_user.id)
+
+
     txs = UserTransaction.query.filter_by(user_id=current_user.id)\
         .order_by(UserTransaction.created_at.desc())\
         .limit(10).all()
@@ -7558,8 +7590,21 @@ def sprint_api(community_slug):
     })
 
 
+def get_twitter_state(community):
+    tw = CommunityTwitter.query.filter_by(
+        community_id=community.id, action="connected"
+    ).first()
 
+    print("=== TWITTER DEBUG ===")
+    print("slug:", community.slug)
+    print("is_paid:", community.is_paid)
+    print("subscription:", community.subscription and vars(community.subscription))
+    print("twitter row:", tw and tw.action)
+    print("=====================")
 
+    if not community.is_paid:
+        return "upgrade"
+    return "ok" if tw else "connect"
 
 @app.route('/api/<community_slug>/quests')
 @login_required
@@ -7614,8 +7659,11 @@ def api_get_quests(community_slug):
 
     return jsonify({
         "community_id": community.id,
+        "twitter_state": get_twitter_state(community),
         "quests": data
     })
+
+
 @app.route('/api/<community_slug>/leaderboard')
 def api_alltime_leaderboard(community_slug):
 
@@ -8068,6 +8116,7 @@ def user_recent_activity(community_slug, username):
         "user_id": user.id,
         "username": user.username,
         "image": user.profile_pic,
+        "banner": user.banner_pic,
         "is_current_user": user.id == current_user.id,
 
         "total_xp": total_xp,
@@ -9827,7 +9876,6 @@ def mark_inbox_read(slug):
 @login_required
 def nav_badges(slug):
     community = Community.query.filter_by(slug=slug).first_or_404()
-
     user_id = current_user.id
 
     # Inbox (per user)
@@ -9835,7 +9883,6 @@ def nav_badges(slug):
         user_id=user_id,
         community_id=community.id
     ).first()
-
     inbox_count = inbox.unread_count if inbox else 0
 
     # Reviews (role-based)
@@ -9844,15 +9891,41 @@ def nav_badges(slug):
         review = ReviewNotification.query.filter_by(
             community_id=community.id
         ).first()
-
         reviews_count = review.pending_count if review else 0
+
+    # Chat: missed messages across all channels in this community
+    # (same rules as /api/my-communities: not mine, not deleted, id > last_read)
+    rows = (
+        db.session.query(
+            CommunityMessage.channel_id,
+            func.count(CommunityMessage.id)
+        )
+        .join(CommunityChannel, CommunityChannel.id == CommunityMessage.channel_id)
+        .join(
+            ChannelReadState,
+            db.and_(
+                ChannelReadState.channel_id == CommunityMessage.channel_id,
+                ChannelReadState.user_id == user_id
+            )
+        )
+        .filter(
+            CommunityChannel.community_id == community.id,
+            CommunityMessage.user_id != user_id,
+            CommunityMessage.is_deleted.is_(False),
+            CommunityMessage.id > ChannelReadState.last_read_message_id
+        )
+        .group_by(CommunityMessage.channel_id)
+        .all()
+    )
+
+    # keep the per-channel cap of 100 so it matches the sidebar numbers
+    chat_count = sum(min(n, 100) for _, n in rows)
 
     return jsonify({
         "inbox": inbox_count,
-        "reviews": reviews_count
+        "reviews": reviews_count,
+        "chat": chat_count
     })
-
-
 
 @app.route('/task-review-details/<int:task_review_id>', methods=['GET'])
 def get_task_review_details(task_review_id):
@@ -11803,7 +11876,6 @@ def comm_message_xp():
                 db.session.flush()
             sprint_xp.xp = max(0, (sprint_xp.xp or 0) + amount)
 
-        # ── 📋 AUDIT LOG — admin action record, so /user/activity can show it ──
         admin_action = AdminXPAction(
             community_id=community.id,
             admin_id=current_user.id,
@@ -16499,9 +16571,9 @@ def subquest_detail(community_slug, quest_uuid, subquest_uuid):
         Sprint.query
         .filter(
             Sprint.community_id == community.id,
-            Sprint.end_date >= now   
+            Sprint.end_date >= now
         )
-        .order_by(Sprint.start_date.asc())   
+        .order_by(Sprint.start_date.asc())
         .first()
     )
 
@@ -16530,6 +16602,21 @@ def subquest_detail(community_slug, quest_uuid, subquest_uuid):
     invite_permission = security.invite_permission if security else "members"
     can_add_invite_task = invite_permission != "admins_only"
 
+    latest_twitter = (
+        CommunityTwitter.query
+        .filter_by(community_id=community.id)
+        .order_by(CommunityTwitter.timestamp.desc())
+        .first()
+    )
+    twitter_connected = bool(latest_twitter and latest_twitter.action == "connected")
+
+    if not community.is_paid:
+        twitter_state = "upgrade"
+    elif not twitter_connected:
+        twitter_state = "connect"
+    else:
+        twitter_state = "ok"
+
     if request.headers.get("X-Partial"):
         return render_template(
             "arial.html",
@@ -16544,7 +16631,8 @@ def subquest_detail(community_slug, quest_uuid, subquest_uuid):
             discord_connected=discord_connected,
             subquest=subquest,
             current_sprint=current_sprint,
-            can_add_invite_task=can_add_invite_task,   # 🔥 NEW
+            can_add_invite_task=can_add_invite_task,
+            twitter_state=twitter_state,
         )
 
     total_xp = get_total_xp(user.id, community.id)
@@ -16566,10 +16654,9 @@ def subquest_detail(community_slug, quest_uuid, subquest_uuid):
         discord_connected=discord_connected,
         subquest=subquest,
         current_sprint=current_sprint,
-        can_add_invite_task=can_add_invite_task,   # 🔥 NEW
+        can_add_invite_task=can_add_invite_task,
+        twitter_state=twitter_state,
     )
-
-
 
 @app.route(
     "/api/<community_slug>/quest/<string:quest_uuid>/<string:subquest_uuid>/editor-data",
@@ -17067,6 +17154,56 @@ def parse_human_utc_date(date_str):
     except (ValueError, TypeError):
         return None
 
+def _completion_xp(completion):
+    """Total XP a completion earned, read from its assigned rewards."""
+    total = 0
+    for reward in (completion.assigned_rewards or []):
+        try:
+            if "xp" in str(reward.get("reward_type", "")).lower():
+                total += int((reward.get("reward_data") or {}).get("amount", 0))
+        except (ValueError, TypeError, AttributeError):
+            continue
+    return total
+
+
+def backfill_sprint_xp(subquest, sprint_id):
+    """
+    A quest was just added to a sprint it wasn't in before.
+    Give every user who already completed it their XP in SprintUserXP.
+    Does NOT commit, the caller commits together with the publish.
+    """
+    community_id = subquest.quest.community_id
+
+    completions = SubquestCompletion.query.filter_by(
+        subquest_id=subquest.id,
+        status="success"
+    ).all()
+
+    xp_by_user = {}
+    for c in completions:
+        xp = _completion_xp(c)
+        if xp > 0:
+            xp_by_user[c.user_id] = xp_by_user.get(c.user_id, 0) + xp
+
+    for user_id, xp in xp_by_user.items():
+        # unique constraint is (user_id, sprint_id), so this finds the one row
+        row = SprintUserXP.query.filter_by(
+            user_id=user_id,
+            sprint_id=sprint_id
+        ).first()
+
+        if row:
+            row.xp = (row.xp or 0) + xp
+        else:
+            db.session.add(SprintUserXP(
+                user_id=user_id,
+                community_id=community_id,
+                sprint_id=sprint_id,
+                xp=xp
+            ))
+
+    print(f"🏁 Backfilled sprint XP for {len(xp_by_user)} users (subquest {subquest.id}, sprint {sprint_id})")
+
 @app.route('/<community_slug>/publish_subquest', methods=['POST'])
 @login_required
 def publish_subquest(community_slug):
@@ -17086,6 +17223,17 @@ def publish_subquest(community_slug):
     quest_uuid = data.get('quest_uuid')
     subquest_uuid = data.get('subquest_uuid')
     tasks_data = data.get('tasks', [])
+
+    if any((t.get("type") or "").lower() == "twitter" for t in tasks_data):
+        if not community.is_paid:
+            return jsonify({
+                'success': False,
+                'error': 'feature_locked',
+                'lock_ui': True,
+                'feature': 'twitter_tasks',
+                'message': 'Twitter tasks are available on paid plans. Upgrade to unlock them.'
+            }), 403
+
     streak_enabled = str(
         data.get("streak_enabled", False)
     ).lower() in ["1", "true", "yes", "on"]
@@ -17112,7 +17260,7 @@ def publish_subquest(community_slug):
                 'success': False,
                 'error': 'Vote end date must be after the start date.'
             }), 400
-        
+
     invite_total = 0
     has_invite_task = False
 
@@ -17138,12 +17286,6 @@ def publish_subquest(community_slug):
                 'error': 'Invite tasks are turned off for this community. Turn off "Admins only" in community settings to use the invite task.'
             }), 400
 
-    # ──────────────────────────────────────────────────────────────
-    # 📨 TELEGRAM TASK RESOLUTION
-    # Resolve each telegram task's link to a real chat_id via the
-    # Bot API, and find-or-create the CommunityTelegramGroup row.
-    # Bot must already be in the chat (added manually beforehand).
-    # ──────────────────────────────────────────────────────────────
     for task in tasks_data:
         if task.get("type") != "telegram":
             continue
@@ -17177,7 +17319,6 @@ def publish_subquest(community_slug):
         if error:
             return jsonify({'success': False, 'error': f"Telegram task: {error}"}), 400
 
-
         group = CommunityTelegramGroup.query.filter_by(
             community_id=community.id, chat_id=chat_id
         ).first()
@@ -17199,11 +17340,11 @@ def publish_subquest(community_slug):
                 connected_at=datetime.utcnow()
             )
             db.session.add(group)
-            db.session.flush()  # get group.id without a full commit yet
+            db.session.flush()
 
         task["config"]["telegram_group_id"] = group.id
         task["config"]["chat_title"] = group.chat_title
-        
+
     rewards_data = data.get('rewards', [])
     conditions_data = data.get('conditions', [])
 
@@ -17240,7 +17381,7 @@ def publish_subquest(community_slug):
             subquest_claim_count = None
 
     autovalidation = str(data.get("autovalidation", "0")) in ["1", "true", "True"]
-    
+
     if has_coin_holder_vote:
         autovalidation = True
 
@@ -17253,6 +17394,9 @@ def publish_subquest(community_slug):
         return jsonify({'success': False, 'error': 'Subquest not found'}), 404
 
     was_draft = subquest.is_draft
+    should_notify = was_draft and not subquest.publish_notified
+    previous_sprint_id = subquest.sprint_id
+
     if recurrence.lower() != "daily":
         streak_enabled = False
 
@@ -17283,14 +17427,12 @@ def publish_subquest(community_slug):
         breakdown = dict(usage.subquest_invites or {})
         previous_for_this_subquest = breakdown.get(subquest_uuid, 0)
 
-        # 🔒 per-subquest decrease guard — scoped to THIS subquest only
         if invite_total < previous_for_this_subquest:
             return jsonify({
                 "success": False,
                 "error": f"Invite tasks for this Quest cannot decrease. Current: {previous_for_this_subquest}"
             }), 400
 
-        # recompute community-wide total with this subquest's new value
         breakdown[subquest_uuid] = invite_total
         new_total = sum(breakdown.values())
 
@@ -17302,7 +17444,7 @@ def publish_subquest(community_slug):
             }), 400
 
         usage.subquest_invites = breakdown
-        flag_modified(usage, "subquest_invites")  # ensure SQLAlchemy sees the JSON mutation
+        flag_modified(usage, "subquest_invites")
         usage.invite_count = new_total
 
     sprint_id = data.get('sprint_id')
@@ -17317,27 +17459,10 @@ def publish_subquest(community_slug):
         subquest.sprint_name = None
         subquest.add_to_sprint = False
 
-    # ──────────────────────────────────────────────────────────────
-    # 🔒 TOKEN REWARD FUND LOCKING
-    # Calculate total ZEC needed across ALL token-type rewards
-    # (a subquest can have multiple token rewards stacked)
-    #
-    # Distribution types:
-    #   - FCFS   → first N claimers get it, N = max_claim (if set)
-    #              lock amount_per_winner * max_claim
-    #              if max_claim isn't set, lock just amount_per_winner
-    #              (single claim worth) — doesn't block publish
-    #   - RAFFLE → num_rewards winners selected from entries
-    #              lock amount_per_winner * num_rewards
-    #              defaults to 1 winner if not specified
-    #   - VOTE   → num_rewards winners selected by vote
-    #              lock amount_per_winner * num_rewards
-    #              defaults to 1 winner if not specified
-    #   - ALL    → every completer gets amount_per_winner
-    #              if max_claim is set, lock amount_per_winner * max_claim
-    #              if not set, lock just amount_per_winner (single claim
-    #              worth) — doesn't block publish
-    # ──────────────────────────────────────────────────────────────
+    added_to_sprint = bool(sprint_id and sprint_name) and (
+        previous_sprint_id is None or str(previous_sprint_id) != str(sprint_id)
+    )
+
     total_zec_needed_zatoshi = 0
 
     for reward in rewards_data:
@@ -17355,8 +17480,6 @@ def publish_subquest(community_slug):
         if amount_zec <= 0:
             continue
 
-        # 🔒 ALL-type token rewards must have a max_claim cap — otherwise
-        # the fund lock can never cover every eventual claimer.
         if distribution_type == "ALL" and not max_claim:
             db.session.rollback()
             return jsonify({
@@ -17383,12 +17506,9 @@ def publish_subquest(community_slug):
             num_rewards = num_rewards if num_rewards > 0 else 1
             total_zec_needed_zatoshi += amount_zatoshi * num_rewards
 
-        else:  # "ALL" — max_claim is guaranteed set at this point
+        else:
             total_zec_needed_zatoshi += amount_zatoshi * max_claim
 
-    # Only re-check/re-lock funds if this subquest has token rewards
-    # and is transitioning into a published state (was_draft) OR
-    # the locked amount has changed since last publish.
     previous_locked = subquest.locked_zec_zatoshi or 0
 
     if total_zec_needed_zatoshi > 0:
@@ -17400,14 +17520,10 @@ def publish_subquest(community_slug):
                 'error': 'Community wallet not found — fund your community wallet before publishing token-reward quests'
             }), 400
 
-        # Release the previously locked amount for this subquest first
-        # (handles re-publishing/editing an already-published subquest
-        # with a different reward amount)
         wallet.available_balance += previous_locked
         wallet.locked_balance -= previous_locked
 
         if wallet.available_balance < total_zec_needed_zatoshi:
-            # Roll back the release we just did before returning an error
             wallet.available_balance -= previous_locked
             wallet.locked_balance += previous_locked
 
@@ -17419,15 +17535,12 @@ def publish_subquest(community_slug):
                 'error': f'Insufficient community wallet balance. Available: {available_zec:.8f} ZEC, required: {needed_zec:.8f} ZEC'
             }), 400
 
-        # Lock the new amount
         wallet.available_balance -= total_zec_needed_zatoshi
         wallet.locked_balance += total_zec_needed_zatoshi
         wallet.updated_at = datetime.utcnow()
 
         subquest.locked_zec_zatoshi = total_zec_needed_zatoshi
     else:
-        # No token rewards (or zero amount) — release any previously
-        # locked funds since this subquest no longer needs them
         if previous_locked > 0:
             wallet = CommunityWallet.query.filter_by(community_id=community.id).first()
             if wallet:
@@ -17435,7 +17548,6 @@ def publish_subquest(community_slug):
                 wallet.locked_balance -= previous_locked
                 wallet.updated_at = datetime.utcnow()
         subquest.locked_zec_zatoshi = 0
-    # ──────────────────────────────────────────────────────────────
 
     try:
         db.session.query(SubquestCondition).filter_by(subquest_id=subquest.id).delete()
@@ -17539,6 +17651,12 @@ def publish_subquest(community_slug):
             community.invite_limit_per_month = max_invite_required
         subquest.is_draft = False
 
+        if should_notify:
+            subquest.publish_notified = True
+
+        if added_to_sprint:
+            backfill_sprint_xp(subquest, int(sprint_id))
+
         db.session.commit()
         if subquest.expires_at:
             from backend.jobs.expire_subquests import expire_one_subquest
@@ -17556,13 +17674,15 @@ def publish_subquest(community_slug):
                 subquest.id, subquest.uuid, subquest.expires_at.isoformat(),
                 job.id, job.next_run_time
             )
-        if was_draft:
+
+        if should_notify:
             bot_user = get_bot_user()
             quest_channel = CommunityChannel.query.filter_by(
                 community_id=community.id,
                 is_quest_alert=True
             ).first()
 
+            message = None
             if quest_channel:
                 message = CommunityMessage(
                     channel_id=quest_channel.id,
@@ -17585,30 +17705,33 @@ def publish_subquest(community_slug):
                 },
                 room=f"community_{community_id}"
             )
-            socketio.emit(
-                "community_notification",
-                {
-                    "uuid": message.uuid,
-                    "type": "community_publish",
-                    "channel_uuid": quest_channel.uuid,
-                    "community_id": community.id,
-                    "content": message.content,
-                    "created_at": message.created_at.isoformat(),
-                    "user_id": bot_user.id,
-                    "username": bot_user.username,
-                    "avatar": bot_user.profile_pic,
-                    "is_bot": True,
-                    "sender_role": "bot",
-                    "is_creator": False,
-                    "user_color": "#5865f2",
-                    "reactions": [],
-                    "files": [],
-                    "audio": None
-                },
-                room=f"community_{community.id}"
-            )
+
+            if quest_channel and message:
+                socketio.emit(
+                    "community_notification",
+                    {
+                        "uuid": message.uuid,
+                        "type": "community_publish",
+                        "channel_uuid": quest_channel.uuid,
+                        "community_id": community.id,
+                        "content": message.content,
+                        "created_at": message.created_at.isoformat(),
+                        "user_id": bot_user.id,
+                        "username": bot_user.username,
+                        "avatar": bot_user.profile_pic,
+                        "is_bot": True,
+                        "sender_role": "bot",
+                        "is_creator": False,
+                        "user_color": "#5865f2",
+                        "reactions": [],
+                        "files": [],
+                        "audio": None
+                    },
+                    room=f"community_{community.id}"
+                )
+
             send_quest_emails_async(community, quest, subquest)
-            
+
             if community.discord_guild:
                 setting = DiscordNotificationSetting.query.filter_by(
                     guild_id=community.discord_guild.id,
@@ -17617,8 +17740,8 @@ def publish_subquest(community_slug):
 
                 if setting and setting.channel_id:
                     role_mention = f"<@&{setting.role_id}>" if setting.role_id else ""
-                    message = f"📢 A new quest has been published! {role_mention}"
-                    send_discord_message_async(setting.channel_id, message)
+                    discord_message = f"📢 A new quest has been published! {role_mention}"
+                    send_discord_message_async(setting.channel_id, discord_message)
 
             subs = get_community_push_subs(community.id)
             print("📦 PUSH SUB COUNT:", len(subs))
@@ -17642,7 +17765,7 @@ def publish_subquest(community_slug):
         db.session.rollback()
         print("❌ Error saving subquest:", e)
         return jsonify({'success': False, 'error': str(e)}), 500
-
+    
 @app.route('/<community_slug>/save_draft_subquest', methods=['POST'])
 @login_required
 def save_draft_subquest(community_slug):
@@ -17896,6 +18019,140 @@ def save_draft_subquest(community_slug):
     except Exception as e:
         db.session.rollback()
         print("❌ Error saving draft subquest:", e)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/create_subquest_from_template/<quest_uuid>', methods=['POST'])
+@login_required
+def create_subquest_from_template(quest_uuid):
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({'success': False, 'error': 'Invalid JSON'}), 400
+
+    community_slug = data.get('community_slug')
+    community = Community.query.filter_by(slug=community_slug).first()
+    if not community:
+        return jsonify({'success': False, 'error': 'Community not found'}), 404
+
+    if not has_role(current_user.id, community.id, "editor"):
+        return jsonify({'success': False, 'error': 'Not an operator of this community'}), 403
+
+    quest = Quest.query.filter_by(uuid=quest_uuid, community_id=community.id).first()
+    if not quest:
+        return jsonify({'success': False, 'error': 'Quest not found'}), 404
+
+    tasks_data = data.get('tasks', [])
+    rewards_data = data.get('rewards', [])
+    subquest_name = (data.get('subquest_name') or '').strip() or 'Untitled quest'
+    subquest_desc = data.get('subquest_desc', [])
+    recurrence = data.get('recurrence') or 'None'
+    cooldown = data.get('cooldown') or 'None'
+
+    if any((t.get("type") or "").lower() == "twitter" for t in tasks_data):
+        if not community.is_paid:
+            return jsonify({
+                'success': False,
+                'error': 'feature_locked',
+                'lock_ui': True,
+                'feature': 'twitter_tasks',
+                'message': 'Twitter tasks are available on paid plans. Upgrade to unlock them.'
+            }), 403
+
+    if any((r.get("reward_type") or "").lower() == "token" for r in rewards_data):
+        return jsonify({
+            'success': False,
+            'error': 'Token rewards are not available in templates.'
+        }), 400
+
+    has_invite_task = False
+    for task in tasks_data:
+        if task.get("type") == "invite":
+            has_invite_task = True
+            config = task.get("config") or {}
+            try:
+                num = int(config.get("numInvites", 0))
+            except (ValueError, TypeError):
+                num = 0
+            config["numInvites"] = max(0, num)
+            task["config"] = config
+
+    if has_invite_task:
+        security = CommunitySecurity.query.filter_by(community_id=community.id).first()
+        invite_permission = security.invite_permission if security else "members"
+        if invite_permission == "admins_only":
+            return jsonify({
+                'success': False,
+                'error': 'Invite tasks are turned off for this community. Turn off "Admins only" in community settings to use the invite task.'
+            }), 400
+        recurrence = "None"
+        cooldown = "None"
+
+    streak_enabled = (
+        recurrence.lower() == "daily"
+        and str(data.get("streak_enabled", False)).lower() in ["1", "true", "yes", "on"]
+    )
+
+    try:
+        subquest = Subquest(
+            quest_id=quest.id,
+            name=subquest_name,
+            recurrence=recurrence,
+            cooldown=cooldown,
+            max_claim=None,
+            claim_count=None,
+            autovalidation=False,
+            streak_enabled=streak_enabled,
+            is_draft=True
+        )
+        db.session.add(subquest)
+        db.session.flush()
+
+        for task_data in tasks_data:
+            db.session.add(Task(
+                type=task_data.get('type', 'unknown'),
+                config=task_data.get('config', {}),
+                subquest_id=subquest.id
+            ))
+
+        for reward in rewards_data:
+            reward_type = reward.get("reward_type")
+            if not reward_type:
+                raise ValueError("Reward type missing")
+
+            distribution_type = reward.get("distribution_type")
+            db.session.add(SubquestReward(
+                subquest_id=subquest.id,
+                reward_type=reward_type,
+                distribution_type=distribution_type,
+                reward_data=json.dumps(reward.get("reward_data") or {}),
+                claim_count=0 if distribution_type == "FCFS" else None
+            ))
+
+        subquest.has_rewards_before = bool(rewards_data)
+
+        upload_jobs = []
+        if isinstance(subquest_desc, list):
+            processed_desc, upload_jobs = upload_description_blocks(subquest_desc, subquest.uuid)
+            subquest.description = json.dumps(processed_desc)
+
+        db.session.commit()
+
+        for future, index in upload_jobs:
+            def callback(f, idx=index, sq_id=subquest.id):
+                save_subquest_blocks_when_done(f, sq_id, idx)
+            future.add_done_callback(callback)
+
+        return jsonify({
+            'success': True,
+            'is_draft': True,
+            'subquest_uuid': subquest.uuid,
+            'quest_uuid': quest.uuid,
+            'redirect': f"/{community.slug}/quest/admin/{quest.uuid}/{subquest.uuid}"
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        print("❌ Error creating from template:", e)
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -18298,8 +18555,13 @@ PLATFORM_ICONS = {
     },
     "partnership_quest": {
         "icon": """
+<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="#fff" width="16" height="16" >
+    <path d="M3 5.5L8 4v15l-5 1.5V5.5z"  />
+    <path d="M9 4l6 1.5v15L9 19V4z" />
+    <path d="M16 5.5l5-1.5v15l-5 1.5V5.5z"/>
+</svg>
 """,
-        "color": "linear-gradient(90deg, rgba(255, 217, 0, 0.827), rgba(255, 193, 7, 0.87))"
+        "color": "#6610f2"
     },
     "optionscale(numbers)": {
         "icon": """
@@ -19032,7 +19294,6 @@ def quester_view(community_slug, quest_uuid, subquest_uuid):
     subquest   = Subquest.query.filter_by(uuid=subquest_uuid, quest_id=quest.id).first_or_404()
     fcfs_claimed_count = get_fcfs_claimed_count(subquest.id)
 
-    # ── role / permissions ───────────────────────────────────────────────────
     existing_role = CommunityUserRole.query.filter_by(
         user_id=user_id, community_id=community.id
     ).first() if user else None
@@ -19041,27 +19302,34 @@ def quester_view(community_slug, quest_uuid, subquest_uuid):
     can_view_info = has_role(user_id, community.id, "editor") if user else False
     banned        = check_banned(user_id, community.id)       if user else False
 
-    # ── security / socials ───────────────────────────────────────────────────
+    claim_limit = claim_limit_payload(community, can_manage=can_view_info)
+
     security = CommunitySecurity.query.filter_by(
         community_id=community.id
     ).first()
 
+    completed_subquests = set()
+    pending_subquests   = set()
 
-    # ── completions / pending ────────────────────────────────────────────────
     if user:
-        completed_subquests = {
-            sc.subquest_id
-            for sc in SubquestCompletion.query.filter_by(user_id=user_id, status="success").all()
-        }
-        pending_subquests = {
-            sc.subquest_id
-            for sc in SubquestCompletion.query.filter_by(user_id=user_id, status="pending").all()
-        }
-    else:
-        completed_subquests = set()
-        pending_subquests   = set()
+        user_rows = {}
+        for sc in SubquestCompletion.query.filter(
+            SubquestCompletion.user_id == user_id,
+            SubquestCompletion.status.in_(["success", "pending"])
+        ).all():
+            user_rows.setdefault(sc.subquest_id, []).append((sc.status, sc.started_at))
 
-    # ── xp / level ───────────────────────────────────────────────────────────
+        if user_rows:
+            row_subquests = Subquest.query.filter(
+                Subquest.id.in_(list(user_rows.keys()))
+            ).all()
+            for rsq in row_subquests:
+                done, pend = window_state(rsq, user_rows.get(rsq.id, []))
+                if done:
+                    completed_subquests.add(rsq.id)
+                if pend:
+                    pending_subquests.add(rsq.id)
+
     if user:
         total_xp   = get_total_xp(user_id, community.id)
         level_data = get_level(total_xp)
@@ -19069,23 +19337,19 @@ def quester_view(community_slug, quest_uuid, subquest_uuid):
         total_xp   = 0
         level_data = {"level": 0}
 
-    # ── cooldown ─────────────────────────────────────────────────────────────
     active_cooldown_until = None
     if user:
-        active_cooldown = (
-            SubquestCooldown.query
-            .filter_by(user_id=user_id, subquest_id=subquest.id)
-            .order_by(SubquestCooldown.created_at.desc())
-            .first()
-        )
-        if (
-            active_cooldown
-            and active_cooldown.cooldown_until
-            and active_cooldown.cooldown_until > datetime.utcnow()
-        ):
-            active_cooldown_until = active_cooldown.cooldown_until.isoformat()
+        active_cooldown = get_active_cooldown(user_id, subquest)
+        if active_cooldown and active_cooldown.cooldown_until:
+            cd_time = active_cooldown.cooldown_until
+            if cd_time.tzinfo is None:
+                cd_time = cd_time.replace(tzinfo=timezone.utc)
+            if cd_time > datetime.now(timezone.utc):
+                active_cooldown_until = cd_time.isoformat()
 
-    # ── quests list ──────────────────────────────────────────────────────────
+    _, window_end = get_recurrence_window(subquest)
+    next_reset_at = (window_end.isoformat() + "Z") if window_end else None
+
     all_quests = (
         Quest.query
         .filter_by(community_id=community.id)
@@ -19094,7 +19358,6 @@ def quester_view(community_slug, quest_uuid, subquest_uuid):
     )
     quests = [q for q in all_quests if any(not sq.is_draft for sq in q.subquests)]
 
-    # ── tasks ────────────────────────────────────────────────────────────────
     tasks      = Task.query.filter_by(subquest_id=subquest.id).all()
     task_types = {t.type for t in tasks}
 
@@ -19190,15 +19453,15 @@ def quester_view(community_slug, quest_uuid, subquest_uuid):
                     .join(Quest, Subquest.quest_id == Quest.id)
                     .filter(
                         Subquest.uuid == ref_uuid,
-                        Quest.community_id == community.id    
+                        Quest.community_id == community.id
                     )
                     .first()
                 )
                 if ref_subquest:
-                    config["subquest_name"]      = ref_subquest.name         
-                    config["subquest_uuid"]      = ref_subquest.uuid
-                    config["subquest_quest_uuid"] = ref_subquest.quest.uuid   
-                    config["subquest_valid"]     = True
+                    config["subquest_name"]       = ref_subquest.name
+                    config["subquest_uuid"]       = ref_subquest.uuid
+                    config["subquest_quest_uuid"] = ref_subquest.quest.uuid
+                    config["subquest_valid"]      = True
                 else:
                     config["subquest_valid"] = False
 
@@ -19214,13 +19477,11 @@ def quester_view(community_slug, quest_uuid, subquest_uuid):
             "config":      config
         })
 
-    # ── conditions ───────────────────────────────────────────────────────────
     conditions = [
         {"condition_type": c.condition_type, "condition_value": c.condition_value, "operator": c.operator}
         for c in subquest.conditions
     ]
 
-    # ── sprint ───────────────────────────────────────────────────────────────
     current_sprint = (
         Sprint.query
         .filter(
@@ -19232,7 +19493,6 @@ def quester_view(community_slug, quest_uuid, subquest_uuid):
         .first()
     )
 
-    # ── rewards ──────────────────────────────────────────────────────────────
     for q in quests:
         for sq in q.subquests:
             for r in sq.rewards:
@@ -19250,7 +19510,6 @@ def quester_view(community_slug, quest_uuid, subquest_uuid):
             "reward_data":       reward_data
         })
 
-    # ── progress ─────────────────────────────────────────────────────────────
     completed_counts  = {}
     progress_percents = {}
 
@@ -19274,7 +19533,6 @@ def quester_view(community_slug, quest_uuid, subquest_uuid):
         completed_counts[q.id]  = completed_visible
         progress_percents[q.id] = (completed_visible / total_visible) * 100
 
-    # ── integrations ─────────────────────────────────────────────────────────
     community_twitter = CommunityTwitter.query.filter_by(
         community_id=community.id, action="connected"
     ).order_by(CommunityTwitter.timestamp.desc()).first()
@@ -19283,7 +19541,6 @@ def quester_view(community_slug, quest_uuid, subquest_uuid):
         community_id=community.id, removed_at=None
     ).first()
 
-    # ── description blocks ───────────────────────────────────────────────────
     raw_desc = []
     if isinstance(subquest.description, (list, dict)):
         raw_desc = subquest.description
@@ -19297,7 +19554,6 @@ def quester_view(community_slug, quest_uuid, subquest_uuid):
         elif block.get("type") == "image": parsed_blocks.append({"type": "image", "src":  block.get("src")})
         elif block.get("type") == "video": parsed_blocks.append({"type": "video", "src":  block.get("src")})
 
-    # ── response ─────────────────────────────────────────────────────────────
     return jsonify({
         "user": {
             "id":          user_id,
@@ -19308,29 +19564,32 @@ def quester_view(community_slug, quest_uuid, subquest_uuid):
         } if user else None,
 
         "community": {
-            "id":           community.id,
-            "name":         community.name,
-            "slug":         community.slug,
-            "theme_mode":   theme_mode,
-            "is_banned":    banned,
+            "id":            community.id,
+            "name":          community.name,
+            "slug":          community.slug,
+            "theme_mode":    theme_mode,
+            "is_banned":     banned,
             "can_view_info": can_view_info,
-            "has_any_role": has_any_role
+            "has_any_role":  has_any_role
         },
 
+        "claim_limit": claim_limit,
+
         "subquest": {
-            "id":           subquest.id,
-            "uuid":         subquest.uuid,
-            "streak_enabled":         subquest.streak_enabled,
-            "title":        subquest.name,
-            "desc":         parsed_blocks,
-            "recurrence":   subquest.recurrence,
-            "cooldown":     subquest.cooldown,
-            "cooldown_until": active_cooldown_until,
-            "sprint_id":    subquest.sprint_id,
-            "sprint_name":  subquest.sprint_name,
-            "is_expired":   subquest.is_expired, 
-            "max_claim":    subquest.max_claim,
-            "claim_count":  subquest.claim_count,
+            "id":              subquest.id,
+            "uuid":            subquest.uuid,
+            "streak_enabled":  subquest.streak_enabled,
+            "title":           subquest.name,
+            "desc":            parsed_blocks,
+            "recurrence":      subquest.recurrence,
+            "cooldown":        subquest.cooldown,
+            "cooldown_until":  active_cooldown_until,
+            "next_reset_at":   next_reset_at,
+            "sprint_id":       subquest.sprint_id,
+            "sprint_name":     subquest.sprint_name,
+            "is_expired":      subquest.is_expired,
+            "max_claim":       subquest.max_claim,
+            "claim_count":     subquest.claim_count,
             "vote_start_date": subquest.vote_start_date.isoformat() if subquest.vote_start_date else None,
             "vote_end_date":   subquest.vote_end_date.isoformat()   if subquest.vote_end_date   else None,
             "user_timezone":   subquest.user_timezone
@@ -19351,8 +19610,8 @@ def quester_view(community_slug, quest_uuid, subquest_uuid):
 
         "sprint": {
             "current": {
-                "id":    current_sprint.id             if current_sprint else None,
-                "name":  current_sprint.title          if current_sprint else None,
+                "id":    current_sprint.id                     if current_sprint else None,
+                "name":  current_sprint.title                  if current_sprint else None,
                 "start": current_sprint.start_date.isoformat() if current_sprint else None,
                 "end":   current_sprint.end_date.isoformat()   if current_sprint else None
             }
@@ -19369,8 +19628,6 @@ def quester_view(community_slug, quest_uuid, subquest_uuid):
             "discord_roles":      []
         }
     })
-
-
 
 def user_has_starred_repo(user_id, repo_path):
     record = UserGithub.query.filter_by(
@@ -20083,6 +20340,112 @@ def preview_subquest(community_slug):
         PLATFORM_ICONS=PLATFORM_ICONS
     )
 
+
+ALLOWED_TEMPLATE_TASK_TYPES = {
+    "file-upload",
+    "discord",
+    "github",
+    "youtube",
+    "puzzle",
+    "telegram",
+    "visit-link",
+    "twitter",
+    "quiz",
+    "poll",
+    "text",
+    "numbers",
+    "url",
+    "Optionscale(numbers)",
+    "Optionscale(star)",
+    "invite",
+    "partnership",
+    "partnership_quest",
+    "p.o.h",
+    "coin_holder_vote",
+}
+
+@app.route('/<community_slug>/preview_template', methods=['POST'])
+@login_required
+def preview_template(community_slug):
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({'error': 'Invalid JSON'}), 400
+
+    community = Community.query.filter_by(slug=community_slug).first()
+    if not community:
+        return jsonify({'error': 'Community not found'}), 404
+    
+    state = get_twitter_state(community)
+    if state != "ok" and any(t.get("type") == "twitter" for t in (data.get("tasks") or [])):
+        
+        return jsonify({"error": "twitter_locked", "state": state}), 403
+    user_tz = get_user_timezone(data.get("user_timezone"))
+
+    tasks = []
+    for i, t in enumerate((data.get("tasks") or [])[:10]):
+        ttype = t.get("type")
+        if ttype not in ALLOWED_TEMPLATE_TASK_TYPES:
+            continue
+
+        config = dict(t.get("config") or {})
+
+        if ttype == "twitter":
+            mode = config.get("mode", "follow")
+            if mode == "engage":
+                config["tweet_date"] = format_tweet_date(config.get("tweet_date"), tz=user_tz)
+
+        tasks.append({
+            "id": f"tpl-{i}",
+            "type": ttype,
+            "config": config,
+            "state": {"status": "preview", "completed": False},
+            "progress": {"active_invites": 0}
+        })
+
+    parsed_blocks = []
+    for block in (data.get("subquest_desc") or []):
+        if block.get("type") == "text":
+            parsed_blocks.append({
+                "type": "text",
+                "html": parse_quest_description(block.get("html", ""))
+            })
+
+    recurrence = data.get("recurrence")
+
+    subquest = {
+        "name": data.get("subquest_name"),
+        "uuid": "template-preview",
+        "desc": parsed_blocks,
+        "cooldown": None,
+        "recurrence": recurrence.capitalize() if recurrence else None,
+        "max_claim": None,
+        "claim_count": 0,
+    }
+    security = CommunitySecurity.query.filter_by(community_id=community.id).first()
+    socials_to_show = {
+        "twitter": security.require_twitter if security else False,
+        "discord": security.require_discord if security else False,
+        "youtube": security.require_youtube if security else False,
+        "telegram": security.require_telegram if security else False,
+    }
+
+    return render_template(
+        "subquest_content.html",
+        preview_mode=True,
+        fcfs_claimed_count={},
+        subquest=subquest,
+        tasks=tasks,
+        remaining_seconds=0,
+        rewards=data.get("rewards", []),
+        socials_to_show=socials_to_show,
+        conditions=[],
+        community_slug=community_slug,
+        quest_uuid="template",
+        subquest_uuid="template-preview",
+        PLATFORM_ICONS=PLATFORM_ICONS
+    )
+
+ 
 @app.route("/test-claim/<string:subquest_uuid>", methods=["POST"])
 @login_required
 def test_claim_subquest(subquest_uuid):
@@ -21205,6 +21568,20 @@ def extract_first_text_html(desc_blocks):
 
 
 
+def window_state(sq, rows):
+    start, end = get_recurrence_window(sq)
+    done = False
+    pending = False
+    for status, started in rows:
+        if start and (not started or not (start <= started < end)):
+            continue
+        if status == "success":
+            done = True
+        elif status == "pending":
+            pending = True
+    return done, pending
+
+
 @app.route('/api/quests/<community_slug>')
 def api_quests(community_slug):
     user = current_user if current_user.is_authenticated else None
@@ -21234,7 +21611,6 @@ def api_quests(community_slug):
             "created_at": latest_sprint.start_date.isoformat()
         }
 
-    # ── guest-safe completion state ──────────────────────────────────────────
     if user:
         completed_subquests = {
             sc.subquest_id
@@ -21248,14 +21624,20 @@ def api_quests(community_slug):
             sc.subquest.uuid: sc
             for sc in SubquestCompletion.query.filter_by(user_id=user_id, status="success").all()
         }
+        user_rows = {}
+        for sc in SubquestCompletion.query.filter(
+            SubquestCompletion.user_id == user_id,
+            SubquestCompletion.status.in_(["success", "pending"])
+        ).all():
+            user_rows.setdefault(sc.subquest_id, []).append((sc.status, sc.started_at))
         total_xp = get_total_xp(user_id, community.id)
         level_data = get_level(total_xp)
     else:
         completed_subquests       = set()
         pending_subquests         = set()
         user_subquest_completions = {}
+        user_rows                 = {}
         level_data                = {"level": 0}
-    # ─────────────────────────────────────────────────────────────────────────
 
     quests = (
         Quest.query
@@ -21320,10 +21702,10 @@ def api_quests(community_slug):
                     "operator": cond.operator,
                     "subquest_uuid": cond.subquest_uuid,
                     "quest_uuid": resolve_quest_uuid(cond.subquest_uuid),
-                    "is_completed": False   # always False for guests
+                    "is_completed": False
                 }
 
-                if user:  # only evaluate conditions for logged-in users
+                if user:
                     if cond.condition_type == "Quest":
                         cond_result["is_completed"] = cond.subquest_uuid in user_subquest_completions
 
@@ -21341,17 +21723,11 @@ def api_quests(community_slug):
 
                 parsed_conditions.append(cond_result)
 
-            # cooldown — guests have none
             cooldown_until = None
             no_retry = False
 
             if user:
-                cd = (
-                    SubquestCooldown.query
-                    .filter_by(user_id=user_id, subquest_id=sq.id)
-                    .order_by(SubquestCooldown.created_at.desc())
-                    .first()
-                )
+                cd = get_active_cooldown(user_id, sq)
                 if cd and cd.cooldown_until:
                     cd_time = cd.cooldown_until
                     if cd_time.tzinfo is None:
@@ -21360,6 +21736,13 @@ def api_quests(community_slug):
                         cooldown_until = cd_time.isoformat()
                         no_retry = bool(cd.is_no_retry)
 
+            is_completed_now, is_pending_now = False, False
+            if user:
+                is_completed_now, is_pending_now = window_state(sq, user_rows.get(sq.id, []))
+
+            _, window_end = get_recurrence_window(sq)
+            next_reset_at = (window_end.isoformat() + "Z") if window_end else None
+
             sq_data = {
                 "uuid": sq.uuid,
                 "name": sq.name,
@@ -21367,11 +21750,12 @@ def api_quests(community_slug):
                 "recurrence": None if sq.recurrence == "None" else sq.recurrence,
                 "cooldown_until": cooldown_until,
                 "no_retry": no_retry,
-                "is_expired": sq.is_expired, 
-                "is_completed": sq.id in completed_subquests,
-                "is_pending": sq.id in pending_subquests,
-                "vote_start_date": sq.vote_start_date.isoformat() if sq.vote_start_date else None,   
-                "vote_end_date":   sq.vote_end_date.isoformat()   if sq.vote_end_date   else None,  
+                "is_expired": sq.is_expired,
+                "is_completed": is_completed_now,
+                "is_pending": is_pending_now,
+                "next_reset_at": next_reset_at,
+                "vote_start_date": sq.vote_start_date.isoformat() if sq.vote_start_date else None,
+                "vote_end_date":   sq.vote_end_date.isoformat()   if sq.vote_end_date   else None,
                 "conditions": parsed_conditions,
                 "is_in_current_sprint": bool(latest_sprint and sq.sprint_id == latest_sprint.id),
                 "sprint_end": (
@@ -21418,8 +21802,6 @@ def api_quests(community_slug):
 
 
 
-
-
 def give_discord_role(user_id, reward, community_id=None):
     user_discord = UserDiscord.query.filter_by(user_id=user_id, action="connected").first()
     if not user_discord:
@@ -21455,31 +21837,6 @@ def give_discord_role(user_id, reward, community_id=None):
 
 
     return True
-
-def get_recurrence_window(subquest):
-    """Return the start and end datetime for the current recurrence period."""
-    now = datetime.utcnow()
-
-    if subquest.recurrence.lower() == "daily":
-        start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        end = start + timedelta(days=1)
-
-    elif subquest.recurrence.lower() == "weekly":
-        start = now - timedelta(days=now.weekday())  # Monday start
-        start = start.replace(hour=0, minute=0, second=0, microsecond=0)
-        end = start + timedelta(days=7)
-
-    elif subquest.recurrence.lower() == "monthly":
-        start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        if start.month == 12:
-            end = start.replace(year=start.year + 1, month=1)
-        else:
-            end = start.replace(month=start.month + 1)
-
-    else:  # No recurrence
-        start, end = None, None
-
-    return start, end
 
 
 
@@ -21773,89 +22130,96 @@ def increment_community_claim_usage(session, community_id):
         raise
 
 
-def can_claim_recurrence(user_id, subquest):
+
+def get_active_cooldown(user_id, subquest):
+    cd = (
+        SubquestCooldown.query
+        .filter_by(user_id=user_id, subquest_id=subquest.id)
+        .order_by(SubquestCooldown.created_at.desc())
+        .first()
+    )
+
+    if not cd:
+        return None
+
+    window_start, _ = get_recurrence_window(subquest)
+
+    if window_start and cd.created_at:
+        created = cd.created_at
+        if created.tzinfo is not None:
+            created = created.astimezone(timezone.utc).replace(tzinfo=None)
+        if created < window_start:
+            return None
+
+    return cd
+
+
+def get_recurrence_window(subquest):
     now = datetime.utcnow()
+    key = (subquest.recurrence or "").strip().lower()
 
-    logger.info("====================================")
-    logger.info("🔁 RECURRENCE CHECK START")
-    logger.info(f"User ID: {user_id}")
-    logger.info(f"Subquest ID: {subquest.id}")
-    logger.info(f"Recurrence Type: {subquest.recurrence}")
-    logger.info(f"Current UTC Time: {now}")
-
-    # ----------------------------
-    # Recurrence window
-    # ----------------------------
-    if subquest.recurrence == "Daily":
-        start = datetime(now.year, now.month, now.day)
+    if key == "daily":
+        start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         end = start + timedelta(days=1)
 
-    elif subquest.recurrence == "Weekly":
+    elif key == "weekly":
         start = now - timedelta(days=now.weekday())
-        start = datetime(start.year, start.month, start.day)
+        start = start.replace(hour=0, minute=0, second=0, microsecond=0)
         end = start + timedelta(days=7)
 
-    elif subquest.recurrence == "Monthly":
-        start = datetime(now.year, now.month, 1)
-        if now.month == 12:
-            end = datetime(now.year + 1, 1, 1)
+    elif key == "monthly":
+        start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        if start.month == 12:
+            end = start.replace(year=start.year + 1, month=1)
         else:
-            end = datetime(now.year, now.month + 1, 1)
+            end = start.replace(month=start.month + 1)
+
     else:
-        start = None
-        end = None
+        start, end = None, None
 
-    logger.info(f"🪟 Recurrence Window Start: {start}")
-    logger.info(f"🪟 Recurrence Window End:   {end}")
+    return start, end
 
-    # ----------------------------
-    # Base query
-    # ----------------------------
+
+def can_claim_recurrence(user_id, subquest):
+    now = datetime.utcnow()
+    start, end = get_recurrence_window(subquest)
+    stale_cutoff = now - timedelta(minutes=10)
+
+    logger.info(
+        "🔁 RECURRENCE CHECK user=%s subquest=%s type=%s window=%s -> %s",
+        user_id, subquest.id, subquest.recurrence, start, end
+    )
+
     query = SubquestCompletion.query.filter_by(
         user_id=user_id,
         subquest_id=subquest.id
     )
-
-    logger.info("📌 Base Query: user_id + subquest_id")
 
     if start and end:
         query = query.filter(
             SubquestCompletion.started_at >= start,
             SubquestCompletion.started_at < end
         )
-        logger.info("📅 Applied recurrence window filter on started_at")
-
-    # ----------------------------
-    # Status filter
-    # ----------------------------
-    statuses = ["processing", "pending", "success"]
-    logger.info(f"📊 Blocking statuses: {statuses}")
 
     completion = query.filter(
-        SubquestCompletion.status.in_(statuses)
+        or_(
+            SubquestCompletion.status.in_(["pending", "success"]),
+            and_(
+                SubquestCompletion.status == "processing",
+                SubquestCompletion.started_at >= stale_cutoff
+            )
+        )
     ).first()
 
-    # ----------------------------
-    # Debug result
-    # ----------------------------
     if completion:
-        logger.info("🚫 RECURRENCE BLOCKED")
-        logger.info(f"Found completion record:")
-        logger.info(f"  - ID: {completion.id}")
-        logger.info(f"  - Status: {completion.status}")
-        logger.info(f"  - Started At: {completion.started_at}")
-        logger.info(f"  - Completed At: {completion.completed_at}")
-        logger.info(f"  - Attempts: {completion.attempts}")
-        logger.info("====================================")
-        return False   # already claimed
+        logger.info(
+            "🚫 RECURRENCE BLOCKED completion=%s status=%s started_at=%s",
+            completion.id, completion.status, completion.started_at
+        )
+        return False
 
-    # ----------------------------
-    # Allowed
-    # ----------------------------
-    logger.info("✅ RECURRENCE ALLOWED (no matching completion found)")
-    logger.info("====================================")
+    logger.info("✅ RECURRENCE ALLOWED")
     return True
-
 
 
 def update_leaderboards(user_id, community_id, xp_amount, sprint_id=None):
@@ -22451,12 +22815,7 @@ def claim_subquest(subquest_id):
     # 6) 🔒 ATOMIC RESERVATION (DB LEVEL)
     # ==============================
 
-    cd = (
-        SubquestCooldown.query
-        .filter_by(user_id=user.id, subquest_id=subquest_id)
-        .order_by(SubquestCooldown.created_at.desc())
-        .first()
-    )
+    cd = get_active_cooldown(user.id, subquest)
 
     # 🔒 permanent lock
     if cd and cd.is_no_retry:
@@ -23474,7 +23833,7 @@ def get_coins():
     res = requests.get(url)
     return jsonify(res.json())
 
-# Return full details of a specific coin by CoinGecko ID
+
 @app.route("/api/coin/<coin_id>")
 def get_coin(coin_id):
     url = f"https://api.coingecko.com/api/v3/coins/{coin_id}?localization=false"
@@ -23565,9 +23924,24 @@ def p_leaderboard(community_slug):
 
 
 
-
-
  
+def build_reward_tiers(sprint):
+    tiers = sorted(sprint.reward_tiers, key=lambda t: t.position)
+    items = [
+        {
+            "from": t.rank_from,
+            "to": t.rank_to,
+            "single": t.rank_from == t.rank_to,
+            "winners": t.winners,
+            "per_winner": format_zec(t.amount_per_winner),
+            "total": format_zec(t.total),
+        }
+        for t in tiers
+    ]
+    pool = format_zec(sum(t.total for t in tiers))
+    return items, pool
+
+
 @app.route('/<community_slug>/leaderboard/<sprint_uuid>')
 def sprint_view(community_slug, sprint_uuid):
     user_id = current_user.id if current_user.is_authenticated else None
@@ -23578,7 +23952,6 @@ def sprint_view(community_slug, sprint_uuid):
     if not community:
         abort(404)
 
-    # 🔒 NEW — private community gate
     private_ctx = get_private_access_context(user_id, community, came_from_invite=False)
 
     theme_mode = get_user_theme_mode(user_id, community.id) if user_id else "light"
@@ -23592,14 +23965,13 @@ def sprint_view(community_slug, sprint_uuid):
     if not sprint:
         return "No sprint found for this community", 404
 
-    # 🔒 NEW — resolve the user's role in this community
     user_role_entry = CommunityUserRole.query.filter_by(
         user_id=user_id,
         community_id=community.id
     ).first() if user_id else None
 
     user_role = user_role_entry.role if user_role_entry else None
-    can_manage_sprints = user_role in ('admin', 'editor')   # 🔒 NEW
+    can_manage_sprints = user_role in ('admin', 'editor')
 
     banned = check_banned(user_id, community.id) if user_id else False
 
@@ -23616,6 +23988,9 @@ def sprint_view(community_slug, sprint_uuid):
         community.is_paid = False
         db.session.commit()
         print(f"✅ Sprint ended. Community '{community.name}' marked unpaid.")
+
+    reward_tiers, reward_pool = build_reward_tiers(sprint)
+    reward_currency = community.wallet.currency if community.wallet else "ZEC"
 
     community_twitter = CommunityTwitter.query.filter_by(
         community_id=community.id,
@@ -23642,7 +24017,10 @@ def sprint_view(community_slug, sprint_uuid):
             sprint=sprint,
             sprint_has_ended=sprint_has_ended,
             private_locked=private_ctx["private_locked"],
-            can_manage_sprints=can_manage_sprints,   # 🔒 NEW
+            can_manage_sprints=can_manage_sprints,
+            reward_tiers=reward_tiers,
+            reward_pool=reward_pool,
+            reward_currency=reward_currency,
         )
 
     total_xp = get_total_xp(user_id, community.id) if user_id else 0
@@ -23663,10 +24041,13 @@ def sprint_view(community_slug, sprint_uuid):
         community_discord=community_discord,
         current_community=current_community,
         sprint=sprint,
+        sprint_has_ended=sprint_has_ended,
         private_locked=private_ctx["private_locked"],
-        can_manage_sprints=can_manage_sprints,   # 🔒 NEW
+        can_manage_sprints=can_manage_sprints,
+        reward_tiers=reward_tiers,
+        reward_pool=reward_pool,
+        reward_currency=reward_currency,
     )
-
     
 @app.route('/<community_slug>/pay')
 @login_required
@@ -24278,21 +24659,34 @@ def leaderboard(community_slug):
 @login_required
 def create_sprint_ajax(community_slug):
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
 
         community = Community.query.filter_by(slug=community_slug).first()
         if not community:
-            return jsonify({"message": "Community not found."}), 404
+            raise ApiError("Community not found.", 404)
+
+        # TODO: confirm current_user is allowed to manage sprints for this community
+        # (same check you use for `can_manage_sprints` in the leaderboard view)
 
         title = (data.get("title") or "").strip()
-        start_date = data.get("start_date")
-        end_date = data.get("end_date")
+        start_raw = data.get("start_date")
+        end_raw = data.get("end_date")
+        distribution = data.get("distribution")
 
         if not title:
-            return jsonify({"message": "Sprint name is required."}), 400
+            raise ApiError("Sprint name is required.")
+        if not start_raw or not end_raw:
+            raise ApiError("Start and end date are required.")
+        if distribution not in ALLOWED_DISTRIBUTIONS:
+            raise ApiError("Choose a reward distribution.")
 
-        if not start_date or not end_date:
-            return jsonify({"message": "Start and end date are required."}), 400
+        try:
+            start_date = datetime.fromisoformat(start_raw)
+            end_date = datetime.fromisoformat(end_raw)
+        except ValueError:
+            raise ApiError("Invalid date format.")
+        if end_date <= start_date:
+            raise ApiError("End date must be after the start date.")
 
         sprint = Sprint(
             title=title,
@@ -24300,24 +24694,64 @@ def create_sprint_ajax(community_slug):
             rewards=data.get("rewards"),
             end_zone=data.get("end_zone"),
             color=data.get("color"),
-            distribution=data.get("distribution"),
-            start_date=datetime.fromisoformat(start_date),
-            end_date=datetime.fromisoformat(end_date),
+            distribution=distribution,
+            start_date=start_date,
+            end_date=end_date,
             created_by_id=current_user.id,
-            community_id=community.id
+            community_id=community.id,
+            locked_amount=0,
         )
-
         db.session.add(sprint)
-        db.session.commit()
+        db.session.flush()   # gives sprint.id / uuid without committing yet
 
+        # ---- platform distribution: validate tiers, check balance, lock funds ----
+        if distribution == "pay_to_creator":
+            tiers, total = parse_reward_tiers(data.get("reward_tiers"))
+
+            # lock the wallet row so two simultaneous requests can't spend the same balance
+            wallet = (
+                CommunityWallet.query
+                .filter_by(community_id=community.id)
+                .with_for_update()
+                .first()
+            )
+            available = (wallet.available_balance or 0) if wallet else 0
+
+            if available <= 0:
+                raise ApiError("Your community wallet is empty. Add funds or choose self distribution.")
+            if total > available:
+                raise ApiError("Your wallet balance is not enough for these rewards. Lower an amount or add funds.")
+
+            for t in tiers:
+                db.session.add(SprintRewardTier(
+                    sprint_id=sprint.id,
+                    position=t["position"],
+                    rank_from=t["from"],
+                    rank_to=t["to"],
+                    amount_per_winner=t["amount"],
+                ))
+
+            # available -> locked
+            wallet.available_balance = available - total
+            wallet.locked_balance = (wallet.locked_balance or 0) + total
+            sprint.locked_amount = total
+
+            db.session.add(CommunityWalletTransaction(
+                wallet_id=wallet.id,
+                amount=total,
+                type="sprint_lock",
+                reference=f"sprint:{sprint.uuid}",
+            ))
+
+        # ---- keep your existing is_paid logic ----
         latest_payment = Payment.query.filter_by(
             community_id=community.id,
             status="confirmed"
         ).order_by(Payment.created_at.desc()).first()
-
         if latest_payment:
             community.is_paid = True
-            db.session.commit()
+
+        db.session.commit()   # one commit: sprint + tiers + balance move + ledger row
 
         return jsonify({
             "success": True,
@@ -24325,12 +24759,16 @@ def create_sprint_ajax(community_slug):
             "redirect_url": f"/{community.slug}/leaderboard/{sprint.uuid}"
         })
 
+    except ApiError as e:
+        db.session.rollback()
+        return jsonify({"message": e.message}), e.status
+
     except Exception as e:
         db.session.rollback()
-        print("Error creating sprint:", e)
+        app.logger.exception("Error creating sprint")
         return jsonify({"message": "Something went wrong. Please try again."}), 500
 
-
+    
 @app.route("/api/<community_slug>/export-info", methods=["GET"])
 @login_required
 def export_info(community_slug):
@@ -24348,14 +24786,60 @@ def export_info(community_slug):
         max_export=cap,
     )
 
+MAX_RANK = 100000          
+MAX_TIERS = 50
+ALLOWED_DISTRIBUTIONS = {"pay_to_creator", "self_distribute"}
+
+
+class ApiError(Exception):
+    def __init__(self, message, status=400):
+        super().__init__(message)
+        self.message = message
+        self.status = status
+
+
+def parse_reward_tiers(raw):
+    """Returns (clean_tiers, total_zat). Raises ApiError on any problem."""
+    if not isinstance(raw, list) or not raw:
+        raise ApiError("Add at least one reward rank.")
+    if len(raw) > MAX_TIERS:
+        raise ApiError(f"You can add at most {MAX_TIERS} rank ranges.")
+
+    clean = []
+    expected_from = 1
+    total = 0
+
+    for i, t in enumerate(raw):
+        if not isinstance(t, dict):
+            raise ApiError("Invalid reward rank data.")
+
+        try:
+            r_from = int(t.get("from"))
+            r_to = int(t.get("to"))
+            amount = int(str(t.get("amount_zat")))   
+        except (TypeError, ValueError):
+            raise ApiError(f"Reward rank {i + 1} is incomplete.")
+
+        if r_from != expected_from:
+            raise ApiError(f"Reward ranks must be continuous. Range {i + 1} should start at {expected_from}.")
+        if r_to < r_from or r_to > MAX_RANK:
+            raise ApiError(f"Reward rank {i + 1} has an invalid end rank.")
+        if amount <= 0:
+            raise ApiError(f"Reward rank {i + 1} needs an amount greater than zero.")
+
+        total += (r_to - r_from + 1) * amount
+        clean.append({"position": i, "from": r_from, "to": r_to, "amount": amount})
+        expected_from = r_to + 1
+
+    return clean, total
+
+
 @app.route('/sprint_create', methods=['GET', 'POST'])
 @login_required
 def sprint_create():
     community_id = request.args.get('community_id', type=int)
     if not community_id:
-        print(community_id)
-        print("❌ Missing community_id in session")
-
+        print("❌ Missing community_id")
         return "Missing community_id", 400
 
     community = Community.query.get(community_id)
@@ -24363,7 +24847,6 @@ def sprint_create():
         print(f"❌ No community found with id {community_id}")
         return "Community not found", 404
 
-    # 🧾 Fetch the latest payment for this community
     latest_payment = (
         Payment.query
         .filter_by(community_id=community_id)
@@ -24371,7 +24854,21 @@ def sprint_create():
         .first()
     )
 
-    # 🕐 Check if the current sprint has ended
+    wallet = CommunityWallet.query.filter_by(community_id=community_id).first()
+
+    available = int(wallet.available_balance or 0) if wallet else 0
+    locked = int(wallet.locked_balance or 0) if wallet else 0
+
+    wallet_info = {
+        "available": available,
+        "locked": locked,
+        "total": available + locked,
+        "available_balance": available,
+        "locked_balance": locked,
+        "total_balance": available + locked,
+        "currency": wallet.currency if wallet else "ZEC",
+    }
+
     latest_sprint = (
         Sprint.query
         .filter_by(community_id=community_id)
@@ -24381,19 +24878,14 @@ def sprint_create():
 
     now = datetime.utcnow()
     if latest_sprint and latest_sprint.end_date < now:
-        if community.is_paid:
-            pass
-        # Reset the note and status for expired sprint
         note = ""
         status = ""
     else:
         note = latest_payment.note if latest_payment else ""
         status = latest_payment.status if latest_payment else ""
 
-    is_premium = community.is_paid  
+    is_premium = community.is_paid
 
-
-    # 🚀 Render form with payment info
     try:
         all_sprints = (
             Sprint.query
@@ -24408,51 +24900,108 @@ def sprint_create():
             is_premium=is_premium,
             status=status,
             sprints=all_sprints,
-            current_time=datetime.utcnow()
+            current_time=now,
+            wallet=wallet_info,
         )
     except Exception as e:
         print("❌ Template rendering error:", e)
         return "Error rendering template", 500
 
-
-
-
-
-
+    
 @app.route("/api/channel-info", methods=["POST"])
 def get_channel_info():
-    data = request.get_json()
-    channel_identifier = data.get("identifier")
+    data = request.get_json(silent=True) or {}
+    channel_identifier = (data.get("identifier") or "").strip()
     lookup_type = data.get("type")
 
     if not channel_identifier:
         return jsonify({"error": "Missing identifier"}), 400
 
+    # Accept full YouTube channel URLs.
+    if channel_identifier.startswith(("https://", "http://")):
+        parsed = urlparse(channel_identifier)
+
+        if parsed.hostname and parsed.hostname.lower() in {
+            "youtube.com",
+            "www.youtube.com",
+            "m.youtube.com",
+        }:
+            path_parts = [
+                part for part in parsed.path.strip("/").split("/") if part
+            ]
+
+            if not path_parts:
+                return jsonify({"error": "Invalid YouTube channel URL"}), 400
+
+            first = path_parts[0]
+
+            if first.startswith("@"):
+                channel_identifier = first[1:]
+                lookup_type = "handle"
+            elif first == "channel" and len(path_parts) > 1:
+                channel_identifier = path_parts[1]
+                lookup_type = "channelId"
+            elif first == "user" and len(path_parts) > 1:
+                channel_identifier = path_parts[1]
+                lookup_type = "forUsername"
+            elif first == "c" and len(path_parts) > 1:
+                return jsonify({
+                    "error": "Custom channel URLs require channel resolution."
+                }), 400
+            else:
+                # Supports URLs like youtube.com/Mrbeast
+                channel_identifier = first.lstrip("@")
+                lookup_type = "handle"
+
     if lookup_type == "channelId":
-        url = f"https://www.googleapis.com/youtube/v3/channels?part=snippet&id={channel_identifier}&key={YOUTUBE_API_KEY}"
+        params = {
+            "part": "snippet",
+            "id": channel_identifier,
+            "key": YOUTUBE_API_KEY,
+        }
     elif lookup_type == "forUsername":
-        url = f"https://www.googleapis.com/youtube/v3/channels?part=snippet&forUsername={channel_identifier}&key={YOUTUBE_API_KEY}"
+        params = {
+            "part": "snippet",
+            "forUsername": channel_identifier,
+            "key": YOUTUBE_API_KEY,
+        }
     elif lookup_type == "handle":
-        url = f"https://www.googleapis.com/youtube/v3/channels?part=snippet&forHandle={channel_identifier}&key={YOUTUBE_API_KEY}"
+        params = {
+            "part": "snippet",
+            "forHandle": channel_identifier.lstrip("@"),
+            "key": YOUTUBE_API_KEY,
+        }
     else:
         return jsonify({"error": "Invalid type"}), 400
 
     try:
-        response = requests.get(url)
+        response = requests.get(
+            "https://www.googleapis.com/youtube/v3/channels",
+            params=params,
+            timeout=10,
+        )
         response.raise_for_status()
-        data = response.json()
+        result = response.json()
 
-        if data.get("items"):
-            snippet = data["items"][0]["snippet"]
+        if result.get("items"):
+            snippet = result["items"][0]["snippet"]
+            thumbnails = snippet.get("thumbnails", {})
+
+            thumbnail = (
+                thumbnails.get("default", {}).get("url")
+                or thumbnails.get("medium", {}).get("url")
+                or thumbnails.get("high", {}).get("url")
+            )
+
             return jsonify({
                 "title": snippet["title"],
-                "thumbnail": snippet["thumbnails"]["default"]["url"]
+                "thumbnail": thumbnail,
             })
 
         return jsonify({"error": "Channel not found"}), 404
 
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except requests.RequestException:
+        return jsonify({"error": "Could not retrieve YouTube channel information"}), 502
 
 
 TELEGRAM_STATIC_DIR = os.path.join(app.root_path, "static", "telegram")
@@ -24974,6 +25523,54 @@ def preview():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
+REWARD_CURRENCY = "ZEC"           
+_ZAT_PER_COIN = 100_000_000  
+
+
+def _zat_to_str(zat):
+    """150000000 -> '1.5', 1000000 -> '0.01', 0 -> '0'. Plain number, NO currency, no floats.
+
+    (Named with a leading underscore on purpose: your project may already have a
+    format_zec() that adds ' ZEC', which is what made 'ZEC ZEC' show up.)
+    """
+    zat = int(zat or 0)
+    whole, frac = divmod(zat, _ZAT_PER_COIN)
+    frac_str = f"{frac:08d}".rstrip("0")
+    return f"{whole:,}.{frac_str}" if frac_str else f"{whole:,}"
+
+
+def build_reward_tiers(sprint):
+    """Read-only, fully pre-formatted tiers for the edit page.
+
+    Returns (tiers, total_label). The template only prints strings, nothing
+    is concatenated or formatted there. Only pay_to_creator sprints have tiers.
+    """
+    cur = REWARD_CURRENCY
+    if sprint.distribution != "pay_to_creator":
+        return [], f"0 {cur}"
+
+    tiers = []
+    total = 0
+    for t in sprint.reward_tiers:          # already ordered by position
+        n = t.winners
+        amt = _zat_to_str(t.amount_per_winner)
+        tot = _zat_to_str(t.total)
+        rng = str(t.rank_from) if t.rank_from == t.rank_to else f"{t.rank_from} – {t.rank_to}"
+        plural = "" if n == 1 else "s"
+
+        tiers.append({
+            "position": t.position,
+            "range_label": rng,                                       # "1" or "2 – 4"
+            "amount_label": f"{amt} {cur}",                           # per winner
+            "meta_label": f"{n} winner{plural} × {amt} {cur} = {tot} {cur}",
+            "preview_label": f"{rng}: {amt} {cur}" + (" each" if n > 1 else ""),
+        })
+        total += t.total
+
+    return tiers, f"{_zat_to_str(total)} {cur}"
+
+
 @app.route('/<community_slug>/sprint/edit/<sprint_uuid>')
 @login_required
 def sprint_panel(community_slug, sprint_uuid):
@@ -24983,24 +25580,20 @@ def sprint_panel(community_slug, sprint_uuid):
     community = Community.query.filter_by(slug=community_slug).first()
     if not community:
         abort(404)
-    theme_mode = get_user_theme_mode(user.id, community.id) 
-    current_community = community  
-    is_premium = community.is_paid 
-    
+    theme_mode = get_user_theme_mode(user.id, community.id)
+    current_community = community
+    is_premium = community.is_paid
+
     user_id = current_user.id if current_user.is_authenticated else None
 
     if not has_role(user_id, community.id, "editor"):
         flash("Only admins can access this page.", "error")
         return redirect(url_for("dashboard"))
-    
+
     username = session.get("username")
-
-
 
     banned = check_banned(user_id, community.id)
 
-
-    # Fetch sprint by UUID only (no fallback!)
     sprint = Sprint.query.filter_by(
         uuid=sprint_uuid,
         community_id=community.id
@@ -25008,16 +25601,10 @@ def sprint_panel(community_slug, sprint_uuid):
 
     if not sprint:
         abort(404, description="Sprint not found")
-        
+
     now = datetime.utcnow()
     sprint_has_ended = sprint.end_date < now
-    if sprint.end_date < now:
-        if community.is_paid:
-            community.is_paid = False
-            db.session.commit()
-            print(f"✅ Sprint ended. Marked community '{community.name}' as unpaid.")
 
-    # Convert date strings to datetime
     if isinstance(sprint.start_date, str):
         try:
             sprint.start_date = datetime.fromisoformat(sprint.start_date)
@@ -25029,12 +25616,9 @@ def sprint_panel(community_slug, sprint_uuid):
         except ValueError:
             sprint.end_date = None
 
-    now = datetime.utcnow()
-
     total_xp = get_total_xp(user.id, community.id)
     level_data = get_level(total_xp)
 
-    # Latest payment
     latest_payment = Payment.query.filter_by(
         community_id=community.id
     ).order_by(Payment.created_at.desc()).first()
@@ -25044,25 +25628,29 @@ def sprint_panel(community_slug, sprint_uuid):
     ).order_by(CommunityTwitter.timestamp.desc()).first()
     community_discord = DiscordGuild.query.filter_by(
         community_id=community.id,
-        removed_at=None  # only consider active connection
+        removed_at=None
     ).first()
     state = UserCommunityFabState.query.filter_by(
         user_id=current_user.id,
         community_id=current_community.id
     ).first()
     community_list_visible = session.get("community_list_visible", True)
+
+    reward_tiers, reward_total_label = build_reward_tiers(sprint)
+
     if request.headers.get("X-Partial"):
         return render_template(
             "sprint_panel.html",
             user=user,
             community=community,
-            sprint=sprint,             
+            sprint=sprint,
             is_premium=is_premium,
             sprint_has_ended=sprint_has_ended,
+            reward_tiers=reward_tiers,
+            reward_total_label=reward_total_label,
+            payment_note=latest_payment.note if latest_payment else None,
+            payment_status=latest_payment.status if latest_payment else None,
         )
-
-    total_xp = get_total_xp(user.id, community.id)
-    level_data = get_level(total_xp)
 
     latest_sprint = get_latest_valid_sprint(community.id)
     return render_template(
@@ -25081,10 +25669,11 @@ def sprint_panel(community_slug, sprint_uuid):
         sprint_has_ended=sprint_has_ended,
         payments=[latest_payment] if latest_payment else [],
         payment_note=latest_payment.note if latest_payment else None,
-        payment_status=latest_payment.status if latest_payment else None
+        payment_status=latest_payment.status if latest_payment else None,
+        reward_tiers=reward_tiers,
+        reward_total_label=reward_total_label,
     )
 
- 
 @app.route("/<community_slug>/sprint_create_partial")
 @login_required
 @community_not_deleted()
@@ -28557,11 +29146,7 @@ def mark_channel_read():
 
     return jsonify({"ok": True})
 
-
-import logging
-from sqlalchemy import func
-from sqlalchemy.exc import IntegrityError
-
+ 
 PAGE_INITIAL = 25
 
 log = logging.getLogger("gleyo.fetch")
@@ -29376,16 +29961,10 @@ def get_reaction_users(message_uuid):
     users = []
 
     for reaction, user in rows:
-        avatar = (
-            f"{user.profile_pic}"
-            if user.profile_pic
-            else "https://i.pravatar.cc/100?img=3"
-        )
-
         users.append({
             "id": user.id,
             "name": user.username or user.get_admin_identifier(),
-            "avatar": avatar
+            "avatar": user.profile_pic or None   # no fake fallback
         })
 
     return jsonify({
@@ -32082,6 +32661,19 @@ class SubquestCompletionAdmin(BaseAdmin):
 
 
 # ------------------------
+# Helpers
+# ------------------------
+ZAT = 100_000_000
+
+def format_zec(zat):
+    """150000000 -> '1.5 ZEC'"""
+    zat = zat or 0
+    whole, frac = divmod(zat, ZAT)
+    frac_str = str(frac).zfill(8).rstrip("0")
+    return f"{whole:,}.{frac_str} ZEC" if frac_str else f"{whole:,} ZEC"
+
+
+# ------------------------
 # ✅ Sprint Admin View
 # ------------------------
 class SprintAdmin(BaseAdmin):
@@ -32089,6 +32681,7 @@ class SprintAdmin(BaseAdmin):
         'id', 'uuid', 'title', 'description', 'community_id', 'community_name',
         'created_by_id', 'creator_username',
         'start_date', 'end_date', 'color', 'distribution', 'end_zone',
+        'locked_amount', 'tiers_summary',
     )
 
     column_labels = {
@@ -32105,17 +32698,18 @@ class SprintAdmin(BaseAdmin):
         'color': 'Theme Color',
         'distribution': 'Reward Distribution',
         'end_zone': 'End Zone',
+        'locked_amount': 'Locked Funds',
+        'tiers_summary': 'Reward Tiers',
     }
 
+    # locked_amount and reward_tiers are intentionally NOT editable here:
+    # they are created by the create-sprint route together with the wallet
+    # lock and ledger entry.
     form_columns = (
-        'title','description', 'start_date', 'end_date',
+        'title', 'description', 'start_date', 'end_date',
         'color', 'distribution', 'rewards', 'end_zone',
         'created_by_id', 'community_id',
     )
-
-    form_widget_args = {
-        'uuid': {'readonly': True}
-    }
 
     def _community_name(view, context, model, name):
         return model.community.name if model.community else '—'
@@ -32123,22 +32717,86 @@ class SprintAdmin(BaseAdmin):
     def _creator_username(view, context, model, name):
         return model.creator.username if model.creator else '—'
 
+    def _locked_amount(view, context, model, name):
+        return format_zec(model.locked_amount)
+
+    def _tiers_summary(view, context, model, name):
+        tiers = model.reward_tiers
+        if not tiers:
+            return '—'
+        return ' | '.join(
+            f"#{t.rank_from}-{t.rank_to}: {format_zec(t.amount_per_winner)}"
+            for t in tiers
+        )
+
     column_formatters = {
         'community_name': _community_name,
         'creator_username': _creator_username,
+        'locked_amount': _locked_amount,
+        'tiers_summary': _tiers_summary,
     }
 
+    column_formatters_detail = column_formatters
+
     can_view_details = True
-    column_searchable_list = ('title', 'description', 'uuid')  # ✅ Make searchable
-    column_filters = ('community_id', 'created_by_id')
+    column_searchable_list = ('title', 'description', 'uuid')
+    column_filters = ('community_id', 'created_by_id', 'distribution')
 
 
+# ------------------------
+# ✅ Sprint Reward Tier Admin View (read-only)
+# ------------------------
+class SprintRewardTierAdmin(BaseAdmin):
+    can_create = False
+    can_edit = False
+    can_delete = False
+    can_view_details = True
 
+    column_list = (
+        'id', 'sprint_title', 'sprint_uuid', 'position',
+        'rank_from', 'rank_to', 'winners_count',
+        'amount_per_winner', 'tier_total',
+    )
 
+    column_labels = {
+        'id': 'ID',
+        'sprint_title': 'Sprint',
+        'sprint_uuid': 'Sprint UUID',
+        'position': 'Row Order',
+        'rank_from': 'From Rank',
+        'rank_to': 'To Rank',
+        'winners_count': 'Winners',
+        'amount_per_winner': 'Per Winner',
+        'tier_total': 'Tier Total',
+    }
 
+    def _sprint_title(view, context, model, name):
+        return model.sprint.title if model.sprint else '—'
 
+    def _sprint_uuid(view, context, model, name):
+        return model.sprint.uuid if model.sprint else '—'
 
+    def _winners(view, context, model, name):
+        return model.winners
 
+    def _amount(view, context, model, name):
+        return format_zec(model.amount_per_winner)
+
+    def _total(view, context, model, name):
+        return format_zec(model.total)
+
+    column_formatters = {
+        'sprint_title': _sprint_title,
+        'sprint_uuid': _sprint_uuid,
+        'winners_count': _winners,
+        'amount_per_winner': _amount,
+        'tier_total': _total,
+    }
+
+    column_formatters_detail = column_formatters
+
+    column_filters = ('sprint_id',)
+    column_default_sort = ('sprint_id', True)
 
 def delayed_payment_email(request_entry, smtp_user, smtp_pass):
     """Send the actual payment instruction email after 2 minutes delay"""
@@ -35455,6 +36113,7 @@ admin.add_view(SubquestCooldownAdmin(SubquestCooldown, db.session))
 admin.add_view(UserXPAdmin(UserXP, db.session, name="User XP"))
 admin.add_view(SubquestCompletionAdmin(SubquestCompletion, db.session))
 admin.add_view(SprintAdmin(Sprint, db.session)) 
+admin.add_view(SprintRewardTierAdmin(SprintRewardTier, db.session))
 admin.add_view(AdminXPActionAdmin(AdminXPAction, db.session))
 admin.add_view(CommunityUserXPAdmin(CommunityUserXP, db.session))
 admin.add_view(SprintUserXPAdmin(SprintUserXP, db.session))
@@ -35600,4 +36259,4 @@ if __name__ == "__main__":
     )
     scheduler.start()
 
-    socketio.run(app, host="0.0.0.0", port=8000)
+    socketio.run(app, host="0.0.0.0", port=8000, debug=True)

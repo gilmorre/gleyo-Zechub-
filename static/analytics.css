@@ -25,7 +25,7 @@
 
   @media(max-width: 767px) {
     .shell {
-      height: calc(100dvh - 64px) !important;
+      height: calc(100dvh - 80px) !important;
       padding: 10px 15px;
       
     }
@@ -35,9 +35,8 @@
   .bottom-panels-anal {
     background-clip: padding-box; 
     border: 0.9px solid var(--border);
-    -webkit-mask-image: -webkit-radial-gradient(white, black); 
-    mask-image: radial-gradient(white, black);
-    scrollbar-gutter: stable both-edges; 
+    clip-path: inset(0 round 24px);
+    scrollbar-gutter: stable both-edges;
     background-color: var(--bg-sidebar);
     border-top-left-radius: 16px;
     border-top-right-radius: 16px;

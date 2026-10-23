@@ -4,7 +4,7 @@ from sqlalchemy import func
 from flask import jsonify
 
 from backend.auth.billing_paystack import (
-    BillingError, CLAIM_LIMITS, get_active_subscription,
+    BillingError, CLAIM_LIMITS, CLAIM_LIMIT_MESSAGE, get_active_subscription, claims_open
 )
 from backend.communities.community_models import Community
 from backend.communities.CommunityUserRole_models import CommunityUserRole
@@ -211,3 +211,13 @@ def chat_locked(community_id):
         return None
 
     return feature_lock_response(community, "community_chat", "community chat")
+
+
+def claim_limit_payload(community, can_manage=False):
+    reached = not claims_open(community)
+    return {
+        "reached": reached,
+        "can_manage": bool(can_manage) if reached else False,
+        "plan": plan_key(community),
+        "message": CLAIM_LIMIT_MESSAGE if reached else None,
+    }

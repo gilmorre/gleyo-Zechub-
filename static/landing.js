@@ -4,6 +4,10 @@ const searchInput = document.querySelector(".nav-search");
 const mainContent = document.getElementById("main-content");
 const resultsContainer = document.getElementById("community-search-results");
 
+function communityBadge(c) {
+  return (c.slug || "").toLowerCase() === "gleyo" ? "Official" : "Verified";
+}
+
 if (searchInput) {
   searchInput.addEventListener("input", async () => {
     const query = searchInput.value.trim();
@@ -20,10 +24,19 @@ if (searchInput) {
     if (data.length === 0) { resultsContainer.innerHTML = "<p>No communities found.</p>"; return; }
     let html = `<div class="community-grid">`;
     data.forEach(c => {
-      html += `<a href="${c.url}" class="community-card">
-        <img src="${c.logo}" alt="">
-        <div class="center-edinit"><h3>${c.name}</h3><p>${c.about || ""}</p></div>
-      </a>`;
+      html += `
+        <a href="${c.url}" class="spotlight-link">
+          <div class="spotlight-card">
+            <div class="spotlight-image">
+              <img src="${c.logo}" loading="lazy" alt="${c.name}">
+            </div>
+            <div class="spotlight-content">
+              <h3>${c.name}</h3>
+              <p>${c.about || ""}</p>
+              <span class="comm-badge">${communityBadge(c)}</span>
+            </div>
+          </div>
+        </a>`;
     });
     html += `</div>`;
     resultsContainer.innerHTML = html;
@@ -89,33 +102,14 @@ function saveAccountBackRoute() {
 }
 
 async function logoutUser(url) {
-  const nextPath = window.location.pathname + window.location.search;
-  const loginUrl = `/login?next=${encodeURIComponent(nextPath)}`;
-
-  const res = await fetch(url, {
+  await fetch(url, {
     method: "POST",
     credentials: "include",
     headers: { "X-CSRFToken": csrfToken }
   });
 
   sessionStorage.removeItem("push_dismissed");
-
-  if (res.redirected) {
-    window.location.replace(res.url);
-    return;
-  }
-
-  const ct = res.headers.get("content-type");
-
-  if (ct && ct.includes("application/json")) {
-    const data = await res.json();
-
-    if (data.success) {
-      window.location.replace(loginUrl);
-    }
-  } else {
-    window.location.replace(loginUrl);
-  }
+  window.location.replace("/login");
 }
  
 const scrollWrapEl = document.getElementById("scroll-wrap");
@@ -241,11 +235,6 @@ async function loadFeaturedCommunities() {
 
     communities.forEach(c => {
 
-      const badge =
-        c.slug.toLowerCase() === "gleyo"
-          ? "Official"
-          : "Verified";
-
       featuredContainer.insertAdjacentHTML(
         "beforeend",
         `
@@ -266,7 +255,7 @@ async function loadFeaturedCommunities() {
 
               <p>${c.about}</p>
 
-              <span class="comm-badge">${badge}</span>
+              <span class="comm-badge">${communityBadge(c)}</span>
 
             </div>
 

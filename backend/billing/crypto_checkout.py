@@ -1,112 +1,128 @@
-"""
-backend/billing/crypto_checkout.py
-
-Create + verify + fulfil crypto payments for plans and extra-quest packs.
-
-  ZEC          -> buyer sends to our shielded WALLET address with a unique memo. 8% off.
-                  The memo contains the community slug, e.g. GLY-capus-voice-A1B2C3D4
-  USDT / USDC  -> NEAR Intents deposit address, swapped to ZEC for us. Full price.
-
-Flow:
-  * the buyer creates a payment, sends the funds, then presses "I've paid, please check"
-  * that button calls POST /billing/verify-plan-payment (one check, no browser polling)
-  * a background job (poll_pending_checkouts) also watches open payments, so a payment is
-    still credited if the buyer closes the page
-
-Rules this file enforces:
-  * the SERVER computes every price (the browser never sends an amount)
-  * the ZEC rate is locked at creation
-  * a payment is matched by memo (ZEC) or by its own deposit address (swap), never by balance delta
-  * external calls happen WITHOUT a DB lock; the result is applied under a row lock with a re-check,
-    so the poller and the button can't both fulfil
-  * fulfilment is idempotent on ref "crypto-<checkout id>", so even if two workers race, the buyer
-    is only credited once
-  * one buyer has ONE live checkout per community: starting a different coin/network/purchase
-    closes the old unfinished one, starting the same one again brings the old one back
-
-Env:
-    ZEC_DETECTION_READY=true      (default true here; set false to refuse ZEC checkouts)
-    WALLET=<shielded address>
-    NOZY_NOTES_PATH=/api/notes    (change if your Nozy build uses another path)
-"""
 import base64
 import logging
 import os
 import re
 import secrets
+import threading
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal, ROUND_CEILING, ROUND_HALF_UP
+from email.message import EmailMessage
 
 import requests
 from web3 import Web3
 
 from backend.utils.instance import db
+from backend.utils.utils import send_email
 from backend.billing import near_intents
 from backend.auth import billing_paystack as bs
 from backend.auth.billing_paystack import BillingError
 from backend.billing.crypto_models import CryptoCheckout, FINAL_STATUSES
-from backend.utils.nozy_client import _nozy_sync, NOZY_API_URL, NOZY_API_KEY
+from backend.utils.nozy_client import NOZY_API_URL, NOZY_API_KEY, NOZY_WALLET_PASSWORD
 
 logger = logging.getLogger(__name__)
 
 ZEC_DISCOUNT_PCT = 8
 CHECKOUT_MINUTES = 30
 MAX_OPEN_PER_COMMUNITY = 3
-ZEC_MIN_CONFIRMATIONS = 3
-ZEC_AMOUNT_TOLERANCE = Decimal("0.995")      # accept >= 99.5% of the expected ZEC (network fee wiggle room)
-STABLE_TOLERANCE = Decimal("0.99")           # accept >= 99% of the expected stablecoin amount
-MIN_CHECK_GAP_SECONDS = 8                    # default gap between checks of the same checkout
-BUTTON_CHECK_GAP_SECONDS = 3                 # gap used by the "I've paid" button (double-click guard)
-LATE_WINDOW = timedelta(hours=24)            # keep watching expired ZEC memos this long -> 'late_paid'
+ZEC_AMOUNT_TOLERANCE = Decimal("0.995")
+STABLE_TOLERANCE = Decimal("0.99")
+MIN_CHECK_GAP_SECONDS = 8
+BUTTON_CHECK_GAP_SECONDS = 3
+LATE_WINDOW = timedelta(hours=24)
+ZEC_CLOCK_SKEW = timedelta(seconds=120)
 ZEC_ADDRESS = os.getenv("WALLET")
+ADMIN_ALERT_EMAIL = os.getenv("ADMIN_ALERT_EMAIL")
 
-# ZEC checkouts are refused while this is false.
 ZEC_DETECTION_READY = os.getenv("ZEC_DETECTION_READY", "true").strip().lower() == "true"
 
-NOZY_NOTES_PATH = os.getenv("NOZY_NOTES_PATH", "/api/notes")
-NOZY_SYNC_EVERY_SECONDS = 20
+NOZY_SYNC_EVERY_SECONDS = 5
+ZAT = Decimal(10 ** 8)
+
+# ZEC amounts are rounded UP to this step and shown with ZEC_DP decimals.
+ZEC_DP = 3
+ZEC_STEP = Decimal(1).scaleb(-ZEC_DP)  # Decimal("0.001")
+
+
+def _dbg(msg, *args):
+    logger.info("[crypto] " + msg, *args)
+
+
+def _dec(v):
+    return v if isinstance(v, Decimal) else Decimal(str(v))
+
+
+def _zec_up(v):
+    return _dec(v).quantize(ZEC_STEP, ROUND_CEILING)
+
+
+# kept so any old imports of the previous name keep working
+_zec_2dp_up = _zec_up
 
 
 class FulfilmentError(Exception):
-    """Payment was received but the purchase could not be applied. A human must look at it."""
+    pass
 
 
-# =====================================================================
-# ADAPTERS
-# =====================================================================
+def _alert_admin(c, reason):
+    body = (
+        f"Crypto checkout {c.id} needs manual review.\n\n"
+        f"Reason: {reason}\n"
+        f"Status: {c.status}\n"
+        f"Community: {c.community_id}\n"
+        f"User: {c.user_id}\n"
+        f"Purpose: {c.purpose} plan={c.plan} interval={c.interval} pack={c.pack} mode={c.mode}\n"
+        f"Token: {c.pay_token} ({c.pay_network})\n"
+        f"Expected: {c.expected_amount}\n"
+        f"Received: {c.received_amount}\n"
+        f"Charged USD: {c.charged_cents / 100:.2f}\n"
+        f"Tx ref: {c.tx_ref}\n"
+        f"Memo: {c.memo}\n"
+        f"Deposit address: {c.deposit_address}\n"
+        f"Expires at: {c.expires_at}\n"
+        f"Paid at: {c.paid_at}\n"
+    )
+    subject = f"Crypto payment needs review: checkout {c.id} ({reason})"
+    logger.error("[crypto] ALERT checkout %s: %s", c.id, reason)
+    if not ADMIN_ALERT_EMAIL:
+        logger.error("[crypto] ADMIN_ALERT_EMAIL not set, alert for checkout %s not emailed", c.id)
+        return
+
+    def _send():
+        try:
+            msg = EmailMessage()
+            msg["From"] = "Gleyo <noreply@gleyo.app>"
+            msg["To"] = ADMIN_ALERT_EMAIL
+            msg["Subject"] = subject
+            msg.set_content(body)
+            send_email(msg)
+        except Exception:
+            logger.exception("crypto alert email failed for checkout %s", c.id)
+
+    threading.Thread(target=_send, daemon=True).start()
+
+
 def quote_plan_usd_cents(community, plan, interval):
-    """
-    Return (amount_cents, mode) for this community buying plan/interval.
-    mode is new | upgrade | switch | renew.
-    Uses the same maths as the Stripe route (no Stripe call) and raises BillingError for
-    blocked changes (lower plan, yearly -> monthly, etc).
-    """
     q = bs.quote_plan(community, plan, interval)
     return q["amount_cents"], q["mode"]
 
 
 def pack_price_cents(community, pack_id):
-    """Price of an extra-quest pack in cents. Raises BillingError if unknown / not allowed."""
     return bs.quote_pack(community, pack_id)["amount_cents"]
 
 
 def fulfill_purchase(c: CryptoCheckout):
-    """
-    Give the buyer what they paid for, using the same functions the Stripe and wallet paths use.
-    NOTE: those functions commit internally, so this is NOT one big transaction. That is why every
-    call below is idempotent on ref and why _mark_paid_and_fulfil sets status="paid" only AFTER
-    this returns.
-    Raises FulfilmentError if nothing could be applied.
-    """
     ref = f"crypto-{c.id}"
     cid = c.community_id
+    _dbg("fulfil start checkout=%s purpose=%s plan=%s interval=%s pack=%s mode=%s cents=%s ref=%s",
+         c.id, c.purpose, c.plan, c.interval, c.pack, c.mode, c.charged_cents, ref)
 
     if c.purpose == "quests":
         row = bs.credit_pack(cid, c.pack, amount_cents=c.charged_cents,
                              payment_method="crypto", ref=ref)
         if row is None:
             raise FulfilmentError(f"credit_pack returned nothing for checkout {c.id}")
+        _dbg("fulfil done (quests) checkout=%s", c.id)
         return
 
     if c.mode == "upgrade":
@@ -114,107 +130,100 @@ def fulfill_purchase(c: CryptoCheckout):
                                payment_method="crypto", ref=ref)
         if row is None:
             raise FulfilmentError(f"apply_upgrade returned nothing for checkout {c.id}")
+        _dbg("fulfil done (upgrade) checkout=%s", c.id)
         return
-
-    # new | switch | renew
-    community = bs.Community.query.get(int(cid))
-    old_sub = community.subscription if community else None
-    prev_method = old_sub.payment_method if old_sub else None
-    prev_stripe_id = old_sub.stripe_subscription_id if old_sub else None
-    prev_cancel_pending = bool(old_sub and old_sub.cancel_at_period_end)
-    was_new = old_sub is None
 
     sub = bs.activate_plan(cid, c.plan, c.interval, amount_cents=c.charged_cents,
                            payment_method="crypto", invoice_id=ref)
     if sub is None:
         raise FulfilmentError(f"activate_plan returned nothing for checkout {c.id}")
+    _dbg("fulfil done (plan) checkout=%s", c.id)
 
-    # activate_plan treats every non-card method like a wallet payment. Crypto is not a wallet:
-    # there is no balance to auto-renew from, so don't switch that on by default.
-    if was_new or prev_method == "card":
-        sub.auto_renew_wallet = False
-        db.session.commit()
-        bs._save_expiry_job(cid, sub.expires_at)   # removes the wallet-renewal job it just added
 
-    # activate_plan only cancels the old Stripe subscription for "wallet". Do it for crypto too,
-    # otherwise a card subscriber who pays with crypto would still be billed on the card.
-    if prev_stripe_id and not prev_cancel_pending:
+_nozy = {"at": 0.0, "txs": None}
+
+_FRAC_RE = re.compile(r"\.(\d+)")
+
+
+def _parse_ts(s):
+    if not s:
+        return None
+    try:
+        s = str(s).strip().replace("Z", "+00:00")
+        s = _FRAC_RE.sub(lambda m: "." + (m.group(1) + "000000")[:6], s, count=1)
+        dt = datetime.fromisoformat(s)
+        if dt.tzinfo is not None:
+            dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+        return dt
+    except Exception:
+        logger.warning("[crypto] could not parse timestamp %r", s)
+        return None
+
+
+def _nozy_headers():
+    return {"X-API-Key": NOZY_API_KEY}
+
+
+def _nozy_history(force=False):
+    if not force and _nozy["txs"] is not None and time.time() - _nozy["at"] < NOZY_SYNC_EVERY_SECONDS:
+        _dbg("nozy: using cached history (%s txs, age %.1fs)", len(_nozy["txs"]), time.time() - _nozy["at"])
+        return _nozy["txs"]
+
+    t0 = time.time()
+    try:
+        sr = requests.post(f"{NOZY_API_URL}/api/sync",
+                           json={"password": NOZY_WALLET_PASSWORD},
+                           headers=_nozy_headers(), timeout=120)
+        _dbg("nozy: POST /api/sync -> HTTP %s in %.1fs body=%s",
+             sr.status_code, time.time() - t0, (sr.text or "")[:300])
+        if sr.status_code != 200:
+            logger.warning("[crypto] nozy sync not OK (HTTP %s), will still read history", sr.status_code)
+    except Exception as e:
+        logger.warning("[crypto] nozy sync request failed: %s (will still read history)", e)
+
+    try:
+        hr = requests.get(f"{NOZY_API_URL}/api/transaction/history",
+                          headers=_nozy_headers(), timeout=30)
+    except Exception as e:
+        raise RuntimeError(f"Nozy history failed: {e}")
+    if hr.status_code != 200:
+        raise RuntimeError(f"Nozy history failed: HTTP {hr.status_code} {(hr.text or '')[:200]}")
+    try:
+        raw = hr.json().get("transactions") or []
+    except Exception:
+        raise RuntimeError("Nozy history returned invalid JSON")
+
+    txs = []
+    for t in raw:
         try:
-            bs.stripe.Subscription.cancel(prev_stripe_id)
+            zat = int(t.get("amount_zatoshis") or 0)
         except Exception:
-            logger.exception("could not cancel stripe subscription %s after crypto payment", prev_stripe_id)
-
-
-# =====================================================================
-# NOZY: incoming shielded notes (with memos)
-# =====================================================================
-_nozy_last_sync = {"at": 0.0}
-
-
-def _first(d, *keys, default=None):
-    for k in keys:
-        if k in d and d[k] is not None:
-            return d[k]
-    return default
-
-
-def _clean_memo(raw):
-    """Shielded memos are padded with NUL bytes. Strip those and whitespace."""
-    return str(raw or "").replace("\x00", "").strip()
-
-
-def fetch_incoming_notes():
-    """
-    Return recent incoming shielded notes for our WALLET as a list of dicts:
-      {"txid": str, "index": int, "amount_zat": int, "memo": str, "confirmations": int}
-
-    Talks to Nozy: syncs the wallet (at most every NOZY_SYNC_EVERY_SECONDS), then reads the
-    received notes from NOZY_NOTES_PATH. Field names are read flexibly; if your Nozy build
-    returns different names, print resp.text once and adjust the keys below.
-    """
-    if time.time() - _nozy_last_sync["at"] > NOZY_SYNC_EVERY_SECONDS:
-        ok, err = _nozy_sync()
-        if not ok:
-            raise RuntimeError(err)
-        _nozy_last_sync["at"] = time.time()
-
-    resp = requests.get(
-        f"{NOZY_API_URL}{NOZY_NOTES_PATH}",
-        headers={"X-API-Key": NOZY_API_KEY},
-        timeout=30,
-    )
-    if resp.status_code != 200:
-        raise RuntimeError(f"Nozy notes error: HTTP {resp.status_code}")
-
-    raw = resp.json()
-    items = raw if isinstance(raw, list) else _first(raw, "notes", "transactions", "received", default=[])
-
-    out = []
-    for i, n in enumerate(items):
-        direction = str(_first(n, "direction", "type", default="incoming")).lower()
-        if direction in ("sent", "outgoing", "send"):
-            continue
-
-        zat = _first(n, "amount_zat", "amount_zatoshi", "value", "zatoshis")
-        if zat is None:
-            zec = _first(n, "amount_zec", "amount")
-            if zec is None:
-                continue
-            zat = int(round(float(zec) * 100_000_000))
-
-        out.append({
-            "txid": str(_first(n, "txid", "tx_id", "tx_hash", default="")),
-            "index": int(_first(n, "index", "output_index", "action_index", default=i)),
-            "amount_zat": int(zat),
-            "memo": _clean_memo(_first(n, "memo", "memo_text", default="")),
-            "confirmations": int(_first(n, "confirmations", default=0)),
+            zat = 0
+        ttype = str(t.get("type") or t.get("transaction_type") or "").lower()
+        try:
+            confs = int(t.get("confirmations") or 0)
+        except Exception:
+            confs = 0
+        status = str(t.get("status") or "").lower()
+        txs.append({
+            "txid": t.get("txid"),
+            "type": ttype,
+            "zat": zat,
+            "amount": Decimal(zat) / ZAT,
+            "is_change": bool(t.get("is_change")),
+            "memo": (t.get("memo") or "") or "",
+            "status": status,
+            "confirmations": confs,
+            "confirmed": status == "confirmed" or confs >= 1,
+            "created": _parse_ts(t.get("created_at")),
+            "block_height": t.get("block_height"),
         })
-    return out
+
+    _dbg("nozy: history has %s txs (%s received)", len(txs), sum(1 for x in txs if x["type"] == "received"))
+    _nozy.update(txs=txs, at=time.time())
+    return txs
 
 
-# =====================================================================
-# ZEC price (server side, cached, never returns 0)
-# =====================================================================
 _rate = {"v": None, "at": 0.0}
 
 
@@ -227,29 +236,26 @@ def get_zec_usd_rate():
         price = r.json().get("zcash", {}).get("usd")
         if price and price > 0:
             _rate.update(v=Decimal(str(price)), at=time.time())
+            _dbg("zec rate fetched: %s", price)
             return _rate["v"]
     except Exception:
         logger.exception("zec rate fetch failed")
-    # stale is better than nothing for up to 10 minutes, but never invent a price
     if _rate["v"] and time.time() - _rate["at"] < 600:
+        _dbg("zec rate: using stale cached value %s", _rate["v"])
         return _rate["v"]
     return None
 
 
-# =====================================================================
-# CREATE
-# =====================================================================
 def _err(msg):
     return BillingError(msg)
 
 
 def _make_memo(community):
-    """GLY-<community-slug>-<8 random hex>. The random part keeps every memo unique."""
     base = getattr(community, "slug", None) or re.sub(
         r"[^a-z0-9]+", "-", (getattr(community, "name", "") or "").lower()
     ).strip("-")
     base = (base or "community")[:30]
-    return f"GLY-{base}-{secrets.token_hex(4).upper()}"          # max ~43 chars, column is 64
+    return f"GLY-{base}-{secrets.token_hex(4).upper()}"
 
 
 def _same_payment(row, user, purpose, plan, interval, pack, token, network, charged_cents):
@@ -263,6 +269,8 @@ def create_checkout(community, user, data):
     purpose = data.get("type")
     token = (data.get("token") or "").upper()
     network = data.get("network") or ("Zcash" if token == "ZEC" else "")
+    _dbg("create_checkout community=%s user=%s purpose=%s token=%s network=%s",
+         community.id, user.id, purpose, token, network)
     if purpose not in ("plan", "quests"):
         raise _err("Invalid purchase.")
     if token == "ZEC":
@@ -282,36 +290,31 @@ def create_checkout(community, user, data):
 
     discount = ZEC_DISCOUNT_PCT if token == "ZEC" else 0
     charged_cents = int((Decimal(base_cents) * (100 - discount) / 100).quantize(Decimal("1"), ROUND_HALF_UP))
+    _dbg("pricing base_cents=%s discount=%s%% charged_cents=%s mode=%s", base_cents, discount, charged_cents, mode)
     if charged_cents <= 0:
         raise _err("Nothing to pay for this change.")
 
     now = datetime.utcnow()
 
-    # Every checkout of this community that is still inside its deadline.
-    # "expired" + a future deadline only happens when WE closed it because the buyer picked
-    # something else, so it can be brought back.
     live_rows = CryptoCheckout.query.filter(
         CryptoCheckout.community_id == community.id,
         CryptoCheckout.status.in_(("pending", "processing", "expired")),
         CryptoCheckout.expires_at > now,
     ).all()
 
-    # 1) the exact same payment (same coin, network, purchase, price) -> bring the old one back
     match = next((r for r in live_rows
                   if _same_payment(r, user, purpose, plan, interval, pack, token, network, charged_cents)), None)
     if match:
+        _dbg("reusing existing checkout %s (status %s) with locked amount=%s rate=%s",
+             match.id, match.status, match.expected_amount, match.zec_rate)
         if match.status == "expired":
             match.status = "pending"
-        # close this buyer's other unfinished payments ("processing" = money seen, never closed)
         for r in live_rows:
             if r.id != match.id and r.user_id == user.id and r.status == "pending":
                 r.status = "expired"
         db.session.commit()
         return match
 
-    # 2) something different -> close this buyer's unfinished payments, then create a new one.
-    #    expires_at is left alone on purpose: the poller keeps watching them, so funds already
-    #    sent to the old address/memo are still credited.
     for r in live_rows:
         if r.user_id == user.id and r.status == "pending":
             r.status = "expired"
@@ -332,21 +335,26 @@ def create_checkout(community, user, data):
         rate = get_zec_usd_rate()
         if not rate:
             raise _err("Couldn't fetch the ZEC price. Please try again.")
-        expected = (Decimal(charged_cents) / 100 / rate).quantize(Decimal("0.00000001"), ROUND_CEILING)
+        raw_zec = Decimal(charged_cents) / 100 / rate
+        expected = _zec_up(raw_zec)
         address = ZEC_ADDRESS
         memo = _make_memo(community)
+        _dbg("ZEC price LOCKED: usd=%s rate=%s raw_zec=%s expected(%sdp up)=%s memo=%s",
+             Decimal(charged_cents) / 100, rate, raw_zec, ZEC_DP, expected, memo)
     else:
         refund = (data.get("refund_address") or "").strip()
         if not Web3.is_address(refund):
             raise _err("Enter a valid refund address on that network.")
         refund = Web3.to_checksum_address(refund)
-        expected = (Decimal(charged_cents) / 100).quantize(Decimal("0.01"), ROUND_CEILING)  # stablecoins ~ $1
+        expected = (Decimal(charged_cents) / 100).quantize(Decimal("0.01"), ROUND_CEILING)
         try:
             q = near_intents.create_deposit(token, network, expected, refund, minutes=CHECKOUT_MINUTES)
         except near_intents.NearIntentsError as e:
             logger.error("near intents quote failed: %s", e)
             raise _err("Couldn't create a deposit address. Please try again.")
         address, swap_est = q["deposit_address"], q["est_zec"]
+        _dbg("swap checkout: %s/%s expected=%s deposit=%s est_zec=%s refund=%s quote_raw=%s",
+             token, network, expected, address, swap_est, refund, q)
 
     c = CryptoCheckout(
         community_id=community.id, user_id=user.id, purpose=purpose, plan=plan, interval=interval,
@@ -358,120 +366,225 @@ def create_checkout(community, user, data):
     )
     db.session.add(c)
     db.session.commit()
+    _dbg("checkout CREATED id=%s token=%s expected=%s rate=%s expires_at=%s",
+         c.id, token, expected, rate, c.expires_at)
     _wake_poller_safe()
     return c
 
 
-# =====================================================================
-# VERIFY  (safe to call from the button route AND the background poller)
-# =====================================================================
-_notes = {"at": 0.0, "data": []}
+def _claimed_txids(exclude_id):
+    rows = CryptoCheckout.query.filter(
+        CryptoCheckout.pay_token == "ZEC",
+        CryptoCheckout.id != exclude_id,
+        CryptoCheckout.tx_ref.isnot(None),
+    ).all()
+    return {r.tx_ref for r in rows if r.tx_ref}
 
 
-def _notes_cached():
-    """One Nozy call per few seconds shared by every checkout in a poll cycle."""
-    if time.time() - _notes["at"] > 6:
-        _notes.update(data=fetch_incoming_notes() or [], at=time.time())
-    return _notes["data"]
+def _open_zec_ids():
+    now = datetime.utcnow()
+    rows = CryptoCheckout.query.filter(
+        CryptoCheckout.pay_token == "ZEC",
+        db.or_(
+            CryptoCheckout.status.in_(("pending", "processing")),
+            db.and_(CryptoCheckout.status == "expired", CryptoCheckout.created_at > now - LATE_WINDOW),
+        ),
+    ).with_entities(CryptoCheckout.id).all()
+    return {r[0] for r in rows}
 
 
 def _check_zec(c):
     try:
-        notes = _notes_cached()
+        txs = _nozy_history()
     except Exception as e:
-        logger.warning("nozy notes fetch failed: %s", e)
+        logger.warning("[crypto] zec checkout %s: history failed: %s", c.id, e)
         return {"kind": "error", "error": str(e)}
-    want = (c.memo or "").strip()
-    if not want:
+
+    expected = _dec(c.expected_amount)
+    since = c.created_at - ZEC_CLOCK_SKEW
+    claimed = _claimed_txids(c.id)
+    threshold = expected * ZEC_AMOUNT_TOLERANCE
+    memoless_ok = _open_zec_ids() == {c.id}
+    _dbg("zec checkout %s: looking for received tx since %s, locked expected=%s threshold=%s, claimed_by_others=%s memoless_ok=%s",
+         c.id, since, expected, threshold, len(claimed), memoless_ok)
+
+    candidates = []
+    for t in txs:
+        short = (t["txid"] or "")[:12]
+        if t["type"] != "received":
+            _dbg("  skip tx %s: type=%s", short, t["type"])
+            continue
+        if t["is_change"]:
+            _dbg("  skip tx %s: change output", short)
+            continue
+        if t["zat"] <= 0:
+            _dbg("  skip tx %s: zero amount", short)
+            continue
+        if t["txid"] in claimed:
+            _dbg("  skip tx %s: already claimed by another checkout", short)
+            continue
+        if t["created"] is None:
+            _dbg("  skip tx %s: no usable created_at", short)
+            continue
+        if t["created"] < since:
+            _dbg("  skip tx %s: older than checkout (%s < %s)", short, t["created"], since)
+            continue
+        memo = t["memo"]
+        if memo.startswith("GLY-") and c.memo and c.memo not in memo:
+            _dbg("  skip tx %s: memo %r belongs to another checkout", short, memo[:40])
+            continue
+        memo_match = bool(c.memo and c.memo in memo)
+        if not memo_match and not memoless_ok:
+            _dbg("  skip tx %s: no memo match and other ZEC checkouts are open", short)
+            continue
+        _dbg("  CANDIDATE tx %s: amount=%s confirmed=%s confs=%s status=%s memo_match=%s created=%s",
+             short, t["amount"], t["confirmed"], t["confirmations"], t["status"], memo_match, t["created"])
+        candidates.append({**t, "memo_match": memo_match})
+
+    if not candidates:
+        _dbg("zec checkout %s: no matching received tx yet", c.id)
         return {"kind": "none"}
-    for n in notes:
-        if _clean_memo(n.get("memo")) != want:
-            continue
-        ref = f"{n['txid']}:{n['index']}"
-        used = CryptoCheckout.query.filter(CryptoCheckout.tx_ref == ref, CryptoCheckout.id != c.id).first()
-        if used:
-            continue
-        if n.get("confirmations", 0) < ZEC_MIN_CONFIRMATIONS:
-            return {"kind": "seen", "ref": ref}
-        return {"kind": "zec", "ref": ref, "amount": Decimal(n["amount_zat"]) / Decimal(10 ** 8)}
-    return {"kind": "none"}
+
+    candidates.sort(key=lambda x: (not x["memo_match"], x["created"]))
+
+    enough_confirmed = [x for x in candidates if x["confirmed"] and x["amount"] >= threshold]
+    if enough_confirmed:
+        t = enough_confirmed[0]
+        _dbg("zec checkout %s: PAID by tx %s amount=%s (locked expected=%s)", c.id, t["txid"], t["amount"], expected)
+        return {"kind": "zec", "ref": t["txid"], "amount": t["amount"]}
+
+    enough_pending = [x for x in candidates if not x["confirmed"] and x["amount"] >= threshold]
+    if enough_pending:
+        t = enough_pending[0]
+        _dbg("zec checkout %s: payment SEEN but unconfirmed tx %s amount=%s", c.id, t["txid"], t["amount"])
+        return {"kind": "seen", "ref": t["txid"], "amount": t["amount"]}
+
+    confirmed_low = [x for x in candidates if x["confirmed"]]
+    if confirmed_low:
+        t = max(confirmed_low, key=lambda x: x["amount"])
+        _dbg("zec checkout %s: PARTIAL tx %s amount=%s < threshold %s", c.id, t["txid"], t["amount"], threshold)
+        return {"kind": "partial", "ref": t["txid"], "amount": t["amount"]}
+
+    t = candidates[0]
+    _dbg("zec checkout %s: only unconfirmed low-amount tx %s amount=%s", c.id, t["txid"], t["amount"])
+    return {"kind": "seen", "ref": t["txid"], "amount": t["amount"]}
 
 
 def _check_swap(c):
     try:
-        return {"kind": "swap", **near_intents.get_status(c.deposit_address)}
+        st = near_intents.get_status(c.deposit_address)
+        _dbg("swap checkout %s: near-intents status for %s -> %s", c.id, c.deposit_address, st)
+        return {"kind": "swap", **st}
     except Exception as e:
-        logger.warning("near intents status failed for checkout %s: %s", c.id, e)
+        logger.warning("[crypto] near intents status failed for checkout %s: %s", c.id, e)
         return {"kind": "error", "error": str(e)}
 
 
 def verify_checkout(checkout_id, force=False, min_gap=None):
-    """
-    Check one checkout against Nozy / NEAR and apply the result.
-      force=True   always check (background poller)
-      min_gap      seconds that must pass since the last check (default MIN_CHECK_GAP_SECONDS)
-    """
     c = db.session.get(CryptoCheckout, checkout_id)
-    if not c or c.status in FINAL_STATUSES:
+    if not c:
+        _dbg("verify: checkout %s not found", checkout_id)
+        return c
+    if c.status in FINAL_STATUSES:
+        _dbg("verify: checkout %s already final (%s)", c.id, c.status)
         return c
 
     now = datetime.utcnow()
     expired_for_long = now > c.expires_at + (LATE_WINDOW if c.pay_token == "ZEC" else timedelta(0))
     if expired_for_long and c.status == "expired":
+        _dbg("verify: checkout %s expired beyond late window, ignoring", c.id)
         return c
 
     gap = MIN_CHECK_GAP_SECONDS if min_gap is None else min_gap
     if not force and c.last_checked_at and (now - c.last_checked_at).total_seconds() < gap:
+        _dbg("verify: checkout %s checked %.1fs ago (< %ss), skipping",
+             c.id, (now - c.last_checked_at).total_seconds(), gap)
         return c
 
+    _dbg("verify: checkout %s token=%s status=%s force=%s", c.id, c.pay_token, c.status, force)
     c.last_checked_at = now
     db.session.commit()
 
-    ext = _check_zec(c) if c.pay_token == "ZEC" else _check_swap(c)   # no DB lock held during HTTP
+    ext = _check_zec(c) if c.pay_token == "ZEC" else _check_swap(c)
+    _dbg("verify: checkout %s external result kind=%s detail=%s", c.id, ext.get("kind"), ext)
     _apply(c.id, ext)
-    return db.session.get(CryptoCheckout, checkout_id)
+    c2 = db.session.get(CryptoCheckout, checkout_id)
+    _dbg("verify: checkout %s status now %s", checkout_id, c2.status if c2 else None)
+    return c2
 
 
 def verify_for_button(checkout_id):
-    """Used by POST /billing/verify-plan-payment: one real check, only a tiny double-click guard."""
     return verify_checkout(checkout_id, force=False, min_gap=BUTTON_CHECK_GAP_SECONDS)
 
 
 def _apply(checkout_id, ext):
     c = (CryptoCheckout.query.filter_by(id=checkout_id).with_for_update().first())
     if not c or c.status in FINAL_STATUSES:
+        _dbg("apply: checkout %s missing or already final, nothing to do", checkout_id)
         db.session.rollback()
         return
 
     now = datetime.utcnow()
     past_deadline = now > c.expires_at
     kind = ext.get("kind")
+    _dbg("apply: checkout %s kind=%s status=%s past_deadline=%s", c.id, kind, c.status, past_deadline)
 
-    # ---------------- ZEC (memo match) ----------------
     if kind == "zec":
+        clash = CryptoCheckout.query.filter(
+            CryptoCheckout.id != c.id, CryptoCheckout.tx_ref == ext["ref"]).first()
+        if clash:
+            logger.warning("[crypto] tx %s already claimed by checkout %s, ignoring for %s",
+                           ext["ref"], clash.id, c.id)
+            db.session.rollback()
+            return
+        alert = None
         c.received_amount = ext["amount"]
         c.tx_ref = ext["ref"]
         if past_deadline:
-            c.status = "late_paid"            # rate expired -> a human decides (refund / honour)
-            logger.warning("crypto checkout %s paid after expiry (%s)", c.id, ext["ref"])
-        elif ext["amount"] < c.expected_amount * ZEC_AMOUNT_TOLERANCE:
-            c.status = "underpaid"
-            logger.warning("crypto checkout %s underpaid: %s < %s", c.id, ext["amount"], c.expected_amount)
+            c.status = "late_paid"
+            c.paid_at = now
+            alert = "paid after the checkout expired, nothing was applied"
+            logger.warning("[crypto] checkout %s paid after expiry (%s)", c.id, ext["ref"])
         else:
-            _mark_paid_and_fulfil(c, now)
+            if not _mark_paid_and_fulfil(c, now):
+                alert = "payment received but the purchase could not be applied"
+            c.received_amount = ext["amount"]
+            c.tx_ref = ext["ref"]
         db.session.commit()
+        _dbg("apply: checkout %s -> %s", c.id, c.status)
+        if alert:
+            _alert_admin(c, alert)
+        return
+
+    if kind == "partial":
+        alert = None
+        c.received_amount = ext["amount"]
+        if past_deadline:
+            c.status = "underpaid"
+            c.tx_ref = ext["ref"]
+            c.paid_at = now
+            alert = "underpaid and the checkout expired, nothing was applied"
+            logger.warning("[crypto] checkout %s underpaid: %s < %s", c.id, ext["amount"], c.expected_amount)
+        elif c.status in ("pending", "expired"):
+            c.status = "processing"
+        db.session.commit()
+        _dbg("apply: checkout %s -> %s (partial)", c.id, c.status)
+        if alert:
+            _alert_admin(c, alert)
         return
 
     if kind == "seen":
-        # money seen on-chain: from now on this checkout is never closed by a newer one
         if c.status in ("pending", "expired") and not past_deadline:
             c.status = "processing"
         db.session.commit()
+        _dbg("apply: checkout %s -> %s (seen)", c.id, c.status)
         return
 
-    # ---------------- swap (USDT / USDC) ----------------
     if kind == "swap":
         phase = ext.get("phase")
+        alert = None
+        _dbg("apply: swap checkout %s phase=%s state=%s amount_in=%s amount_out=%s tx=%s",
+             c.id, phase, ext.get("state"), ext.get("amount_in"), ext.get("amount_out"), ext.get("tx_hash"))
         if phase == "processing":
             c.swap_status = "processing"
             if c.status in ("pending", "expired") and not past_deadline:
@@ -479,22 +592,36 @@ def _apply(checkout_id, ext):
         elif phase == "failed":
             c.status = "failed"
             c.swap_status = (ext.get("state") or "failed").lower()
+            logger.warning("[crypto] swap FAILED for checkout %s state=%s", c.id, ext.get("state"))
         elif phase == "success":
             amt_in, amt_out = ext.get("amount_in"), ext.get("amount_out")
+            tx_hash = ext.get("tx_hash")
             c.swap_status = "completed"
-            c.tx_ref = ext.get("tx_hash")
+            c.tx_ref = tx_hash
             c.swap_zec_amount = amt_out
             c.received_amount = amt_in
-            # money already arrived and swapped, so honour it even a bit after the deadline
-            if amt_in is not None and amt_in < c.expected_amount * STABLE_TOLERANCE:
+            if amt_in is not None and _dec(amt_in) < _dec(c.expected_amount) * STABLE_TOLERANCE:
                 c.status = "underpaid"
+                alert = "swap completed but the amount received was too low, nothing was applied"
+                logger.warning("[crypto] swap underpaid checkout %s: in=%s expected=%s",
+                               c.id, amt_in, c.expected_amount)
             else:
-                _mark_paid_and_fulfil(c, now)
+                if not _mark_paid_and_fulfil(c, now):
+                    alert = "payment received but the purchase could not be applied"
+                c.swap_status = "completed"
+                c.tx_ref = tx_hash
+                c.swap_zec_amount = amt_out
+                c.received_amount = amt_in
+        else:
+            _dbg("apply: swap checkout %s has no actionable phase (%r) - waiting for deposit", c.id, phase)
         db.session.commit()
+        _dbg("apply: checkout %s -> %s (swap)", c.id, c.status)
+        if alert:
+            _alert_admin(c, alert)
         _expire_if_due(c)
         return
 
-    # nothing seen / provider error
+    _dbg("apply: checkout %s nothing to apply (kind=%s error=%s)", c.id, kind, ext.get("error"))
     db.session.rollback()
     _expire_if_due(db.session.get(CryptoCheckout, checkout_id))
 
@@ -503,35 +630,36 @@ def _expire_if_due(c):
     if c and c.status == "pending" and datetime.utcnow() > c.expires_at:
         c.status = "expired"
         db.session.commit()
+        _dbg("checkout %s marked expired", c.id)
 
 
 def _mark_paid_and_fulfil(c, now):
-    # Fulfil FIRST. The billing functions commit internally, so if status="paid" were set before
-    # and one of them hit an idempotent early-exit rollback, the "paid" flag would be lost.
-    # Expiry job + receipt email are handled inside activate_plan / apply_upgrade.
     try:
         fulfill_purchase(c)
     except FulfilmentError:
         logger.error("PAID BUT NOT FULFILLED: crypto checkout %s (community %s) needs manual review",
                      c.id, c.community_id, exc_info=True)
         c.status = "failed"
-        return
+        return False
     c.status = "paid"
     c.paid_at = now
     c.fulfilled_at = now
+    _dbg("checkout %s PAID and FULFILLED", c.id)
+    return True
 
 
-# =====================================================================
-# Helpers for the routes
-# =====================================================================
 def _b64url(s):
     return base64.urlsafe_b64encode(s.encode()).decode().rstrip("=")
 
 
 def checkout_payload(c):
-    amount = f"{c.expected_amount:.8f}".rstrip("0").rstrip(".") if c.pay_token == "ZEC" else f"{c.expected_amount:.2f}"
     if c.pay_token == "ZEC":
-        qr = f"zcash:{c.deposit_address}?amount={amount}&memo={_b64url(c.memo)}"   # ZIP-321
+        amount = f"{_zec_up(c.expected_amount):.{ZEC_DP}f}"
+    else:
+        amount = f"{_dec(c.expected_amount):.2f}"
+
+    if c.pay_token == "ZEC":
+        qr = f"zcash:{c.deposit_address}?amount={amount}&memo={_b64url(c.memo)}"
     else:
         qr = c.deposit_address
     return {
@@ -560,14 +688,6 @@ def _wake_poller_safe():
 
 
 def poll_pending_checkouts():
-    """
-    Called by the background job (no HTTP route involved). Returns how many checkouts still
-    need watching. Watches:
-      * pending / processing checkouts
-      * expired ZEC memos for LATE_WINDOW (a late payment becomes 'late_paid')
-      * checkouts we closed ourselves (expired but still before their deadline), so money sent
-        to an older address after the buyer switched coin is still credited
-    """
     now = datetime.utcnow()
     rows = CryptoCheckout.query.filter(
         db.or_(
@@ -577,6 +697,7 @@ def poll_pending_checkouts():
             db.and_(CryptoCheckout.status == "expired", CryptoCheckout.expires_at > now),
         )
     ).all()
+    _dbg("poller: %s open checkouts", len(rows))
     for c in rows:
         try:
             verify_checkout(c.id, force=True)

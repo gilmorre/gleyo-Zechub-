@@ -1,12 +1,10 @@
 <title>Manage {{ sprint.title }}</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='sprint_panel.css') }}">
 
-
-
 <div class="main-wrapper{% if community.is_paid %} badged{% else%}{%endif%}">
   <div class="left-panel" id="leftPanel">
     <div id="info-left" class="info-left">
-      <div class="info-card" >
+      <div class="info-card">
         <div class="info-top">
 
 
@@ -78,7 +76,15 @@
                   <div class="distribution-type-info" style="width: 70%; min-width: 70%; max-width: 70%; box-sizing: border-box !important;"></div>
                 </div>
 
-                  <div class="bren lines" id="previewReward"></div>
+                  <div class="bren lines" id="previewReward">
+                    {% if sprint.distribution == "pay_to_creator" %}
+                      {% if reward_tiers %}
+                        {% for t in reward_tiers %}<div class="line">{{ t.preview_label }}</div>{% endfor %}
+                      {% else %}
+                        <div class="line">Rewards are handled by Gleyo.</div>
+                      {% endif %}
+                    {% endif %}
+                  </div>
             
               </div>
 
@@ -189,8 +195,10 @@
             <small class="timezone-label">Timezone: Detecting...</small>
           </div>
 
+          <!-- 1) REWARDS (text): only for self distribution.
+               With platform distribution (pay_to_creator) the reward ranks below ARE the rewards. -->
+          {% if sprint.distribution != "pay_to_creator" %}
           <div class="form-group">
-
             <label for="rewards">Rewards</label>
             <textarea
               name="rewards"
@@ -201,11 +209,73 @@
               {% if payment_status == 'paid' %}readonly class="readonly"{% endif %}
             >{% if payment_status == 'paid' %}{{ payment_note }}{% elif sprint %}{{ sprint.rewards }}{% endif %}</textarea>
           </div>
+          {% endif %}
+
+          <!-- 2) REWARD DISTRIBUTION (same order as Create Sprint) -->
+          {% if sprint.distribution == "pay_to_creator" %}
+            <div class="reward-option">
+              <div class="reward-legend">
+                <span>Distribution by Gleyo</span>
+                {% if payment_status %}<span class="status-badge">{{ payment_status }}</span>{% endif %}
+              </div>
+
+              <!-- Reward ranks: READ ONLY. The funds are already locked for these
+                   tiers, so there is no input here and the save request never sends them. -->
+              {% if reward_tiers %}
+                <div class="tier-ro" id="rewardTiersReadonly">
+                  <div class="tier-ro-head">
+                    <span class="tier-ro-title">Reward ranks</span>
+                    <span class="tier-ro-lock">
+                      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+                      Locked
+                    </span>
+                  </div>
+
+                  <div class="tier-ro-rows">
+                    {% for t in reward_tiers %}
+                      <div class="tier-ro-row" title="Reward ranks can't be edited">
+                        <div class="tier-ro-range">{{ t.range_label }}</div>
+                        <div class="tier-ro-amount">{{ t.amount_label }}</div>
+                        <div class="tier-ro-meta">{{ t.meta_label }}</div>
+                      </div>
+                    {% endfor %}
+                  </div>
+
+                  <div class="tier-ro-summary">
+                    <span>Total locked</span>
+                    <strong>{{ reward_total_label }}</strong>
+                  </div>
+
+                  <p class="tier-ro-note">Reward ranks can't be changed after the sprint is created.</p>
+                </div>
+              {% else %}
+                <div class="tier-ro">
+                  <p class="tier-ro-empty">No reward ranks were set for this sprint.</p>
+                </div>
+              {% endif %}
+            </div>
+
+          {% elif sprint.distribution == "self_distribute" %}
+            <div class="reward-option">
+              <div class="reward-legend"><span>Reward Distribution</span></div>
+
+              <div class="distribution-row">
+                <strong class="self-label">Self distribution</strong>
+              </div>
+
+              <div id="distributionOutput">
+                Rewards will be distributed manually by the sprint owner.
+              </div>
+            </div>
+          {% endif %}
+
+          <!-- 3) END REWARD ZONE -->
           <div class="form-group">
             <label for="end_zone">End Reward Zone <span class="optional">Optional</span></label>
             <input type="number" name="end_zone" id="end_zone" min="0" placeholder="e.g. 10" value="{{ sprint.end_zone if sprint else '' }}" />
           </div>
 
+          <!-- 4) COLOR -->
           <div class="form-group">
             <label for="color">Color <span class="optional">Optional</span></label>
             <div class="orion-dropdown-wrapper">
@@ -215,35 +285,6 @@
             </div>
           </div>
 
-          {% if sprint.distribution == "pay_to_creator" %}
-            <fieldset class="reward-option">
-              <legend>
-                Reward Distribution
-                <span class="status-badge">{{ payment_status }}</span>
-              </legend>
-
-              <div class="distribution-row">
-                <strong class="paid-label">Distribution by Gleyo</strong>
-              </div>
-            </fieldset>
-
-          {% elif sprint.distribution == "self_distribute" %}
-            <fieldset class="reward-option">
-              <legend>Reward Distribution</legend>
-
-              <div class="distribution-row">
-                <strong class="self-label">Self distribution</strong>
-              </div>
-
-              <div id="distributionOutput">
-                Rewards will be distributed manually by the sprint owner.
-              </div>
-            </fieldset>
-          {% endif %}
-
-
-
-        
           <div class="form-actions-wrapper" style="display: flex; justify-content: space-between; align-items: center;">
 
             <div class="delete-wrapper">
@@ -339,15 +380,3 @@
     </div>
   </div>
 </div>
-
-
-
-
-
-
-
-
-
-
-
-  

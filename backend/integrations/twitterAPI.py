@@ -35,7 +35,24 @@ CLIENT_ID     = os.getenv("TWITTER_CLIENT_ID")
 CLIENT_SECRET = os.getenv("TWITTER_CLIENT_SECRET")
 REDIRECT_URI  = os.getenv("TWITTER_REDIRECT_URI")
 
-SCOPES = ["tweet.read", "users.read", "like.read", "offline.access"]
+# Write scopes let Gleyo like / repost / follow on the user's behalf when
+# they claim a task:
+#   like.write     -> POST /2/users/:id/likes
+#   tweet.write    -> POST /2/users/:id/retweets
+#   follows.write  -> POST /2/users/:id/following
+# Your X app must also be set to "Read and write" permissions in the
+# developer portal, and users who connected BEFORE this change must
+# reconnect once to grant the new scopes.
+SCOPES = [
+    "tweet.read",
+    "users.read",
+    "like.read",
+    "like.write",
+    "tweet.write",
+    "follows.read",
+    "follows.write",
+    "offline.access",
+]
 
 AUTH_URL  = "https://twitter.com/i/oauth2/authorize"
 TOKEN_URL = "https://api.twitter.com/2/oauth2/token"

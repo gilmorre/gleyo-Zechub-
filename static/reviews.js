@@ -1,4 +1,149 @@
 (function () {
+
+/* ===============================================================
+   LOADING SPINNER + LOADING HELPERS
+================================================================ */
+let spinnerUid = 0;
+
+// returns a fresh spinner SVG (unique gradient id every call)
+function loadingSpinner(size = 20) {
+  const id = "spn" + (++spinnerUid);
+  return `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="${size}" height="${size}"><radialGradient id="${id}" cx=".66" fx=".66" cy=".3125" fy=".3125" gradientTransform="scale(1.5)"><stop offset="0" stop-color="currentColor" stop-opacity="0"></stop><stop offset=".2" stop-color="currentColor" stop-opacity=".3"></stop><stop offset=".4" stop-color="currentColor" stop-opacity=".6"></stop><stop offset=".7" stop-color="currentColor" stop-opacity=".9"></stop><stop offset="1" stop-color="currentColor"></stop></radialGradient><circle transform-origin="center" fill="none" stroke="url(#${id})" stroke-width="20" stroke-linecap="round" stroke-dasharray="200 1000" stroke-dashoffset="0" cx="100" cy="100" r="70"><animateTransform type="rotate" attributeName="transform" calcMode="spline" dur="1" values="0;360" keyTimes="0;1" keySplines="0 0 1 1" repeatCount="indefinite"></animateTransform></circle><circle transform-origin="center" fill="none" opacity=".2" stroke="currentColor" stroke-width="20" stroke-linecap="round" cx="100" cy="100" r="70"></circle></svg>
+`;
+}
+
+const IsloadingInit = loadingSpinner(20);
+
+(function injectLoadingStyles() {
+  if (document.getElementById("review-loading-styles")) return;
+  const style = document.createElement("style");
+  style.id = "review-loading-styles";
+  style.textContent = `
+    .btn-spinner-wrap {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 0;
+    }
+    .is-loading {
+      pointer-events: none;
+      cursor: default !important;
+    }
+    .mega-spinner {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 0;
+    }
+
+    .img-load-wrap {
+      position: relative;
+      display: block;
+      width: 100%;
+      min-height: 120px;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .img-load-wrap.loading {
+      background: rgba(128, 128, 128, 0.12);
+    }
+    .img-load-wrap.loaded,
+    .img-load-wrap.errored {
+      min-height: 0;
+    }
+    .img-load-wrap img {
+      display: block;
+      opacity: 0;
+      transition: opacity .25s ease;
+    }
+    .img-load-wrap.loaded img {
+      opacity: 1;
+    }
+    .img-load-spinner {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted, #a3a3a3);
+      pointer-events: none;
+    }
+    .img-load-error {
+      padding: 14px;
+      font-size: 13px;
+      color: #e66;
+      text-align: center;
+    }
+
+    .image-lightbox-spinner {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: none;
+      color: #fff;
+      z-index: 100000;
+      pointer-events: none;
+    }
+    .image-lightbox-overlay.open .image-lightbox-spinner.show {
+      display: block;
+    }
+    .image-lightbox-content img {
+      transition: opacity .2s ease;
+    }
+  `;
+  document.head.appendChild(style);
+})();
+
+// swaps a button's content for the spinner and back
+function setBtnLoading(btn, on, size = 18) {
+  if (!btn) return;
+
+  if (on) {
+    if (btn.dataset.origHtml === undefined) {
+      btn.dataset.origHtml = btn.innerHTML;
+    }
+    // keep the button from shrinking when the label disappears
+    btn.style.minWidth = btn.offsetWidth + "px";
+    btn.innerHTML = `<span class="btn-spinner-wrap">${loadingSpinner(size)}</span>`;
+    btn.classList.add("is-loading");
+    btn.disabled = true;
+  } else {
+    if (btn.dataset.origHtml !== undefined) {
+      btn.innerHTML = btn.dataset.origHtml;
+      delete btn.dataset.origHtml;
+    }
+    btn.style.minWidth = "";
+    btn.classList.remove("is-loading");
+    btn.disabled = false;
+  }
+}
+
+let reviewBusy = false;   // single review (pass / fail / undo) in flight
+let bulkBusy = false;     // bulk action in flight
+
+// spinner on the "With Selected" trigger while a bulk action runs
+function setMegaLoading(on) {
+  if (!megaTrigger) return;
+
+  const chevron = megaTrigger.querySelector("svg");
+
+  if (on) {
+    if (megaTrigger.querySelector(".mega-spinner")) return;
+    if (chevron) chevron.style.display = "none";
+    const spin = document.createElement("span");
+    spin.className = "mega-spinner";
+    spin.innerHTML = loadingSpinner(16);
+    megaTrigger.appendChild(spin);
+    megaTrigger.classList.add("is-loading");
+  } else {
+    megaTrigger.querySelector(".mega-spinner")?.remove();
+    if (chevron) chevron.style.display = "";
+    megaTrigger.classList.remove("is-loading");
+  }
+}
+
 const activitySVGs = {
   failed: `
     <svg xmlns="http://www.w3.org/2000/svg"
@@ -276,6 +421,10 @@ async function runBulkAction(status) {
 
   if (!selectModeInit) return;
   if (!selectedCompletionIds.length) return;
+  if (bulkBusy) return;
+
+  bulkBusy = true;
+  setMegaLoading(true);
 
   try {
 
@@ -357,6 +506,11 @@ async function runBulkAction(status) {
 
     console.error(err);
     showError("Network error");
+
+  } finally {
+
+    bulkBusy = false;
+    setMegaLoading(false);
 
   }
 
@@ -518,6 +672,7 @@ async function initReviewinit() {
 
 
       starBtn.addEventListener("click", () => {
+          if (reviewBusy) return;
           const activating = !starBtn.classList.contains("active");
           if (activating) deactivateFlagMode(flagBtn, failMainBtn);
           if (activating) activateXpMode(starBtn, freeXpBox, freeXpInput, successBtn);
@@ -525,6 +680,7 @@ async function initReviewinit() {
       });
 
       flagBtn.addEventListener("click", () => {
+          if (reviewBusy) return;
           const activating = !flagBtn.classList.contains("active-flag");
           if (activating) deactivateXpMode(starBtn, freeXpBox, successBtn);
           if (activating) activateFlagMode(flagBtn, failMainBtn);
@@ -897,6 +1053,7 @@ async function initReviewinit() {
         e.stopPropagation();
 
         if (megaTrigger.classList.contains("disabled")) return;
+        if (bulkBusy) return;
 
         const isOpen =
           divers.style.display === "block" ||
@@ -1293,15 +1450,52 @@ async function initReviewinit() {
 
       const ext = f.name.split(".").pop().toLowerCase();
 
-      /* ✅ IMAGE FILES */
+      /* ✅ IMAGE FILES — spinner until fully loaded */
       if (["jpg","jpeg","png","gif","webp"].includes(ext)) {
+
+        const imgWrap = document.createElement("div");
+        imgWrap.className = "img-load-wrap loading";
+
+        const imgSpinner = document.createElement("div");
+        imgSpinner.className = "img-load-spinner";
+        imgSpinner.innerHTML = loadingSpinner(28);
+        imgWrap.appendChild(imgSpinner);
+
         const img = document.createElement("img");
         img.className = "img-bubble"
-        img.src = f.url;
         img.alt = f.name;
         img.style.maxWidth = "100%";
         img.style.borderRadius = "6px";
-        mediaContainer.appendChild(img);
+
+        const finishLoad = () => {
+          if (!imgWrap.classList.contains("loading")) return;
+          imgWrap.classList.remove("loading");
+          imgWrap.classList.add("loaded");
+          imgSpinner.remove();
+        };
+
+        const failLoad = () => {
+          if (!imgWrap.classList.contains("loading")) return;
+          imgWrap.classList.remove("loading");
+          imgWrap.classList.add("errored");
+          imgSpinner.remove();
+          img.remove();
+          const err = document.createElement("div");
+          err.className = "img-load-error";
+          err.textContent = "Failed to load image";
+          imgWrap.appendChild(err);
+        };
+
+        img.addEventListener("load", finishLoad);
+        img.addEventListener("error", failLoad);
+
+        img.src = f.url;
+
+        // cached image → already done
+        if (img.complete && img.naturalWidth > 0) finishLoad();
+
+        imgWrap.appendChild(img);
+        mediaContainer.appendChild(imgWrap);
       }
 
       /* ✅ VIDEO FILES (MP4) */
@@ -1331,14 +1525,6 @@ async function initReviewinit() {
       tempVideo.src = f.url;
       tempVideo.muted = true;
 
-      tempVideo.addEventListener("loadeddata", () => {
-        const canvas = document.createElement("canvas");
-        canvas.width = tempVideo.videoWidth;
-        canvas.height = tempVideo.videoHeight;
-        canvas.getContext("2d").drawImage(tempVideo, 0, 0);
-        thumbnail.src = canvas.toDataURL("image/jpeg");
-      });
-
       videoInner.appendChild(thumbnail);
 
       // Overlay
@@ -1349,7 +1535,7 @@ async function initReviewinit() {
       overlay.style.backdropFilter = "blur(2px)";
       videoInner.appendChild(overlay);
 
-      // Play button
+      // Play button (hidden until thumbnail is ready)
       const playBtn = document.createElement("div");
       playBtn.innerHTML = `
         <svg xmlns="http://www.w3.org/2000/svg" fill="white"
@@ -1364,26 +1550,56 @@ async function initReviewinit() {
       playBtn.style.left = "50%";
       playBtn.style.transform = "translate(-50%, -50%)";
       playBtn.style.animation = "pulse 1.6s infinite ease-in-out";
+      playBtn.style.display = "none";
       videoInner.appendChild(playBtn);
 
-      // Loader
+      // Thumbnail-loading spinner
+      const thumbLoader = document.createElement("div");
+      thumbLoader.style.position = "absolute";
+      thumbLoader.style.top = "50%";
+      thumbLoader.style.left = "50%";
+      thumbLoader.style.transform = "translate(-50%, -50%)";
+      thumbLoader.style.color = "#fff";
+      thumbLoader.style.lineHeight = "0";
+      thumbLoader.innerHTML = loadingSpinner(40);
+      videoInner.appendChild(thumbLoader);
+
+      const thumbReady = () => {
+        thumbLoader.style.display = "none";
+        playBtn.style.display = "block";
+      };
+
+      tempVideo.addEventListener("loadeddata", () => {
+        try {
+          const canvas = document.createElement("canvas");
+          canvas.width = tempVideo.videoWidth;
+          canvas.height = tempVideo.videoHeight;
+          canvas.getContext("2d").drawImage(tempVideo, 0, 0);
+          thumbnail.src = canvas.toDataURL("image/jpeg");
+        } catch (e) {
+          console.warn("Thumbnail failed", e);
+        }
+        thumbReady();
+      });
+      tempVideo.addEventListener("error", thumbReady);
+
+      // Click → loader (spinner) → replace with video
       const loader = document.createElement("div");
       loader.style.position = "absolute";
       loader.style.top = "50%";
       loader.style.left = "50%";
       loader.style.transform = "translate(-50%, -50%)";
-      loader.style.width = "40px";
-      loader.style.height = "40px";
-      loader.style.border = "4px solid rgba(255,255,255,0.2)";
-      loader.style.borderTopColor = "#fff";
-      loader.style.borderRadius = "50%";
-      loader.style.animation = "spin 1s linear infinite";
+      loader.style.color = "#fff";
+      loader.style.lineHeight = "0";
       loader.style.display = "none";
+      loader.innerHTML = loadingSpinner(40);
       videoInner.appendChild(loader);
 
-      // Click → replace with video
       videoWrapper.addEventListener("click", () => {
+        if (loader.style.display === "block") return; // already loading
+
         loader.style.display = "block";
+        playBtn.style.display = "none";
 
         const video = document.createElement("video");
         video.src = f.url;
@@ -1397,6 +1613,11 @@ async function initReviewinit() {
 
         video.addEventListener("loadeddata", () => {
           videoWrapper.replaceWith(video);
+        });
+
+        video.addEventListener("error", () => {
+          loader.style.display = "none";
+          playBtn.style.display = "block";
         });
       });
 
@@ -2168,9 +2389,19 @@ function setupImageLightbox() {
         <span class="image-lightbox-counter"></span>
       </div>
       <div class="image-lightbox-arrow right">&#8250;</div>
+      <div class="image-lightbox-spinner"></div>
     `;
     document.body.appendChild(overlay);
   }
+
+  // make sure the spinner node exists even if overlay was created elsewhere
+  let lightboxSpinner = overlay.querySelector(".image-lightbox-spinner");
+  if (!lightboxSpinner) {
+    lightboxSpinner = document.createElement("div");
+    lightboxSpinner.className = "image-lightbox-spinner";
+    overlay.appendChild(lightboxSpinner);
+  }
+  lightboxSpinner.innerHTML = loadingSpinner(44);
 
   const imgEl = overlay.querySelector(".image-lightbox-content img");
   const counterEl = overlay.querySelector(".image-lightbox-counter");
@@ -2181,8 +2412,32 @@ function setupImageLightbox() {
   let currentGallery = [];
   let currentIndex = 0;
 
+  function showLightboxSpinner() {
+    lightboxSpinner.classList.add("show");
+    imgEl.style.opacity = "0";
+  }
+
+  function hideLightboxSpinner() {
+    lightboxSpinner.classList.remove("show");
+    imgEl.style.opacity = "1";
+  }
+
+  imgEl.addEventListener("load", () => {
+    if (!imgEl.getAttribute("src")) return;
+    hideLightboxSpinner();
+  });
+
+  imgEl.addEventListener("error", () => {
+    if (!imgEl.getAttribute("src")) return;
+    hideLightboxSpinner();
+  });
+
   function renderCurrent() {
+    showLightboxSpinner();
     imgEl.src = currentGallery[currentIndex];
+
+    // cached → already loaded
+    if (imgEl.complete && imgEl.naturalWidth > 0) hideLightboxSpinner();
 
     const showArrows = currentGallery.length > 1;
     leftArrow.style.display = showArrows ? "flex" : "none";
@@ -2203,7 +2458,9 @@ function setupImageLightbox() {
 
   function closeLightbox() {
     overlay.classList.remove("open");
-    imgEl.src = "";
+    lightboxSpinner.classList.remove("show");
+    imgEl.removeAttribute("src");
+    imgEl.style.opacity = "";
   }
 
   function showNext() {
@@ -3087,6 +3344,8 @@ function openReviewPanels() {
 
 undoBtn?.addEventListener('click', async () => {
 
+  if (reviewBusy) return;
+
   const completionId = CURRENT_USER_DATA?.completionId;
   const reviewId = CURRENT_USER_DATA?.reviewId;
   console.log("UNDO DATA:", completionId);
@@ -3095,6 +3354,9 @@ undoBtn?.addEventListener('click', async () => {
     showError("No review selected!");
     return;
   }
+
+  reviewBusy = true;
+  setBtnLoading(undoBtn, true, 16);
 
   try {
 
@@ -3179,6 +3441,11 @@ undoBtn?.addEventListener('click', async () => {
       "An unexpected error occurred. Please check your internet connection."
     );
 
+  } finally {
+
+    reviewBusy = false;
+    setBtnLoading(undoBtn, false);
+
   }
 
 
@@ -3187,6 +3454,8 @@ undoBtn?.addEventListener('click', async () => {
 
     document.querySelectorAll('.review-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
+            if (reviewBusy) return;
+
             const completionId = CURRENT_USER_DATA?.completionId;
             const reviewId = CURRENT_USER_DATA?.reviewId;
 
@@ -3198,6 +3467,12 @@ undoBtn?.addEventListener('click', async () => {
             const starActive = document.querySelector(".free-xp-star")?.classList.contains("active") || false;
             const flagActive = document.querySelector(".flag--user")?.classList.contains("active-flag") || false;
             const freeXpValue = starActive ? (parseInt(document.querySelector(".free-xp")?.value) || 0) : 0;
+
+            // 🔒 lock both buttons, spinner on the one that was clicked
+            const allReviewBtns = document.querySelectorAll('.review-btn');
+            reviewBusy = true;
+            allReviewBtns.forEach(b => { b.disabled = true; });
+            setBtnLoading(btn, true, 18);
 
             try {
               const response = await fetch(`/api/subquest_review/${completionId}/${reviewId}`, {
@@ -3333,6 +3608,11 @@ undoBtn?.addEventListener('click', async () => {
             } catch (err) {
               console.error(err);
               alert('An unexpected error occurred, Please check your internet connection.');
+            } finally {
+              // 🔓 restore labels + unlock everything
+              reviewBusy = false;
+              setBtnLoading(btn, false);
+              allReviewBtns.forEach(b => { b.disabled = false; });
             }
 
 

@@ -1,5 +1,12 @@
 (function () {
 
+  // The date inputs hold LOCAL time ("2026-10-17T19:00", no offset).
+  // Convert to real UTC before sending, so the server never has to guess the timezone.
+  function localToUtcISO(localStr) {
+    const d = new Date(localStr);            // no offset in the string = parsed as local time
+    return isNaN(d) ? localStr : d.toISOString();   // "2026-10-17T18:00:00.000Z"
+  }
+  
   function getSprintUUIDFromURL() {
     const parts = window.location.pathname.split("/");
     return parts[parts.length - 1];
@@ -17,15 +24,22 @@
         return;
       }
 
+      // NOTE: distribution and reward tiers are deliberately NOT sent.
+      // They are locked once the sprint is created (funds are already reserved),
+      // so the edit page can't change them.
       const payload = {
         title: document.getElementById("title").value.trim(),
         description: document.getElementById("description").value.trim(),
-        rewards: document.getElementById("rewards").value.trim(),
         end_zone: document.getElementById("end_zone").value || null,
         color: window.selectedColor || null,
-        start_date: document.getElementById("start_date_iso").value,
-        end_date: document.getElementById("end_date_iso").value
+        start_date: localToUtcISO(document.getElementById("start_date_iso").value),
+        end_date: localToUtcISO(document.getElementById("end_date_iso").value)
       };
+
+      // the Rewards textarea only exists for self distribution; with platform
+      // distribution the ranks are the rewards, so the field isn't sent at all
+      const rewardsEl = document.getElementById("rewards");
+      if (rewardsEl) payload.rewards = rewardsEl.value.trim();
 
       // simple guard
       if (!payload.title || !payload.start_date || !payload.end_date) {
@@ -170,6 +184,7 @@
     function setSprintColor(color) {
       document.documentElement.style.setProperty('--sprint-color', color);
       hiddenInput.value = color;
+      window.selectedColor = color;   // read by the save handler (was missing, so color never saved)
     }
 
 
@@ -326,6 +341,7 @@
     const toggle = document.getElementById('orion-toggle-picker');
     if (!toggle) return;
 
+    let picker = null;   // was undeclared before, which threw a ReferenceError on click
 
     toggle.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -890,8 +906,12 @@
   const el = document.querySelector(".countdown-label");
   const size = getElementSize(el);
 
-  console.log(size.width);
-  console.log(size.height);  
+  // guarded: this used to throw when .countdown-label wasn't on the page,
+  // which would stop initEditSprintSave() below from ever running
+  if (size) {
+    console.log(size.width);
+    console.log(size.height);
+  }
   initEditSprintSave();
 
   window.SprintPanelsEdit = {

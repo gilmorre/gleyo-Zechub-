@@ -126,6 +126,19 @@ function isCoinHolderVoteActive(){
   );
 }
 
+function closeAllDropdownsGlobal(except = null) {
+  document.querySelectorAll(
+    ".options.recurrence, .options.cooldown, .reward-dropdown, .condition, .renocontainer, #sprintModal, .level-dropdown, .role-select, .quest-select, #xpInputWrapper, .reward-custom-dropdown, .zec-inline-reward"
+  ).forEach(el => {
+    if (el !== except) el.style.display = "none";
+  });
+
+  const cal = document.getElementById("startCalendar");
+  if (cal && cal !== except && cal.classList.contains("open")) closeCalendar(cal);
+
+  if (GLOBAL_RENO && GLOBAL_RENO !== except) ACTIVE_WRAPPER = null;
+}
+
 function restoreSavedVoteDates() {
   document.querySelectorAll('.chv-start-date-trigger, .chv-end-date-trigger').forEach(wrap => {
     const utcValue = wrap.dataset.utcValue;
@@ -150,8 +163,60 @@ function syncSettingsForCoinHolderVote(){
   document.querySelectorAll('.chv-date-setting').forEach(el=>{
     el.style.display = active ? 'flex' : 'none';
   });
-
+  syncInstantApproval();
   validateForm();
+}
+
+const MANUAL_REVIEW_TYPES = ["file-upload"];          // always need the button
+const INPUT_REVIEW_TYPES  = ["url", "text", "numbers"]; // need it only if in-task auto validate is OFF
+
+function syncInstantApproval() {
+  const wrappers = [...document.querySelectorAll('#uniqueItems .container-all-contain-yinit')];
+
+  // Does any task still need manual review?
+  const needsManualReview = wrappers.some(w => {
+    const type = w.dataset.platform || w.dataset.type;
+
+    if (MANUAL_REVIEW_TYPES.includes(type)) return true;
+
+    if (INPUT_REVIEW_TYPES.includes(type)) {
+      const autoOn = w.querySelector('.js-auto-validate')?.checked === true;
+      return !autoOn;   // in-task auto validate off -> show the button
+    }
+
+    return false; // all other task types are auto-validated
+  });
+
+  // no tasks yet -> leave the button visible
+  const shouldShow = wrappers.length > 0 && needsManualReview;
+
+  document.querySelectorAll('[data-setting="instant_approval"]').forEach(row => {
+    const sw    = row.querySelector('.toggle-switch');
+    const input = row.querySelector('input[name="autovalidation"]');
+    if (!sw || !input) return;
+
+    if (shouldShow) {
+      row.style.display = '';
+
+      // restore what the user had before we forced it
+      if (row.dataset.prevValue !== undefined) {
+        const prev = row.dataset.prevValue;
+        sw.setAttribute('data-value', prev);
+        input.value = prev;
+        sw.classList.toggle('on', prev === '1');
+        delete row.dataset.prevValue;
+      }
+    } else {
+      // remember the user's value once, then force TRUE
+      if (row.dataset.prevValue === undefined) {
+        row.dataset.prevValue = input.value || '0';
+      }
+      row.style.display = 'none';
+      sw.setAttribute('data-value', '1');
+      input.value = '1';
+      sw.classList.add('on');
+    }
+  });
 }
 
 function hookCoinHolderVoteDates(root = document){
@@ -359,8 +424,7 @@ function restoreSelectedSprint() {
 
 
 
-  function openCustomDatePicker(triggerEl, onSelect) {
-
+  function openCustomDatePicker(triggerEl, onSelect) { 
     const calendarEl = document.querySelector("#startCalendar");
     if (!calendarEl) return;
 
@@ -370,7 +434,7 @@ function restoreSelectedSprint() {
       activeCalendarTarget = null;
       return; // ⛔ stop execution (toggle close)
     }
-
+    closeAllDropdownsGlobal(calendarEl);
     activeCalendarTarget = { triggerEl, onSelect };
 
     /* ===============================
@@ -423,20 +487,20 @@ function restoreSelectedSprint() {
     window.openCalendar(triggerEl, calendarEl);
   }
     
-  function positionDropdown(dropdownEl) {
-    const rect = dropdownEl.getBoundingClientRect();
-    const dropdownHeight = dropdownEl.offsetHeight;
-    const spaceBelow = window.innerHeight - rect.bottom;
-    const spaceAbove = rect.top;
+function positionDropdown(dropdownEl) {
+  const rect = dropdownEl.getBoundingClientRect();
+  const dropdownHeight = dropdownEl.offsetHeight;
+  const spaceBelow = window.innerHeight - rect.bottom;
+  const spaceAbove = rect.top;
 
-    if (spaceBelow < dropdownHeight && spaceAbove > dropdownHeight) {
-      dropdownEl.style.top = "auto";
-      dropdownEl.style.bottom = "100%"; // 👈 flip above
-    } else {
-      dropdownEl.style.bottom = "auto";
-      dropdownEl.style.top = "100%";    // 👈 drop below
-    }
+  if (spaceBelow < dropdownHeight + XP_GAP && spaceAbove >= dropdownHeight + XP_GAP) {
+    dropdownEl.style.top = "auto";
+    dropdownEl.style.bottom = `calc(100% + ${XP_GAP}px)`;
+  } else {
+    dropdownEl.style.bottom = "auto";
+    dropdownEl.style.top = `calc(100% + ${XP_GAP}px)`;
   }
+}
 
 
 window.addEventListener("calendar:select", (e) => {
@@ -535,31 +599,13 @@ REWARD_ICONS = {
 
 };
 
-
-function clearValue(btn) {
-  btn.parentElement.querySelector('input').value = '';
-}
-
-function stepValue(btn, step) {
-  const input = btn.closest('.number-input-wrapper').querySelector('input');
-  let val = parseInt(input.value) || 0;
-  val += step;
-  const min = input.min ? parseInt(input.min) : -Infinity;
-  const max = input.max ? parseInt(input.max) : Infinity;
-  if (val >= min && val <= max) {
-    input.value = val;
-  }
-}
-
-
+ 
 window.previewSubquest = previewSubquest
-window.updateCounter = updateCounter
-window.stepValue = stepValue
+window.updateCounter = updateCounter 
 window.closePreview = closePreview
 window.toggleDraftMenu = toggleDraftMenu
 window.saveDraftSubquest = saveDraftSubquest
-window.publishSubquest = publishSubquest
-window.clearValue = clearValue
+window.publishSubquest = publishSubquest 
 
 
 
@@ -721,24 +767,25 @@ window.clearValue = clearValue
                 customBody.style.position = "absolute";
                 wrapper.style.position = "relative";
 
-                // Positioning
-                const positionDropdown = () => {
-                    const rect = rewardDisplay.getBoundingClientRect();
-                    const dropdownHeight = customBody.offsetHeight || 150;
-                    const spaceBelow = window.innerHeight - rect.bottom;
-                    const spaceAbove = rect.top;
+                const GAP = 3;
 
-                    if (spaceBelow >= dropdownHeight) {
-                        customBody.style.top = rect.height + "px";
-                    } else if (spaceAbove >= dropdownHeight) {
-                        customBody.style.top = -dropdownHeight + "px";
-                    } else {
-                        customBody.style.top = Math.max(
-                            -spaceAbove,
-                            Math.min(spaceBelow, rect.height)
-                        ) + "px";
-                    }
-                    customBody.style.left = "0px";
+                const positionDropdown = () => {
+                  const rect = rewardDisplay.getBoundingClientRect();
+                  const dropdownHeight = customBody.offsetHeight || 150;
+                  const spaceBelow = window.innerHeight - rect.bottom;
+                  const spaceAbove = rect.top;
+
+                  if (spaceBelow >= dropdownHeight + GAP) {
+                    customBody.style.top = (rect.height + GAP) + "px";
+                  } else if (spaceAbove >= dropdownHeight + GAP) {
+                    customBody.style.top = (-dropdownHeight - GAP) + "px";
+                  } else {
+                    customBody.style.top = Math.max(
+                      -spaceAbove,
+                      Math.min(spaceBelow, rect.height + GAP)
+                    ) + "px";
+                  }
+                  customBody.style.left = "0px";
                 };
 
                 const showDropdown = () => {
@@ -826,11 +873,7 @@ window.clearValue = clearValue
             </div>
             <div class="zec-amt-row">
               <div class="zec-input-wrap">
-                <div class="zec-badge">
-                  <svg fill="none" viewBox="0 0 24 24" width="14" height="14">
-                    <circle cx="12" cy="12" r="9" fill="#F3B724"/>
-                    <polyline points="9 9 15 9 9 15 15 15" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
-                  </svg>
+                <div class="zec-badge"> 
                   ZEC
                 </div>
                 <input type="number" class="amount-input" placeholder="0.00000000"
@@ -880,6 +923,7 @@ window.clearValue = clearValue
             e.stopPropagation();
             const isOpen = tokenContainer.style.display === "block";
             if (!isOpen) {
+              closeAllDropdownsGlobal(tokenContainer);
               tokenContainer.style.display = "block";
               positionPanel();
               validateForm();
@@ -920,10 +964,25 @@ window.clearValue = clearValue
               ? `≈ $${(amt * widgetZecPrice).toFixed(2)} USD`
               : `≈ $0.00 USD`;
 
-            if (amt > 0 && platformZecBal !== null) {
+            // balance not loaded yet
+            if (platformZecBal === null) {
+              balFeedback.style.display = 'none';
+              return;
+            }
+
+            // empty wallet: say it plainly, even before an amount is typed
+            if (platformZecBal <= 0) {
+              balFeedback.style.display = 'block';
+              balFeedback.textContent = "Insufficient funds. Your platform balance is 0 ZEC. Top up to fund this reward.";
+              balFeedback.className   = 'zec-bal-feedback zec-bal-err';
+              return;
+            }
+
+            if (amt > 0) {
               balFeedback.style.display = 'block';
               if (amt > platformZecBal) {
-                balFeedback.textContent = `⚠️ Only ${platformZecBal.toFixed(4)} ZEC available`;
+                const short = (amt - platformZecBal).toFixed(4);
+                balFeedback.textContent = `Insufficient funds. You need ${short} more ZEC (available: ${platformZecBal.toFixed(4)} ZEC).`;
                 balFeedback.className   = 'zec-bal-feedback zec-bal-err';
               } else {
                 balFeedback.textContent = `Remaining after reward: ${(platformZecBal - amt).toFixed(4)} ZEC`;
@@ -980,7 +1039,6 @@ window.clearValue = clearValue
 
           // ── Delete ────────────────────────────────────────────────────────────────
           wrapper.querySelector(".delete-reward").addEventListener("click", () => {
-            clearInterval(priceInterval);
             wrapper.__cleanupPrice?.();
             document.removeEventListener("click", handleDocClick);
             wrapper.remove();
@@ -1014,7 +1072,132 @@ window.clearValue = clearValue
 
     }
 
+const xpInputWrapper = document.getElementById("xpInputWrapper");
+const input = xpInputWrapper.querySelector("input");
+let activeReward = null;
 
+const XP_GAP = 3;
+
+// wait until the anchor stops moving (layout finished shifting) before running cb
+function whenLayoutSettled(el, cb, maxFrames = 30) {
+  let last = null, stable = 0, frames = 0;
+  const tick = () => {
+    if (!document.body.contains(el)) return;
+    const r = el.getBoundingClientRect();
+    const key = `${r.top}|${r.left}|${r.bottom}`;
+    stable = key === last ? stable + 1 : 0;
+    last = key;
+    if (stable >= 2 || ++frames >= maxFrames) return cb();
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+
+function positionXpInput(anchor) {
+  // measure invisibly first so there's no flicker / wrong height
+  xpInputWrapper.style.visibility = "hidden";
+  xpInputWrapper.style.display = "flex";
+
+  const rect = anchor.getBoundingClientRect();
+  const h = xpInputWrapper.offsetHeight || 40;
+  const spaceBelow = window.innerHeight - rect.bottom;
+  const spaceAbove = rect.top;
+
+  let top;
+  if (spaceBelow >= h + XP_GAP) {
+    top = rect.bottom + window.scrollY + XP_GAP;         
+  } else if (spaceAbove >= h + XP_GAP) {
+    top = rect.top + window.scrollY - h - XP_GAP;        
+  } else {
+    top = rect.bottom + window.scrollY + XP_GAP;        
+  }
+
+  xpInputWrapper.style.top = top + "px";
+  xpInputWrapper.style.left = rect.left + window.scrollX + "px";
+  xpInputWrapper.style.visibility = "visible";
+}
+
+function openXpInput(anchor, { clear = false } = {}) {
+  if (
+    xpInputWrapper.style.display !== "none" &&
+    activeReward === anchor
+  ) {
+    xpInputWrapper.style.display = "none";
+    activeReward = null;
+    return;
+  }
+  closeAllDropdownsGlobal(xpInputWrapper);
+  activeReward = anchor;
+  input.value = clear ? "" : (anchor.querySelector(".identifyerxp")?.textContent ?? "");
+  positionXpInput(anchor);
+
+  setTimeout(() => {
+    input.focus();
+    input.select();
+  }, 0);
+}
+
+document.addEventListener("click", (e) => {
+  const reward = e.target.closest(".reward-wrapper, .reward-display");
+
+  if (reward) { 
+    if (reward.querySelector(".identifyerxp")) {
+      openXpInput(reward);
+      return;
+    }
+
+    if (reward.querySelector(".identifyerrole")) {
+      const rect = reward.getBoundingClientRect();
+      const roleDropdown = document.querySelector(".role-select");
+
+      if (roleDropdown) {
+        roleDropdown.style.display = "block";
+        roleDropdown.style.visibility = "hidden";
+        roleDropdown.style.top = "-9999px";
+        const dropdownHeight = roleDropdown.offsetHeight || 200;
+        roleDropdown.style.visibility = "visible";
+
+        const spaceBelow = window.innerHeight - rect.bottom;
+        const spaceAbove = rect.top;
+
+        let top;
+        if (spaceBelow >= dropdownHeight) {
+          top = rect.bottom + window.scrollY;
+        } else if (spaceAbove >= dropdownHeight) {
+          top = rect.top + window.scrollY - dropdownHeight;
+        } else {
+          top = Math.max(
+            window.scrollY,
+            Math.min(rect.bottom + window.scrollY, window.innerHeight - dropdownHeight + window.scrollY)
+          );
+        }
+
+        roleDropdown.style.top = top + "px";
+
+        let left = rect.left + window.scrollX;
+        if (left + roleDropdown.offsetWidth > window.innerWidth) {
+          left = window.innerWidth - roleDropdown.offsetWidth - 10;
+        }
+        roleDropdown.style.left = left + "px";
+
+        roleDropdown.style.display = "block";
+        roleDropdown.style.visibility = "visible";
+      }
+
+      activeReward = reward;
+      return;
+    }
+  }
+
+  // --- Click outside: close both ---
+  if (!xpInputWrapper.contains(e.target)) {
+    xpInputWrapper.style.display = "none";
+  }
+  const roleDropdown = document.querySelector(".role-select");
+  if (roleDropdown && !roleDropdown.contains(e.target)) {
+    roleDropdown.style.display = "none";
+  }
+});
 
 function smartPosition(trigger, dropdown) {
   const tRect = trigger.getBoundingClientRect();
@@ -1090,15 +1273,21 @@ function Loadotherside() {
 function toggleRewardDropdown(e) {
   e.stopPropagation();
 
-  if (rewardOpen) {
+  if (options.style.display === "block") {
     options.style.display = "none";
     rewardOpen = false;
     return;
   }
-
+  const tokenOpt = [...options.querySelectorAll(".option")]
+    .find(o => (o.getAttribute("data-text") || o.textContent.trim()) === "Token");
+  if (tokenOpt) {
+    const taken = hasTokenReward();
+    tokenOpt.style.opacity = taken ? ".4" : "";
+    tokenOpt.style.cursor = taken ? "not-allowed" : "";
+  }
+  closeAllDropdownsGlobal(options);
   options.style.display = "block";
 
-  // wait for render
   requestAnimationFrame(() => {
     smartPosition(trigger, options);
   });
@@ -1149,6 +1338,8 @@ const clearAllBtn = document.getElementById("clearAllRewards");
 
   // Clear all rewards
   clearAllBtn.addEventListener("click", () => {
+   const rewardParent = document.getElementById("rewardContainerParent");
+
     rewardParent.innerHTML = ''; // removes all rewards + any extra wrappers
     updateClearAllRewards();
     updateRewardColumnState();
@@ -1175,105 +1366,7 @@ const clearAllBtn = document.getElementById("clearAllRewards");
 const xpInputWrapper = document.getElementById("xpInputWrapper");
 const input = xpInputWrapper.querySelector("input");
 let activeReward = null;
-
-document.addEventListener("click", (e) => {
-  const reward = e.target.closest(".reward-wrapper, .reward-display");
-
-  if (reward) {
-    // --- XP handler ---
-    const xpSpan = reward.querySelector(".identifyerxp");
-    if (xpSpan) {
-      const rect = reward.getBoundingClientRect();
-
-      const dropdownHeight = xpInputWrapper.offsetHeight || 40;
-      const spaceBelow = window.innerHeight - rect.bottom;
-      const spaceAbove = rect.top;
-
-      if (spaceBelow >= dropdownHeight) {
-        xpInputWrapper.style.top = rect.bottom + window.scrollY + "px";
-      } else if (spaceAbove >= dropdownHeight) {
-        xpInputWrapper.style.top = rect.top + window.scrollY - dropdownHeight + "px";
-      } else {
-        xpInputWrapper.style.top = rect.bottom + window.scrollY + "px";
-      }
-
-      xpInputWrapper.style.left = rect.left + window.scrollX + "px";
-
-      input.value = xpSpan.textContent;
-
-      xpInputWrapper.style.display = "flex";
-      activeReward = reward;
-
-      setTimeout(() => {
-        input.focus();
-        input.select();
-      }, 0);
-
-      return; // stop here if XP handled
-    }
-
-if (reward.querySelector(".identifyerrole")) {
-  const rect = reward.getBoundingClientRect();
-  const roleDropdown = document.querySelector(".role-select");
-
-  if (roleDropdown) {
-    // temporarily show to measure height
-    roleDropdown.style.display = "block";
-    roleDropdown.style.visibility = "hidden";
-    roleDropdown.style.top = "-9999px";
-    const dropdownHeight = roleDropdown.offsetHeight || 200;
-    roleDropdown.style.visibility = "visible";
-
-    const spaceBelow = window.innerHeight - rect.bottom;
-    const spaceAbove = rect.top;
-
-    let top;
-    if (spaceBelow >= dropdownHeight) {
-      top = rect.bottom + window.scrollY; // ✅ drop down
-    } else if (spaceAbove >= dropdownHeight) {
-      top = rect.top + window.scrollY - dropdownHeight; // ✅ drop up
-    } else {
-      // clamp to viewport: put it at max possible
-      top = Math.max(
-        window.scrollY,
-        Math.min(rect.bottom + window.scrollY, window.innerHeight - dropdownHeight + window.scrollY)
-      );
-    }
-
-    roleDropdown.style.top = top + "px";
-
-    // clamp horizontally
-    let left = rect.left + window.scrollX;
-    if (left + roleDropdown.offsetWidth > window.innerWidth) {
-      left = window.innerWidth - roleDropdown.offsetWidth - 10;
-    }
-    roleDropdown.style.left = left + "px";
-
-    // finally show it
-    roleDropdown.style.display = "block";
-    roleDropdown.style.visibility = "visible";
-  }
-
-  activeReward = reward;
-  return;
-}
-
-
-
-
-
-  }
-
-  // --- Click outside: close both ---
-  if (!xpInputWrapper.contains(e.target)) {
-    xpInputWrapper.style.display = "none";
-  }
-  const roleDropdown = document.querySelector(".role-select");
-  if (roleDropdown && !roleDropdown.contains(e.target)) {
-    roleDropdown.style.display = "none";
-  }
-});
-
+ 
 
 // 🔹 live update + validation
 input.addEventListener("input", () => {
@@ -1345,6 +1438,13 @@ document.querySelectorAll(".reward-dropdown .option").forEach(option => {
       const rewardDisplay = document.getElementById("rewardDisplay");
 
       if (isRewardOption) {
+        if (text === "Token" && hasTokenReward()) {
+          showToast("Only one ZEC reward is allowed per quest");
+          const rd = document.querySelector(".reward-dropdown");
+          if (rd) rd.style.display = "none";
+          closeAllDropdowns();
+          return;
+        }
         const target = document.getElementById("rewardContainerParent");
         if (!target) return;
 
@@ -1405,44 +1505,25 @@ document.querySelectorAll(".reward-dropdown .option").forEach(option => {
 
         target.appendChild(wrapper);
 
-        /* init memory for this reward */
 
 
         if (text === "XP") {
           const rewardDisplay = wrapper.querySelector(".reward-display");
 
-          // ✅ Create an empty XP span so the input can target it
           let xpSpan = rewardDisplay.querySelector(".identifyerxp");
           if (!xpSpan) {
             xpSpan = document.createElement("span");
             xpSpan.classList.add("identifyerxp");
-            rewardDisplay.insertBefore(xpSpan, rewardDisplay.querySelector("span")); 
+            rewardDisplay.insertBefore(xpSpan, rewardDisplay.querySelector("span"));
           }
-
           rewardDisplay.click()
+            xpInputWrapper.style.display = "none";
+            activeReward = rewardDisplay;
 
-          // ✅ Position xpInputWrapper under this reward
-          const rect = rewardDisplay.getBoundingClientRect();
-          const dropdownHeight = xpInputWrapper.offsetHeight || 40;
-          const spaceBelow = window.innerHeight - rect.bottom;
-          const spaceAbove = rect.top;
-
-          if (spaceBelow >= dropdownHeight) {
-            xpInputWrapper.style.top = rect.bottom + window.scrollY + "px";
-          } else if (spaceAbove >= dropdownHeight) {
-            xpInputWrapper.style.top = rect.top + window.scrollY - dropdownHeight + "px";
-          } else {
-            xpInputWrapper.style.top = rect.bottom + window.scrollY + "px";
+            whenLayoutSettled(rewardDisplay, () => {
+              openXpInput(rewardDisplay, { clear: true });
+            });
           }
-
-          xpInputWrapper.style.left = rect.left + window.scrollX + "px";
-          xpInputWrapper.style.display = "flex";
-          activeReward = rewardDisplay;
-
-          // ✅ Focus input immediately
-          input.value = "";
-          setTimeout(() => input.focus(), 0);
-        }
 
         if (text === "Role") {
           const rewardDisplay = wrapper.querySelector(".reward-display");
@@ -1452,10 +1533,9 @@ document.querySelectorAll(".reward-dropdown .option").forEach(option => {
           const discordConnected = "{{ 'true' if discord_connected else 'false' }}" === "true";
 
           if (!discordConnected) {
-            // 🚫 Discord not connected → remove wrapper + show popup
-            wrapper.remove(); // prevent reward from being added
-            setTimeout(showDiscordPopup, 50); // show popup immediately
-            return; // stop further execution
+            wrapper.remove(); 
+            setTimeout(showDiscordPopup, 50);  
+            return; 
           }
 
           // ✅ Normal flow: Discord connected → show dropdown
@@ -1511,6 +1591,7 @@ document.querySelectorAll(".reward-dropdown .option").forEach(option => {
 
           // smart placement when showing
           const placeDropdown = () => {
+            closeAllDropdownsGlobal(roleDropdown);
             roleDropdown.style.display = "block";
             roleDropdown.style.visibility = "hidden"; // measure only
             const dropdownHeight = roleDropdown.offsetHeight || 200;
@@ -1597,25 +1678,30 @@ document.querySelectorAll(".reward-dropdown .option").forEach(option => {
           customBody.style.position = "absolute";
           wrapper.style.position = "relative";
 
-          // Position dropdown
+          const GAP = 3;
+
           const positionDropdown = () => {
             const rect = rewardDisplay.getBoundingClientRect();
             const dropdownHeight = customBody.offsetHeight || 150;
             const spaceBelow = window.innerHeight - rect.bottom;
             const spaceAbove = rect.top;
 
-            if (spaceBelow >= dropdownHeight) {
-              customBody.style.top = rect.height + "px";
-            } else if (spaceAbove >= dropdownHeight) {
-              customBody.style.top = -dropdownHeight + "px";
+            if (spaceBelow >= dropdownHeight + GAP) {
+              customBody.style.top = (rect.height + GAP) + "px";
+            } else if (spaceAbove >= dropdownHeight + GAP) {
+              customBody.style.top = (-dropdownHeight - GAP) + "px";
             } else {
-              customBody.style.top = Math.max(-spaceAbove, Math.min(spaceBelow, rect.height)) + "px";
+              customBody.style.top = Math.max(
+                -spaceAbove,
+                Math.min(spaceBelow, rect.height + GAP)
+              ) + "px";
             }
             customBody.style.left = "0px";
           };
 
           // Show/Hide dropdown
           const showDropdown = () => {
+            closeAllDropdownsGlobal(customBody);
             positionDropdown();
             customBody.style.display = "block";
             const textarea = customBody.querySelector("textarea.customtext");
@@ -1700,11 +1786,7 @@ document.querySelectorAll(".reward-dropdown .option").forEach(option => {
             </div>
             <div class="zec-amt-row">
               <div class="zec-input-wrap">
-                <div class="zec-badge">
-                  <svg fill="none" viewBox="0 0 24 24" width="14" height="14">
-                    <circle cx="12" cy="12" r="9" fill="#F3B724"/>
-                    <polyline points="9 9 15 9 9 15 15 15" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
-                  </svg>
+                <div class="zec-badge"> 
                   ZEC
                 </div>
                 <input type="number" class="amount-input" placeholder="0.00000000"
@@ -1759,6 +1841,7 @@ document.querySelectorAll(".reward-dropdown .option").forEach(option => {
             e.stopPropagation();
             const isOpen = tokenContainer.style.display === "block";
             if (!isOpen) {
+              closeAllDropdownsGlobal(tokenContainer);
               tokenContainer.style.display = "block";
               positionPanel();
               validateForm();  
@@ -1799,10 +1882,25 @@ document.querySelectorAll(".reward-dropdown .option").forEach(option => {
               ? `≈ $${(amt * widgetZecPrice).toFixed(2)} USD`
               : `≈ $0.00 USD`;
 
-            if (amt > 0 && platformZecBal !== null) {
+            // balance not loaded yet
+            if (platformZecBal === null) {
+              balFeedback.style.display = 'none';
+              return;
+            }
+
+            // empty wallet: say it plainly, even before an amount is typed
+            if (platformZecBal <= 0) {
+              balFeedback.style.display = 'block';
+              balFeedback.textContent = "Insufficient funds. Your platform balance is 0 ZEC. Top up to fund this reward.";
+              balFeedback.className   = 'zec-bal-feedback zec-bal-err';
+              return;
+            }
+
+            if (amt > 0) {
               balFeedback.style.display = 'block';
               if (amt > platformZecBal) {
-                balFeedback.textContent = `⚠️ Only ${platformZecBal.toFixed(4)} ZEC available`;
+                const short = (amt - platformZecBal).toFixed(4);
+                balFeedback.textContent = `Insufficient funds. You need ${short} more ZEC (available: ${platformZecBal.toFixed(4)} ZEC).`;
                 balFeedback.className   = 'zec-bal-feedback zec-bal-err';
               } else {
                 balFeedback.textContent = `Remaining after reward: ${(platformZecBal - amt).toFixed(4)} ZEC`;
@@ -1859,7 +1957,6 @@ document.querySelectorAll(".reward-dropdown .option").forEach(option => {
 
           // ── Delete ────────────────────────────────────────────────────────────────
           wrapper.querySelector(".delete-reward").addEventListener("click", () => {
-            clearInterval(priceInterval);
             wrapper.__cleanupPrice?.();
             document.removeEventListener("click", handleDocClick);
             wrapper.remove();
@@ -1875,11 +1972,13 @@ document.querySelectorAll(".reward-dropdown .option").forEach(option => {
           });
 
         
+        const isToken = text === "Token";
         REWARD_STATE.set(wrapper, {
-          type: "All",
+          type: isToken ? "FCFS" : "All",
           maxSupply: "",
           rewardCount: ""
         });
+        if (isToken) setRewardTypeBadge(wrapper, "FCFS");
 
         /* only attach click logic */
         initRenoDropdown(wrapper);
@@ -2003,88 +2102,107 @@ document.querySelectorAll(".reward-dropdown .option").forEach(option => {
     /* ---------------------------
       TABS (Properties / Results)
     --------------------------- */
-  if (settingsContainer && tabs2.length > 0) {
-    settingsContainer.style.visibility = "hidden";
+if (settingsContainer && tabs2.length > 0) {
+  settingsContainer.style.visibility = "hidden";
 
-    // Create a dedicated container for results
-    const resultsView = document.createElement("div");
-    resultsView.classList.add("results-view");
-    resultsView.style.display = "none";
-    settingsContainer.appendChild(resultsView);
+  const tabPill = document.querySelector(".tabs .tab-pill");
 
-    let initialized = false;
-
-    function setActiveTab(tabName) {
-      // Update active class on tabs
-      tabs2.forEach(t =>
-        t.classList.toggle("active", t.textContent.toLowerCase().includes(tabName))
-      );
-
-      if (tabName === "results") {
-        // Hide properties content (your original HTML stays in place)
-        Array.from(settingsContainer.children).forEach(child => {
-          if (!child.classList.contains("results-view")) child.style.display = "none";
-        });
-        resultsView.style.display = "flex";
-        loadResults();
-      } else {
-        // Show properties again, hide results
-        Array.from(settingsContainer.children).forEach(child => {
-          if (!child.classList.contains("results-view")) child.style.display = "flex";
-        });
-        resultsView.style.display = "none";
-
-        if (!initialized) {
-          initRewardSection();
-          initialized = true;
-        }
-
-        // restore rewardDisplay (left badge)
-        const rewardDisplay = settingsContainer.querySelector("#rewardDisplay");
-        if (rewardDisplay && window.rewardDisplaySelection?.html) {
-          rewardDisplay.innerHTML = window.rewardDisplaySelection.html;
-        }
-      }
-
-      sessionStorage.setItem("activeTab", tabName);
-      settingsContainer.style.visibility = "visible";
-    }
-
-    function loadResults() {
-      fetch(`/${communitySlug}/result/${subquest_uuid}`)
-        .then(r => {
-          if (!r.ok) throw new Error("Network error while loading results.");
-          return r.text();
-        })
-        .then(html => {
-          resultsView.innerHTML = html;
-        })
-        .catch(err => {
-          resultsView.innerHTML = `<p style="color:var(--error-alt); text-align: center; font-size: 14px; opacity: 0.9;">Failed to load results: ${err.message}</p>`;
-        });
-    }
-
-
-
-
-    // Restore last active tab (default: properties)
-    const activeTab = sessionStorage.getItem("activeTab") || "properties";
-    setActiveTab(activeTab);
-
-    // Tab click handlers
-    tabs2.forEach(tab => {
-      tab.addEventListener("click", () => {
-        const txt = tab.textContent.trim().toLowerCase();
-        setActiveTab(txt.includes("results") ? "results" : "properties");
-      });
-    });
-
-    // Clear activeTab on page unload
-    window.addEventListener("beforeunload", () =>
-      sessionStorage.removeItem("activeTab")
-    );
+  function movePill() {
+    if (!tabPill) return;
+    const index = Math.max(0, Array.from(tabs2).findIndex(t => t.classList.contains("active")));
+    tabPill.style.transform = "translateX(" + (index * 100) + "%)";
   }
 
+  const resultsView = document.createElement("div");
+  resultsView.classList.add("results-view");
+  resultsView.style.display = "none";
+  settingsContainer.appendChild(resultsView);
+
+  let initialized = false;
+
+  function hidePropertyRows() {
+    Array.from(settingsContainer.children).forEach(child => {
+      if (child.classList.contains("results-view")) return;
+      if (child.dataset.hiddenByTabs !== "1") {
+        child.dataset.prevDisplay = child.style.display;
+        child.dataset.hiddenByTabs = "1";
+      }
+      child.style.display = "none";
+    });
+  }
+
+  function showPropertyRows() {
+    Array.from(settingsContainer.children).forEach(child => {
+      if (child.classList.contains("results-view")) return;
+      if (child.dataset.hiddenByTabs === "1") {
+        child.style.display = child.dataset.prevDisplay || "";
+        delete child.dataset.hiddenByTabs;
+        delete child.dataset.prevDisplay;
+      }
+    });
+  }
+
+  function setActiveTab(tabName) {
+    tabs2.forEach(t =>
+      t.classList.toggle("active", t.textContent.toLowerCase().includes(tabName))
+    );
+
+    movePill();
+
+    if (tabName === "results") {
+      hidePropertyRows();
+      resultsView.style.display = "flex";
+      loadResults();
+    } else {
+      showPropertyRows();
+      resultsView.style.display = "none";
+
+      if (!initialized) {
+        initRewardSection();
+        initialized = true;
+      }
+
+      const rewardDisplay = settingsContainer.querySelector("#rewardDisplay");
+      if (rewardDisplay && window.rewardDisplaySelection?.html) {
+        rewardDisplay.innerHTML = window.rewardDisplaySelection.html;
+      }
+    }
+
+    sessionStorage.setItem("activeTab", tabName);
+    settingsContainer.style.visibility = "visible";
+  }
+
+  function loadResults() {
+    fetch(`/${communitySlug}/result/${subquest_uuid}`)
+      .then(r => {
+        if (!r.ok) throw new Error("Network error while loading results.");
+        return r.text();
+      })
+      .then(html => {
+        resultsView.innerHTML = html;
+      })
+      .catch(err => {
+        resultsView.innerHTML = `<p style="color:var(--error-alt); text-align: center; font-size: 14px; opacity: 0.9;">Failed to load results: ${err.message}</p>`;
+      });
+  }
+
+  const activeTab = sessionStorage.getItem("activeTab") || "properties";
+
+  if (tabPill) tabPill.style.transition = "none";
+  setActiveTab(activeTab);
+  if (tabPill) {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      tabPill.style.transition = "";
+    }));
+  }
+
+  tabs2.forEach(tab => {
+    tab.addEventListener("click", () => {
+      const txt = tab.textContent.trim().toLowerCase();
+      setActiveTab(txt.includes("results") ? "results" : "properties");
+    });
+  });
+}
 
 }
   
@@ -2346,6 +2464,7 @@ function renderSavedCondition(cond) {
     const conditionValueEl = newBlock.querySelector(".condition-value");
     conditionValueEl.addEventListener("click", (e) => {
       e.stopPropagation();
+      closeAllDropdownsGlobal(dropdownEl);
       document.querySelectorAll(".level-dropdown, .role-select, .quest-select").forEach(dd => {
         if (dd !== dropdownEl) dd.style.display = "none";
       });
@@ -2406,7 +2525,9 @@ function renderSavedCondition(cond) {
     // --- toggle dropdown
     const conditionValueEl = newBlock.querySelector(".condition-value");
     conditionValueEl.addEventListener("click", (e) => {
+      closeAllDropdownsGlobal(dropdownEl);
       e.stopPropagation();
+      closeAllDropdownsGlobal(dropdownEl);
       document.querySelectorAll(".role-select, .level-dropdown, .quest-select")
         .forEach(dd => { if (dd !== dropdownEl) dd.style.display = "none"; });
 
@@ -2559,7 +2680,9 @@ if (cond.subquest_uuid || cond.condition_value) {
     // click value → toggle dropdown
     const conditionValueEl = newBlock.querySelector(".condition-value");
     conditionValueEl.addEventListener("click", (e) => {
+      closeAllDropdownsGlobal(dropdownEl);
       e.stopPropagation();
+      closeAllDropdownsGlobal(dropdownEl);
 
       // close others
       document.querySelectorAll(".level-dropdown, .role-select, .quest-select").forEach(dd => {
@@ -2854,25 +2977,21 @@ function callingTriggerArialAsp() {
   triggers.forEach(trigger => {
     const dropdown = trigger.nextElementSibling;
 
-    // Toggle Add Condition dropdown
-    // Condition trigger (Add condition button)
     trigger.addEventListener("click", (e) => {
       e.stopPropagation();
 
-      // find related dropdown safely
       const dropdown = trigger.closest(".condition-wrapper, .condition-container, body")
         ?.querySelector(".condition");
 
       if (!dropdown) return;
 
-      // toggle
-      if (openDropdown === dropdown) {
+      if (dropdown.style.display === "block") {
         dropdown.style.display = "none";
         openDropdown = null;
         return;
       }
 
-      closeAllDropdowns(dropdown);
+      closeAllDropdownsGlobal(dropdown);
 
       dropdown.style.display = "block";
 
@@ -2977,6 +3096,7 @@ document.querySelectorAll(".condition .option").forEach(option => {
           const conditionValueEl = newBlock.querySelector(".condition-value");
           conditionValueEl.addEventListener("click", (e) => {
             e.stopPropagation();
+            closeAllDropdownsGlobal(dropdownEl);
 
             document.querySelectorAll(".level-dropdown, .role-select, .quest-select").forEach(dd => {
               if (dd !== dropdownEl) dd.style.display = "none";
@@ -3349,24 +3469,30 @@ document.querySelectorAll(".condition .option").forEach(option => {
       <div class="subcontent1">
         <p>Everyone who completes the quest gets this reward.</p>
       </div>
-    <div class="subcontent2">
-      <p>First to finish get this reward. After that, you can still complete the quest but won't get this reward.</p>
-      <label>Max Supply</label>
-      <input type="number">
-    </div>
 
-    <div class="subcontent3">
-      <p>Complete quest to enter a raffle. Winners picked when quest ends or reaches max participants.</p>
-      <label>Number of rewards</label>
-      <input type="number">
-    </div>
+      <div class="subcontent2">
+        <p>First to finish get this reward. After that, you can still complete the quest but won't get this reward.</p>
+        <fieldset class="reno-fieldset">
+          <legend>Max Supply</legend>
+          <input type="number">
+        </fieldset>
+      </div>
 
-    <div class="subcontent4">
-      <p>All users who have successfully completed this quest will be subject to votes from other community members.</p>
-      <label>Number of rewards</label>
-      <input type="number">
-    </div>
+      <div class="subcontent3">
+        <p>Complete quest to enter a raffle. Winners picked when quest ends or reaches max participants.</p>
+        <fieldset class="reno-fieldset">
+          <legend>Number of rewards</legend>
+          <input type="number">
+        </fieldset>
+      </div>
 
+      <div class="subcontent4">
+        <p>All users who have successfully completed this quest will be subject to votes from other community members.</p>
+        <fieldset class="reno-fieldset">
+          <legend>Number of rewards</legend>
+          <input type="number">
+        </fieldset>
+      </div>
 
       <button class="piicki">OK</button>
     `;
@@ -3399,10 +3525,19 @@ document.querySelectorAll(".condition .option").forEach(option => {
     =============================== */
   rewardType.addEventListener("click", (e) => {
     e.stopPropagation();
+    closeAllDropdownsGlobal(reno);
+    if (reno.style.display === "block" && ACTIVE_WRAPPER === wrapper) {
+        reno.style.display = "none";
+        ACTIVE_WRAPPER = null;
+        return;
+    }
 
     ACTIVE_WRAPPER = wrapper;
     const state = REWARD_STATE.get(wrapper);
-
+    if (wrapper.dataset.rewardType === "token" && state && state.type !== "FCFS") {
+      state.type = "FCFS";
+      setRewardTypeBadge(wrapper, "FCFS");
+    }
     const tabs = reno.querySelectorAll(".tab-buttons > div");
     const contents = reno.querySelectorAll(
       ".subcontent1, .subcontent2, .subcontent3, .subcontent4"
@@ -3440,7 +3575,7 @@ document.querySelectorAll(".condition .option").forEach(option => {
         if (voteInput) voteInput.value = state.rewardCount;
       }
     }
-
+    applyRenoLock(reno, wrapper);
     // show + position
     reno.style.display = "block";
     reno.style.visibility = "hidden";
@@ -3480,7 +3615,7 @@ document.querySelectorAll(".condition .option").forEach(option => {
       reno.style.width = "";
     }
 
-    reno.style.top = `${top}px`;
+    reno.style.top = `${top + 3}px`;
     reno.style.left = `${left}px`;
     reno.style.visibility = "visible";
   });
@@ -3527,7 +3662,7 @@ document.querySelectorAll(".condition .option").forEach(option => {
     tabs.forEach(tab => {
       tab.onclick = (e) => {
         e.stopPropagation();
-
+        if (ACTIVE_WRAPPER?.dataset.rewardType === "token" && tab.dataset.target !== "subcontent2") return;
         tabs.forEach(t => t.classList.remove("active-tab"));
         contents.forEach(c => c.classList.remove("active-content"));
 
@@ -3634,7 +3769,30 @@ document.querySelectorAll(".condition .option").forEach(option => {
 
 
 
+function hasTokenReward() {
+  return !!document.querySelector(
+    '#rewardContainerParent .rewardContainerWrapper[data-reward-type="token"]'
+  );
+}
 
+function setRewardTypeBadge(wrapper, label) {
+  const el = wrapper.querySelector(".reward-type");
+  if (el) {
+    el.innerHTML = `${REWARD_ICONS[label.toUpperCase()] || REWARD_ICONS.ALL} <span>${label}</span>`;
+  }
+  wrapper.dataset.distributionType = label.toLowerCase();
+}
+
+
+function applyRenoLock(reno, wrapper) {
+  const locked = wrapper?.dataset.rewardType === "token";
+  reno.querySelectorAll(".tab-buttons > div").forEach(t => {
+    const lock = locked && t.dataset.target !== "subcontent2";
+    t.style.pointerEvents = lock ? "none" : "";
+    t.style.opacity = lock ? ".35" : "";
+    t.setAttribute("aria-disabled", lock ? "true" : "false");
+  });
+}
   function updateClearAllRewards() {
   const rewardParent = document.getElementById("rewardContainerParent");
   const clearAllBtn = document.getElementById("clearAllRewards");
@@ -6020,7 +6178,10 @@ function hookQuizTasks(root = document){
     syncQuizToCard(taskWrap);
   });
 
-
+  root.addEventListener("change", e => {
+    if (!e.target.closest(".js-auto-validate")) return;
+    syncInstantApproval();
+  });
   /* ==============================
      CORRECT ANSWER CLICK
   ============================== */
@@ -6253,7 +6414,7 @@ function hookFileUploadTasks(root = document) {
     } else {
       fileInput.removeAttribute("accept");
     }
-
+    validateForm();
   });
 
 
@@ -7286,7 +7447,7 @@ function renderTask(task){
           </div>
           <label class="switch">
             <input type="checkbox" class="js-auto-validate"
-              ${task.config?.auto_validate ? "checked" : ""}>
+              ${task.config?.auto_validate ? "" : "checked"}>
             <span class="slider"></span>
           </label>
         </div>
@@ -9782,6 +9943,76 @@ const svgMap = {
 };
 
 
+let maxClaimTimer = null;
+
+function isMaxClaimInput(el) {
+  return el && el.matches && el.matches('.number-input-wrapper input[name="max_claim"]');
+}
+
+function stopMaxClaimTimer() {
+  clearTimeout(maxClaimTimer);
+  maxClaimTimer = null;
+}
+
+function startMaxClaimTimer(input) {
+  stopMaxClaimTimer();
+  maxClaimTimer = setTimeout(() => {
+    if (input.value === "") input.value = "None";
+  }, 4000);
+}
+
+document.addEventListener("beforeinput", (e) => {
+  const input = e.target;
+  if (!isMaxClaimInput(input)) return;
+
+  const isNone = input.value === "None";
+
+  if (e.inputType.startsWith("delete")) {
+    if (isNone) {
+      e.preventDefault();
+      input.value = "";
+      startMaxClaimTimer(input);
+    }
+    return;
+  }
+
+  if (e.inputType === "insertText") {
+    if (!/^\d+$/.test(e.data || "")) {
+      e.preventDefault();
+      return;
+    }
+    if (isNone) {
+      e.preventDefault();
+      input.value = e.data;
+      stopMaxClaimTimer();
+    }
+  }
+});
+
+document.addEventListener("input", (e) => {
+  const input = e.target;
+  if (!isMaxClaimInput(input)) return;
+  if (input.value === "None") return;
+
+  const cleaned = input.value.replace(/\D/g, "");
+  if (cleaned !== input.value) input.value = cleaned;
+
+  if (cleaned === "") startMaxClaimTimer(input);
+  else stopMaxClaimTimer();
+});
+
+document.addEventListener("focusout", (e) => {
+  const input = e.target;
+  if (!isMaxClaimInput(input)) return;
+  stopMaxClaimTimer();
+  if (input.value === "") input.value = "None";
+});
+
+document.addEventListener("focusin", (e) => {
+  const input = e.target;
+  if (!isMaxClaimInput(input)) return;
+  if (input.value === "") startMaxClaimTimer(input);
+});
 
 async function buildSubquestPayload() {
 
@@ -10145,13 +10376,13 @@ function LetsInitQuestBuildup() {
     document.getElementById("popup").style.display = "none"; // ✅ use "closePopup"
   });
 
-  document.getElementById("popup").addEventListener("click", (e) => {
+document.getElementById("popup").addEventListener("click", (e) => {
+    if (e.target.id === "popup") {
       e.preventDefault();
       e.stopPropagation();
-    if (e.target.id === "popup") {
-      document.getElementById("popup").style.display = "none"; // ✅ consistent
+      document.getElementById("popup").style.display = "none";
     }
-  });
+});
 
     const toggleBtn = document.getElementById("sidePanelToggle");
     const sidePanel = document.querySelector(".side-panel");
@@ -10268,7 +10499,7 @@ function validateForm() {
     if(type === "puzzle"){
       const placeholder = task.querySelector(".js-puzzle-answer.puzzule");
       if(!placeholder || !placeholder.value.trim()){
-        fail("Puzzle placeholder required", ".puzzle-error");
+        fail("Expected Answer required", ".puzzle-error");
       }
     }
 
@@ -12645,13 +12876,13 @@ function updateConditionColumnState() {
     const rect = triggerEl.getBoundingClientRect();
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-
+    closeAllDropdownsGlobal(menuEl);
     // toggle
     if (openMenu === menuEl) {
       closeAllMenus();
       return;
     }
-
+    closeAllDropdownsGlobal(menuEl);
     closeAllMenus();
 
     /* ===============================
@@ -12835,7 +13066,7 @@ async function Initgrounderarial() {
 
     sprintModal.style.maxHeight = "";
     sprintModal.style.overflowY = "";
-
+    closeAllDropdownsGlobal(sprintModal);
     smartPositionDropdown(sprintListBtn, sprintModal);
     
   });

@@ -303,7 +303,6 @@ function setupRoleDropdownDelegation() {
       e.stopPropagation();
 
       if (option.classList.contains("locked")) {
-        showToast(LOCKED_MESSAGE, "error");
         return;
       }
 
@@ -364,6 +363,17 @@ function teaminbxinit() {
     });
   });
 
+
+  document.addEventListener("click", event => {
+    if (
+      filterDropdown.style.display !== "none" &&
+      !filterDropdown.contains(event.target) &&
+      !event.target.closest(".team-role-filter-trigger")
+    ) {
+      filterDropdown.style.display = "none";
+    }
+  });
+
   applyAvatarColors(document.querySelector(".team-members-list"));
   setupRoleDropdownDelegation();
   setupSearch();
@@ -393,7 +403,6 @@ function teaminbxinit() {
       option.addEventListener("click", (e) => {
         e.stopPropagation();
         if (option.classList.contains("locked")) {
-          showToast(LOCKED_MESSAGE, "error");
           return;
         }
         inviteUser.querySelector("span").textContent = option.textContent;
@@ -526,6 +535,7 @@ function teaminbxinit() {
     e.stopPropagation();
     const rect = roleToggle.getBoundingClientRect();
     if (roleDropdown.style.display === "block") {
+      closeAllDropdownsGlobal(roleDropdown);
       roleDropdown.style.display = "none";
       return;
     }
@@ -541,7 +551,6 @@ function teaminbxinit() {
     option.addEventListener("click", async (e) => {
       e.stopPropagation();
       if (option.classList.contains("locked")) {
-        showToast(LOCKED_MESSAGE, "error");
         return;
       }
       const selectedRole = option.getAttribute("data-link");

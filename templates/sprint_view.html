@@ -1,21 +1,134 @@
 <title>{{ sprint.title }} Leaderboard</title>
 
- <link rel="stylesheet" href="{{ url_for('static', filename='sprint_view.css') }}?v=2">
+<link rel="stylesheet" href="{{ url_for('static', filename='sprint_view.css') }}?v=2">
 
+<style>
+.reward-tier-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+  width: 100%;
+}
 
+.reward-tier-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  font-size: 14px;
+  color: var(--text-main);
+}
 
+.reward-tier-rank {
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.reward-tier-amount {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.reward-tier-amount small {
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.reward-tier-amount svg,
+.reward-tier-pool svg {
+  flex-shrink: 0;
+  color: #facc15;
+}
+
+.reward-tier-pool {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.reward-tier-pool strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-main);
+  font-weight: 600;
+}
+
+.participant-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.participant-prize {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #facc15;
+  background: rgba(250, 204, 21, 0.1);
+  white-space: nowrap;
+}
+
+.participant-prize svg {
+  flex-shrink: 0;
+}
+
+.title-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+ 
+
+.details-reward.no-desc .announcement-details,
+.details-reward.no-reward .announcement-rewards {
+  display: none;
+}
+
+@media (min-width: 750px) {
+  .details-reward.no-desc .highlight-box.third {
+    max-height: calc(75dvh - 28px) !important;
+    min-height: calc(75dvh - 28px) !important;
+    overflow-y: auto;
+  }
+
+  .details-reward.no-reward .highlight-box.second {
+    max-height: calc(75dvh - 22px) !important;
+    min-height: calc(75dvh - 22px) !important;
+    overflow-y: auto;
+  }
+}
+</style>
 
 {% set hex = sprint.color if sprint.color else '#4285f4' %}
 {% set r = hex[1:3]|int(base=16) %}
 {% set g = hex[3:5]|int(base=16) %}
 {% set b = hex[5:7]|int(base=16) %}
+{% set has_desc = (sprint.description or '')|trim %}
+{% set has_reward = reward_tiers or (sprint.rewards or '')|trim %}
+{% set zec_svg %}<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8.5 8.5h7l-7 7h7"/><path d="M12 6v2.5M12 15.5V18"/></svg>{% endset %}
 
+<script id="rewardTiersData" type="application/json" data-currency="{{ reward_currency or 'ZEC' }}">{{ (reward_tiers or [])|tojson }}</script>
 
-
-
- 
 <div class="main-wrapper">
-
 
   <div class="switch-between-sprints-wrap" data-latest-sprint="{{ latest_sprint.uuid if latest_sprint else '' }}">
     <div class="switch-between-sprints">
@@ -31,29 +144,35 @@
     </div>
   </div>
 
-
   <div id="info-left" class="info-left">
     <div class="info-card">
       <div class="info-top">
 
-
-
         <div class="info-content">
           <div class="contain-container" style="margin: 0;">
             <div class="title-row" style="width: 100%; justify-content: space-between;">
-              <h1 id="previewTitle" class="sprint-title">All Time</h1>
+              <h1 id="previewTitle" class="sprint-title">{{ sprint.title }}</h1>
 
-              {% if can_manage_sprints %}
-              <button type="button" id="exportBtn" class="export-btn" data-scope="all">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M5.25589 16C3.8899 15.0291 3 13.4422 3 11.6493C3 9.20008 4.8 6.9375 7.5 6.5C8.34694 4.48637 10.3514 3 12.6893 3C15.684 3 18.1317 5.32251 18.3 8.25C19.8893 8.94488 21 10.6503 21 12.4969C21 14.0582 20.206 15.4339 19 16.2417M12 21V11M12 21L9 18M12 21L15 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                Export
-              </button>
-              {% endif %}
+              <div class="title-actions">
+                {% if can_manage_sprints %}
+                <button type="button" id="exportBtn" class="export-btn" data-scope="all">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M5.25589 16C3.8899 15.0291 3 13.4422 3 11.6493C3 9.20008 4.8 6.9375 7.5 6.5C8.34694 4.48637 10.3514 3 12.6893 3C15.684 3 18.1317 5.32251 18.3 8.25C19.8893 8.94488 21 10.6503 21 12.4969C21 14.0582 20.206 15.4339 19 16.2417M12 21V11M12 21L9 18M12 21L15 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  Export
+                </button>
+                {% endif %}
+
+                <button type="button" class="diver-svg" id="infoToggleBtn" aria-label="Sprint details" onclick="window.toggleAnnouncement && window.toggleAnnouncement()">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 17V11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    <circle cx="1" cy="1" r="1" transform="matrix(1 0 0 -1 11 9)" fill="currentColor"/>
+                    <path d="M7 3.33782C8.47087 2.48697 10.1786 2 12 2C17.5228 2 22 6.47715 22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 10.1786 2.48697 8.47087 3.33782 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
-
 
           <div class="mob-desk-mode">
 
@@ -63,8 +182,6 @@
                   <path d="M12 3C9.51472 3 7.5 5.01472 7.5 7.5C7.5 9.98528 9.51472 12 12 12C14.4853 12 16.5 9.98528 16.5 7.5C16.5 5.01472 14.4853 3 12 3Z"/>
                   <path d="M16.5 13.5L7.5 13.5C6.46774 13.5 5.48769 13.9465 4.89696 14.6693C4.27533 15.43 4.10333 16.4973 4.77316 17.4874C6.21072 19.6122 8.97039 21 12 21C15.0296 21 17.7893 19.6122 19.2268 17.4874C19.8967 16.4973 19.7247 15.43 19.103 14.6693C18.5123 13.9465 17.5323 13.5 16.5 13.5Z"/>
                 </svg>
-
-
               </span>
 
               <span class="participants-count">
@@ -99,7 +216,6 @@
             </div>
           </div>
 
-
           <p class="countdown-label">Ends in:</p>
             <div class="countdown-wrapper" id="countdownWrapper" style="{% if sprint_has_ended %}display:none;{% endif %}">
               <div id="countdownTimer" class="countdown-timer">
@@ -124,7 +240,6 @@
         </div>
       </div>
 
-
       <div class="info-bottom-wrapper" style="margin: 0; padding: 0;">
       <div class="info-bottom">
         <div class="participants-section">
@@ -142,9 +257,8 @@
     </div>
   </div>
 
-  
   <div class="announcement-container mobile-slide" id="announcementPanel">
-  <div class="details-reward">
+  <div class="details-reward{% if not has_desc %} no-desc{% endif %}{% if not has_reward %} no-reward{% endif %}">
 
     <div id="dragHandle">
       <div class="drag-handle"></div>
@@ -173,6 +287,8 @@
         <p class="announcement-status" style="color: var(--text-main); font-size: 14px !important;" data-start="{{ sprint.start_date.isoformat() }}Z" data-end="{{ sprint.end_date.isoformat() }}Z" id="announcementStatus"></p>
         </div>
       </div>
+
+    {% if has_desc %}
     <div class="announcement-section announcement-details">
       <div class="highlight-box second">
         <h2 style="color: var(--text-main); font-weight: bold; margin: 0; font-size: 15px;">Why Join?</h2>
@@ -182,26 +298,41 @@
         </p>
       </div>
     </div>
+    {% endif %}
 
+    {% if has_reward %}
     <div class="announcement-section announcement-rewards">
       <div class="highlight-box third">
-        <h2 style="color: var(--text-main); font-weight: bold; margin: 0; font-size: 15px; margin: 0; padding: 0;">Top Prize</h2>
+        <h2 style="color: var(--text-main); font-weight: bold; margin: 0; font-size: 15px; margin: 0; padding: 0;">{% if reward_tiers %}Prizes{% else %}Top Prize{% endif %}</h2>
 
-        <p class="reward-amount">{{ sprint.rewards | safe }}</p>
+        {% if reward_tiers %}
+          <div class="reward-tier-list">
+            {% for t in reward_tiers %}
+              <div class="reward-tier-row">
+                <span class="reward-tier-rank">
+                  {% if t.single %}Rank {{ t.from }}{% else %}Ranks {{ t.from }}&nbsp;–&nbsp;{{ t.to }}{% endif %}
+                </span>
+                <span class="reward-tier-amount">
+                  {{ zec_svg|safe }}{{ (t.per_winner|string).split(' ')[0] }} {{ reward_currency or 'ZEC' }}{% if not t.single %} <small>each</small>{% endif %}
+                </span>
+              </div>
+            {% endfor %}
+          </div>
+          <div class="reward-tier-pool">
+            <span>Total prize pool</span>
+            <strong>{{ zec_svg|safe }}{{ (reward_pool|string).split(' ')[0] }} {{ reward_currency or 'ZEC' }}</strong>
+          </div>
+        {% else %}
+          <p class="reward-amount">{{ sprint.rewards }}</p>
+        {% endif %}
       </div>
     </div>
+    {% endif %}
   </div>  
 </div>
 
 </div>
 
-
-
-
-
-
 <div id="activity-modal" class="activity-modal hidden">
   <div class="activity-content"></div>
 </div>
-
-

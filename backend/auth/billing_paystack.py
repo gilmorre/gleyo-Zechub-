@@ -27,14 +27,14 @@ PAYSTACK_CURRENCY = (os.getenv("PAYSTACK_CURRENCY") or "USD").upper()
 PAYSTACK_BASE = "https://api.paystack.co"
 
 PLAN_PRICES = {
-    ("standard", "monthly"): ("Standard", 6900,   "monthly"),
+    ("standard", "monthly"): ("Standard", 20, "monthly"),
     ("standard", "yearly"):  ("Standard", 79200,  "annually"),
     ("plus", "monthly"):     ("Pro",      11000,  "monthly"),
     ("plus", "yearly"):      ("Pro",      126000, "annually"),
 }
 
 CLAIM_LIMITS = {
-    "free": 200,
+    "free": 200,  
     "standard": 1000,
     "plus": 4000,
     "enterprise": None,
@@ -56,6 +56,8 @@ PERIOD_DAYS = {"monthly": 30, "yearly": 365}
 BILLING_ROLES = {"owner", "admin"}
 
 RENEW_AHEAD_HOURS = 24
+
+METHOD_LABELS = {"wallet": "Wallet balance", "crypto": "Crypto", "card": "Card"}
 
 
 class BillingError(Exception):
@@ -669,14 +671,19 @@ def activate_plan(community_id, plan, interval, *, paid_at=None, period_start=No
     else:
         sub.stripe_subscription_id = None
         sub.cancel_at_period_end = False
-        if is_new or prev_method == "card":
-            sub.auto_renew_wallet = True
+        if payment_method == "wallet":
+            if is_new or prev_method == "card":
+                sub.auto_renew_wallet = True
+        else:
+            sub.auto_renew_wallet = False
 
     community.is_paid = True
     db.session.commit()
     sync_claims_lock(community)
 
-    if payment_method == "wallet" and prev_stripe_id and not prev_cancel_pending:
+    # Any non-card payment (wallet or crypto) replaces the card plan, so the old
+    # Paystack subscription must be stopped or the card keeps getting charged.
+    if payment_method != "card" and prev_stripe_id and not prev_cancel_pending:
         _disable_subscription(prev_stripe_id)
 
     if payment_method == "card" and paystack_auth is not None and not stripe_subscription_id:
@@ -726,7 +733,7 @@ def apply_upgrade(community_id, plan, interval, *, amount_cents, payment_method,
     _save_expiry_job(community.id, sub.expires_at)
 
     _queue_receipt(community, sub, amount_cents, ref, None,
-                   method="Wallet balance" if payment_method == "wallet" else "Card",
+                   method=METHOD_LABELS.get(payment_method, "Card"),
                    upgrade_from=old_plan)
     return sub
 
@@ -968,7 +975,7 @@ def _queue_receipt(community, sub, amount_cents, invoice_id, invoice_url,
             "amount": _money(amount_cents, getattr(sub, "currency", "usd")) if amount_cents else None,
             "paid_on": sub.paid_at.strftime("%b %d, %Y"),
             "expires_on": sub.expires_at.strftime("%b %d, %Y"),
-            "method": method or ("Wallet balance" if sub.payment_method == "wallet" else "Card"),
+            "method": method or METHOD_LABELS.get(sub.payment_method, "Card"),
             "reference": invoice_id,
             "invoice_url": invoice_url,
             "upgrade_from": PLAN_NAMES.get(upgrade_from, upgrade_from) if upgrade_from else None,

@@ -216,12 +216,11 @@ html, body {
   text-transform: uppercase;
 }
 
-/* MAIN ITEMS */
 .nav-item {
   display: flex;
   align-items: center;
-  padding: 10px 12px;
-  border-radius: 8px;
+  padding: 10px 14px;
+  border-radius: 15px;
   gap: 6px;
   text-decoration: none;
   color: var(--text-main-items);

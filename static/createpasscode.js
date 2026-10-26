@@ -33,6 +33,22 @@ window.CallcreatePass = function () {
     });
   }
 
+  async function goToSkills() {
+    try {
+      const res = await fetch('/skills', {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      });
+      if (!res.ok) throw new Error('skills page failed');
+
+      const html = await res.text();
+      document.getElementById('innerconntect').innerHTML = html;
+      window.history.pushState({}, '', '/skills');
+      await runPageScript();
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
   function pushDigit(val) {
     if (current.length >= MAX) return;
     current += val;
@@ -112,13 +128,7 @@ window.CallcreatePass = function () {
         lockIcon.classList.remove('unlock');
         }, 600);
 
-        setTimeout(() => {
-          if (window.__NEXT_URL__ && window.__NEXT_URL__.length > 0) {
-            window.location.href = window.__NEXT_URL__;
-          } else {
-            window.location.href = "/settings/general";
-          }
-        }, 2000);
+      setTimeout(goToSkills, 2000);
 
     } catch (err) {
         console.error(err);

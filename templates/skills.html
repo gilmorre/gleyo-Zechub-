@@ -1,0 +1,212 @@
+<style>
+  @property --edge-hi { syntax: '<color>'; inherits: true; initial-value: rgba(255, 255, 255, 0.42); }
+  @property --edge-lo { syntax: '<color>'; inherits: true; initial-value: rgba(255, 255, 255, 0.05); }
+
+  #skillsRoot {
+    --check-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-5 -10 110 135'%3E%3Cpath fill='%23fff' d='m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z'/%3E%3C/svg%3E");
+    --sk-text: #e5e7eb;
+    --sk-muted: #bbbfc7;
+    --sk-accent: #818cf8;
+    --sk-card: #232339;
+    --sk-card-hover: #2a2a44;
+    --sk-error: #ff5a6e;
+    --sk-success: #4ade80;
+    --edge-hi: rgba(255, 255, 255, 0.42);
+    --edge-lo: rgba(255, 255, 255, 0.05);
+    --edge-w: 1px;
+
+    width: 100%;
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 24px 0 40px;
+    text-align: center;
+    color: var(--sk-text);
+    font-family: 'DM Sans', sans-serif;
+  }
+  @media (min-resolution: 2dppx) { #skillsRoot { --edge-w: 0.75px; } }
+  #skillsRoot *, #skillsRoot *::before, #skillsRoot *::after { box-sizing: border-box; }
+
+  #skillsRoot .sk-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    margin: 0 0 8px;
+  }
+  #skillsRoot .sk-sub {
+    color: var(--sk-muted);
+    font-size: 14px;
+    line-height: 1.6;
+    max-width: 400px;
+    margin: 0 auto 28px;
+  }
+  #skillsRoot .sk-chips {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  /* gradient edge */
+  #skillsRoot .sk-chip,
+  #skillsRoot .sk-notify,
+  #skillsRoot .sk-save {
+    position: relative;
+    border: var(--edge-w) solid transparent;
+  }
+  #skillsRoot .sk-chip::after,
+  #skillsRoot .sk-notify::before,
+  #skillsRoot .sk-save::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: var(--edge-w);
+    border-radius: inherit;
+    background: linear-gradient(135deg, var(--edge-hi) 0%, var(--edge-lo) 28%, var(--edge-lo) 72%, var(--edge-hi) 100%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  #skillsRoot .sk-chip {
+    font: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--sk-text);
+    background: var(--sk-card);
+    border-radius: 999px;
+    padding: 10px 18px;
+    cursor: pointer;
+    transition: background 0.2s ease, --edge-hi 0.2s, --edge-lo 0.2s, transform 0.15s ease;
+  }
+  #skillsRoot .sk-chip:hover:not(:disabled) { background: var(--sk-card-hover); --edge-hi: rgba(255, 255, 255, 0.7); }
+  #skillsRoot .sk-chip:active:not(:disabled) { transform: scale(0.97); }
+  #skillsRoot .sk-chip:disabled { opacity: 0.4; cursor: not-allowed; }
+  #skillsRoot .sk-chip:focus-visible { outline: 2px solid #a5b4fc; outline-offset: 2px; }
+  #skillsRoot .sk-chip[aria-pressed="true"] {
+    background: rgba(99, 102, 241, 0.22);
+    color: #fff;
+    --edge-hi: rgba(129, 140, 248, 0.95);
+    --edge-lo: rgba(129, 140, 248, 0.25);
+  }
+  #skillsRoot .sk-chip[aria-pressed="true"]:hover:not(:disabled) {
+    background: rgba(99, 102, 241, 0.34);
+    --edge-hi: rgba(165, 180, 255, 1);
+    --edge-lo: rgba(129, 140, 248, 0.4);
+  }
+  #skillsRoot .sk-chip::before {
+    content: "";
+    display: inline-block;
+    width: 0;
+    height: 16px;
+    margin-right: 0;
+    vertical-align: -4px;
+    opacity: 0;
+    background-color: var(--sk-accent);
+    -webkit-mask: var(--check-svg) center / contain no-repeat;
+    mask: var(--check-svg) center / contain no-repeat;
+    transition: width 0.25s ease, margin-right 0.25s ease, opacity 0.2s ease;
+  }
+  #skillsRoot .sk-chip[aria-pressed="true"]::before { width: 16px; margin-right: 7px; opacity: 1; }
+
+  #skillsRoot .sk-count { font-size: 12.5px; color: var(--sk-muted); margin-bottom: 26px; }
+
+  #skillsRoot .sk-notify {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    text-align: left;
+    padding: 14px 16px;
+    margin-bottom: 22px;
+    background: var(--sk-card);
+    border-radius: 20px;
+    cursor: pointer;
+  }
+  #skillsRoot .sk-notify input {
+    -webkit-appearance: none;
+    appearance: none;
+    flex: 0 0 18px;
+    width: 18px; height: 18px;
+    margin: 2px 0 0;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: #14141f center / 11px 11px no-repeat;
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+  }
+  #skillsRoot .sk-notify input:checked {
+    background-color: #6366f1;
+    border-color: #a5b4fc;
+    background-image: var(--check-svg);
+    background-size: 15px 15px;
+  }
+  #skillsRoot .sk-notify input:focus-visible { outline: 2px solid #a5b4fc; outline-offset: 2px; }
+  #skillsRoot .sk-notify-title { display: block; font-size: 14px; font-weight: 600; }
+  #skillsRoot .sk-notify-desc { display: block; font-size: 12.5px; color: var(--sk-muted); margin-top: 2px; line-height: 1.5; }
+
+  #skillsRoot .sk-save {
+    width: 100%;
+    font: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+    background: #6366f1;
+    border-radius: 999px;
+    padding: 14px 20px;
+    cursor: pointer;
+    --edge-hi: rgba(165, 180, 255, 0.85);
+    --edge-lo: rgba(165, 180, 255, 0.12);
+    transition: background 0.2s ease, opacity 0.2s ease, transform 0.15s ease;
+  }
+  #skillsRoot .sk-save:hover:not(:disabled) { background: #7477f3; }
+  #skillsRoot .sk-save:active:not(:disabled) { transform: scale(0.98); }
+  #skillsRoot .sk-save:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  #skillsRoot .sk-skip {
+    margin-top: 14px;
+    background: none;
+    border: none;
+    font: inherit;
+    font-size: 13.5px;
+    color: var(--sk-muted);
+    cursor: pointer;
+    padding: 6px 10px;
+  }
+  #skillsRoot .sk-skip:hover { color: var(--sk-text); }
+
+  #skillsRoot .sk-msg { min-height: 22px; margin-top: 10px; font-size: 13.5px; color: var(--sk-muted); }
+  #skillsRoot .sk-msg.error { color: var(--sk-error); }
+  #skillsRoot .sk-msg.success { color: var(--sk-success); }
+</style>
+
+<div id="skillsRoot"
+     data-max="{{ max_skills }}"
+     data-save-url="{{ url_for('skills.skills_page') }}"
+     data-next="{{ next_url or '' }}">
+
+  <h1 class="sk-title">What do you do?</h1>
+  <p class="skl-sub">Pick up to {{ max_skills }} skills. We use them to match you with the right communities and campaigns.</p>
+
+  <div class="sk-chips" id="skChips">
+    {% for slug, label in options %}
+    <button type="button" class="sk-chip" data-skill="{{ slug }}" aria-pressed="{{ 'true' if slug in selected else 'false' }}">{{ label }}</button>
+    {% endfor %}
+  </div>
+
+  <div class="sk-count" id="skCount">0 / {{ max_skills }}</div>
+
+  <label class="sk-notify">
+    <input type="checkbox" id="skNotify" {% if notify %}checked{% endif %}>
+    <span>
+      <span class="sk-notify-title">Email me about campaigns that match my skills</span>
+      <span class="sk-notify-desc">Optional. Only when a new campaign matches your skills, not every time. Communities never see your email address, and you can turn this off anytime.</span>
+    </span>
+  </label>
+
+  <button type="button" class="sk-save" id="skSaveBtn" disabled>Save</button>
+  <button type="button" class="sk-skip" id="skSkipBtn">Skip for now</button>
+  <div class="sk-msg" id="skMsg" role="status" aria-live="polite"></div>
+</div>

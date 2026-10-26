@@ -2,6 +2,7 @@ const settingsLabels = {
   "general": "General",
   "security": "Security",
   "linked-accounts": "Linked Accounts",
+  "skills": "Skills",
   "wallet": "Wallet",
 };
 
@@ -251,6 +252,30 @@ function showProfileSkeleton(target) {
   `;
 }
 
+function showSkillsSkeleton(target) {
+  const container = typeof target === "string" ? document.querySelector(target) : target;
+  if (!container) return;
+
+  const pill = (w) =>
+    `<div class="sk" style="width:${w}px;height:38px;border-radius:999px"></div>`;
+
+  container.innerHTML = `
+    <div class="sk-wrapper">
+      <div class="sk-wrapper-main">
+        <div class="sk" style="width:70%;height:14px;border-radius:8px"></div>
+        <div class="sk" style="width:45%;height:14px;border-radius:8px;margin-top:10px"></div>
+
+        <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:26px">
+          ${[96, 80, 120, 110, 70, 135, 150, 105, 90, 115, 100, 60].map(pill).join("")}
+        </div>
+
+        <div class="sk" style="width:40px;height:12px;border-radius:6px;margin-top:20px"></div>
+        <div class="sk" style="width:100%;height:78px;border-radius:20px;margin-top:22px"></div>
+        <div class="sk" style="width:150px;height:46px;border-radius:999px;margin-top:22px"></div>
+      </div>
+    </div>
+  `;
+}
 
 function showSecuritySkeleton(target) {
   const container =
@@ -447,6 +472,10 @@ function runSectionInits(slug) {
       CallImagePickr();
       break;
 
+    case "skills":
+      window.initSkills();
+      break;
+      
     case "security":
       loadActiveSessions();
       calledIniterd();
@@ -482,6 +511,10 @@ async function loadSettingsSection(path, push = true) {
   
   if (finalPath.includes("/general")) {
     showProfileSkeleton(injectCard);
+  }
+
+  if (finalPath.includes("/skills")) {
+    showSkillsSkeleton(injectCard);
   }
 
   if (finalPath.includes("/linked-accounts")) {

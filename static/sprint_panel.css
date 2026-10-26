@@ -157,9 +157,9 @@ textarea:focus {
     padding: 12px 15px !important;
     height: calc(100dvh - 64px) !important;
     color: var(--text-main) !important;
-    min-height: calc(100dvh - 64px) !important;
+    min-height: calc(100dvh - 90px) !important;
     box-sizing: border-box;
-    max-height: calc(100dvh - 64px) !important;
+    max-height: calc(100dvh - 90px) !important;
     gap: 0;
     overflow: hidden;
   }

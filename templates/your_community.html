@@ -596,7 +596,7 @@
 
 <div class="topbar">
 
-  <div class="bar-quest-container" onclick="toggleSidebar()" style="flex: 0 0 auto;"
+  <div class="bar-quest-container" style="flex: 0 0 auto;"
       role="button" aria-label="Toggle menu" tabindex="0">
     <div class="bar-quest-init bar-top-init"></div>
     <div class="bar-quest-init bar-bottom-init"></div>
@@ -1633,7 +1633,9 @@ const communityList = document.querySelector('.community-list');
 
   const inputSerachComm = searchToggle.querySelector('.search-input');
 
-function toggleSidebar() {
+function toggleSidebar(e) {
+  e.preventDefault();
+  e.stopPropagation();
   const sidebar = document.getElementById('sidebar');
   const toggleBtn = document.querySelector('.bar-quest-container');
   document.body.classList.toggle('sidebar-open');
@@ -1896,44 +1898,87 @@ const topNav = document.querySelector(".topbar");
 
 if (topNav) {
   const SIDEBAR_CLASS = "sidebar-open";
-  let isPressing = false;
-
+  const isMobile = () => window.innerWidth < 768;
   const sidebarOpen = () => document.body.classList.contains(SIDEBAR_CLASS);
 
-  topNav.addEventListener("pointerdown", () => {
-    if (window.innerWidth > 768) return;
+  let isPressing = false;
+  let pressedOnToggle = false;
+
+  function toggleSidebar() {
+    document.body.classList.toggle(SIDEBAR_CLASS);
+  }
+
+  function playBounce() {
+    topNav.classList.remove("bounce-out");
+    void topNav.offsetWidth; // restart the animation
+    topNav.classList.add("bounce-out");
+  }
+
+  // Toggle immediately and bounce at the same time
+  function handleToggle() {
+    const opening = !sidebarOpen();
+    toggleSidebar();
+    if (isMobile() && opening) playBounce();
+  }
+
+  topNav.addEventListener("pointerdown", (e) => {
+    pressedOnToggle = !!e.target.closest(".bar-quest-container");
+    if (!isMobile()) return;
     if (sidebarOpen()) return;
     isPressing = true;
     topNav.classList.remove("bounce-out");
     topNav.classList.add("pressing");
   });
 
-  const release = () => {
-    if (!isPressing) return;
+  const release = (e) => {
+    const wasToggle =
+      pressedOnToggle &&
+      e.type === "pointerup" &&
+      !!e.target.closest(".bar-quest-container");
+
+    const wasPressing = isPressing;
+    pressedOnToggle = false;
     isPressing = false;
     topNav.classList.remove("pressing");
+
+    if (wasToggle) {
+      handleToggle(); // toggle + bounce together
+      return;
+    }
+
+    if (!wasPressing) return;
     if (sidebarOpen()) return;
-    void topNav.offsetWidth;
-    topNav.classList.add("bounce-out");
+    playBounce(); // plain topbar tap: bounce only
   };
 
   topNav.addEventListener("pointerup", release);
   topNav.addEventListener("pointercancel", release);
   topNav.addEventListener("pointerleave", release);
 
+  // Keyboard support for the hamburger (role="button" tabindex="0")
+  const toggleBtn = topNav.querySelector(".bar-quest-container");
+  if (toggleBtn) {
+    toggleBtn.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        handleToggle();
+      }
+    });
+  }
+
   window.addEventListener("load", () => {
-    if (window.innerWidth > 768) return;
+    if (!isMobile()) return;
     if (sidebarOpen()) return;
     if (isPressing || topNav.classList.contains("pressing")) return;
     if (topNav.classList.contains("bounce-out")) return;
 
-    void topNav.offsetWidth;
-    topNav.classList.add("bounce-out");
+    playBounce();
   });
 }
-  const communityDropdown = document.querySelector(".community-dropdown");
-  const profileCard = document.querySelector(".profile-card");
-  const profile = document.querySelector(".profile");
+
+const communityDropdown = document.querySelector(".community-dropdown");
+const profileCard = document.querySelector(".profile-card");
+const profile = document.querySelector(".profile");
 const MOBILE_TOPBAR_OFFSET = 64;
 
 const applyMobileOffset = (top) => {
@@ -2245,11 +2290,13 @@ function updateJoinBannerHeight() {
     return;
   }
 
-  const height = banner.offsetHeight + 10;
-  document.documentElement.style.setProperty("--join-banner-height", height + "px");
+  const rect = banner.getBoundingClientRect();
+  const height = rect.bottom + window.scrollY - 70 + 10;
+  document.documentElement.style.setProperty("--join-banner-height", Math.max(height, 0) + "px");
 }
 
 document.addEventListener("DOMContentLoaded", updateJoinBannerHeight);
+window.addEventListener("resize", updateJoinBannerHeight);
 
 
 async function acceptInvite(communitySlug, limitedCode) {
@@ -5571,7 +5618,7 @@ function getCommunitySlugFromPath(path = window.location.pathname) {
           <p class="ci-name">${data.name}</p>
           <p class="ci-about">You can use this link to invite anyone to this community.</p>
           <div class="ci-invite-link-wrap">
-            <input type="text" class="ci-invite-linked" value="${data.invite_link}" readonly onclick="this.select()"/>
+            <div class="ci-invite-linked" value="${data.invite_link}" onclick="this.select()">${data.invite_link}</div>
             <button type="button" class="ci-copy-btn">Copy</button>
           </div>
         </div>`;
@@ -7310,23 +7357,24 @@ function openLeaveCommunityModal() {
   modal.className = "show";
 
   modal.innerHTML = `
-
     <div class="lc-box">
-      <h3>Leave Community?</h3>
+      <div class="lc-body">
+        <h3>Leave Community?</h3>
 
-      <p class="lc-sub" style="margin-bottom: 20px">
-        If you leave this community, you will lose access to it — including
-        quests, leaderboard, and member activity.
-      </p>
+        <p class="lc-sub" style="margin-bottom: 20px">
+          If you leave this community, you will lose access to it — including
+          quests, leaderboard, and member activity.
+        </p>
 
-      <p class="lc-sub">
-        Your progress, completed quests, and position will remain saved,
-        but you won’t be able to view or continue them unless you rejoin.
-      </p>
+        <p class="lc-sub">
+          Your progress, completed quests, and position will remain saved,
+          but you won’t be able to view or continue them unless you rejoin.
+        </p>
 
-      <div class="lc-actions">
-        <button class="lc-cancel" onclick="closeLeaveModal()">Cancel</button>
-        <button class="lc-leave">Leave</button>
+        <div class="lc-actions">
+          <button class="lc-cancel" onclick="closeLeaveModal()">Cancel</button>
+          <button class="lc-leave">Leave</button>
+        </div>
       </div>
     </div>
   `;

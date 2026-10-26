@@ -6,6 +6,16 @@
   let currentEmail = "";
   const BANNER_W = 1200, BANNER_H = 400, BANNER_MAX_MB = 8;
 
+  // Keep every place that shows the username in sync after a save
+  function syncUsernameEverywhere(name) {
+    if (!name) return;
+    document
+      .querySelectorAll(".sidebar-title, [data-username-display]")
+      .forEach((el) => {
+        el.textContent = name;
+      });
+  }
+
   function showOTPStatus(container, html, type = "wait") {
     const statusEl = container.querySelector("#resendStatus");
     if (!statusEl) return;
@@ -426,7 +436,10 @@
 
         if (!res.ok) {
           // partial failure: keep whatever did save, then show the error
-          if (data.username) originalUsername = data.username;
+          if (data.username) {
+            originalUsername = data.username;
+            syncUsernameEverywhere(data.username);
+          }
 
           if (data.avatar_url) {
             originalAvatarSrc = data.avatar_url;
@@ -444,6 +457,7 @@
         // sync frontend state
         if (data.username) {
           originalUsername = data.username;
+          syncUsernameEverywhere(data.username);
         }
 
         if (data.avatar_url) {

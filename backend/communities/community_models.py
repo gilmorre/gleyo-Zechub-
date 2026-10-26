@@ -72,6 +72,13 @@ class Community(db.Model):
         cascade='all, delete'
     )
 
+    allowed_countries = db.relationship(
+        "CommunityCountry",
+        back_populates="community",
+        cascade="all, delete-orphan",
+        passive_deletes=True
+    )
+
     # ✅ Invite codes
     invitation_codes = db.relationship(
         "InvitationCode",
@@ -176,7 +183,23 @@ class Community(db.Model):
     def __repr__(self):
         return f"<Community {self.name}>"
 
+class CommunityCountry(db.Model):
+    __tablename__ = 'community_countries'
 
+    id = db.Column(db.Integer, primary_key=True)
+    community_id = db.Column(
+        db.Integer,
+        db.ForeignKey('communities.id', ondelete='CASCADE'),
+        nullable=False,
+        index=True
+    )
+    country_code = db.Column(db.String(2), nullable=False)  # "NG", "GH"
+
+    community = db.relationship("Community", back_populates="allowed_countries")
+
+    __table_args__ = (
+        db.UniqueConstraint('community_id', 'country_code', name='uq_community_country'),
+    )
 
 class InboxNotification(db.Model):
     __tablename__ = "inbox_notifications"

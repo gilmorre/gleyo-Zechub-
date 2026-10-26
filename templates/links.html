@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gleyo – Links v2</title>
+  <meta name="description" content="Official Gleyo links: website, partnerships and Telegram.">
+  <link rel="shortcut icon" href="https://zupdpwnloewdkjqsymdm.supabase.co/storage/v1/object/public/uploads/communities/7/logos/511f4996-5748-4f1f-b74c-5d5c33f7124c.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Syne:wght@600&display=swap" rel="stylesheet">
+  <style>
+    @property --edge-hi {
+      syntax: '<color>';
+      inherits: true;
+      initial-value: rgba(255, 255, 255, 0.42);
+    }
+    @property --edge-lo {
+      syntax: '<color>';
+      inherits: true;
+      initial-value: rgba(255, 255, 255, 0.05);
+    }
+
+    :root {
+      --text-main: #e5e7eb;
+      --text-muted: #bbbfc7;
+      --accent-color: #6366f1;
+      --bg-hover-hover-plain: #232339;
+      --bg-hover-hover: #2a2a449c;
+      --bg-hover-hover-init-q-qq: #161623;
+      --edge-hi: rgba(255, 255, 255, 0.42);
+      --edge-lo: rgba(255, 255, 255, 0.05);
+      --edge-w: 1px;
+    }
+
+    @media (min-resolution: 2dppx) {
+      :root { --edge-w: 0.75px; }
+    }
+
+    * {
+      -webkit-text-size-adjust: 100% !important;
+      -webkit-tap-highlight-color: transparent;
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+      background: radial-gradient(circle at 30% 20%, #151528 0%, #0b0b12 60%);
+      color: var(--text-main);
+      font-family: 'DM Sans', sans-serif;
+    }
+
+    /* ---------- Page layout ---------- */
+    .links-page {
+      display: flex;
+      width: 100%;
+      height: 100%;
+    }
+
+    .links-scroll {
+      flex: 1 1 100%;
+      min-width: 0;
+      display: flex;
+      overflow-y: auto;
+    }
+
+    .links-wrap {
+      margin: auto;
+      width: 100%;
+      max-width: 400px;
+      padding: 24px 20px 100px;
+      text-align: center;
+    }
+
+    /* ---------- Hero (tablet and larger) ---------- */
+    .links-hero {
+      display: none;
+      position: relative;
+      overflow: hidden;
+      flex: 1 1 70%;
+      min-width: 0;
+      margin: 16px 16px 16px 0;
+      border-radius: 28px;
+      border: var(--edge-w) solid rgba(255, 255, 255, 0.10);
+      background: radial-gradient(circle at 30% 20%, #2a2a55 0%, #161623 70%);
+    }
+
+    .links-hero-img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      display: block;
+      -webkit-user-drag: none;
+      user-select: none;
+    }
+
+    .links-hero::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        180deg,
+        rgba(11, 11, 18, 0) 40%,
+        rgba(11, 11, 18, 0.85) 100%
+      );
+      pointer-events: none;
+    }
+
+    .links-hero-caption {
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      z-index: 1;
+      padding: 40px;
+      text-align: left;
+    }
+
+    .links-hero-caption h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: 30px;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+      line-height: 1.2;
+      margin-bottom: 10px;
+    }
+
+    .links-hero-caption p {
+      max-width: 420px;
+      font-size: 15px;
+      line-height: 1.6;
+      color: var(--text-muted);
+    }
+
+    @media (min-width: 768px) {
+      .links-scroll { flex: 1 1 50%; }
+      .links-hero { display: block; }
+    }
+
+    /* ---------- Content ---------- */
+    .links-logo {
+      display: block;
+      width: 52px; height: 52px;
+      border-radius: 20px;
+      object-fit: cover;
+      margin: 0 auto 16px;
+      -webkit-user-drag: none;
+      user-select: none;
+    }
+
+    h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: 28px;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+      margin-bottom: 8px;
+    }
+
+    .links-sub { color: var(--text-muted); font-size: 14px; margin-bottom: 32px; }
+
+    .link-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .link-card {
+      position: relative;
+      display: flex; align-items: center; gap: 12px;
+      padding: 8px 14px;
+      border: var(--edge-w) solid transparent;
+      border-radius: 26px;
+      background: var(--bg-hover-hover-plain);
+      color: var(--text-main);
+      text-decoration: none;
+      text-align: left;
+      transition: background 0.2s ease, transform 0.2s ease,
+                  --edge-hi 0.2s ease, --edge-lo 0.2s ease;
+    }
+
+    .link-card::before {
+      content: "";
+      position: absolute;
+      inset: calc(var(--edge-w) * -1);
+      padding: var(--edge-w);
+      border-radius: inherit;
+      background: linear-gradient(
+        135deg,
+        var(--edge-hi) 0%,
+        var(--edge-lo) 28%,
+        var(--edge-lo) 72%,
+        var(--edge-hi) 100%
+      );
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+    }
+
+    .link-card:hover {
+      --edge-hi: rgba(255, 255, 255, 0.75);
+      --edge-lo: rgba(255, 255, 255, 0.08);
+      background: var(--bg-hover-hover);
+      transform: translateY(-1px);
+    }
+
+    .link-card:active { transform: translateY(0); }
+
+    .link-card:focus-visible {
+      outline: 2px solid #a5b4fc;
+      outline-offset: 2px;
+    }
+
+    .link-icon {
+      flex: 0 0 28px; width: 28px; height: 28px; border-radius: 12px;
+      color: #fff;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .link-icon svg { width: 18px; height: 18px; stroke-linecap: round; stroke-linejoin: round; }
+
+    .link-text { flex: 1; min-width: 0; }
+    .link-text br { display: none; }
+    .link-title, .link-desc { display: block; line-height: 1.25; }
+    .link-title { font-size: 14px; font-weight: 600; }
+    .link-desc {
+      font-size: 12px; color: var(--text-muted);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .link-arrow { color: var(--text-muted); font-size: 18px; line-height: 1; }
+  </style>
+</head>
+<body>
+  <div class="links-page">
+
+    <div class="links-scroll">
+      <main class="links-wrap">
+        <img class="links-logo" src="https://zupdpwnloewdkjqsymdm.supabase.co/storage/v1/object/public/uploads/communities/7/logos/511f4996-5748-4f1f-b74c-5d5c33f7124c.png" alt="Gleyo" width="52" height="52" draggable="false">
+        <h1>Gleyo</h1>
+        <p class="links-sub">Official links</p>
+
+        <div class="link-list">
+          <a class="link-card" href="https://gleyo.app" target="_blank" rel="noopener">
+            <span class="link-icon">
+                <svg fill="#fff" version="1.1" width="28" height="28" id="Capa_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 443.4 443.4" xml:space="preserve">
+                    <path d="M429.126,207.426c0-114.016-92.47-206.831-206.352-207.412C222.414,0.006,222.054,0,221.7,0s-0.714,0.005-1.074,0.014 C106.744,0.596,14.274,93.41,14.274,207.426c0,98.154,68.539,180.568,160.265,201.975l77.392,31.78 c3.834,1.472,7.693,2.219,11.473,2.219c0.001,0,0,0,0.001,0c9.516,0,15.583-4.697,16.531-5.482 c7.667-5.482,12.238-14.352,12.238-23.748c0-1.738-0.156-3.491-0.447-5.087l-0.396-2.923c1.487-0.734,2.932-1.473,4.31-2.205 c8.721-4.637,15.571-8.591,21.927-12.646C383.812,356.639,429.126,287.235,429.126,207.426z M383.046,180.064H307.79 c-2.063-41.676-8.824-80.377-19.552-111.057c-1.649-4.719-3.352-9.122-5.092-13.243C334.872,76.797,373.491,123.55,383.046,180.064 z M367.864,234.789c-0.712,1.344-1.559,2.787-2.391,4.184c-13.144,22.223-32.417,42.201-55.74,57.777 c-3.255,2.174-6.619,4.229-10.066,6.182c4.174-21.084,6.934-44.111,8.123-68.143H367.864z M196.488,83.457 c11.405-32.616,22.962-39.676,25.212-39.676s13.807,7.06,25.212,39.677c9.211,26.342,15.093,59.949,17.05,96.606h-84.522 C181.395,143.406,187.277,109.8,196.488,83.457z M263.961,234.789c-1.169,21.922-3.752,42.737-7.606,61.572 c-1.773-0.334-3.578-0.508-5.406-0.508c-6.417,0-12.752,2.16-17.838,6.086l-36.933,28.527 c-9.029-26.203-14.804-59.443-16.738-95.678H263.961z M160.254,55.764c-1.741,4.121-3.442,8.524-5.092,13.243 c-10.728,30.68-17.487,69.381-19.552,111.057H60.354C69.908,123.55,108.528,76.797,160.254,55.764z M60.354,234.789h75.255 c2.065,41.676,8.825,80.376,19.552,111.057c1.578,4.514,3.205,8.731,4.867,12.696c-0.112,0.103-0.22,0.208-0.329,0.312 C108.254,337.711,69.873,291.1,60.354,234.789z M262.993,418.149h-0.025c-0.521,0-1.029-0.102-1.513-0.3l-83.193-34.162 c-1.311-0.538-2.242-1.745-2.432-3.149c-0.189-1.404,0.39-2.813,1.511-3.68l71.173-54.976c0.693-0.537,1.559-0.83,2.434-0.83 c0.52,0,1.027,0.1,1.511,0.297c1.312,0.539,2.242,1.744,2.433,3.148l2.863,21.232l2.85-0.678 c22.505-5.34,44.332-14.797,63.126-27.349c26.444-17.662,48.379-40.45,63.43-65.896c1.386-2.326,2.84-4.832,4.079-7.405 c0.86-1.788,3.062-2.703,4.95-2.013c1.931,0.705,3,2.74,2.487,4.729c-3.63,14.111-10.169,27.308-15.459,37.226 c-7.777,14.586-17.217,28.416-28.051,41.107c-9.14,10.706-19.039,20.42-29.422,28.871c-6.537,5.321-13.326,10.28-20.18,14.74 c-6.211,4.042-12.921,7.938-21.757,12.637c-5.957,3.168-12.218,5.86-18.095,8.298l-1.885,0.782l3.001,22.257l0.043,0.237 c0.065,0.29,0.101,0.59,0.101,0.892C266.972,416.364,265.187,418.149,262.993,418.149z">
+                    </path> 
+                </svg>
+            </span>
+            <span class="link-text">
+              <span class="link-title">Website</span><br>
+              <span class="link-desc">gleyo.app</span>
+            </span>
+            <span class="link-arrow">&rsaquo;</span>
+          </a>
+
+          <a class="link-card" href="mailto:partnership@gleyo.app?subject=Partnership%20with%20Gleyo">
+            <span class="link-icon">
+                <svg viewBox="-0.5 0 25 25" width="28" height="28"  fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M9.00977 21.39H19.0098C20.0706 21.39 21.0881 20.9685 21.8382 20.2184C22.5883 19.4682 23.0098 18.4509 23.0098 17.39V7.39001C23.0098 6.32915 22.5883 5.31167 21.8382 4.56152C21.0881 3.81138 20.0706 3.39001 19.0098 3.39001H7.00977C5.9489 3.39001 4.93148 3.81138 4.18134 4.56152C3.43119 5.31167 3.00977 6.32915 3.00977 7.39001V12.39" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M1.00977 18.39H11.0098" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M1.00977 15.39H5.00977" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M22.209 5.41992C16.599 16.0599 9.39906 16.0499 3.78906 5.41992" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </span>
+            <span class="link-text">
+              <span class="link-title">Partnerships</span><br>
+              <span class="link-desc">partnership@gleyo.app</span>
+            </span>
+            <span class="link-arrow">&rsaquo;</span>
+          </a>
+
+          <a class="link-card" href="https://t.me/YOUR_TELEGRAM_HANDLE" target="_blank" rel="noopener">
+            <span class="link-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 100 100" fill="currentColor">
+                    <path d="M88.723,12.142C76.419,17.238,23.661,39.091,9.084,45.047c-9.776,3.815-4.053,7.392-4.053,7.392 s8.345,2.861,15.499,5.007c7.153,2.146,10.968-0.238,10.968-0.238l33.62-22.652c11.922-8.107,9.061-1.431,6.199,1.431 c-6.199,6.2-16.452,15.975-25.036,23.844c-3.815,3.338-1.908,6.199-0.238,7.63c6.199,5.246,23.129,15.976,24.082,16.691 c5.037,3.566,14.945,8.699,16.452-2.146c0,0,5.961-37.435,5.961-37.435c1.908-12.637,3.815-24.321,4.053-27.659 C97.307,8.804,88.723,12.142,88.723,12.142z"
+                    />
+                </svg>
+            </span>
+            <span class="link-text">
+              <span class="link-title">Telegram</span><br>
+              <span class="link-desc">Join the community</span>
+            </span>
+            <span class="link-arrow">&rsaquo;</span>
+          </a>
+        </div>
+      </main>
+    </div>
+
+    <aside class="links-hero" aria-hidden="true">
+      <img class="links-hero-img"
+           src="https://images.unsplash.com/photo-1673526759327-54f1f5b27322?q=80&w=2232&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D"
+           alt="" draggable="false"
+           onerror="this.style.display='none'">
+      <div class="links-hero-caption">
+        <h2>Join the communities on Gleyo</h2>
+        <p>Complete quests, climb the leaderboard and earn rewards with the community.</p>
+      </div>
+    </aside>
+
+  </div>
+</body>
+</html>

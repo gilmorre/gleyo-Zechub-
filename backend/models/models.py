@@ -4,7 +4,7 @@ import uuid
 from sqlalchemy.orm import object_session
 import random
 import string
-from sqlalchemy import Numeric
+from sqlalchemy import Numeric, false
 from datetime import datetime, timedelta
 
 
@@ -29,7 +29,13 @@ class Users(db.Model, UserMixin):
     )
     deletion_requested_at = db.Column(db.DateTime, nullable=True)
 
-
+    notify_opportunities = db.Column(
+        db.Boolean,
+        nullable=False,
+        default=False,
+        server_default=false()
+    )
+    skills_updated_at = db.Column(db.DateTime, nullable=True)
 
     roles = db.relationship('CommunityUserRole', back_populates='user', cascade='all, delete')
 
@@ -82,7 +88,12 @@ class Users(db.Model, UserMixin):
         cascade='all, delete'
     )
 
-
+    skills = db.relationship(
+        'UserSkill',
+        back_populates='user',
+        cascade='all, delete-orphan',
+        passive_deletes=True
+    )
 
     invitation_codes = db.relationship(
         "InvitationCode",
@@ -188,7 +199,29 @@ class Users(db.Model, UserMixin):
 
         db.session.commit()
 
+class UserSkill(db.Model):
+    __tablename__ = 'user_skills'
 
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey('users.id', ondelete='CASCADE'),
+        nullable=False,
+        index=True
+    )
+    skill = db.Column(db.String(40), nullable=False, index=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    user = db.relationship('Users', back_populates='skills')
+
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'skill', name='uq_user_skill'),
+    )
+
+    def __repr__(self):
+        return f"<UserSkill {self.user_id}:{self.skill}>"
+
+    
 class UserBalance(db.Model):
     __tablename__ = "user_balances"
 

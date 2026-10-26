@@ -457,6 +457,12 @@ async function runPageScript() {
     await loadScript("/static/createpasscode.js");
   }
 
+  if (document.querySelector("#skillsRoot")) {
+    document.title = "Your skills";
+    await loadScript("/static/skills.js?v=1");
+    initSkills();
+  }
+  
   swapHero(document.querySelector("#card") ? "secure" : "default");
 }
 

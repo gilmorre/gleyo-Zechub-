@@ -14,16 +14,20 @@ let addrCheckTimer      = null;
 let addrVerified        = false;
 let lastVerifiedAddr    = '';
 
-// Truncate (never round) to `dp` decimals.
-// toFixed(8) first cleans up float noise, and ZEC only has 8 decimals anyway.
+let destMode     = 'wallet';
+let nameTimer    = null;
+let nameReqId    = 0;
+let resolvedAddr = '';
+let resolvedName = '';
+
 function truncDecimals(n, dp) {
   const s = Number(n).toFixed(8);
   const [whole, frac = ''] = s.split('.');
   return dp > 0 ? whole + '.' + frac.slice(0, dp) : whole;
 }
 
-function fmtZec(n)       { return Number(n).toFixed(8); }    // exact, 8 dp
-function fmtRewardZec(n) { return truncDecimals(n, 4); }     // 0.00185 -> "0.0018"
+function fmtZec(n)       { return Number(n).toFixed(8); }
+function fmtRewardZec(n) { return truncDecimals(n, 4); }
 
 const earnedEl = document.getElementById('totalEarned');
 if (earnedEl) earnedEl.textContent = truncDecimals(zecTotalEarned, 2);
@@ -85,14 +89,12 @@ function txStatusClass(tx) {
   return 'pend';
 }
 
-// USDC/USDT are already USD; only ZEC needs the price conversion
 function txUsd(tx) {
   return (tx.token || '').toUpperCase() === 'ZEC'
     ? tx.amount * ZEC_PRICE_USD
     : tx.amount;
 }
 
-// No money moved on an expired tx, so show no sign
 function txSign(tx) {
   if (tx.status === 'expired') return '';
   return tx.type === 'in' ? '+' : '−';
@@ -172,20 +174,22 @@ function doCopy(b) {
   }, 1600);
 }
 
-function showAddrSpinner(r) {
-  if (r('addrErr')) r('addrErr').innerHTML = `
+function showAddrSpinner(r, target, text) {
+  const el = r(target || 'addrErr');
+  if (el) el.innerHTML = `
     <span style="display:inline-flex;align-items:center;gap:5px;color:var(--sub);font-size:11px">
       <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
            style="animation:zec-spin 0.8s linear infinite;flex-shrink:0">
         <circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.5"
                 stroke-dasharray="14 8" stroke-linecap="round"/>
       </svg>
-      Verifying shielded address…
+      ${text || 'Verifying shielded address…'}
     </span>`;
 }
 
-function showAddrOk(r) {
-  if (r('addrErr')) r('addrErr').innerHTML = `
+function showAddrOk(r, target) {
+  const el = r(target || 'addrErr');
+  if (el) el.innerHTML = `
     <span style="color:var(--green);display:inline-flex;align-items:center;gap:4px;font-size:11px">
       <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor" style="position: relative; top: 2px">
         <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
@@ -194,9 +198,108 @@ function showAddrOk(r) {
     </span>`;
 }
 
-function showAddrErr(r, msg) {
-  if (r('addrErr')) r('addrErr').innerHTML = `
+function showAddrErr(r, msg, target) {
+  const el = r(target || 'addrErr');
+  if (el) el.innerHTML = `
     <span style="color:var(--red,#f05070);font-size:11px">${msg}</span>`;
+}
+
+function getDest() {
+  if (destMode === 'name') return resolvedAddr;
+  return document.getElementById('destIn')?.value?.trim() || '';
+}
+
+function resetNameState() {
+  clearTimeout(nameTimer);
+  nameReqId++;
+  resolvedAddr = '';
+  resolvedName = '';
+  const r = id => document.getElementById(id);
+  if (r('nameIn'))      r('nameIn').value = '';
+  if (r('nameErr'))     r('nameErr').textContent = '';
+  if (r('resolvedBox')) r('resolvedBox').style.display = 'none';
+  if (r('resolvedAddr')) r('resolvedAddr').textContent = '—';
+}
+
+function setDestMode(mode) {
+  const r = id => document.getElementById(id);
+  destMode = mode === 'name' ? 'name' : 'wallet';
+
+  clearTimeout(addrCheckTimer);
+  clearTimeout(nameTimer);
+  nameReqId++;
+  addrVerified     = false;
+  lastVerifiedAddr = '';
+
+  r('tabWallet')?.classList.toggle('on', destMode === 'wallet');
+  r('tabName')?.classList.toggle('on', destMode === 'name');
+  if (r('destWalletGroup')) r('destWalletGroup').style.display = destMode === 'wallet' ? '' : 'none';
+  if (r('destNameGroup'))   r('destNameGroup').style.display   = destMode === 'name' ? '' : 'none';
+
+  if (destMode === 'name') {
+    if (r('destIn'))  r('destIn').value = '';
+    if (r('addrErr')) r('addrErr').textContent = '';
+    resetNameState();
+    setTimeout(() => r('nameIn')?.focus(), 50);
+  } else {
+    resetNameState();
+    if (r('destIn'))  r('destIn').value = '';
+    if (r('addrErr')) r('addrErr').textContent = '';
+  }
+  checkProcBtn();
+}
+
+function onNameInput() {
+  const r   = id => document.getElementById(id);
+  const raw = (r('nameIn')?.value || '').trim().toLowerCase();
+
+  clearTimeout(nameTimer);
+  nameReqId++;
+  addrVerified     = false;
+  lastVerifiedAddr = '';
+  resolvedAddr     = '';
+  resolvedName     = '';
+  if (r('resolvedBox')) r('resolvedBox').style.display = 'none';
+  if (r('nameErr'))     r('nameErr').textContent = '';
+  checkProcBtn();
+
+  if (!raw) return;
+
+  showAddrSpinner(r, 'nameErr', 'Resolving name…');
+  nameTimer = setTimeout(() => resolveName(raw), 1000);
+}
+
+async function resolveName(raw) {
+  const r    = id => document.getElementById(id);
+  const myId = ++nameReqId;
+
+  try {
+    const res  = await fetch('/api/wallet/zec/resolve-name', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+      body:    JSON.stringify({ name: raw })
+    });
+    const data = await res.json();
+    if (myId !== nameReqId) return;
+
+    if (!res.ok || !data.valid) {
+      showAddrErr(r, data.error || 'Name not found', 'nameErr');
+      checkProcBtn();
+      return;
+    }
+
+    resolvedAddr = data.address;
+    resolvedName = data.name;
+    if (r('resolvedAddr')) r('resolvedAddr').textContent = resolvedAddr.slice(0, 10) + '…' + resolvedAddr.slice(-6);
+    if (r('resolvedBox'))  r('resolvedBox').style.display = '';
+
+    showAddrSpinner(r, 'nameErr');
+    checkAddressBackend(resolvedAddr, r, 'nameErr');
+  } catch (_) {
+    if (myId !== nameReqId) return;
+    showAddrErr(r, 'Could not resolve name — check your connection', 'nameErr');
+    checkProcBtn();
+  }
 }
 
 function openWithdraw() {
@@ -222,11 +325,14 @@ function openWithdraw() {
 
   addrVerified     = false;
   lastVerifiedAddr = '';
+  setDestMode('wallet');
 
   r('wOv').classList.add('open');
 }
 
 function closeW() {
+  clearTimeout(nameTimer);
+  nameReqId++;
   document.getElementById('wOv').classList.remove('open');
 }
 
@@ -234,7 +340,6 @@ function bgClose(e, id) {
   if (e.target === document.getElementById(id)) document.getElementById(id).classList.remove('open');
 }
 
-// MAX just sets the exact balance — no division, no reduction
 function setMax() {
   if (zecBalance <= 0) return;
   const el = document.getElementById('amtIn');
@@ -251,7 +356,7 @@ function checkProcBtn() {
   procBtn.disabled = !(amt >= ZEC_MIN && amt <= zecBalance && addrVerified);
 }
 
-async function checkAddressBackend(addr, r) {
+async function checkAddressBackend(addr, r, target) {
   try {
     const res  = await fetch('/api/wallet/zec/validate-address', {
       method:  'POST',
@@ -259,19 +364,21 @@ async function checkAddressBackend(addr, r) {
       body:    JSON.stringify({ address: addr })
     });
     const data = await res.json();
+    if (addr !== getDest()) return;
     if (data.valid) {
       addrVerified     = true;
       lastVerifiedAddr = addr;
-      showAddrOk(r);
+      showAddrOk(r, target);
     } else {
       addrVerified     = false;
       lastVerifiedAddr = '';
-      showAddrErr(r, data.error || 'Invalid shielded address — not recognized on Zcash mainnet');
+      showAddrErr(r, data.error || 'Invalid shielded address — not recognized on Zcash mainnet', target);
     }
   } catch (_) {
+    if (addr !== getDest()) return;
     addrVerified     = false;
     lastVerifiedAddr = '';
-    showAddrErr(r, 'Could not verify address — check your connection');
+    showAddrErr(r, 'Could not verify address — check your connection', target);
   }
   checkProcBtn();
 }
@@ -313,7 +420,6 @@ function calcFee(amountOnly) {
     } else if (amt > zecBalance) {
       if (r('amtErr')) r('amtErr').textContent = 'Amount exceeds available balance';
     } else {
-      // Fees come OUT of the amount the user typed, not added on top
       const platformFee = parseFloat((amt * ZEC_PLATFORM).toFixed(8));
       const receive     = parseFloat((amt - platformFee - ZEC_NET_FEE).toFixed(8));
       const remaining   = parseFloat((zecBalance - amt).toFixed(8));
@@ -328,6 +434,8 @@ function calcFee(amountOnly) {
   }
 
   if (amountOnly) { checkProcBtn(); return; }
+
+  if (destMode === 'name') { checkProcBtn(); return; }
 
   if (!dest) {
     addrVerified = false;
@@ -368,7 +476,7 @@ function calcFee(amountOnly) {
 
 function toW2() {
   const amt   = parseFloat(document.getElementById('amtIn')?.value) || 0;
-  const dest  = document.getElementById('destIn')?.value?.trim() || '';
+  const dest  = getDest();
   const lower = dest.toLowerCase();
   const r     = id => document.getElementById(id);
 
@@ -377,7 +485,10 @@ function toW2() {
     showToast('Transparent addresses not accepted.', 'error');
     return;
   }
-  if (!dest) { showToast('Please enter a destination address.', 'error'); return; }
+  if (!dest) {
+    showToast(destMode === 'name' ? 'Please enter a Zcash name.' : 'Please enter a destination address.', 'error');
+    return;
+  }
   if (r('procBtn')?.disabled) {
     showToast('Please enter a valid shielded ZEC address.', 'error');
     return;
@@ -393,6 +504,9 @@ function toW2() {
   if (r('cFee'))  r('cFee').textContent  = fmtZec(platformFee) + ' ZEC';
   if (r('cRcv'))  r('cRcv').textContent  = fmtZec(receive) + ' ZEC';
 
+  if (r('cNameRow')) r('cNameRow').style.display = destMode === 'name' ? '' : 'none';
+  if (r('cName'))    r('cName').textContent      = destMode === 'name' ? resolvedName : '—';
+
   r('w1').style.display = 'none';
   r('w2').style.display = '';
 }
@@ -403,15 +517,12 @@ function toW1() {
 }
 
 function doSend() {
-  const dest  = document.getElementById('destIn')?.value?.trim() || '';
+  const dest  = getDest();
   const lower = dest.toLowerCase();
   if (lower.startsWith('u1')) { executeWithdraw(); return; }
   if (!tfaEnabled) { goToSettings(); return; }
   open2FA();
 }
-
-
-// ── Append pending tx to the top of the list ──────────────────────────────────
 
 function prependPendingTx(amt, dest) {
   const now = new Date();
@@ -437,9 +548,6 @@ function prependPendingTx(amt, dest) {
   const txCountEl = document.getElementById('txCount');
   if (txCountEl) txCountEl.textContent = ALL_TX.length;
 }
-
-
-// ── Render only 4 most recent transactions ────────────────────────────────────
 
 function renderRecentTx() {
   const container = document.getElementById('txContainer');
@@ -474,7 +582,7 @@ function renderRecentTx() {
 
 async function executeWithdraw() {
   const amt     = parseFloat(document.getElementById('amtIn')?.value) || 0;
-  const dest    = document.getElementById('destIn')?.value?.trim() || '';
+  const dest    = getDest();
   const sendBtn = document.querySelector('#w2 .cta:not(.cta-ghost)');
 
   if (sendBtn) {
@@ -760,7 +868,7 @@ function openTxFromAPI(i) {
   } else if (tx.status === 'expired') {
     color = 'var(--sub)';
   } else {
-    color = 'var(--amber)'; // pending
+    color = 'var(--amber)';
   }
 
   const sign   = txSign(tx);
@@ -817,7 +925,6 @@ document.addEventListener('keydown', e => {
 });
 
 
-// ══════════════════════════ DEPOSIT MODAL ══════════════════════════
 const depTokenSelect   = document.getElementById('depTokenSelect');
 const depTokenLabelEl  = document.getElementById('depTokenLabel');
 const depTokenOptions  = document.getElementById('depTokenOptions');
@@ -836,8 +943,6 @@ const DEP_NETWORKS_BY_TOKEN = {
   ZEC:  [{ value:'Zcash', label:'Zcash' }]
 };
 
-// Exact amount: at least 4 decimals, up to 8, trailing zeros trimmed (no rounding)
-// 0.00185 -> "0.00185", 0.5 -> "0.5000"
 function depFormatZec(n){
   const s  = Number(n).toFixed(8).replace(/0+$/, '');
   const dp = (s.split('.')[1] || '').length;
@@ -1012,7 +1117,6 @@ async function generateDeposit(){
   let zecAmount = rawAmount;
   if (selectedDepToken !== 'ZEC') {
     if (!ZEC_PRICE_USD) { showToast('Unable to fetch conversion rate right now.', 'error'); return; }
-    // Round UP (never down) so the user never underpays. toFixed(6) guards against float noise.
     zecAmount = Math.ceil(Number((depConvertToZec(rawAmount, selectedDepToken) * 10000).toFixed(6))) / 10000;
   }
 
@@ -1020,9 +1124,6 @@ async function generateDeposit(){
   btnContent.innerHTML = `<span class="spinner"></span> Generating…`;
 
   try {
-    // TODO(backend): implement this endpoint — mirrors pay.js's save_payment
-    // but scoped to the logged-in user's rewards deposit flow.
-    // Expected JSON: { id, address, amount (ZEC), created_at, server_time, expires_at }
     const res = await fetch('/api/wallet/zec/deposit/create', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
@@ -1189,8 +1290,6 @@ function checkDepositPayment(){
   btn.disabled = true;
   statusEl.innerHTML = `<span class="payment-waiting" style="color:var(--p-light)"><span class="spinner"></span> Checking payment...</span>`;
 
-  // TODO(backend): implement — mirrors pay.js's /<slug>/verify_payment/<id>.
-  // Expected JSON: { status: 'paid'|'pending'|'expired', stage?, new_balance? }
   fetch(`/api/wallet/zec/deposit/verify/${currentDepositId}`, { method: 'POST', headers: { 'X-CSRFToken': csrfToken } })
     .then(res => res.json())
     .then(data => {
@@ -1220,17 +1319,36 @@ function checkDepositPayment(){
     })
     .catch(() => { statusEl.innerHTML = '❌ Error checking payment.'; enterDepCooldown(); });
 }
+
+function openComingSoon() {
+  document.getElementById('csOv')?.classList.add('open');
+}
+
+function closeComingSoon() {
+  document.getElementById('csOv')?.classList.remove('open');
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    ['wOv', 'txOv', 'csOv'].forEach(id => document.getElementById(id)?.classList.remove('open'));
+    closeTFA();
+  }
+});
+
 setupOTPInputs();
 
 Object.assign(window, {
   doCopy, bgClose, openWithdraw, revealID, setMax, calcFee,
   toW2, toW1, doSend, closeW, closeTFA, goToSettings, openAll, openTxFromAPI,
   openDeposit, closeDeposit, generateDeposit, copyDepositAddress, shareDeposit, checkDepositPayment,
+  setDestMode, onNameInput,
+  openComingSoon, closeComingSoon,
 });
 
 ensureQrLib().catch(() => {
   console.warn('QR lib failed to preload, will retry on modal open');
 });
+
 
 window.ReviewModule = { init: loadTransactions };
 

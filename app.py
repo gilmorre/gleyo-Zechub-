@@ -24,6 +24,7 @@ from werkzeug.utils import secure_filename
 import threading
 import traceback
 import warnings
+import pycountry
 import logging
 import pyotp
 import qrcode
@@ -147,6 +148,7 @@ from backend.notifications.notifications import increment_review_notification
 from backend.utils.scheduler import check_and_update_invite_status
 from backend.quests.check_analytics import generate_all_insights
 from backend.auth.export import export_bp
+from backend.auth.skills_routes import skills_bp
 from backend.quests.invite_validation import invited_user_is_valid
 from backend.utils.upload_service import upload_async, send_push_notification_async, send_discord_message_async, send_quest_emails_async, send_mention_email_async, send_tip_email_async, send_xp_email_async, upload_executor, _upload_single
 import backend.utils.ai_init as ai_init 
@@ -190,6 +192,7 @@ from backend.integrations.youtubeAPI import youtube_bp
 from backend.integrations.twitter_task_checker import check_twitter_task_for_user
 from backend.integrations.tiktok_bp import tiktok_bp
 from backend.integrations.community_telegram import CommunityTelegramGroup
+from backend.auth.zcashnames import resolve as zns_resolve, ZnsError, ZONES
 from backend.auth.github import bp, check_if_starred, get_repo_forks
 from backend.auth.entitlements import (
     FeatureLocked, TEAM_ROLES, check_can_add_team_member,
@@ -219,11 +222,11 @@ from backend.utils.zec_worker import start_zec_worker, enqueue_zec_withdrawal
 # ─────────────────────────────────────────────────────────────
 # INTERNAL — MODELS
 # ─────────────────────────────────────────────────────────────
-from backend.models.models import Users, UserTwoFactor, PasswordResetToken, UserTransaction, UserBalance
+from backend.models.models import Users, UserTwoFactor, PasswordResetToken, UserTransaction, UserBalance, UserSkill
 from backend.communities.community_models import (
     Community, CommunityInteractionSettings, AIConversation,
     CommunityClaimUsage, CommunityWallet, CommunityWalletTransaction,
-    EarlyAccessApplication, ProWaitlist, SprintUserXP, CommunityUserXP,
+    EarlyAccessApplication, ProWaitlist, SprintUserXP, CommunityUserXP, CommunityCountry,
     CommunityInviteUsage, ReviewNotification, InboxNotification, AdminXPAction
 )
 from backend.utils.user_deposit_service import (
@@ -419,6 +422,7 @@ migrate = Migrate(app, db)
 
 
 executor = ThreadPoolExecutor(max_workers=10)
+app.register_blueprint(skills_bp)
 app.register_blueprint(bp_discord_bot)
 app.register_blueprint(twitter_bp)
 app.register_blueprint(telegram_bp)
@@ -449,6 +453,7 @@ ALLOWED_ROUTES = {
     "logoutinner",
     "zec_login_session",
     "wallet_guide",
+    "links",
     "zec_login_poll",
     "sitemap",
     "telegram_webhook",
@@ -7205,6 +7210,35 @@ def messages(community_slug):
 
 
 
+def get_user_country_code(user_id):
+    """Resolve the user's country code (e.g. 'NG') from their saved session location."""
+    s = None
+    sid = session.get("sid")
+    if sid:
+        s = UserSession.query.filter_by(session_uuid=sid, user_id=user_id).first()
+    if not s:
+        s = (UserSession.query
+             .filter_by(user_id=user_id)
+             .order_by(UserSession.last_seen.desc())
+             .first())
+
+    if not s or not s.location:
+        return None
+
+    # "Lagos, Nigeria" -> "Nigeria" | "Nigeria" -> "Nigeria"
+    country = s.location.split(",")[-1].strip()
+    if not country or country in ("Unknown", "Localhost"):
+        return None
+
+    try:
+        return pycountry.countries.lookup(country).alpha_2
+    except LookupError:
+        pass
+
+    try:
+        return pycountry.countries.search_fuzzy(country)[0].alpha_2
+    except LookupError:
+        return None
 
 
 @app.route("/<string:community_slug>/join_community", methods=["POST"])
@@ -7245,7 +7279,23 @@ def join_community(community_slug):
         }), 200
 
 
-    # 🔥 3. Membership history (THIS is your real guard)
+    # 🌍 3. Country restriction (empty list = open to everyone)
+    allowed_codes = {
+        c.country_code.upper() for c in community.allowed_countries
+    }
+
+    if allowed_codes:
+        user_country = get_user_country_code(user.id)
+
+        if not user_country or user_country not in allowed_codes:
+            return jsonify({
+                "success": False,
+                "code": "country_restricted",
+                "message": "This community isn't available in your country."
+            }), 403
+
+
+    # 🔥 4. Membership history (THIS is your real guard)
     has_joined_before = CommunityMembershipEvent.query.filter_by(
         user_id=user.id,
         community_id=community.id,
@@ -7258,7 +7308,7 @@ def join_community(community_slug):
     inviter_user_id = None
 
 
-    # 🔥 4. INVITE LOGIC (FORCED LOG + GUARDED)
+    # 🔥 5. INVITE LOGIC (FORCED LOG + GUARDED)
     if invitation_code:
 
         invite = InvitationCode.query.filter_by(
@@ -7304,7 +7354,7 @@ def join_community(community_slug):
                 status = "ignored"
 
 
-    # ✅ 5. Create membership
+    # ✅ 6. Create membership
     new_role = CommunityUserRole(
         user_id=user.id,
         community_id=community.id,
@@ -7313,7 +7363,7 @@ def join_community(community_slug):
     db.session.add(new_role)
 
 
-    # ✅ 6. Create membership event (SOURCE OF TRUTH)
+    # ✅ 7. Create membership event (SOURCE OF TRUTH)
     join_event = CommunityMembershipEvent(
         user_id=user.id,
         community_id=community.id,
@@ -7322,7 +7372,7 @@ def join_community(community_slug):
     db.session.add(join_event)
 
 
-    # ✅ 7. Ensure personal invite code exists
+    # ✅ 8. Ensure personal invite code exists
     existing_code = InvitationCode.query.filter_by(
         user_id=user.id,
         community_id=community.id
@@ -7342,7 +7392,7 @@ def join_community(community_slug):
     db.session.commit()
 
 
-    # ✅ 8. Update invite system (only if legit)
+    # ✅ 9. Update invite system (only if legit)
     if invite_used:
         check_and_update_invite_status(user.id, community.id)
 
@@ -11636,6 +11686,41 @@ def disconnect_zec():
 
 
 
+@app.route('/api/wallet/zec/resolve-name', methods=['POST'])
+@login_required
+def zec_resolve_name():
+    data = request.get_json(silent=True) or {}
+    name = (data.get('name') or '').strip().lower()
+
+    if not name or len(name) > 80:
+        return jsonify({'valid': False, 'error': 'Enter a Zcash name'}), 400
+
+    if '.' in name:
+        zone = name.rsplit('.', 1)[1]
+        if zone not in ZONES:
+            return jsonify({'valid': False, 'error': 'Use name or name.' + '/'.join(ZONES)}), 400
+        source = 'zcashnames'
+    else:
+        source = 'zcashme'
+
+    try:
+        res = zns_resolve(name, source)
+    except ZnsError as e:
+        return jsonify({'valid': False, 'error': str(e)}), 404
+    except Exception:
+        return jsonify({'valid': False, 'error': 'Name lookup unavailable, try again'}), 502
+
+    address = res['address']
+    if not is_valid_shielded_zec(address):
+        return jsonify({'valid': False, 'error': 'Name does not point to a valid shielded address'}), 400
+
+    return jsonify({
+        'valid': True,
+        'name': res['name'],
+        'address': address,
+        'source': res['source']
+    })
+
 @app.route('/api/wallet/zec/withdraw', methods=['POST'])
 @login_required
 @csrf.exempt
@@ -13616,7 +13701,55 @@ def update_community_role(community_slug, role_id):
     }), 200
 
 
+@app.route("/community/<community_slug>/settings/membership")
+@login_required
+@community_not_deleted()
+def settings_membership(community_slug):
+    ctx = load_settings_context(community_slug)
+    community = ctx["community"]
 
+    if not has_role(current_user.id, community.id, "admin"):
+        abort(403)
+
+    countries = sorted(c.country_code for c in community.allowed_countries)
+
+    if request.headers.get("X-Partial"):
+        return render_template(
+            "settings/membership.html",
+            community=community,
+            community_slug=community_slug,
+            countries=countries
+        )
+
+    return render_template(
+        "community_settings.html",
+        community=community,
+        community_slug=community_slug,
+        countries=countries
+    )
+
+@app.route("/community/<slug>/settings/membership/countries", methods=["POST"])
+@login_required            # use whatever auth you already use on settings routes
+def save_membership_countries(slug):
+    community = Community.query.filter_by(slug=slug).first_or_404()
+
+
+    data = request.get_json(silent=True) or {}
+    codes = data.get("countries", [])
+    if not isinstance(codes, list):
+        return jsonify({"error": "Invalid data"}), 400
+
+    clean = sorted({
+        c.upper() for c in codes
+        if isinstance(c, str) and re.fullmatch(r"[A-Za-z]{2}", c)
+    })
+
+    CommunityCountry.query.filter_by(community_id=community.id).delete()
+    for code in clean:
+        db.session.add(CommunityCountry(community_id=community.id, country_code=code))
+    db.session.commit()
+
+    return jsonify({"ok": True, "countries": clean})
 
 @app.route("/community/<community_slug>/settings/integrations/webhooks")
 @login_required
@@ -21044,150 +21177,9 @@ def get_private_access_context(user_id, community, came_from_invite=False):
     return {"private_locked": result}
 
 
-
-
-
-@app.route("/join_community/<community_slug>", methods=["POST"])
-@login_required
-@community_not_deleted()
-def join_community_mapper(community_slug):
-
-    data = request.get_json() or {}
-    community = Community.query.filter_by(slug=community_slug).first_or_404()
-
-    invitation_code = data.get("invitation_code")
-    is_limited = request.args.get("private") is not None
-
-    existing_role = CommunityUserRole.query.filter_by(
-        user_id=current_user.id,
-        community_id=community.id
-    ).first()
-
-    if existing_role:
-        return jsonify({"message": "Already a member"}), 200
-
-    try:
-        check_can_join(community)
-    except FeatureLocked as e:
-        return jsonify({"error": e.message, "community_full": True}), 403
-
-    security = CommunitySecurity.query.filter_by(community_id=community.id).first()
-    is_private = bool(security and security.private_community)
-    admins_only = bool(
-        security
-        and security.private_community
-        and security.invite_permission == "admins_only"
-    )
-
-    status = "active"
-    role_to_assign = "member"
-
-    if is_limited:
-        if not invitation_code:
-            return jsonify({"error": "Missing invitation code"}), 400
-
-        limited_code = LimitedCode.query.filter_by(
-            code=invitation_code,
-            community_id=community.id
-        ).with_for_update().first()
-
-        if not limited_code:
-            return jsonify({"error": "Invalid invite code"}), 404
-
-        if not limited_code.is_valid:
-            return jsonify({"error": "Invite code expired or already used"}), 410
-
-        role_to_assign = "member"
-
-        try:
-            limited_code.use()
-        except ValueError:
-            return jsonify({"error": "Invite code expired or already used"}), 410
-
-        log = CommunityInviteLog(
-            invited_user_id=current_user.id,
-            inviter_user_id=limited_code.inviter_user_id,
-            community_id=community.id,
-            invitation_code=invitation_code,
-            status=status,
-            consumed_at=datetime.utcnow()
-        )
-        db.session.add(log)
-
-    elif invitation_code:
-        if admins_only:
-            return jsonify({"error": "This community only accepts invites from admins"}), 403
-
-        invite_code = InvitationCode.query.filter_by(
-            code=invitation_code,
-            community_id=community.id
-        ).first()
-
-        if invite_code:
-            status = check_invite_status(
-                current_user.id,
-                community.id,
-                invitation_code
-            )
-
-            log = CommunityInviteLog(
-                invited_user_id=current_user.id,
-                inviter_user_id=invite_code.user_id,
-                community_id=community.id,
-                invitation_code=invitation_code,
-                status=status,
-                consumed_at=datetime.utcnow()
-                if status == "active" else None
-            )
-            db.session.add(log)
-
-    elif admins_only:
-        return jsonify({"error": "This community only accepts invites from admins"}), 403
-
-    elif is_private:
-        return jsonify({"error": "This is a private community and requires an invite"}), 403
-
-    new_role = CommunityUserRole(
-        user_id=current_user.id,
-        community_id=community.id,
-        role=role_to_assign
-    )
-    db.session.add(new_role)
-
-    join_event = CommunityMembershipEvent(
-        user_id=current_user.id,
-        community_id=community.id,
-        event_type="join"
-    )
-    db.session.add(join_event)
-
-    existing_code = InvitationCode.query.filter_by(
-        user_id=current_user.id,
-        community_id=community.id
-    ).first()
-
-    if not existing_code:
-        new_invite = InvitationCode(
-            user_id=current_user.id,
-            community_id=community.id
-        )
-        db.session.add(new_invite)
-    else:
-        new_invite = existing_code
-
-    db.session.commit()
-
-    check_and_update_invite_status(current_user.id, community.id)
-
-    for key in ("invite_flag", "inviter_username", "invite_code", "inviter_profile_pic", "is_limited_invite"):
-        session.pop(key, None)
-
-    return jsonify({
-        "message": "Joined successfully",
-        "status": status,
-        "role": role_to_assign,
-        "invite_code": new_invite.code
-    }), 200
+@app.route("/links")
+def links():
+    return render_template("links.html")
 
 
 @app.route("/<string:community_slug>/accept_invite/<string:limited_code>", methods=["POST"])
@@ -31303,6 +31295,7 @@ class UserAdmin(BaseAdmin):
         'email',
         'banner_pic',
         'username',
+        'skills_updated_at',
         'admin_display_name',
         'latest_twitter_username',
         'latest_discord_username',
@@ -31318,6 +31311,7 @@ class UserAdmin(BaseAdmin):
         'username': 'App Username',
         'admin_display_name': 'Admin Display Name',
         'latest_twitter_username': 'Latest Twitter Handle',
+        'skills_updated_at': 'Skill Updated_At',
         'latest_discord_username': 'Latest Discord Handle',
         'deletion_requested_at': 'Deleted At',
         'banner_pic': 'Banner Pic',
@@ -36060,7 +36054,86 @@ class CryptoCheckoutAdmin(BaseAdmin):
         "created_at": "Created At",
     }
 
+
+class CommunityCountryAdmin(BaseAdmin):
+    """
+    Countries a community is restricted to.
+    No rows for a community = open to anywhere.
+    These are normally set from the community's Membership settings page.
+    """
+
+    can_create = True
+    can_edit = True
+    can_delete = True
+    can_view_details = True
+
+    column_list = (
+        "id",
+        "community",
+        "country_code",
+    )
+
+    column_filters = (
+        "country_code",
+        "community.slug",
+    )
+
+    column_searchable_list = (
+        "country_code",
+        "community.slug",
+        "community.name",
+    )
+
+    column_default_sort = ("community_id", False)
+
+    column_labels = {
+        "id": "ID",
+        "community": "Community",
+        "country_code": "Country Code",
+    }
+
+class UserSkillAdmin(BaseAdmin):
+    """
+    Skills users picked on the /skills page.
+    Read-only: users manage these themselves.
+    Delete is enabled so you can clear a wrong or test row.
+    """
+
+    can_create = False
+    can_edit = False
+    can_delete = True
+    can_view_details = True
+
+    column_list = (
+        "id",
+        "user",
+        "skill",
+        "created_at",
+    )
+
+    column_filters = (
+        "skill",
+        "created_at",
+    )
+
+    column_searchable_list = (
+        "skill",
+        "user.username",
+        "user.email",
+    )
+
+    column_default_sort = ("created_at", True)
+
+    column_labels = {
+        "id": "ID",
+        "user": "User",
+        "skill": "Skill",
+        "created_at": "Created At",
+    }
+
+
 admin.add_view(UserAdmin(Users, db.session))
+admin.add_view(UserSkillAdmin(UserSkill, db.session))
 admin.add_view(UserTwoFactorAdmin(UserTwoFactor, db.session))
 admin.add_view(UserSessionAdmin(UserSession, db.session))
 admin.add_view(UserDiscordAdmin(UserDiscord, db.session))
@@ -36182,6 +36255,7 @@ admin.add_view(ChannelReadStateAdmin(ChannelReadState, db.session))
 admin.add_view(MessageMentionAdmin(MessageMention, db.session))
 admin.add_view(CryptoCheckoutAdmin(CryptoCheckout, db.session))
 admin.add_view(EnterpriseRequestAdmin(EnterpriseRequest, db.session))
+admin.add_view(CommunityCountryAdmin(CommunityCountry, db.session))
 
 @app.errorhandler(404)
 def page_not_found(e):
@@ -36259,4 +36333,4 @@ if __name__ == "__main__":
     )
     scheduler.start()
 
-    socketio.run(app, host="0.0.0.0", port=8000, debug=True)
+    socketio.run(app, host="0.0.0.0", port=8000)

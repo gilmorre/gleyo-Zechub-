@@ -1,0 +1,796 @@
+<style>
+  @property --edge-hi {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: rgba(255, 255, 255, 0.42);
+  }
+  @property --edge-lo {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: rgba(255, 255, 255, 0.05);
+  }
+
+  .mb-container {
+    --edge-hi: rgba(255, 255, 255, 0.253);
+    --edge-lo: rgba(255, 255, 255, 0.05);
+    --edge-w: 1px;
+    --mb-ease: cubic-bezier(.4, 0, .2, 1);
+    --mb-dur: .32s;
+    background: var(--bg-sidebar);
+    padding: 40px 20px 20px;
+    width: 520px;
+    max-width: 100%;
+    color: var(--text-main);
+  }
+
+  @media (min-resolution: 2dppx) {
+    .mb-container { --edge-w: 0.75px; }
+  }
+
+  @media (max-width: 768px) {
+    .mb-container {
+      width: 100%;
+      padding: 40px 15px 20px;
+    }
+  }
+
+  .mb-head h2 {
+    margin: 0;
+    font-size: 20px;
+    color: var(--text-main);
+  }
+
+  .mb-head span {
+    display: block;
+    margin-top: 4px;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  .mb-card {
+    position: relative;
+    margin-top: 24px;
+    background: var(--bg-surface);
+    border: var(--edge-w) solid transparent;
+    border-radius: 30px;
+    padding: 20px;
+  }
+
+  .mb-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: var(--edge-w);
+    border-radius: inherit;
+    background: linear-gradient(
+      135deg,
+      var(--edge-hi) 0%,
+      var(--edge-lo) 28%,
+      var(--edge-lo) 72%,
+      var(--edge-hi) 100%
+    );
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  .mb-title {
+    margin: 0 0 4px;
+    font-size: 16px;
+    color: var(--text-main);
+  }
+
+  .mb-sub {
+    margin: 0 0 18px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-muted);
+  }
+
+  .mb-seg {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 24px;
+    background: var(--bg-app);
+  }
+
+  .mb-seg-btn {
+    position: relative;
+    border: 0;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 13.5px;
+    font-weight: 550;
+    padding: 10px 12px;
+    border-radius: 19px;
+    cursor: pointer;
+    transition: background .2s ease, color .2s ease;
+  }
+
+  .mb-seg-btn::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: var(--edge-w);
+    border-radius: inherit;
+    background: linear-gradient(
+      135deg,
+      rgba(72, 136, 240, 0.9) 0%,
+      rgba(72, 136, 240, 0.12) 28%,
+      rgba(72, 136, 240, 0.12) 72%,
+      rgba(72, 136, 240, 0.9) 100%
+    );
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity .2s ease;
+    pointer-events: none;
+  }
+
+  .mb-seg-btn:hover { color: var(--text-main); }
+
+  .mb-seg-btn.active {
+    background: rgba(72, 136, 240, 0.18);
+    color: #fff;
+  }
+
+  .mb-seg-btn.active::before { opacity: 1; }
+
+  .mb-hint {
+    margin: 12px 2px 0;
+    font-size: 12.5px;
+    color: var(--text-muted);
+  }
+
+  .mb-picker-wrap {
+    display: grid;
+    grid-template-rows: 1fr;
+    transition: grid-template-rows var(--mb-dur) var(--mb-ease);
+  }
+
+  .mb-picker-wrap.mb-hidden {
+    grid-template-rows: 0fr;
+    pointer-events: none;
+  }
+
+  .mb-picker-inner {
+    min-height: 0;
+    opacity: 1;
+    visibility: visible;
+    transition: opacity var(--mb-dur) var(--mb-ease), visibility 0s;
+  }
+
+  .mb-picker-wrap:not(.mb-hidden) .mb-picker-inner {
+    animation: mbReveal var(--mb-dur) var(--mb-ease) both;
+  }
+
+  .mb-picker-wrap.mb-hidden .mb-picker-inner {
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity calc(var(--mb-dur) * .7) var(--mb-ease), visibility 0s var(--mb-dur);
+  }
+
+  @keyframes mbReveal {
+    0% { overflow: hidden; }
+    99% { overflow: hidden; }
+    100% { overflow: visible; }
+  }
+
+  .mb-picker-body { padding-top: 20px; }
+
+  .mb-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 6px;
+    font-size: 13px;
+    font-weight: 550;
+    color: var(--text-muted);
+  }
+
+  .mb-count {
+    font-weight: 500;
+    font-size: 12px;
+    color: #7fb0ff;
+  }
+
+  .mb-field {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    min-height: 48px;
+    padding: 9px 14px;
+    border-radius: 24px;
+    color: var(--text-main);
+    cursor: pointer;
+    border: var(--edge-w) solid transparent;
+    background:
+      linear-gradient(var(--bg-app), var(--bg-app)) padding-box,
+      linear-gradient(
+        135deg,
+        var(--edge-hi) 0%,
+        var(--edge-lo) 28%,
+        var(--edge-lo) 72%,
+        var(--edge-hi) 100%
+      ) border-box;
+    transition: --edge-hi .2s, --edge-lo .2s, box-shadow .2s;
+  }
+
+  .mb-field:hover,
+  .mb-field:focus-visible {
+    --edge-hi: rgba(72, 136, 240, 0.9);
+    --edge-lo: rgba(72, 136, 240, 0.2);
+    outline: none;
+  }
+
+  .mb-field:focus-visible { box-shadow: 0 0 0 3px rgba(72, 136, 240, 0.1); }
+
+  .mb-chips {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    max-height: 124px;
+    overflow-y: auto;
+    padding: 1px 0;
+  }
+
+  .mb-placeholder {
+    font-size: 14px;
+    line-height: 28px;
+    color: var(--text-muted);
+  }
+
+  .mb-field-action {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #7fb0ff;
+  }
+
+  .mb-field-action svg { width: 14px; height: 14px; }
+
+  .mb-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    padding: 0 6px 0 9px;
+    border-radius: 999px;
+    font-size: 12.5px;
+    background: rgba(72, 136, 240, 0.14);
+    border: 1px solid rgba(72, 136, 240, 0.35);
+    color: var(--text-main);
+    animation: mbPop .18s ease both;
+  }
+
+  .mb-chip b {
+    font-weight: 650;
+    font-size: 10.5px;
+    letter-spacing: .04em;
+    color: #7fb0ff;
+  }
+
+  .mb-chip button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+    color: inherit;
+    cursor: pointer;
+    transition: background .15s ease;
+  }
+
+  .mb-chip button:hover { background: rgba(255, 90, 90, 0.35); }
+  .mb-chip button svg { width: 10px; height: 10px; }
+
+  @keyframes mbPop {
+    from { opacity: 0; transform: scale(.85); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .mb-modal-backdrop {
+    --edge-hi: rgba(255, 255, 255, 0.253);
+    --edge-lo: rgba(255, 255, 255, 0.05);
+    --edge-w: 1px;
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.505);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s ease;
+  }
+
+  .mb-modal-backdrop.show {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .mb-modal {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 460px;
+    max-height: min(640px, calc(100vh - 40px));
+    background: rgba(34, 34, 54, 0.448);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    border: var(--edge-w) solid transparent;
+    border-radius: 26px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    color: var(--text-main);
+    transform: translateY(10px) scale(.98);
+    transition: transform .22s var(--mb-ease, ease);
+  }
+
+  .mb-modal-backdrop.show .mb-modal { transform: translateY(0) scale(1); }
+
+  .mb-modal::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: var(--edge-w);
+    border-radius: inherit;
+    background: linear-gradient(
+      135deg,
+      var(--edge-hi) 0%,
+      var(--edge-lo) 28%,
+      var(--edge-lo) 72%,
+      var(--edge-hi) 100%
+    );
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  .mb-modal-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 20px 20px 4px;
+  }
+
+  .mb-modal-head h4 {
+    margin: 0;
+    font-size: 17px;
+    color: var(--text-main);
+  }
+
+  .mb-modal-head p {
+    margin: 4px 0 0;
+    font-size: 12.5px;
+    color: var(--text-muted);
+  }
+
+    .mb-close {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: var(--edge-w) solid transparent;
+    border-radius: 50%;
+    background:
+        linear-gradient(var(--bg-app), var(--bg-app)) padding-box,
+        linear-gradient(
+        135deg,
+        var(--edge-hi) 0%,
+        var(--edge-lo) 28%,
+        var(--edge-lo) 72%,
+        var(--edge-hi) 100%
+        ) border-box;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: --edge-hi .2s, --edge-lo .2s, color .15s ease;
+    }
+
+    .mb-close:hover,
+    .mb-close:focus-visible {
+    --edge-hi: rgba(255, 255, 255, 0.7);
+    --edge-lo: rgba(255, 255, 255, 0.066);
+    color: var(--text-main);
+    outline: none;
+    }
+
+  .mb-close svg { width: 13px; height: 13px; }
+
+  .mb-search {
+    position: relative;
+    padding: 14px 20px 6px;
+  }
+
+  .mb-search svg {
+    position: absolute;
+    left: 34px;
+    top: 50%;
+    width: 16px;
+    height: 16px;
+    margin-top: 4px;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    pointer-events: none;
+  }
+
+.mb-search input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 14px 12px 40px;
+  border-radius: 20px !important;
+  border: var(--edge-w) solid transparent;
+  background:
+    linear-gradient(var(--bg-app), var(--bg-app)) padding-box,
+    linear-gradient(
+      135deg,
+      var(--edge-hi) 0%,
+      var(--edge-lo) 28%,
+      var(--edge-lo) 72%,
+      var(--edge-hi) 100%
+    ) border-box;
+  color: var(--text-main);
+  font-size: 14px;
+  outline: none;
+  transition: --edge-hi .2s, --edge-lo .2s;
+}
+
+.mb-search input:focus,
+.mb-search input:focus-visible {
+  --edge-hi: rgba(72, 136, 240, 0.9);
+  --edge-lo: rgba(72, 136, 240, 0.2);
+  outline: none;
+}
+
+  .mb-tools {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 6px 22px 8px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .mb-tools div { display: flex; gap: 12px; }
+
+  .mb-link {
+    border: 0;
+    padding: 0;
+    background: none;
+    color: #7fb0ff;
+    font-size: 12px;
+    font-weight: 550;
+    cursor: pointer;
+  }
+
+  .mb-link:hover { text-decoration: underline; }
+  .mb-link:disabled { opacity: .4; cursor: default; text-decoration: none; }
+
+  .mb-list {
+    flex: none;
+    min-height: 160px;
+    overflow-y: auto;
+    padding: 0 12px 8px;
+  }
+
+  .mb-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 10px;
+    border-radius: 10px;
+    font-size: 14px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .mb-item:hover,
+  .mb-item.active { background: var(--bg-hover-hover); }
+
+  .mb-check {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 10px;
+    border: 1.5px solid rgba(255, 255, 255, 0.28);
+    transition: background .15s ease, border-color .15s ease;
+  }
+
+  /* Checkmark drawn by ::after as a background image (works in Firefox + Chrome).
+     The inline SVG from the JS is hidden so there is only one tick. */
+  .mb-check svg { display: none; }
+
+  .mb-check::after {
+    content: "";
+    display: block;
+    width: 11px;
+    height: 11px;
+    background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='-5.0 -10.0 110.0 135.0' fill='%23a2c4e0'><path d='m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z'/></svg>") center / contain no-repeat;
+    transform: scale(0);
+    opacity: 0;
+    transition: transform .15s ease, opacity .15s ease;
+  }
+
+  .mb-item.selected .mb-check {
+    background: #4888f0;
+    border-color: #4888f0;
+  }
+
+  .mb-item.selected .mb-check::after {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  .mb-code {
+    flex-shrink: 0;
+    min-width: 28px;
+    text-align: center;
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-size: 10.5px;
+    font-weight: 650;
+    letter-spacing: .05em;
+    color: var(--text-muted);
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .mb-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-main);
+  }
+
+  .mb-empty {
+    padding: 36px 16px;
+    text-align: center;
+    font-size: 13.5px;
+    color: var(--text-muted);
+  }
+
+  .mb-modal-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 20px 18px;
+    border-top: 1px solid var(--border);
+  }
+
+  .mb-modal-count {
+    font-size: 12.5px;
+    color: var(--text-muted);
+  }
+
+  .mb-savebar {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows var(--mb-dur) var(--mb-ease);
+  }
+
+  .mb-savebar.show { grid-template-rows: 1fr; }
+
+  .mb-savebar-inner {
+    min-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity calc(var(--mb-dur) * .7) var(--mb-ease), visibility 0s var(--mb-dur);
+  }
+
+  .mb-savebar.show .mb-savebar-inner {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity var(--mb-dur) var(--mb-ease), visibility 0s;
+  }
+
+  .mb-savebar-body {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+
+  .mb-status {
+    font-size: 12.5px;
+    color: var(--text-muted);
+  }
+
+  .mb-status.error { color: #ff7a7a; }
+  .mb-status.ok { color: #6fd39a; }
+
+  .mb-actions { display: flex; gap: 8px; }
+
+  .mb-btn {
+    border: 0;
+    border-radius: 19px;
+    padding: 10px 18px;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity .2s ease, background .2s ease, box-shadow .2s ease, transform .1s ease;
+  }
+
+  .mb-btn.ghost {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+  }
+
+  .mb-btn.ghost:hover { color: var(--text-main); }
+
+  .mb-btn.primary {
+    background: #4888f0;
+    color: #fff;
+  }
+
+  .mb-btn.primary:hover:not(:disabled) {
+    background: #5a9bff !important;
+    box-shadow: 0 4px 14px rgba(72, 136, 240, 0.35);
+  }
+
+  .mb-btn.primary:active:not(:disabled) {
+    background: #3a74d6 !important;
+    box-shadow: none;
+    transform: translateY(1px);
+  }
+
+  .mb-btn.primary:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(72, 136, 240, 0.35);
+  }
+
+  .mb-btn.ghost:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .mb-btn:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+  }
+
+  @media (max-width: 768px) {
+    .mb-savebar-body { flex-direction: column; align-items: stretch; }
+    .mb-actions { justify-content: flex-end; }
+    .mb-modal-backdrop { padding: 0 15px; transition: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mb-chip, .mb-modal, .mb-modal-backdrop,
+    .mb-picker-wrap, .mb-picker-inner, .mb-savebar, .mb-savebar-inner,
+    .mb-seg-btn::before {
+      animation: none !important;
+      transition: none !important;
+    }
+  }
+</style>
+
+<div class="mb-container" id="mbRoot" data-countries="{{ countries|join(',') }}">
+
+  <div class="mb-head">
+    <h2>Membership</h2>
+    <span>Control who can join your community</span>
+  </div>
+
+  <div class="mb-card">
+    <h3 class="mb-title">Country restriction</h3>
+    <p class="mb-sub">Choose whether your community is open worldwide or limited to specific countries.</p>
+
+    <div class="mb-seg" role="tablist">
+      <button type="button" class="mb-seg-btn" data-mode="anywhere" role="tab">Anywhere</button>
+      <button type="button" class="mb-seg-btn" data-mode="selected" role="tab">Selected countries</button>
+    </div>
+
+    <p class="mb-hint" id="mbHint"></p>
+
+    <div class="mb-picker-wrap mb-hidden" id="mbPickerWrap">
+      <div class="mb-picker-inner">
+        <div class="mb-picker-body">
+          <div class="mb-label">
+            <span>Allowed countries</span>
+            <span class="mb-count" id="mbCount"></span>
+          </div>
+
+          <div class="mb-field" id="mbField" tabindex="0" role="button" aria-haspopup="dialog">
+            <div class="mb-chips" id="mbChips"></div>
+            <span class="mb-field-action">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+              </svg>
+              Edit
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mb-savebar" id="mbSaveBar">
+      <div class="mb-savebar-inner">
+        <div class="mb-savebar-body">
+          <span class="mb-status" id="mbStatus"></span>
+          <div class="mb-actions">
+            <button type="button" class="mb-btn ghost" id="mbDiscard">Discard</button>
+            <button type="button" class="mb-btn primary" id="mbSave">Save changes</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mb-modal-backdrop" id="mbModal">
+    <div class="mb-modal" role="dialog" aria-modal="true" aria-labelledby="mbModalTitle">
+      <div class="mb-modal-head">
+        <div>
+          <h4 id="mbModalTitle">Select countries</h4>
+          <p>Only people from these countries can join.</p>
+        </div>
+        <button type="button" class="mb-close" id="mbClose" aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="mb-search">
+        <svg viewBox="0 0 24 24" fill="none">
+          <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
+          <path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <input type="text" id="mbSearch" placeholder="Search countries" autocomplete="off" spellcheck="false">
+      </div>
+
+      <div class="mb-tools">
+        <span id="mbMeta"></span>
+        <div>
+          <button type="button" class="mb-link" id="mbSelectShown">Select all shown</button>
+          <button type="button" class="mb-link" id="mbClear">Clear all</button>
+        </div>
+      </div>
+
+      <div class="mb-list" id="mbList" role="listbox" aria-multiselectable="true"></div>
+
+      <div class="mb-modal-foot">
+        <span class="mb-modal-count" id="mbModalCount"></span>
+        <div class="mb-actions">
+          <button type="button" class="mb-btn ghost" id="mbCancel">Cancel</button>
+          <button type="button" class="mb-btn primary" id="mbApply">Apply</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

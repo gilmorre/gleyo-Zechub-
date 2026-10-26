@@ -3,200 +3,222 @@
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js" defer></script>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <style>
+@property --edge-hi { syntax: '<color>'; inherits: true; initial-value: rgba(255, 255, 255, 0.42); }
+@property --edge-lo { syntax: '<color>'; inherits: true; initial-value: rgba(255, 255, 255, 0.05); }
 
-*, *::before, *::after {
-  box-sizing: border-box !important;
-}
+*, *::before, *::after { box-sizing: border-box !important; }
 
 :root{
+  --edge-hi: rgba(255, 255, 255, 0.42);
+  --edge-lo: rgba(255,255,255,.05);
+  --edge-w: 1px;
   --p:#5b6ef5;--p-light:#7b8aff;
   --green:#12d87a;--amber:#f5a623;--red:#f05070;
-  --txt:#e8eaf0;--sub:#7a7f96;--sub2: #363653;
+  --txt:#e8eaf0;--sub:#7a7f96;--sub2:#363653;--ph:#a3a8c0;
   --card-shadow:0 2px 24px rgba(0,0,0,.45);
   --ff:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
 }
+@media (min-resolution: 2dppx){ :root{ --edge-w: .75px; } }
 html{-webkit-font-smoothing:antialiased;}
 input[type="number"]::-webkit-outer-spin-button,
-input[type="number"]::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
+input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+input[type="number"] { -moz-appearance: textfield; }
 
-input[type="number"] {
-  -moz-appearance: textfield;
-}
+.desktop-grid > div, .tx-section, .tx-card, .stx { min-width: 0; }
+.no-tx { text-align:center; color:var(--text-muted); font-size:14px; font-style:italic; padding:20px 0; }
 
-.desktop-grid > div {
-  min-width: 0;
+/* =====================================================
+   EDGE (gradient edge, replaces every border)
+===================================================== */
+.wallet,.stat,.tx-card,.tfa-box,.b-disp,.fbox,.dg,.w-addr,.net-badge,.zec-tag,
+.copy,.btn-s,.resolved-box,.custom-select-rp,.rp-options,.cta-ghost,
+.tfa-settings-btn,.exp-btn,.hash-box,.act-ic,.tx-dot,.sbadge,.req-badge,.maxbtn,.s-num,.suc-ring{
+  position: relative;
+  border: none !important;
 }
+.rp-options{ position:absolute; }
 
-.tx-section {
-  min-width: 0;
+/* NOTE: .sheet is intentionally NOT in this ::before list anymore.
+   It scrolls (overflow-y:auto), and an absolutely-positioned ::before
+   scrolls away with the content and distorts. .sheet draws its edge
+   with layered backgrounds instead (see the .sheet rule below). */
+.wallet::before,.stat::before,.tx-card::before,.tfa-box::before,.b-disp::before,.fbox::before,.sheet::before,
+.dg::before,.w-addr::before,.net-badge::before,.zec-tag::before,.copy::before,.btn-s::before,
+.resolved-box::before,.custom-select-rp::before,.rp-options::before,
+.cta-ghost::before,.tfa-settings-btn::before,.exp-btn::before,.hash-box::before,.act-ic::before,
+.tx-dot::before,.sbadge::before,.req-badge::before,.maxbtn::before,.s-num::before,.suc-ring::before{
+  content:""; position:absolute; inset:0; padding:var(--edge-w); border-radius:inherit;
+  background:linear-gradient(135deg,var(--edge-hi) 0%,var(--edge-lo) 28%,var(--edge-lo) 72%,var(--edge-hi) 100%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor; mask-composite:exclude;
+  pointer-events:none; z-index:2;
 }
+/* inputs can't have ::before, so layered backgrounds */
+.iw input,.otp-cell,.cv-plain{
+  border: var(--edge-w) solid transparent !important;
+  background:
+    linear-gradient(var(--surface2-dip),var(--surface2-dip)) padding-box,
+    linear-gradient(135deg,var(--edge-hi) 0%,var(--edge-lo) 28%,var(--edge-lo) 72%,var(--edge-hi) 100%) border-box !important;
+  transition: --edge-hi .2s, --edge-lo .2s;
+}
+.otp-cell{ background:
+    linear-gradient(var(--surface2-dipper),var(--surface2-dipper)) padding-box,
+    linear-gradient(135deg,var(--edge-hi) 0%,var(--edge-lo) 28%,var(--edge-lo) 72%,var(--edge-hi) 100%) border-box !important; }
+.iw input:focus,.otp-cell:focus,.cv-plain:focus{ --edge-hi:rgba(72,136,240,.9); --edge-lo:rgba(72,136,240,.2); }
+.otp-cell.err{ --edge-hi:rgba(240,80,112,.9); --edge-lo:rgba(240,80,112,.25); }
+.otp-cell.ok{ --edge-hi:rgba(18,216,122,.9); --edge-lo:rgba(18,216,122,.25); }
+.custom-select-rp.open{ --edge-hi:rgba(72,136,240,.9); --edge-lo:rgba(72,136,240,.2); }
+.copy.ok{ --edge-hi:rgba(18,216,122,.8); --edge-lo:rgba(18,216,122,.2); }
+.stat:hover,.btn-s:hover,.cta-ghost:hover:not(:disabled),.exp-btn:hover,.copy:hover{ --edge-hi:rgba(255,255,255,.65); }
+.tfa-settings-btn:hover{ --edge-hi:rgba(72,136,240,.9); --edge-lo:rgba(72,136,240,.25); }
+.sbadge.in,.tx-dot.in{ --edge-hi:rgba(18,216,122,.55); --edge-lo:rgba(18,216,122,.1); }
+.sbadge.pend,.tx-dot.pend,.req-badge,.maxbtn{ --edge-hi:rgba(245,166,35,.55); --edge-lo:rgba(245,166,35,.1); }
+.sbadge.out,.tx-dot.out,.sbadge.exp,.tx-dot.exp{ --edge-hi:rgba(240,80,112,.55); --edge-lo:rgba(240,80,112,.1); }
+.maxbtn{ --edge-hi:rgba(91,110,245,.6); --edge-lo:rgba(91,110,245,.12); }
+.suc-ring{ --edge-hi:rgba(18,216,122,.7); --edge-lo:rgba(18,216,122,.15); }
+.s-step.on .s-num{ --edge-hi:rgba(160,175,255,.9); --edge-lo:rgba(160,175,255,.2); }
+.s-step.done .s-num{ --edge-hi:rgba(18,216,122,.8); --edge-lo:rgba(18,216,122,.2); }
 
-.tx-card {
-  min-width: 0;
-}
+/* divider lines without borders */
+.tx-row,.stx,.dr,.rp-option{ box-shadow: inset 0 -1px 0 rgba(255,255,255,.05); }
+.tx-row:last-child,.stx:last-child,.dr:last-child,.rp-option:last-child{ box-shadow:none; }
 
-.stx {
-  min-width: 0;
-}
-
-.no-tx {
-  text-align: center;
-  color: var(--text-muted);
-  font-size: 14px;
-  font-style: italic;
-  padding: 20px 0;
-}
-/* NAV */
+/* =====================================================
+   NAV
+===================================================== */
 .topnav-reward{
   position:sticky;top:0;z-index:10;
   display:flex;align-items:center;justify-content:space-between;
-  padding:14px 18px;
-  width: 100%;
+  padding:14px 18px;width:100%;
   background:var(--bg-surface-trans);
   backdrop-filter:blur(18px);
-  border-bottom:0.9px solid var(--border);
+  box-shadow:0 1px 0 rgba(255,255,255,.06);
 }
 .nav-logo{display:flex;align-items:center;gap:9px;font-weight:600;font-size:.95rem;letter-spacing:-.01em;}
-.nav-mark{
-  width:28px;height:28px;border-radius:8px;flex-shrink:0;
-  background:linear-gradient(135deg,var(--p),#7b4fff);
-  display:flex;align-items:center;justify-content:center;
+.nav-mark {
+  --edge-hi: rgba(255, 255, 255, 0.95);
+  --edge-lo: rgba(255, 255, 255, 0.35);
+  --edge-w: 1.5px;
+
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+
+  border: var(--edge-w) solid transparent !important;
+  background:
+    linear-gradient(135deg, var(--p), #7b4fff) padding-box,
+    linear-gradient(135deg, var(--edge-hi) 0%, var(--edge-lo) 28%, var(--edge-lo) 72%, var(--edge-hi) 100%) border-box !important;
 }
-.net-badge{
-  display:flex;align-items:center;gap:6px;
-  background:var(--surface2);border:1px solid var(--border2);
-  border-radius:20px;padding:4px 10px 4px 7px;
-  font-size:.72rem;font-weight:500;color:var(--sub);
-}
+
+.net-badge{display:flex;align-items:center;gap:6px;background:var(--surface2);border-radius:20px;padding:4px 10px 4px 7px;font-size:.72rem;font-weight:500;color:var(--sub);}
 .pulse{width:7px;height:7px;border-radius:50%;background:var(--green);position:relative;flex-shrink:0;}
 .pulse::after{content:'';position:absolute;inset:-2px;border-radius:50%;background:var(--green);opacity:.35;animation:pulse 1.8s infinite;}
 @keyframes pulse{0%,100%{transform:scale(1);opacity:.35}50%{transform:scale(1.7);opacity:0}}
 
-/* PAGE — always centered */
 .page{width:100%;max-width:740px;margin:0 auto;padding:20px 16px 80px;}
 @media(min-width:1126px){.page{padding:32px 24px 60px;}}
+.desktop-grid{display:grid;grid-template-columns:1fr;gap:14px;min-width:0}
+@media(min-width:1126px){.desktop-grid{grid-template-columns:1fr 300px;gap:20px;align-items:start;}}
 
-.desktop-grid{display:grid;grid-template-columns:1fr;gap:14px; min-width:0}
-@media(min-width:1126px){
-  .desktop-grid{grid-template-columns:1fr 300px;gap:20px;align-items:start;}
-}
-
-/* WALLET */
+/* =====================================================
+   WALLET
+===================================================== */
 .wallet{
-  background:linear-gradient(145deg,#1c1f2e 0%,rgba(19,21,32,.2) 60%,#0f1118 100%);
-  border:1px solid var(--border2);border-radius:20px;
-  padding:22px 20px;margin-bottom:14px;
-  position:relative;overflow:hidden;box-shadow:var(--card-shadow);
-}
-.wallet::before{
-  content:'';
-  position:absolute;
-  top:-40px;
-  right:-40px;
-  width:180px;
-  height:180px;
-  border-radius:50%;
-  background: radial-gradient(
-    circle,
-    rgba(244, 183, 40, 0.111) 0%,
-    transparent 70%
-  );
-  pointer-events:none;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(244,183,40,.11) 0, transparent 170px),
+    linear-gradient(145deg,#1c1f2e 0%,rgba(19,21,32,.2) 60%,#0f1118 100%);
+  border-radius:30px;padding:22px 20px;margin-bottom:14px;
+  overflow:hidden;box-shadow:var(--card-shadow);
 }
 .w-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
 .w-user{display:flex;align-items:center;gap:10px;}
 .w-avatar{
-  width:36px;height:36px;border-radius:10px;flex-shrink:0;
-  background:linear-gradient(135deg,var(--p),#9b59f5);
+  width:36px;height:36px;border-radius:50%;flex-shrink:0;overflow:hidden;
   display:flex;align-items:center;justify-content:center;
-  font-size:.72rem;font-weight:700;letter-spacing:.04em;
+  font-size:.72rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
 }
-.no-backgorund {
-  background: transparent;
-  overflow: hidden;
-  border-radius: 50% !important;
-
-}
-
+.w-avatar img{width:100%;height:100%;object-fit:cover;display:block;}
 .w-name{font-weight:600;font-size:.88rem;}
 .w-id{font-size:.7rem;color:var(--sub);margin-top:1px;}
-.zec-tag{
-  display:flex;align-items:center;gap:5px;
-  background:rgba(91,110,245,.12);border:1px solid rgba(91,110,245,.25);
-  border-radius:20px;padding:5px 10px 5px 7px;
-  font-size:.72rem;font-weight:600;color:var(--p-light);
-}
-.zec-circle{width:18px;height:18px;border-radius:50%;background:var(--p);display:flex;align-items:center;justify-content:center;}
+.zec-tag{display:flex;align-items:center;gap:5px;background:rgba(244,183,40,.12);border-radius:20px;padding:5px 10px 5px 7px;font-size:.72rem;font-weight:600;color:#F4B728;--edge-hi:rgba(244,183,40,.6);--edge-lo:rgba(244,183,40,.1);}
+.zec-circle{width:18px;height:18px;border-radius:50%;background:#F4B728;display:flex;align-items:center;justify-content:center;}
 .w-bal-lbl{font-size:.72rem;color:var(--sub);margin-bottom:5px;}
 .w-bal{font-size:2rem;font-weight:600;letter-spacing:-.03em;line-height:1;}
 .w-bal em{font-style:normal;font-size:1rem;color:var(--sub);margin-left:4px;}
 @media(min-width:1126px){.w-bal{font-size:2.4rem;}}
 .w-usd{font-size:.73rem;color:var(--sub);margin-top:5px;margin-bottom:18px;}
 .w-usd b{color:var(--txt);}
-.w-addr{
-  display:flex;align-items:center;justify-content:space-between;
-  background:var(--surface2);border:1px solid var(--border);
-  border-radius:12px;padding:10px 12px;
-}
+.w-addr{display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border-radius: 20px;padding:10px 17px;}
 .wa-lbl{font-size:.65rem;color:var(--sub2);margin-bottom:2px;}
 .wa-val{font-family:var(--mono);font-size:.78rem;color:var(--txt);}
-.copy{
-  display:flex;align-items:center;gap:5px;
-  background:var(--surface);border:1px solid var(--border2);
-  border-radius:8px;padding:6px 10px;
-  font-size:.7rem;font-weight:500;color:var(--sub);
-  cursor:pointer;transition:all .15s;font-family:var(--ff);
-}
-.copy:hover{color:var(--txt);border-color:var(--sub2);}
-.copy.ok{color:var(--green);border-color:rgba(18,216,122,.3);}
+.copy{display:flex;align-items:center;gap:5px;background:var(--surface);border-radius: 14px;padding:7px 10px;font-size:.7rem;font-weight:500;color:var(--sub);cursor:pointer;transition:all .15s;font-family:var(--ff);}
+.copy:hover{color:var(--txt);}
+.copy.ok{color:var(--green);}
 
 /* STATS */
-.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
-.stat { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 14px 16px; cursor: pointer; transition: border-color .15s, transform .12s; }
-.stat:hover { border-color: var(--border2); transform: translateY(-1px); }
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.stat{background:var(--surface);border-radius:24px;padding:14px 16px;cursor:pointer;transition:transform .12s;}
+.stat:hover{transform:translateY(-1px);}
+.stat-icon-wrap{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;flex-shrink:0;}
+.stat.g .stat-icon-wrap{background:rgba(18,216,122,.1);}
+.stat.a .stat-icon-wrap{background:rgba(245,166,35,.1);}
+.stat-lbl{font-size:14px;color:#bbbfc7;margin-bottom:6px;opacity:.9;}
+.stat-val-row{display:flex;align-items:baseline;gap:6px;}
+.stat-val{font-size:1.5rem;font-weight:600;letter-spacing:-.02em;line-height:1;}
+.stat-note{font-size:10px;color:#bbbfc7;}
+.stat.g .stat-val{color:var(--green);}
+.stat.a .stat-val{color:var(--amber);}
 
-.stat-icon-wrap {
-  width: 32px; height: 32px; border-radius: 9px;
-  display: flex; align-items: center; justify-content: center;
-  margin-bottom: 12px; flex-shrink: 0;
+/* =====================================================
+   ACTIONS (Bybit style: round icon on top, label below)
+===================================================== */
+.actions-4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;}
+@media(min-width:1126px){.actions-4{margin-bottom:0;}}
+.act{
+  background:none;border:none;padding:6px 0;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  color:var(--txt);font-family:var(--ff);font-size:.74rem;font-weight:500;
+  -webkit-tap-highlight-color:transparent;
 }
-.stat.g .stat-icon-wrap { background: rgba(18,216,122,.1); }
-.stat.a .stat-icon-wrap { background: rgba(245,166,35,.1); }
+.act-ic{
+  width:54px;height:54px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--surface2);color:var(--txt);
+  transition:transform .15s, filter .15s;
+}
+.act:hover .act-ic{transform:translateY(-2px);filter:brightness(1.12);}
+.act:active .act-ic{transform:scale(.95);}
+.act-ic svg{width:21px;height:21px;}
+.act-ic.amber{background:linear-gradient(135deg,#F4B728,#c9890a);color:#0a0500;box-shadow:0 4px 14px rgba(244,183,40,.22);--edge-hi:rgba(255,230,160,.7);--edge-lo:rgba(255,230,160,.1);}
+.act-ic.purple{background:linear-gradient(135deg,var(--p),#7b4fff);color:#fff;box-shadow:0 4px 14px rgba(91,110,245,.22);--edge-hi:rgba(190,200,255,.7);--edge-lo:rgba(190,200,255,.1);}
+.act-ic.green{background:linear-gradient(135deg,#12d87a,#0a9c58);color:#02150b;box-shadow:0 4px 14px rgba(18,216,122,.2);--edge-hi:rgba(170,255,210,.7);--edge-lo:rgba(170,255,210,.1);}
+.act-lbl{color:var(--txt);opacity:.92;}
 
-.stat-lbl { font-size: 14px; color: #bbbfc7; margin-bottom: 6px; opacity: 0.9; }
-
-.stat-val-row { display: flex; align-items: baseline; gap: 6px; }
-.stat-val { font-size: 1.5rem; font-weight: 600; letter-spacing: -.02em; line-height: 1; }
-.stat-note { font-size: 10px; color: #bbbfc7; }
-.stat.g .stat-val { color: var(--green); }
-.stat.a .stat-val { color: var(--amber); }
-
-/* ACTIONS */
-.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
-@media(min-width:1126px){.actions{margin-bottom:0;}}
+/* buttons */
 .btn{display:flex;align-items:center;justify-content:center;gap:7px;padding:13px;border-radius:13px;font-size:.85rem;font-weight:600;cursor:pointer;border:none;font-family:var(--ff);transition:all .15s;}
 .btn-p{background:linear-gradient(135deg,var(--p),#7b4fff);color:#fff;}
 .btn-p:hover{filter:brightness(1.1);transform:translateY(-1px);}
-.btn-s{background:var(--surface2);border:1px solid var(--border2);color:var(--txt);}
-.btn-s:hover{border-color:var(--sub2);transform:translateY(-1px);}
+.btn-s{background:var(--surface2);color:var(--txt);}
+.btn-s:hover{transform:translateY(-1px);}
 
 /* TRANSACTIONS */
-.tx-section{margin-bottom:0;}
 .sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding:0 2px;}
 .sec-title{font-weight:600;font-size:.88rem;}
 .see-all{background:none;border:none;color:var(--p-light);font-size:.75rem;cursor:pointer;font-family:var(--ff);font-weight:500;}
 .see-all:hover{color:var(--p);}
-.tx-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;}
-.tx-row{display:flex;align-items:center;gap:11px;padding:13px 14px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .12s; min-width:0}
-.tx-row:last-child{border-bottom:none;}
+.tx-card{background:var(--surface);border-radius: 30px;overflow:hidden; padding: 5px 4px;}
+.tx-row{display:flex;align-items:center;gap:11px;padding:13px 14px;cursor:pointer;transition:background .12s;min-width:0}
 .tx-row:hover{background:var(--surface2);}
 .tx-dot{width:32px;height:32px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
-.tx-dot.in{background:rgba(18,216,122,.1);border:1px solid rgba(18,216,122,.2);}
-.tx-dot.pend{background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.2);}
-.tx-dot.out{background:rgba(240,80,112,.1);border:1px solid rgba(240,80,112,.2);}
+.tx-dot.in{background:rgba(18,216,122,.1);}
+.tx-dot.pend{background:rgba(245,166,35,.1);}
+.tx-dot.out{background:rgba(240,80,112,.1);}
 .tx-info{flex:1;min-width:0;}
 .tx-desc{font-size:.8rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .tx-time{font-size:.67rem;color:var(--sub);margin-top:2px;}
@@ -208,51 +230,44 @@ input[type="number"] {
 .tx-usd{font-size:10px;color:#bbbfc7;margin-top:1px;}
 .chevron{color:var(--sub2);flex-shrink:0;margin-left:4px;}
 
-/* MODALS */
-.overlay{
-  position:fixed;inset:0;z-index:100;
-  background:rgba(0,0,0,.65);backdrop-filter:blur(6px);
-  display:flex;align-items:flex-end;justify-content:center;
-  opacity:0;pointer-events:none;transition:opacity .22s;
-}
+/* =====================================================
+   SHEETS / OVERLAYS
+===================================================== */
+.overlay{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .22s;}
 .overlay.open{opacity:1;pointer-events:all;}
+
 .sheet{
-  background:var(--bg-surface-lighter);border:0.9px solid var(--border2);
-  width:100%;max-width:480px;max-height:90vh;overflow-y:auto;
-  padding:20px 20px 32px;
-  border-radius:22px 22px 0 0;;
-  backdrop-filter: blur(14px);
+  width:100%;max-width:480px;
+  background:var(--card-bg-glassy);
+  border-radius:29px !important;
+  backdrop-filter:blur(3px);
+  position:relative;
   transform:translateY(30px);opacity:0;
   transition:transform .28s cubic-bezier(.22,.8,.36,1),opacity .22s;
 }
+/* .sheet = static shell that owns the ::before ring (never scrolls).
+   .sheet-in = the part that scrolls. */
+.sheet-in{
+  max-height:90vh;overflow-y:auto;
+  padding:20px 20px 32px;
+  border-radius:inherit;
+  scrollbar-width:none;
+}
+.sheet-in::-webkit-scrollbar{display:none;}
 .overlay.open .sheet{transform:translateY(0);opacity:1;}
-.handle{width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 18px;display:block;}
+.handle{width:36px;height:4px;background:rgba(255,255,255,.14);border-radius:2px;margin:0 auto 18px;display:block;}
 @media(min-width:1126px){
   .overlay{align-items:center;justify-content:center;padding:24px;}
-  .sheet{border-radius:20px;transform:translateY(16px) scale(.98);max-height:82vh;max-width:520px;}
+  .sheet{border-radius:20px;transform:translateY(16px) scale(.98);max-width:520px;}
+  .sheet-in{max-height:82vh;}
   .overlay.open .sheet{transform:translateY(0) scale(1);}
   .handle{display:none;}
 }
+@media(max-width:1126px){ .sheet{border-bottom-left-radius: 0 !important; border-bottom-right-radius: 0 !important;} .sheet-in{max-height:90dvh !important;} }
 
-@media(max-width:1126px){
-  .sheet {
-    max-height: 90dvh !important;
-  }
-}
-.tfa-overlay{
-  position:fixed;inset:0;z-index:200;
-  background:rgba(0,0,0,.7);backdrop-filter:blur(8px);
-  display:flex;align-items:flex-end;justify-content:center;
-  opacity:0;pointer-events:none;transition:opacity .22s;
-}
+.tfa-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .22s;}
 .tfa-overlay.open{opacity:1;pointer-events:all;}
-.tfa-box{
-  background:var(--surface);border:1px solid var(--border2);
-  border-radius:22px 22px 0 0;width:100%;max-width:460px;
-  padding:28px 24px 36px;
-  transform:translateY(30px);opacity:0;
-  transition:transform .28s cubic-bezier(.22,.8,.36,1),opacity .22s;
-}
+.tfa-box{background:var(--surface);border-radius:22px 22px 0 0;width:100%;max-width:460px;padding:28px 24px 36px;transform:translateY(30px);opacity:0;transition:transform .28s cubic-bezier(.22,.8,.36,1),opacity .22s;}
 .tfa-overlay.open .tfa-box{transform:translateY(0);opacity:1;}
 @media(min-width:1126px){
   .tfa-overlay{align-items:center;justify-content:center;padding:24px;}
@@ -260,245 +275,190 @@ input[type="number"] {
   .tfa-overlay.open .tfa-box{transform:translateY(0) scale(1);}
 }
 
-/* FORM ELEMENTS */
-.s-title{font-size:1.1rem;font-weight:1126;margin-bottom:4px;}
-.s-sub{font-size:.76rem;color:var(--sub);margin-bottom:18px;}
+.s-title{font-size:1.1rem;font-weight:750 !important;margin-bottom:17px;margin-top:10px;}
+.s-sub{font-size:.76rem;color:var(--sub);margin-bottom:18px;margin-top:-10px;}
 .steps{display:flex;align-items:center;margin-bottom:20px;}
 .s-step{display:flex;align-items:center;gap:6px;font-size:.72rem;font-weight:500;color:var(--sub2);}
 .s-step.on{color:var(--p-light);}
 .s-step.done{color:var(--green);}
-.s-num{width:20px;height:20px;border-radius:50%;background:var(--surface2);border:1px solid var(--border2);font-size:.65rem;font-weight:700;display:flex;align-items:center;justify-content:center;}
-.s-step.on .s-num{background:var(--p);border-color:var(--p);color:#fff;}
-.s-step.done .s-num{background:rgba(18,216,122,.15);border-color:var(--green);color:var(--green);}
-.s-line{
-  flex:1;
-  min-width:18px; 
-  height:1px;
-  background:var(--border);
-  margin:0;
-}
-.b-disp{background:var(--surface2-dip);border: 0.9px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:14px;}
+.s-num{width:20px;height:20px;border-radius:50%;background:var(--surface2);font-size:.65rem;font-weight:700;display:flex;align-items:center;justify-content:center;}
+.s-step.on .s-num{background:var(--p);color:#fff;}
+.s-step.done .s-num{background:rgba(18,216,122,.15);color:var(--green);}
+.s-line{flex:1;min-width:18px;height:1px;background:rgba(255,255,255,.08);margin:0 6px;}
+.b-disp{background:var(--surface2-dip);border-radius:30px;padding:12px 14px;margin-bottom:14px;}
 .b-lbl{font-size:.67rem;color:var(--sub);margin-bottom:3px;}
 .b-amt{font-size:1.3rem;font-weight:600;letter-spacing:-.02em;}
 .b-amt em{font-style:normal;font-size:.82rem;color:var(--sub);margin-left:3px;}
 .ig{margin-bottom:12px;}
 .il{display:block;font-size:.72rem;font-weight:500;color:var(--sub);margin-bottom:5px;}
 .iw{position:relative;}
-.iw input{width:100%;background:var(--surface2-dip);border:0.9px solid var(--border2);border-radius:14px;padding:13px 70px 10px 12px; padding-right: 100px !important;font-size:.88rem;color:var(--txt);font-family:var(--ff);outline:none;transition:border-color .15s;}
-.iw input:focus{border-color:var(--p);}
-.iw input::placeholder{color:var(--sub2);}
-.maxbtn{position:absolute;right:50px;top:50%;transform:translateY(-50%);background:rgba(91,110,245,.15);border:1px solid rgba(91,110,245,.25);border-radius:6px;padding:3px 7px;font-size:.65rem;font-weight:700;color:var(--p-light);cursor:pointer;font-family:var(--ff);}
+.iw input{width:100%;border-radius: 20px;padding:15px 100px 10px 12px;font-size:.88rem;color:var(--txt);font-family:var(--ff);outline:none;}
+.iw input::placeholder{color:var(--ph);}
+.maxbtn{position:absolute;right:50px;top:50%;transform:translateY(-50%);background:rgba(91,110,245,.15);border-radius:6px;padding:3px 7px;font-size:.65rem;font-weight:700;color:var(--p-light);cursor:pointer;font-family:var(--ff);}
 .maxbtn:hover{background:rgba(91,110,245,.25);}
 .isuf{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:.72rem;color:var(--sub);font-weight:500;}
 .bal-remain{font-size:.68rem;font-weight:500;color:var(--sub);transition:color .2s;}
 .bal-remain.warn{color:var(--amber);}
 .bal-remain.danger{color:var(--red);}
-.req-badge{font-size:.64rem;font-weight:600;background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.2);color:var(--amber);border-radius:4px;padding:2px 6px;}
+.req-badge{font-size:.64rem;font-weight:600;background:rgba(245,166,35,.1);color:var(--amber);border-radius:4px;padding:2px 6px;}
 .amt-err,.addr-err{font-size:.68rem;color:var(--red);min-height:16px;margin-top:4px;padding-left:2px;}
-.fbox{background:var(--surface2-dip);border:0.9px solid var(--border);border-radius:10px;padding:11px 13px;margin-bottom:16px;}
+.fbox{background:var(--surface2-dip);border-radius:25px;padding:11px 13px;margin-bottom:16px;}
 .fr{display:flex;justify-content:space-between;align-items:center;padding:3px 0;}
-.fr-k{font-size: 12.5px;color:var(--sub);}
-.fr-v{font-size: 12.5px;font-weight:500;}
+.fr-k{font-size:12.5px;color:var(--sub);}
+.fr-v{font-size:12.5px;font-weight:500;}
 .fr-v.g{color:var(--green);}
-.dg{background:var(--surface2-dip);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:16px;}
-.dr{display:flex;justify-content:space-between;align-items:flex-start;padding:10px 14px;border-bottom:1px solid var(--border);gap:12px;}
-.dr:last-child{border-bottom:none;}
+.dg{background:var(--surface2-dip);border-radius:23px;overflow:hidden;margin-bottom:16px;}
+.dr{display:flex;justify-content:space-between;align-items:flex-start;padding:10px 14px;gap:12px;}
 .dk{font-size:.7rem;color:var(--sub);flex-shrink:0;}
-.dv{font-size:.78rem;font-weight:500;text-align:right;word-break:break-all; opacity: 0.9;}
+.dv{font-size:.78rem;font-weight:500;text-align:right;word-break:break-all;opacity:.9;}
 .dv.g{color:var(--green);}
 .dv.a{color:var(--amber);}
 .cta{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--p),#7b4fff);color:#fff;font-size:.88rem;font-weight:700;cursor:pointer;font-family:var(--ff);transition:filter .15s,opacity .15s;margin-top:8px;}
 .cta:hover:not(:disabled){filter:brightness(1.1);}
 .cta:disabled{opacity:.4;cursor:not-allowed;}
-.cta-ghost{background:var(--surface2);color:var(--txt);border:1px solid var(--border2);}
-.cta-ghost:hover:not(:disabled){background:var(--surface);border-color:var(--sub2);}
+.cta-ghost{background:var(--surface2);color:var(--txt);}
 .suc{text-align:center;padding:10px 0 4px;}
-.suc-ring{width:64px;height:64px;border-radius:50%;background:rgba(18,216,122,.12);border:2px solid rgba(18,216,122,.3);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;}
+.suc-ring{width:64px;height:64px;border-radius:50%;background:rgba(18,216,122,.12);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;}
 .suc-t{font-size:1.15rem;font-weight:700;margin-bottom:6px;}
 .suc-s{font-size:.78rem;color:var(--sub);line-height:1.5;margin-bottom:14px;}
-.hash-box{font-family:var(--mono);font-size:.7rem;color:var(--sub);background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;margin-bottom:16px;word-break:break-all;text-align:left;}
+.hash-box{font-family:var(--mono);font-size:.7rem;color:var(--sub);background:var(--surface2);border-radius:8px;padding:9px 12px;margin-bottom:16px;word-break:break-all;text-align:left;}
 .tfa-block-icon,.tfa-verify-icon{width:56px;height:56px;border-radius:50%;background:rgba(240,80,112,.1);display:flex;align-items:center;justify-content:center;margin-bottom:14px;}
 .tfa-verify-icon{background:rgba(91,110,245,.12);}
 .tfa-title{font-size:1.05rem;font-weight:700;margin-bottom:6px;}
 .tfa-desc{font-size:.78rem;color:var(--sub);line-height:1.55;margin-bottom:18px;}
 .tfa-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
 .tfa-actions.single{grid-template-columns:1fr;}
-.tfa-settings-btn{display:flex;align-items:center;gap:10px;width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:12px;padding:13px 14px;cursor:pointer;font-family:var(--ff);font-size:.83rem;font-weight:600;color:var(--txt);transition:border-color .15s,background .15s;text-align:left;}
-.tfa-settings-btn:hover{border-color:var(--p);background:rgba(91,110,245,.07);color:var(--p-light);}
-.tog{width:42px;height:24px;border-radius:12px;background:var(--surface);border:1px solid var(--border2);cursor:pointer;position:relative;transition:background .2s,border-color .2s;}
+.tfa-settings-btn{display:flex;align-items:center;gap:10px;width:100%;background:var(--surface2);border-radius:12px;padding:13px 14px;cursor:pointer;font-family:var(--ff);font-size:.83rem;font-weight:600;color:var(--txt);transition:background .15s,color .15s;text-align:left;}
+.tfa-settings-btn:hover{background:rgba(91,110,245,.07);color:var(--p-light);}
+.tog{width:42px;height:24px;border-radius:12px;background:var(--surface);cursor:pointer;position:relative;transition:background .2s;}
 .tog::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:var(--sub2);transition:transform .2s,background .2s;}
-.tog.on{background:var(--green);border-color:var(--green);}
+.tog.on{background:var(--green);}
 .tog.on::after{transform:translateX(18px);background:#fff;}
 .otp-row{display:flex;gap:8px;margin-bottom:10px;justify-content:center;}
-.otp-cell{width:47px;height:54px;border-radius:15px;background:var(--surface2-dipper);border:1.5px solid var(--border2);text-align:center;font-size:1.3rem;font-weight:700;color:var(--txt);font-family:var(--mono);outline:none;transition:border-color .15s;caret-color:var(--p);}
-.otp-cell:focus{border-color:var(--p);}
-.otp-cell.err{border-color:var(--red);animation:shake .3s;}
-.otp-cell.ok{border-color:var(--green);background:rgba(18,216,122,.07);}
+.otp-cell{width:47px;height:54px;border-radius:15px;text-align:center;font-size:1.3rem;font-weight:700;color:var(--txt);font-family:var(--mono);outline:none;caret-color:var(--p);}
+.otp-cell.err{animation:shake .3s;}
 @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
 .otp-hint{font-size:.68rem;color:var(--sub);text-align:center;margin-bottom:6px;}
 .otp-err{font-size:.72rem;color:var(--red);text-align:center;min-height:18px;margin-bottom:8px;}
 .sbadge{display:inline-flex;align-items:center;gap:5px;border-radius:20px;padding:4px 10px;font-size:.7rem;font-weight:600;margin-bottom:12px;}
-.sbadge.in{background:rgba(18,216,122,.12);color:var(--green);border:1px solid rgba(18,216,122,.2);}
-.sbadge.pend{background:rgba(245,166,35,.12);color:var(--amber);border:1px solid rgba(245,166,35,.2);}
-.sbadge.out{background:rgba(240,80,112,.12);color:var(--red);border:1px solid rgba(240,80,112,.2);}
+.sbadge.in{background:rgba(18,216,122,.12);color:var(--green);}
+.sbadge.pend{background:rgba(245,166,35,.12);color:var(--amber);}
+.sbadge.out{background:rgba(240,80,112,.12);color:var(--red);}
 .d-amt{font-size:1.7rem;font-weight:700;letter-spacing:-.03em;margin-bottom:2px;}
 .d-usd{font-size:.75rem;color:var(--sub);margin-bottom:16px;}
-.exp-btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:11px;color:var(--sub);font-size:.78rem;font-weight:500;cursor:pointer;font-family:var(--ff);transition:color .15s,border-color .15s;margin-top:0;}
-.exp-btn:hover{color:var(--txt);border-color:var(--sub2);}
-.stx{display:flex;align-items:center;gap:11px;padding:12px 2px;border-bottom:1px solid var(--border);cursor:pointer;transition:all .1s;border-radius:8px;}
-.stx:last-child{border-bottom:none;}
+.exp-btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;background:var(--surface2);border-radius:10px;padding:11px;color:var(--sub);font-size:.78rem;font-weight:500;cursor:pointer;font-family:var(--ff);transition:color .15s;margin-top:0;}
+.exp-btn:hover{color:var(--txt);}
+.stx{display:flex;align-items:center;gap:11px;padding:12px 2px;cursor:pointer;transition:all .1s;border-radius:8px;}
 .stx:hover{background:var(--surface2);padding-left:8px;}
 
-/* ══════════════════════════
-   SKELETON SYSTEM
-   ══════════════════════════ */
-@keyframes rp-shimmer{
-  0%{background-position:-600px 0}
-  100%{background-position:600px 0}
-}
-.sk{
-  background:linear-gradient(90deg,var(--surface) 25%,var(--surface2) 50%,var(--surface) 75%);
-  background-size:600px 100%;
-  animation:rp-shimmer 1.6s infinite linear;
-  border-radius:6px;flex-shrink:0;
-}
+@keyframes rp-shimmer{0%{background-position:-600px 0}100%{background-position:600px 0}}
+.sk{background:linear-gradient(90deg,var(--surface) 25%,var(--surface2) 50%,var(--surface) 75%);background-size:600px 100%;animation:rp-shimmer 1.6s infinite linear;border-radius:6px;flex-shrink:0;}
+.tx-dot.exp{background:rgba(240,80,112,.12);}
+.tx-amt.exp{color:var(--red,#f05070);text-decoration:line-through;}
+.sbadge.exp{background:rgba(240,80,112,.15);color:var(--red,#f05070);}
 
-.tx-dot.exp { background: rgba(240,80,112,.12); }
-.tx-amt.exp { color: var(--red, #f05070); text-decoration: line-through; }
-.sbadge.exp { background: rgba(240,80,112,.15); color: var(--red, #f05070); }
+/* reveal ID */
+.id-wrap{position:relative;display:inline-block;cursor:pointer;overflow:visible;}
+.id-text{opacity:0;transition:opacity .4s ease;}
+.id-cover{position:absolute;top:0;left:0;width:100%;height:100%;background-color:rgb(59,66,94) !important;backdrop-filter:blur(17px);-webkit-backdrop-filter:blur(17px);border-radius:4px;}
+.id-wrap.revealing .id-cover{animation:disintegrate .7s forwards ease-out;pointer-events:none;}
+.id-wrap.revealing .id-text{opacity:1;transition-delay:.3s;}
+@keyframes disintegrate{0%{opacity:1;filter:blur(0);transform:scale(1)}40%{filter:blur(2px)}100%{opacity:0;filter:blur(6px);transform:scale(1.4) translateY(-6px)}}
+.particle{position:absolute;width:2.5px;height:2.5px;background:var(--text-muted);border-radius:50%;opacity:1;pointer-events:none;animation:fly .8s forwards ease-out;}
+@keyframes fly{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--dx,20px),var(--dy,-20px)) scale(.1)}}
+::placeholder{opacity:1 !important;}
+@keyframes zec-spin{to{transform:rotate(360deg)}}
 
-.sheet {    
-  clip-path: inset(0 round 24px);
-  scrollbar-gutter: stable both-edges;
-}
-
-.s-title {
-  font-weight: 750 !important;
-  margin-bottom: 17px;
-  margin-top: 10px;
-}
-
-.id-wrap {
-  position: relative;
-  display: inline-block;
-  cursor: pointer;
-  overflow: visible;
-}
-
-/* actual text */
-.id-text {
-  opacity: 0;
-  transition: opacity .4s ease;
-}
-
-/* cover layer */
-.id-cover {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgb(59, 66, 94) !important;
-  backdrop-filter: blur(17px);
-  -webkit-backdrop-filter: blur(17px); /* 🔥 Safari support */
-  border-radius: 4px;
-}
-
-/* particles */
-.id-wrap.revealing .id-cover {
-  animation: disintegrate .7s forwards ease-out;
-  pointer-events: none; /* 🔥 Moved here so it's clickable BEFORE reveal */
-}
-
-.id-wrap.revealing .id-text {
-  opacity: 1;
-  transition-delay: .3s;
-}
-
-/* disintegration effect */
-@keyframes disintegrate {
-  0% {
-    opacity: 1;
-    filter: blur(0px);
-    transform: scale(1);
-  }
-  40% {
-    filter: blur(2px);
-  }
-  100% {
-    opacity: 0;
-    filter: blur(6px);
-    transform: scale(1.4) translateY(-6px);
-  }
-}
-
-.particle {
-  position: absolute;
-  width: 2.5px;
-  height: 2.5px;
-  background: var(--text-muted); 
-
-  
-  border-radius: 50%;
-  opacity: 1;
-  pointer-events: none;
-  animation: fly 0.8s forwards ease-out;
-}
-
-@keyframes fly {
-  0% {
-    opacity: 1;
-    transform: translate(0, 0) scale(1);
-  }
-  100% {
-    opacity: 0;
-    transform: translate(var(--dx, 20px), var(--dy, -20px)) scale(0.1);
-  }
-}
-
-
-::placeholder {
-  opacity: 0.8 !important;
-}
-
-.actions-3{grid-template-columns:1fr 1fr 1fr;}
-.btn-icon{flex-direction:column;gap:6px;padding:14px 8px;font-size:.72rem;}
-.btn-icon svg{opacity:.9;}
-.btn-icon.accent-amber{background:linear-gradient(135deg,#F4B728,#c9890a);color:#0a0500;box-shadow:0 4px 14px rgba(244,183,40,.22);}
-.btn-icon.accent-p{background:linear-gradient(135deg,var(--p),#7b4fff);color:#fff;box-shadow:0 4px 14px rgba(91,110,245,.22);}
-
-/* Deposit token/network custom selects */
+/* selects */
 .rp-selects-row{display:flex;gap:10px;margin-bottom:12px;}
 .rp-selects-row .ig{flex:1;margin-bottom:0;min-width:0;}
 .rp-select-wrap{position:relative;width:100%;}
-.custom-select-rp{
-  width:100%;background:var(--surface2-dip);border:0.9px solid var(--border2);
-  border-radius:12px;color:var(--txt);font-size:.85rem;font-family:var(--ff);
-  padding:12px 14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;
-  gap:8px;transition:border-color .15s;
-}
-.custom-select-rp:hover{border-color:var(--sub2);}
-.custom-select-rp.open{border-color:var(--p);}
+.custom-select-rp{width:100%;background:var(--surface2-dip);border-radius:12px;color:var(--txt);font-size:.85rem;font-family:var(--ff);padding:12px 14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;}
 .custom-select-rp.disabled{cursor:not-allowed;opacity:.5;}
 .custom-select-rp .sel-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .custom-select-rp .chev{width:8px;height:8px;border-right:1.6px solid var(--sub);border-bottom:1.6px solid var(--sub);transform:rotate(45deg);transition:transform .2s;flex-shrink:0;margin-top:-2px;}
 .custom-select-rp.open .chev{transform:rotate(-135deg);margin-top:2px;}
-.rp-options{
-  position:absolute;top:calc(100% + 6px);left:0;right:0;background:var(--surface2);
-  backdrop-filter:blur(18px);border:0.9px solid var(--border2);border-radius:12px;
-  overflow-y:auto;max-height:200px;z-index:30;display:none;box-shadow:0 14px 30px rgba(0,0,0,.5);
-}
+.rp-options{top:calc(100% + 6px);left:0;right:0;background:var(--surface2);backdrop-filter:blur(18px);border-radius:12px;overflow-y:auto;max-height:200px;z-index:30;display:none;box-shadow:0 14px 30px rgba(0,0,0,.5);}
 .rp-options.open{display:block;}
-.rp-option{padding:11px 14px;font-size:.8rem;color:var(--sub);cursor:pointer;border-bottom:1px solid var(--border);transition:background .12s,color .12s;}
-.rp-option:last-child{border-bottom:none;}
+.rp-option{padding:11px 14px;font-size:.8rem;color:var(--sub);cursor:pointer;transition:background .12s,color .12s;}
 .rp-option:hover{background:var(--surface2-dip);color:var(--txt);}
 .rp-option.active{color:var(--p-light);background:rgba(91,110,245,.08);}
 
 .dep-qr-wrap{display:flex;justify-content:center;margin-bottom:14px;}
-.dep-qr{background:#d9d8d8;border-radius:16px;padding:12px;width:168px;height:168px;display:flex;align-items:center;justify-content:center;box-sizing:border-box;}
+.dep-qr{background:#d9d8d8;border-radius:16px;padding:12px;width:168px;height:168px;display:flex;align-items:center;justify-content:center;}
 .dep-qr svg,.dep-qr canvas,.dep-qr img{width:100% !important;height:100% !important;display:block;}
+
+/* Wallet / Name switch (sliding pill) */
+.dest-tabs{
+  position:relative;display:flex;width:100%;
+  padding:4px;margin-bottom:12px;
+  border-radius:999px;
+  background:linear-gradient(180deg,var(--bg-surface-init,var(--surface2-dip)),var(--bg-surface-in-active,var(--surface2-dip)));
+  backdrop-filter:blur(14px) saturate(140%);
+  -webkit-backdrop-filter:blur(14px) saturate(140%);
+  box-shadow:inset 0 0 0 1px var(--border,rgba(255,255,255,.08)),0 6px 22px rgba(0,0,0,.55);
+}
+.dest-pill{
+  position:absolute;top:4px;left:4px;
+  width:calc(50% - 4px);height:calc(100% - 8px);
+  border-radius:999px;
+  background:linear-gradient(180deg,var(--bg-surface-active,var(--surface2)),var(--bg-active,var(--surface2)));
+  box-shadow:inset 0 0 0 1px var(--bg-active-border,rgba(255,255,255,.12)),0 4px 14px rgba(0,0,0,.45);
+  transition:transform .52s cubic-bezier(.2,.9,.2,1);
+  z-index:1;
+}
+/* pill follows whichever tab has .on (no JS change needed) */
+.dest-tabs:has(#tabName.on) .dest-pill{transform:translateX(100%);}
+.dest-tab{
+  all:unset;box-sizing:border-box;
+  flex:1;z-index:2;cursor:pointer;text-align:center;
+  padding:8px 0;font-size:13px;font-weight:600;font-family:var(--ff);
+  color:var(--text-muted,var(--sub));
+  transition:color .25s ease,opacity .25s ease;
+}
+.dest-tab:hover{color:var(--text-main-items,var(--txt));opacity:.9;}
+.dest-tab.on{color:var(--text-main,var(--txt));}
+.resolved-box{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;background:var(--surface2-dip);border-radius:18px;padding:9px 12px;margin-top:15px;}
+
+/* convert */
+.cv-rate{display:flex;align-items:center;justify-content:space-between;font-size:.72rem;color:var(--sub);margin:-2px 2px 12px;}
+.cv-rate b{color:var(--txt);font-weight:600;}
+.cv-plain{width:100%;border-radius:14px;padding:13px 12px;font-size:.88rem;color:var(--txt);font-family:var(--ff);outline:none;}
+.cv-plain::placeholder{color:var(--ph);}
+.cv-big{text-align:center;}
+.cv-big .b-amt{font-size:1.6rem;color:var(--green);}
 </style>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+
+{# ---------- Avatar colours (same logic as account settings) ---------- #}
+{% set colors = [
+  '#FF6F61', '#6B5B95', '#88B04B', '#F7CAC9',
+  '#92A8D1', '#955251', '#B565A7', '#009B77',
+  '#DD4124', '#45B8AC'
+] %}
+
+{% macro adjust_color(hex, amount) %}
+  {% set hex = hex.lstrip('#') %}
+  {% set r = (hex[0:2] | int(base=16)) + amount %}
+  {% set g = (hex[2:4] | int(base=16)) + amount %}
+  {% set b = (hex[4:6] | int(base=16)) + amount %}
+  {% if r < 0 %}{% set r = 0 %}{% elif r > 255 %}{% set r = 255 %}{% endif %}
+  {% if g < 0 %}{% set g = 0 %}{% elif g > 255 %}{% set g = 255 %}{% endif %}
+  {% if b < 0 %}{% set b = 0 %}{% elif b > 255 %}{% set b = 255 %}{% endif %}
+  #{{ "%02x%02x%02x" % (r, g, b) }}
+{% endmacro %}
+
+{% set color_index = user.id % colors|length %}
+{% set bg_color = colors[color_index] %}
+{% set r = bg_color[1:3]|int(base=16) %}
+{% set g = bg_color[3:5]|int(base=16) %}
+{% set b = bg_color[5:7]|int(base=16) %}
+{% set brightness = (r * 0.299 + g * 0.587 + b * 0.114) %}
+{% if brightness > 160 %}
+  {% set text_color = adjust_color(bg_color, -60) %}
+{% else %}
+  {% set text_color = adjust_color(bg_color, 60) %}
+{% endif %}
 
 <div class="reward-conte-inner" data-tfa-enabled="{{ 'true' if tfa_enabled else 'false' }}">
   <div class="reward-conte-inner-sideline">
@@ -506,10 +466,9 @@ input[type="number"] {
     <nav class="topnav-reward">
       <div class="nav-logo">
         <div class="nav-mark">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <circle cx="7" cy="7" r="5.5" stroke="white" stroke-width="1.4"/>
-            <path d="M4.5 7L6.2 8.7L9.5 5.3" stroke="white" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+        <svg version="1.1" id="_x32_" xmlns="http://www.w3.org/2000/svg" width="17" height="17" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512" xml:space="preserve" fill="currentColor">
+            <path class="st0" d="M287.758,162.229c43.734,0,79.203-35.484,79.203-79.234S331.493,3.776,287.758,3.776 c-43.75,0-79.234,35.469-79.234,79.219S244.008,162.229,287.758,162.229z M287.758,23.588c32.766,0,59.422,26.641,59.422,59.406 s-26.656,59.406-59.422,59.406s-59.422-26.641-59.422-59.406S254.993,23.588,287.758,23.588z"></path>  <path d="M270 65 H306 L270 101 H306" fill="none" stroke="currentColor" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"></path> <path class="st0" d="M507.477,170.323c-3.484-1.156-7.234,0.719-8.375,4.203c-3,8.875-7.016,13.938-11.5,17.297 c-1.344,0.984-2.75,1.781-4.203,2.516c0.719-2.719,1.109-5.516,1.109-8.359c0-4.453-0.984-9.047-3.438-13.156 c-2.109-3.547-5.094-6.375-8.484-8.25c-3.391-1.891-7.219-2.875-11.094-2.875c-3.75,0-7.563,0.969-11.031,2.906 c-0.047,0.016-0.094,0.031-0.156,0.063c-0.078,0.047-0.172,0.063-0.25,0.125l-0.031,0.016c-0.016,0-0.016,0-0.016,0l-0.156,0.078 c0,0,0,0.031-0.016,0.031c0,0-0.016,0-0.016,0.016c-0.125,0.063-0.219,0.156-0.344,0.25c0,0-0.016,0.016-0.047,0.016 c-3.266,2.109-5.875,4.891-7.656,8.109c-1.891,3.391-2.875,7.203-2.875,11.094c0,3.969,1.047,8.016,3.219,11.656 c2.734,4.531,6.781,8.203,11.453,10.891c0.875,0.516,1.828,0.953,2.766,1.406c-2.188,1.359-4.641,2.656-7.328,3.75 c-3.594,1.469-7.641,2.547-12.016,3.141c-14.671-22.531-36.531-43.266-67.906-60.703c-4.984-2.75-10.078-5.188-15.266-7.344 c-8.797,9.063-19.438,16.344-31.297,21.188c-4.656,1.906-5.188,5.844,0.25,6.516c4.813,0.609,9.609,1.313,14.391,2.141v23.813 c-40.234-5.078-70.188-5.078-110.422,0v-23.813c6.828-1.156,13.688-2.141,20.594-2.859c6.375-0.672,6.297-5.281,0.344-8.188 c-11.234-5.422-21.203-13.094-29.328-22.391c-25.188,6.891-47.578,16.844-64.109,27.172c-29.5-18.656-55.75-13.797-63.703-11.453 l10.859,57.922c-21.688,26.813-39.156,35.797-39.156,35.797l-43.828,8.641c-6.203,0-11.984,3.125-15.391,8.297 c-3.406,5.188-3.969,11.734-1.516,17.422l33.641,95.859c2.922,6.75,9.563,11.125,16.906,11.125l71.875,15.047l30.313,76.297 c15.156,33.563,55.734,26.516,57.359-1.078l6.5-37.891h104.984c0,0,3.25,16.891,4.859,31.406 c2.438,21.906,34.625,50.328,67.109,6.484c37.375-50.469,97-166.047,49.031-257.297c6.109-1.375,11.672-3.469,16.391-6.078 c4.047-2.234,7.531-4.781,10.453-7.406c1.047-0.969,2-1.938,2.906-2.922c0.063-0.016,0.141-0.031,0.188-0.047l0.016,0.016 c7.031-1.156,14.625-3.422,21.438-8.469c6.828-5.031,12.563-12.797,16.188-23.766C512.805,175.213,510.945,171.479,507.477,170.323 z M470.133,192.448c-0.719,2.063-1.781,3.984-3,5.547c-2.266-0.328-4.734-1.234-6.969-2.516c-2.953-1.672-5.438-4.078-6.688-6.203 v0.016c-0.922-1.563-1.344-3.219-1.344-4.891c0-1.625,0.422-3.25,1.203-4.672c0.781-1.406,1.906-2.609,3.406-3.5 c1.5-0.875,3.125-1.281,4.75-1.281c1.625-0.016,3.234,0.406,4.672,1.188c1.406,0.797,2.641,1.953,3.547,3.469 c1,1.656,1.563,3.859,1.563,6.375C471.273,188.073,470.883,190.323,470.133,192.448z"></path> 
+        </svg>
         </div>
         RewardsPay
       </div>
@@ -522,17 +481,16 @@ input[type="number"] {
     <div class="page">
       <div class="desktop-grid">
 
-        <!-- LEFT -->
         <div>
           <div class="wallet">
             <div class="w-head">
               <div class="w-user">
                 {% if user.profile_pic %}
-                <div class="w-avatar no-backgorund">
-                  <img src="{{ user.profile_pic }}" alt="pp" style="width:100%;height:36px;object-fit:cover">
+                <div class="w-avatar">
+                  <img src="{{ user.profile_pic }}" alt="pp">
                 </div>
                 {% else %}
-                <div class="w-avatar" style="width:36px;height:36px;">{{ user.username[:2] }}</div>
+                <div class="w-avatar" style="background-color:{{ bg_color }};color:{{ text_color | trim }};">{{ user.username[:1] }}</div>
                 {% endif %}
                 <div>
                   <div class="w-name">{{ user.username | capitalize }}</div>
@@ -546,15 +504,15 @@ input[type="number"] {
                 </div>
               </div>
 
-              <div class="zec-tag" style="background:rgba(244,183,40,.12);border-color:rgba(244,183,40,.25)">
-                <div class="zec-circle" style="background:#F4B728">
+              <div class="zec-tag">
+                <div class="zec-circle">
                     <svg fill="#000000" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="25" height="25">
                     <circle cx="12" cy="12" r="9" style="fill: #F3B724; stroke-width: 2;"></circle>
                     <polyline points="9 9 15 9 9 15 15 15" style="fill: none; stroke: #fff; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2;"></polyline>
                     <path d="M12,9V7m0,8v2M12,3a9,9,0,1,0,9,9A9,9,0,0,0,12,3Z" style="fill: none; stroke: #fff; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2;"></path>
                     </svg>
                 </div>
-                <span style="color:#F4B728">ZEC</span>
+                <span>ZEC</span>
               </div>
             </div>
 
@@ -591,26 +549,10 @@ input[type="number"] {
           <div class="stats">
             <div class="stat g">
               <div class="stat-icon-wrap">
-                <svg version="1.1"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 512 512"
-                    width="20"
-                    height="20">
-
-                    <path fill="#28a745"
-                          d="M287.758,162.229c43.734,0,79.203-35.484,79.203-79.234S331.493,3.776,287.758,3.776c-43.75,0-79.234,35.469-79.234,79.219S244.008,162.229,287.758,162.229zM287.758,23.588c32.766,0,59.422,26.641,59.422,59.406s-26.656,59.406-59.422,59.406s-59.422-26.641-59.422-59.406S254.993,23.588,287.758,23.588z"/>
-
-                    <path
-                        d="M270 60 H306 L270 96 H306"
-                        fill="none"
-                        stroke="#28a745"
-                        stroke-width="12"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                    />
-
-                    <path fill="#28a745"
-                          d="M507.477,170.323c-3.484-1.156-7.234,0.719-8.375,4.203c-3,8.875-7.016,13.938-11.5,17.297c-1.344,0.984-2.75,1.781-4.203,2.516c0.719-2.719,1.109-5.516,1.109-8.359c0-4.453-0.984-9.047-3.438-13.156c-2.109-3.547-5.094-6.375-8.484-8.25c-3.391-1.891-7.219-2.875-11.094-2.875c-3.75,0-7.563,0.969-11.031,2.906c-0.047,0.016-0.094,0.031-0.156,0.063c-0.078,0.047-0.172,0.063-0.25,0.125l-0.031,0.016h-0.016l-0.156,0.078l-0.016,0.031l-0.016,0.016c-0.125,0.063-0.219,0.156-0.344,0.25l-0.047,0.016c-3.266,2.109-5.875,4.891-7.656,8.109c-1.891,3.391-2.875,7.203-2.875,11.094c0,3.969,1.047,8.016,3.219,11.656c2.734,4.531,6.781,8.203,11.453,10.891c0.875,0.516,1.828,0.953,2.766,1.406c-2.188,1.359-4.641,2.656-7.328,3.75c-3.594,1.469-7.641,2.547-12.016,3.141c-14.671-22.531-36.531-43.266-67.906-60.703c-4.984-2.75-10.078-5.188-15.266-7.344c-8.797,9.063-19.438,16.344-31.297,21.188c-4.656,1.906-5.188,5.844,0.25,6.516c4.813,0.609,9.609,1.313,14.391,2.141v23.813c-40.234-5.078-70.188-5.078-110.422,0v-23.813c6.828-1.156,13.688-2.141,20.594-2.859c6.375-0.672,6.297-5.281,0.344-8.188c-11.234-5.422-21.203-13.094-29.328-22.391c-25.188,6.891-47.578,16.844-64.109,27.172c-29.5-18.656-55.75-13.797-63.703-11.453l10.859,57.922c-21.688,26.813-39.156,35.797-39.156,35.797l-43.828,8.641c-6.203,0-11.984,3.125-15.391,8.297c-3.406,5.188-3.969,11.734-1.516,17.422l33.641,95.859c2.922,6.75,9.563,11.125,16.906,11.125l71.875,15.047l30.313,76.297c15.156,33.563,55.734,26.516,57.359-1.078l6.5-37.891h104.984c0,0,3.25,16.891,4.859,31.406c2.438,21.906,34.625,50.328,67.109,6.484c37.375-50.469,97-166.047,49.031-257.297c6.109-1.375,11.672-3.469,16.391-6.078c4.047-2.234,7.531-4.781,10.453-7.406c1.047-0.969,2-1.938,2.906-2.922c0.063-0.016,0.141-0.031,0.188-0.047l0.016,0.016c7.031-1.156,14.625-3.422,21.438-8.469c6.828-5.031,12.563-12.797,16.188-23.766C512.805,175.213,510.945,171.479,507.477,170.323z"/>
+                <svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="20" height="20">
+                    <path fill="#28a745" d="M287.758,162.229c43.734,0,79.203-35.484,79.203-79.234S331.493,3.776,287.758,3.776c-43.75,0-79.234,35.469-79.234,79.219S244.008,162.229,287.758,162.229zM287.758,23.588c32.766,0,59.422,26.641,59.422,59.406s-26.656,59.406-59.422,59.406s-59.422-26.641-59.422-59.406S254.993,23.588,287.758,23.588z"/>
+                    <path d="M270 60 H306 L270 96 H306" fill="none" stroke="#28a745" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path fill="#28a745" d="M507.477,170.323c-3.484-1.156-7.234,0.719-8.375,4.203c-3,8.875-7.016,13.938-11.5,17.297c-1.344,0.984-2.75,1.781-4.203,2.516c0.719-2.719,1.109-5.516,1.109-8.359c0-4.453-0.984-9.047-3.438-13.156c-2.109-3.547-5.094-6.375-8.484-8.25c-3.391-1.891-7.219-2.875-11.094-2.875c-3.75,0-7.563,0.969-11.031,2.906c-0.047,0.016-0.094,0.031-0.156,0.063c-0.078,0.047-0.172,0.063-0.25,0.125l-0.031,0.016h-0.016l-0.156,0.078l-0.016,0.031l-0.016,0.016c-0.125,0.063-0.219,0.156-0.344,0.25l-0.047,0.016c-3.266,2.109-5.875,4.891-7.656,8.109c-1.891,3.391-2.875,7.203-2.875,11.094c0,3.969,1.047,8.016,3.219,11.656c2.734,4.531,6.781,8.203,11.453,10.891c0.875,0.516,1.828,0.953,2.766,1.406c-2.188,1.359-4.641,2.656-7.328,3.75c-3.594,1.469-7.641,2.547-12.016,3.141c-14.671-22.531-36.531-43.266-67.906-60.703c-4.984-2.75-10.078-5.188-15.266-7.344c-8.797,9.063-19.438,16.344-31.297,21.188c-4.656,1.906-5.188,5.844,0.25,6.516c4.813,0.609,9.609,1.313,14.391,2.141v23.813c-40.234-5.078-70.188-5.078-110.422,0v-23.813c6.828-1.156,13.688-2.141,20.594-2.859c6.375-0.672,6.297-5.281,0.344-8.188c-11.234-5.422-21.203-13.094-29.328-22.391c-25.188,6.891-47.578,16.844-64.109,27.172c-29.5-18.656-55.75-13.797-63.703-11.453l10.859,57.922c-21.688,26.813-39.156,35.797-39.156,35.797l-43.828,8.641c-6.203,0-11.984,3.125-15.391,8.297c-3.406,5.188-3.969,11.734-1.516,17.422l33.641,95.859c2.922,6.75,9.563,11.125,16.906,11.125l71.875,15.047l30.313,76.297c15.156,33.563,55.734,26.516,57.359-1.078l6.5-37.891h104.984c0,0,3.25,16.891,4.859,31.406c2.438,21.906,34.625,50.328,67.109,6.484c37.375-50.469,97-166.047,49.031-257.297c6.109-1.375,11.672-3.469,16.391-6.078c4.047-2.234,7.531-4.781,10.453-7.406c1.047-0.969,2-1.938,2.906-2.922c0.063-0.016,0.141-0.031,0.188-0.047l0.016,0.016c7.031-1.156,14.625-3.422,21.438-8.469c6.828-5.031,12.563-12.797,16.188-23.766C512.805,175.213,510.945,171.479,507.477,170.323z"/>
                 </svg>
               </div>
               <div class="stat-lbl">Total Earned</div>
@@ -622,12 +564,7 @@ input[type="number"] {
 
             <div class="stat a" onclick="openAll()">
               <div class="stat-icon-wrap">
-                <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="#f5a623"
-                    xmlns="http://www.w3.org/2000/svg">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="#f5a623" xmlns="http://www.w3.org/2000/svg">
                     <path d="M17.0020048,13 C17.5542895,13 18.0020048,13.4477153 18.0020048,14 C18.0020048,14.5128358 17.6159646,14.9355072 17.1186259,14.9932723 L17.0020048,15 L5.41700475,15 L8.70911154,18.2928932 C9.0695955,18.6533772 9.09732503,19.2206082 8.79230014,19.6128994 L8.70911154,19.7071068 C8.34862757,20.0675907 7.78139652,20.0953203 7.38910531,19.7902954 L7.29489797,19.7071068 L2.29489797,14.7071068 C1.69232289,14.1045317 2.07433707,13.0928192 2.88837381,13.0059833 L3.00200475,13 L17.0020048,13 Z M16.6128994,4.20970461 L16.7071068,4.29289322 L21.7071068,9.29289322 C22.3096819,9.8954683 21.9276677,10.9071808 21.1136309,10.9940167 L21,11 L7,11 C6.44771525,11 6,10.5522847 6,10 C6,9.48716416 6.38604019,9.06449284 6.88337887,9.00672773 L7,9 L18.585,9 L15.2928932,5.70710678 C14.9324093,5.34662282 14.9046797,4.77939176 15.2097046,4.38710056 L15.2928932,4.29289322 C15.6533772,3.93240926 16.2206082,3.90467972 16.6128994,4.20970461 Z"/>
                 </svg>
               </div>
@@ -639,33 +576,63 @@ input[type="number"] {
             </div>
           </div>
 
-          <div class="actions actions-3">
-            <button class="btn btn-icon accent-amber" onclick="openWithdraw()">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M9 8 L12 4.5 L15 8"/>
-                <path d="M12 4.5 L12 15"/>
-                <path d="M4 16v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1"/>
-              </svg>
-              <span>Send</span>
+          <!-- ACTIONS: round icon on top, label underneath -->
+          <div class="actions-4">
+            <button class="act" onclick="openWithdraw()">
+              <span class="act-ic amber">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 8 L12 4.5 L15 8"/><path d="M12 4.5 L12 15"/><path d="M4 16v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1"/>
+                </svg>
+              </span>
+              <span class="act-lbl">Send</span>
             </button>
-            <button class="btn btn-icon accent-p" onclick="openDeposit()">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M9 11 L12 14.5 L15 11"/>
-                <path d="M12 14.5 L12 4"/>
-                <path d="M4 16v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1"/>
-              </svg>
-              <span>Deposit</span>
+
+            <button class="act" onclick="openDeposit()">
+              <span class="act-ic purple">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M16.19 2H7.81C4.17 2 2 4.17 2 7.81V16.18C2 19.83 4.17 22 7.81 22H16.18C19.82 22 21.99 19.83 21.99 16.19V7.81C22 4.17 19.83 2 16.19 2ZM8.47 10.98C8.76 10.69 9.24 10.69 9.53 10.98L11.25 12.7V6.51C11.25 6.1 11.59 5.76 12 5.76C12.41 5.76 12.75 6.1 12.75 6.51V12.7L14.47 10.98C14.76 10.69 15.24 10.69 15.53 10.98C15.82 11.27 15.82 11.75 15.53 12.04L12.53 15.04C12.46 15.11 12.38 15.16 12.29 15.2C12.2 15.24 12.1 15.26 12 15.26C11.9 15.26 11.81 15.24 11.71 15.2C11.62 15.16 11.54 15.11 11.47 15.04L8.47 12.04C8.18 11.75 8.18 11.28 8.47 10.98ZM18.24 17.22C16.23 17.89 14.12 18.23 12 18.23C9.88 18.23 7.77 17.89 5.76 17.22C5.37 17.09 5.16 16.66 5.29 16.27C5.42 15.88 5.84 15.66 6.24 15.8C9.96 17.04 14.05 17.04 17.77 15.8C18.16 15.67 18.59 15.88 18.72 16.27C18.84 16.67 18.63 17.09 18.24 17.22Z" fill="currentColor"/>
+                </svg>
+              </span>
+              <span class="act-lbl">Receive</span>
             </button>
-            <button class="btn btn-icon" onclick="openAll()">
-              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="currentColor" viewBox="0 0 512 513.11">
-                <path fill-rule="nonzero" d="M210.48 160.8c0-14.61 11.84-26.46 26.45-26.46s26.45 11.85 26.45 26.46v110.88l73.34 32.24c13.36 5.88 19.42 21.47 13.54 34.82-5.88 13.35-21.47 19.41-34.82 13.54l-87.8-38.6c-10.03-3.76-17.16-13.43-17.16-24.77V160.8zM5.4 168.54c-.76-2.25-1.23-4.64-1.36-7.13l-4-73.49c-.75-14.55 10.45-26.95 25-27.69 14.55-.75 26.95 10.45 27.69 25l.74 13.6a254.258 254.258 0 0136.81-38.32c17.97-15.16 38.38-28.09 61.01-38.18 64.67-28.85 134.85-28.78 196.02-5.35 60.55 23.2 112.36 69.27 141.4 132.83.77 1.38 1.42 2.84 1.94 4.36 27.86 64.06 27.53 133.33 4.37 193.81-23.2 60.55-69.27 112.36-132.83 141.39a26.24 26.24 0 01-12.89 3.35c-14.61 0-26.45-11.84-26.45-26.45 0-11.5 7.34-21.28 17.59-24.92 7.69-3.53 15.06-7.47 22.09-11.8.8-.66 1.65-1.28 2.55-1.86 11.33-7.32 22.1-15.7 31.84-25.04.64-.61 1.31-1.19 2-1.72 20.66-20.5 36.48-45.06 46.71-71.76 18.66-48.7 18.77-104.46-4.1-155.72l-.01-.03C418.65 122.16 377.13 85 328.5 66.37c-48.7-18.65-104.46-18.76-155.72 4.1a203.616 203.616 0 00-48.4 30.33c-9.86 8.32-18.8 17.46-26.75 27.29l3.45-.43c14.49-1.77 27.68 8.55 29.45 23.04 1.77 14.49-8.55 27.68-23.04 29.45l-73.06 9c-13.66 1.66-26.16-7.41-29.03-20.61zM283.49 511.5c20.88-2.34 30.84-26.93 17.46-43.16-5.71-6.93-14.39-10.34-23.29-9.42-15.56 1.75-31.13 1.72-46.68-.13-9.34-1.11-18.45 2.72-24.19 10.17-12.36 16.43-2.55 39.77 17.82 42.35 19.58 2.34 39.28 2.39 58.88.19zm-168.74-40.67c7.92 5.26 17.77 5.86 26.32 1.74 18.29-9.06 19.97-34.41 3.01-45.76-12.81-8.45-25.14-18.96-35.61-30.16-9.58-10.2-25.28-11.25-36.11-2.39a26.436 26.436 0 00-2.55 38.5c13.34 14.2 28.66 27.34 44.94 38.07zM10.93 331.97c2.92 9.44 10.72 16.32 20.41 18.18 19.54 3.63 36.01-14.84 30.13-33.82-4.66-15-7.49-30.26-8.64-45.93-1.36-18.33-20.21-29.62-37.06-22.33C5.5 252.72-.69 262.86.06 274.14c1.42 19.66 5.02 39 10.87 57.83z"/>
-              </svg>
-              <span>History</span>
+
+            <button class="act"  onclick="openComingSoon()"> 
+              <span class="act-ic green">
+                <svg version="1.0" xmlns="http://www.w3.org/2000/svg"
+                 viewBox="0 0 512.000000 512.000000"
+                preserveAspectRatio="xMidYMid meet">
+
+                  <g transform="translate(0.000000,512.000000) scale(0.100000,-0.100000)"
+                  fill="#000000" stroke="none">
+                  <path d="M2100 4256 c0 -225 -3 -277 -14 -289 -11 -11 -60 -15 -213 -20 -217
+                  -6 -321 -21 -460 -66 -424 -139 -748 -477 -852 -892 -32 -126 -55 -323 -49
+                  -432 l3 -68 45 63 c71 101 263 286 369 356 168 113 347 187 556 232 81 18 146
+                  23 340 27 228 5 241 4 257 -14 16 -17 18 -49 20 -290 l3 -270 580 477 c318
+                  263 581 482 582 487 2 6 -196 174 -439 374 -244 200 -507 417 -585 482 l-143
+                  117 0 -274z"/>
+                  <path d="M4565 2573 c-62 -88 -230 -258 -325 -329 -95 -72 -305 -180 -423
+                  -219 -184 -61 -419 -90 -638 -78 -92 4 -135 10 -145 20 -11 12 -14 65 -14 285
+                  0 152 -4 268 -9 266 -22 -8 -1161 -954 -1158 -961 1 -5 264 -224 582 -486
+                  l580 -477 3 270 c2 225 5 273 18 287 13 14 46 17 232 22 184 4 233 9 322 30
+                  250 59 447 166 626 339 253 245 373 531 390 931 4 86 5 157 3 157 -2 -1 -22
+                  -26 -44 -57z"/>
+                  </g>
+                </svg>
+              </span>
+              <span class="act-lbl">Convert</span>
+            </button>
+
+            <button class="act" onclick="openAll()">
+              <span class="act-ic">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" shape-rendering="geometricPrecision" text-rendering="geometricPrecision" image-rendering="optimizeQuality" fill-rule="evenodd" clip-rule="evenodd" viewBox="0 0 512 513.11">
+                  <path fill-rule="nonzero" d="M210.48 160.8c0-14.61 11.84-26.46 26.45-26.46s26.45 11.85 26.45 26.46v110.88l73.34 32.24c13.36 5.88 19.42 21.47 13.54 34.82-5.88 13.35-21.47 19.41-34.82 13.54l-87.8-38.6c-10.03-3.76-17.16-13.43-17.16-24.77V160.8zM5.4 168.54c-.76-2.25-1.23-4.64-1.36-7.13l-4-73.49c-.75-14.55 10.45-26.95 25-27.69 14.55-.75 26.95 10.45 27.69 25l.74 13.6a254.258 254.258 0 0136.81-38.32c17.97-15.16 38.38-28.09 61.01-38.18 64.67-28.85 134.85-28.78 196.02-5.35 60.55 23.2 112.36 69.27 141.4 132.83.77 1.38 1.42 2.84 1.94 4.36 27.86 64.06 27.53 133.33 4.37 193.81-23.2 60.55-69.27 112.36-132.83 141.39a26.24 26.24 0 01-12.89 3.35c-14.61 0-26.45-11.84-26.45-26.45 0-11.5 7.34-21.28 17.59-24.92 7.69-3.53 15.06-7.47 22.09-11.8.8-.66 1.65-1.28 2.55-1.86 11.33-7.32 22.1-15.7 31.84-25.04.64-.61 1.31-1.19 2-1.72 20.66-20.5 36.48-45.06 46.71-71.76 18.66-48.7 18.77-104.46-4.1-155.72l-.01-.03C418.65 122.16 377.13 85 328.5 66.37c-48.7-18.65-104.46-18.76-155.72 4.1a203.616 203.616 0 00-48.4 30.33c-9.86 8.32-18.8 17.46-26.75 27.29l3.45-.43c14.49-1.77 27.68 8.55 29.45 23.04 1.77 14.49-8.55 27.68-23.04 29.45l-73.06 9c-13.66 1.66-26.16-7.41-29.03-20.61zM283.49 511.5c20.88-2.34 30.84-26.93 17.46-43.16-5.71-6.93-14.39-10.34-23.29-9.42-15.56 1.75-31.13 1.72-46.68-.13-9.34-1.11-18.45 2.72-24.19 10.17-12.36 16.43-2.55 39.77 17.82 42.35 19.58 2.34 39.28 2.39 58.88.19zm-168.74-40.67c7.92 5.26 17.77 5.86 26.32 1.74 18.29-9.06 19.97-34.41 3.01-45.76-12.81-8.45-25.14-18.96-35.61-30.16-9.58-10.2-25.28-11.25-36.11-2.39a26.436 26.436 0 00-2.55 38.5c13.34 14.2 28.66 27.34 44.94 38.07zM10.93 331.97c2.92 9.44 10.72 16.32 20.41 18.18 19.54 3.63 36.01-14.84 30.13-33.82-4.66-15-7.49-30.26-8.64-45.93-1.36-18.33-20.21-29.62-37.06-22.33C5.5 252.72-.69 262.86.06 274.14c1.42 19.66 5.02 39 10.87 57.83z"/>
+                </svg>
+              </span>
+              <span class="act-lbl">History</span>
             </button>
           </div>
         </div>
 
-        <!-- RIGHT: TX LIST -->
         <div class="tx-section">
           <div class="sec-head">
             <span class="sec-title">Transactions</span>
@@ -693,14 +660,13 @@ input[type="number"] {
     </div>
 
 
-    <!-- ── WITHDRAW SHEET ── -->
+    <!-- ================= SEND (withdraw) ================= -->
     <div class="overlay" id="wOv" onclick="bgClose(event,'wOv')">
-      <div class="sheet">
+      <div class="sheet"><div class="sheet-in">
         <div class="handle"></div>
 
-        <!-- STEP 1: Amount -->
         <div id="w1">
-          <div class="s-title">Withdraw ZEC</div>
+          <div class="s-title">Send ZEC</div>
           <div class="s-sub">Send ZEC to your external wallet</div>
           <div class="steps">
             <div class="s-step on"><div class="s-num">1</div> Amount</div>
@@ -728,7 +694,13 @@ input[type="number"] {
             <div class="amt-err" id="amtErr"></div>
           </div>
 
-          <div class="ig">
+          <div class="dest-tabs">
+            <div class="dest-pill"></div>
+            <button type="button" class="dest-tab on" id="tabWallet" onclick="setDestMode('wallet')">Wallet</button>
+            <button type="button" class="dest-tab" id="tabName" onclick="setDestMode('name')">Name</button>
+          </div>
+
+          <div class="ig" id="destWalletGroup">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
               <label class="il" style="margin:0">Shielded Address</label>
               <span class="req-badge">Required</span>
@@ -739,24 +711,26 @@ input[type="number"] {
             <div class="addr-err" id="addrErr"></div>
           </div>
 
-          <!-- fee breakdown -->
+          <div class="ig" id="destNameGroup" style="display:none">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+              <label class="il" style="margin:0">Zcash Name</label>
+              <span class="req-badge">Required</span>
+            </div>
+            <div class="iw">
+              <input type="text" id="nameIn" placeholder="alice or alice.zec" style="padding-right:14px" autocomplete="off" autocapitalize="off" spellcheck="false" oninput="onNameInput()"/>
+            </div>
+            <div class="addr-err" id="nameErr"></div>
+            <div class="resolved-box" id="resolvedBox" style="display:none">
+              <span class="dk">Resolved</span>
+              <span class="dv" id="resolvedAddr">—</span>
+            </div>
+          </div>
+
           <div class="fbox">
-            <div class="fr">
-              <span class="fr-k">Network Fee</span>
-              <span class="fr-v">0.0004 ZEC</span>
-            </div>
-            <div class="fr">
-              <span class="fr-k">Platform Fee (3%)</span>
-              <span class="fr-v" id="platformFee">—</span>
-            </div>
-            <div class="fr">
-              <span class="fr-k">Remaining Balance</span>
-              <span class="fr-v" id="remainAfter">—</span>
-            </div>
-            <div class="fr">
-              <span class="fr-k">You Receive</span>
-              <span class="fr-v g" id="rcv">—</span>
-            </div>
+            <div class="fr"><span class="fr-k">Network Fee</span><span class="fr-v">0.0004 ZEC</span></div>
+            <div class="fr"><span class="fr-k">Platform Fee (3%)</span><span class="fr-v" id="platformFee">—</span></div>
+            <div class="fr"><span class="fr-k">Remaining Balance</span><span class="fr-v" id="remainAfter">—</span></div>
+            <div class="fr"><span class="fr-k">You Receive</span><span class="fr-v g" id="rcv">—</span></div>
           </div>
 
           <div style="font-size:11px;color:#5a5a78;margin:0 0 14px;line-height:1.6;font-family:'DM Sans',sans-serif">
@@ -769,7 +743,6 @@ input[type="number"] {
           </button>
         </div>
 
-        <!-- STEP 2: Confirm -->
         <div id="w2" style="display:none">
           <div class="s-title">Confirm</div>
           <div class="s-sub">Review before broadcasting to Zcash</div>
@@ -782,6 +755,7 @@ input[type="number"] {
           </div>
           <div class="dg">
             <div class="dr"><span class="dk">Amount</span><span class="dv g" id="cAmt">—</span></div>
+            <div class="dr" id="cNameRow" style="display:none"><span class="dk">Name</span><span class="dv" id="cName">—</span></div>
             <div class="dr"><span class="dk">Destination</span><span class="dv" id="cDest">—</span></div>
             <div class="dr"><span class="dk">Network</span><span class="dv">Zcash Mainnet</span></div>
             <div class="dr"><span class="dk">Network Fee</span><span class="dv">0.0004 ZEC</span></div>
@@ -797,7 +771,6 @@ input[type="number"] {
           </div>
         </div>
 
-        <!-- STEP 3: Done -->
         <div id="w3" style="display:none">
           <div class="suc">
             <div class="suc-ring">
@@ -811,10 +784,8 @@ input[type="number"] {
               This usually completes within a minute.
             </div>
             <div class="hash-box" style="display:flex;align-items:center;gap:7px;justify-content:center">
-              <svg width="13" height="13" viewBox="0 0 13 13" fill="none"
-                  style="animation:zec-spin 1.2s linear infinite;flex-shrink:0;opacity:0.6">
-                <circle cx="6.5" cy="6.5" r="5" stroke="#F4B728" stroke-width="1.4"
-                        stroke-dasharray="12 8" stroke-linecap="round"/>
+              <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="animation:zec-spin 1.2s linear infinite;flex-shrink:0;opacity:0.6">
+                <circle cx="6.5" cy="6.5" r="5" stroke="#F4B728" stroke-width="1.4" stroke-dasharray="12 8" stroke-linecap="round"/>
               </svg>
               <span style="opacity:0.7;font-size:11px">Processing on Zcash network…</span>
             </div>
@@ -825,11 +796,11 @@ input[type="number"] {
           </div>
         </div>
 
-      </div>
+      </div></div>
     </div>
 
 
-    <!-- ── 2FA OVERLAY ── -->
+    <!-- ================= 2FA ================= -->
     <div class="tfa-overlay" id="tfaOv">
       <div class="tfa-box" id="tfaBlocked" style="display:none">
         <div class="tfa-block-icon"><svg width="26" height="26" viewBox="0 0 26 26" fill="none"><rect x="5" y="11" width="16" height="11" rx="2.5" stroke="#f05070" stroke-width="1.6" fill="none"/><path d="M9 11V8.5C9 6.57 10.57 5 12.5 5V5C14.43 5 16 6.57 16 8.5V11" stroke="#f05070" stroke-width="1.6" stroke-linecap="round"/><circle cx="13" cy="16.5" r="1.5" fill="#f05070"/><path d="M13 16.5V19" stroke="#f05070" stroke-width="1.4" stroke-linecap="round"/></svg></div>
@@ -865,22 +836,22 @@ input[type="number"] {
     </div>
 
 
-    <!-- TX DETAIL SHEET -->
+    <!-- ================= TX DETAIL ================= -->
     <div class="overlay" id="txOv" onclick="bgClose(event,'txOv')">
-      <div class="sheet"><div class="handle"></div><div id="txContent"></div></div>
+      <div class="sheet"><div class="sheet-in"><div class="handle"></div><div id="txContent"></div></div></div>
     </div>
 
   </div>
 </div>
 
-<!-- ── DEPOSIT SHEET ── -->
+
+<!-- ================= RECEIVE (deposit) ================= -->
 <div class="overlay" id="depOv" onclick="bgClose(event,'depOv')">
-  <div class="sheet">
+  <div class="sheet"><div class="sheet-in">
     <div class="handle"></div>
 
-    <!-- STEP 1: Details -->
     <div id="dep1">
-      <div class="s-title">Deposit</div>
+      <div class="s-title">Receive</div>
       <div class="s-sub">Add funds to your balance</div>
       <div class="steps">
         <div class="s-step on"><div class="s-num">1</div> Details</div>
@@ -940,9 +911,8 @@ input[type="number"] {
       </button>
     </div>
 
-    <!-- STEP 2: Send -->
     <div id="dep2" style="display:none">
-      <div class="s-title">Deposit</div>
+      <div class="s-title">Receive</div>
       <div class="s-sub">Send funds to complete your deposit</div>
       <div class="steps">
         <div class="s-step done"><div class="s-num">✓</div> Details</div>
@@ -976,5 +946,168 @@ input[type="number"] {
       <div id="depStatus" style="margin-top:10px;font-size:13px;text-align:center"></div>
     </div>
 
-  </div>
+  </div></div>
+</div>
+
+
+<!-- ================= CONVERT (ZEC -> local currency) ================= -->
+<div class="overlay" id="cvOv" onclick="bgClose(event,'cvOv')">
+  <div class="sheet"><div class="sheet-in">
+    <div class="handle"></div>
+
+    <div id="cv1">
+      <div class="s-title">Convert</div>
+      <div class="s-sub">Turn your ZEC into local currency</div>
+      <div class="steps">
+        <div class="s-step on"><div class="s-num">1</div> Amount</div>
+        <div class="s-line"></div>
+        <div class="s-step"><div class="s-num">2</div> Confirm</div>
+        <div class="s-line"></div>
+        <div class="s-step"><div class="s-num">3</div> Done</div>
+      </div>
+
+      <div class="b-disp">
+        <div class="b-lbl">Available</div>
+        <div class="b-amt" id="cvBal">{{ "%.8f"|format(zec_balance) }} <em>ZEC</em></div>
+      </div>
+
+      <div class="ig">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+          <label class="il" style="margin:0">Amount (ZEC)</label>
+          <span class="bal-remain" id="cvHint">Min: 0.0007 ZEC</span>
+        </div>
+        <div class="iw">
+          <input type="number" id="cvAmt" placeholder="0.00000000" step="0.00000001"/>
+          <button class="maxbtn" type="button" id="cvMax">MAX</button>
+          <span class="isuf">ZEC</span>
+        </div>
+        <div class="amt-err" id="cvErr"></div>
+      </div>
+
+      <div class="rp-selects-row" style="margin-bottom:8px">
+        <div class="ig">
+          <label class="il">Convert to</label>
+          <div class="rp-select-wrap">
+            <div class="custom-select-rp" id="cvCurSel" tabindex="0">
+              <span class="sel-label" id="cvCurLabel">NGN · Naira</span>
+              <span class="chev"></span>
+            </div>
+            <div class="rp-options" id="cvCurOpts"></div>
+          </div>
+        </div>
+        <div class="ig">
+          <label class="il">Bank</label>
+          <div class="rp-select-wrap">
+            <div class="custom-select-rp" id="cvBankSel" tabindex="0">
+              <span class="sel-label" id="cvBankLabel">Select bank</span>
+              <span class="chev"></span>
+            </div>
+            <div class="rp-options" id="cvBankOpts"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ig" style="margin-top:12px">
+        <label class="il">Account number</label>
+        <input class="cv-plain" type="text" id="cvAcct" inputmode="numeric" maxlength="10" placeholder="10-digit account number" autocomplete="off"/>
+        <div class="resolved-box" id="cvResolved" style="display:none">
+          <span class="dk">Account name</span>
+          <span class="dv g" id="cvResolvedName">—</span>
+        </div>
+        <div class="addr-err" id="cvAcctErr"></div>
+      </div>
+
+      <div class="cv-rate">
+        <span>Rate</span>
+        <b id="cvRate">Loading…</b>
+      </div>
+
+      <div class="fbox">
+        <div class="fr"><span class="fr-k">Service Fee (3%)</span><span class="fr-v" id="cvFee">—</span></div>
+        <div class="fr"><span class="fr-k">ZEC Converted</span><span class="fr-v" id="cvNet">—</span></div>
+        <div class="fr"><span class="fr-k">You Receive</span><span class="fr-v g" id="cvRcv">—</span></div>
+      </div>
+
+      <div style="font-size:11px;color:#5a5a78;margin:0 0 14px;line-height:1.6;font-family:'DM Sans',sans-serif">
+        Rates update live and are locked when you confirm. Payout goes straight to your bank account.
+      </div>
+
+      <button class="cta" id="cvNext" disabled>
+        Continue
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7H11M7 3L11 7L7 11" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+
+    <div id="cv2" style="display:none">
+      <div class="s-title">Confirm</div>
+      <div class="s-sub">Review before converting</div>
+      <div class="steps">
+        <div class="s-step done"><div class="s-num">✓</div> Amount</div>
+        <div class="s-line"></div>
+        <div class="s-step on"><div class="s-num">2</div> Confirm</div>
+        <div class="s-line"></div>
+        <div class="s-step"><div class="s-num">3</div> Done</div>
+      </div>
+
+      <div class="b-disp cv-big">
+        <div class="b-lbl">You receive</div>
+        <div class="b-amt" id="cvcRcv">—</div>
+      </div>
+
+      <div class="dg">
+        <div class="dr"><span class="dk">Selling</span><span class="dv" id="cvcAmt">—</span></div>
+        <div class="dr"><span class="dk">Rate</span><span class="dv" id="cvcRate">—</span></div>
+        <div class="dr"><span class="dk">Service Fee (3%)</span><span class="dv" id="cvcFee">—</span></div>
+        <div class="dr"><span class="dk">Bank</span><span class="dv" id="cvcBank">—</span></div>
+        <div class="dr"><span class="dk">Account</span><span class="dv" id="cvcAcct">—</span></div>
+        <div class="dr" id="cvcNameRow" style="display:none"><span class="dk">Name</span><span class="dv" id="cvcName">—</span></div>
+      </div>
+
+      <div class="amt-err" id="cvSubmitErr" style="text-align:center"></div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;">
+        <button class="cta cta-ghost" style="margin:0" id="cvBack">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" width="16" height="16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          Back
+        </button>
+        <button class="cta" style="margin:0;background:linear-gradient(135deg,#12d87a,#0a9c58);color:#02150b" id="cvGo">Confirm & Convert</button>
+      </div>
+    </div>
+
+    <div id="cv3" style="display:none">
+      <div class="suc">
+        <div class="suc-ring">
+          <svg width="26" height="26" viewBox="0 0 26 26" fill="none"><path d="M6 13L10.5 17.5L20 8" stroke="#12d87a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="suc-t">Conversion Submitted</div>
+        <div class="suc-s">
+          Your ZEC is being converted and paid out to your bank.<br>
+          You'll see it in your transaction history.
+        </div>
+        <button class="cta" style="background:linear-gradient(135deg,#12d87a,#0a9c58);color:#02150b" id="cvDone">Done</button>
+      </div>
+    </div>
+
+  </div></div>
+</div>
+ 
+
+<div class="overlay" id="csOv" onclick="bgClose(event,'csOv')">
+  <div class="sheet"><div class="sheet-in">
+    <div class="handle"></div>
+    <div class="suc">
+      <div class="suc-ring" style="--edge-hi:rgba(18,216,122,.7);--edge-lo:rgba(18,216,122,.15)">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#12d87a" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9"/>
+          <path d="M12 7v5l3 3"/>
+        </svg>
+      </div>
+      <div class="suc-t">Coming Soon</div>
+      <div class="suc-s">
+        Converting your ZEC straight to your local bank account is on its way.<br>
+        Target launch: <b style="color:var(--txt)">November 30</b>
+      </div>
+      <button class="cta" style="background:linear-gradient(135deg,#12d87a,#0a9c58);color:#02150b" onclick="closeComingSoon()">Got it</button>
+    </div>
+  </div></div>
 </div>

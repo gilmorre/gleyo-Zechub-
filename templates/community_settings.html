@@ -55,6 +55,18 @@
           General
         </a>
 
+        <a class="nav-item"
+          href="/community/{{ community_slug }}/settings/membership"
+          data-path="/community/{{ community_slug }}/settings/membership"
+          onclick="event.preventDefault(); loadSettingsSection(this.dataset.path)">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path fill-rule="evenodd" clip-rule="evenodd" d="M9 1.25C6.37665 1.25 4.25 3.37665 4.25 6C4.25 8.62335 6.37665 10.75 9 10.75C11.6234 10.75 13.75 8.62335 13.75 6C13.75 3.37665 11.6234 1.25 9 1.25ZM5.75 6C5.75 4.20507 7.20507 2.75 9 2.75C10.7949 2.75 12.25 4.20507 12.25 6C12.25 7.79493 10.7949 9.25 9 9.25C7.20507 9.25 5.75 7.79493 5.75 6Z" fill="currentColor"/>
+              <path d="M15 2.25C14.5858 2.25 14.25 2.58579 14.25 3C14.25 3.41421 14.5858 3.75 15 3.75C16.2426 3.75 17.25 4.75736 17.25 6C17.25 7.24264 16.2426 8.25 15 8.25C14.5858 8.25 14.25 8.58579 14.25 9C14.25 9.41421 14.5858 9.75 15 9.75C17.0711 9.75 18.75 8.07107 18.75 6C18.75 3.92893 17.0711 2.25 15 2.25Z" fill="currentColor"/>
+              <path fill-rule="evenodd" clip-rule="evenodd" d="M3.67815 13.5204C5.07752 12.7208 6.96067 12.25 9 12.25C11.0393 12.25 12.9225 12.7208 14.3219 13.5204C15.7 14.3079 16.75 15.5101 16.75 17C16.75 18.4899 15.7 19.6921 14.3219 20.4796C12.9225 21.2792 11.0393 21.75 9 21.75C6.96067 21.75 5.07752 21.2792 3.67815 20.4796C2.3 19.6921 1.25 18.4899 1.25 17C1.25 15.5101 2.3 14.3079 3.67815 13.5204ZM4.42236 14.8228C3.26701 15.483 2.75 16.2807 2.75 17C2.75 17.7193 3.26701 18.517 4.42236 19.1772C5.55649 19.8253 7.17334 20.25 9 20.25C10.8267 20.25 12.4435 19.8253 13.5776 19.1772C14.733 18.517 15.25 17.7193 15.25 17C15.25 16.2807 14.733 15.483 13.5776 14.8228C12.4435 14.1747 10.8267 13.75 9 13.75C7.17334 13.75 5.55649 14.1747 4.42236 14.8228Z" fill="currentColor"/>
+              <path d="M18.1607 13.2674C17.7561 13.1787 17.3561 13.4347 17.2674 13.8393C17.1787 14.2439 17.4347 14.6439 17.8393 14.7326C18.6317 14.9064 19.2649 15.2048 19.6829 15.5468C20.1014 15.8892 20.25 16.2237 20.25 16.5C20.25 16.7507 20.1294 17.045 19.7969 17.3539C19.462 17.665 18.9475 17.9524 18.2838 18.1523C17.8871 18.2717 17.6624 18.69 17.7818 19.0867C17.9013 19.4833 18.3196 19.708 18.7162 19.5886C19.5388 19.3409 20.2743 18.9578 20.8178 18.4529C21.3637 17.9457 21.75 17.2786 21.75 16.5C21.75 15.6352 21.2758 14.912 20.6328 14.3859C19.9893 13.8593 19.1225 13.4783 18.1607 13.2674Z" fill="currentColor"/>
+            </svg>
+            Membership
+        </a>
 
         <div class="nav-group">
           <div class="nav-group-header">
@@ -487,6 +499,7 @@ const SETTINGS_TITLES = {
   webhook: "Webhooks",
   webhooks: "Webhooks",
   discord: "Discord",
+  membership: "Membership",
   twitter: "Twitter",
   automation: "Automation",
   tickets: "Tickets",
@@ -571,7 +584,15 @@ async function loadSettingsSection(path, push = true) {
   if (slug === "security") {
     functionMintSecurity();
   }
-
+  if (slug === "membership") {
+    const card = document.getElementById("inject-card");
+    card.querySelectorAll("script").forEach((old) => {
+      const s = document.createElement("script");
+      s.textContent = old.textContent;
+      old.replaceWith(s);
+    });
+    initMembership();
+  }
   if (slug === "integrations") {
     if (finalPath.includes("/integrations/discord")) {
       LoadDiscordInit();
@@ -5968,6 +5989,434 @@ if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", initBillingTabs);
 } else {
   initBillingTabs();
+}
+</script>
+
+
+<script>
+function initMembership() {
+  var root = document.getElementById("mbRoot");
+  if (!root) return;
+
+  var modal = root.querySelector("#mbModal");
+  document.querySelectorAll("body > .mb-modal-backdrop").forEach(function (n) { n.remove(); });
+  document.body.appendChild(modal);
+
+  var RAW = "AF:Afghanistan|AX:Åland Islands|AL:Albania|DZ:Algeria|AS:American Samoa|AD:Andorra|AO:Angola|AI:Anguilla|AQ:Antarctica|AG:Antigua and Barbuda|AR:Argentina|AM:Armenia|AW:Aruba|AU:Australia|AT:Austria|AZ:Azerbaijan|BS:Bahamas|BH:Bahrain|BD:Bangladesh|BB:Barbados|BY:Belarus|BE:Belgium|BZ:Belize|BJ:Benin|BM:Bermuda|BT:Bhutan|BO:Bolivia|BQ:Bonaire, Sint Eustatius and Saba|BA:Bosnia and Herzegovina|BW:Botswana|BV:Bouvet Island|BR:Brazil|IO:British Indian Ocean Territory|VG:British Virgin Islands|BN:Brunei|BG:Bulgaria|BF:Burkina Faso|BI:Burundi|CV:Cabo Verde|KH:Cambodia|CM:Cameroon|CA:Canada|KY:Cayman Islands|CF:Central African Republic|TD:Chad|CL:Chile|CN:China|CX:Christmas Island|CC:Cocos (Keeling) Islands|CO:Colombia|KM:Comoros|CG:Congo|CD:Congo (DRC)|CK:Cook Islands|CR:Costa Rica|CI:Côte d'Ivoire|HR:Croatia|CU:Cuba|CW:Curaçao|CY:Cyprus|CZ:Czechia|DK:Denmark|DJ:Djibouti|DM:Dominica|DO:Dominican Republic|EC:Ecuador|EG:Egypt|SV:El Salvador|GQ:Equatorial Guinea|ER:Eritrea|EE:Estonia|SZ:Eswatini|ET:Ethiopia|FK:Falkland Islands|FO:Faroe Islands|FJ:Fiji|FI:Finland|FR:France|GF:French Guiana|PF:French Polynesia|TF:French Southern Territories|GA:Gabon|GM:Gambia|GE:Georgia|DE:Germany|GH:Ghana|GI:Gibraltar|GR:Greece|GL:Greenland|GD:Grenada|GP:Guadeloupe|GU:Guam|GT:Guatemala|GG:Guernsey|GN:Guinea|GW:Guinea-Bissau|GY:Guyana|HT:Haiti|HM:Heard Island and McDonald Islands|VA:Holy See|HN:Honduras|HK:Hong Kong|HU:Hungary|IS:Iceland|IN:India|ID:Indonesia|IR:Iran|IQ:Iraq|IE:Ireland|IM:Isle of Man|IL:Israel|IT:Italy|JM:Jamaica|JP:Japan|JE:Jersey|JO:Jordan|KZ:Kazakhstan|KE:Kenya|KI:Kiribati|XK:Kosovo|KW:Kuwait|KG:Kyrgyzstan|LA:Laos|LV:Latvia|LB:Lebanon|LS:Lesotho|LR:Liberia|LY:Libya|LI:Liechtenstein|LT:Lithuania|LU:Luxembourg|MO:Macao|MG:Madagascar|MW:Malawi|MY:Malaysia|MV:Maldives|ML:Mali|MT:Malta|MH:Marshall Islands|MQ:Martinique|MR:Mauritania|MU:Mauritius|YT:Mayotte|MX:Mexico|FM:Micronesia|MD:Moldova|MC:Monaco|MN:Mongolia|ME:Montenegro|MS:Montserrat|MA:Morocco|MZ:Mozambique|MM:Myanmar|NA:Namibia|NR:Nauru|NP:Nepal|NL:Netherlands|NC:New Caledonia|NZ:New Zealand|NI:Nicaragua|NE:Niger|NG:Nigeria|NU:Niue|NF:Norfolk Island|KP:North Korea|MK:North Macedonia|MP:Northern Mariana Islands|NO:Norway|OM:Oman|PK:Pakistan|PW:Palau|PS:Palestine|PA:Panama|PG:Papua New Guinea|PY:Paraguay|PE:Peru|PH:Philippines|PN:Pitcairn Islands|PL:Poland|PT:Portugal|PR:Puerto Rico|QA:Qatar|RE:Réunion|RO:Romania|RU:Russia|RW:Rwanda|BL:Saint Barthélemy|SH:Saint Helena|KN:Saint Kitts and Nevis|LC:Saint Lucia|MF:Saint Martin|PM:Saint Pierre and Miquelon|VC:Saint Vincent and the Grenadines|WS:Samoa|SM:San Marino|ST:São Tomé and Príncipe|SA:Saudi Arabia|SN:Senegal|RS:Serbia|SC:Seychelles|SL:Sierra Leone|SG:Singapore|SX:Sint Maarten|SK:Slovakia|SI:Slovenia|SB:Solomon Islands|SO:Somalia|ZA:South Africa|GS:South Georgia and the South Sandwich Islands|KR:South Korea|SS:South Sudan|ES:Spain|LK:Sri Lanka|SD:Sudan|SR:Suriname|SJ:Svalbard and Jan Mayen|SE:Sweden|CH:Switzerland|SY:Syria|TW:Taiwan|TJ:Tajikistan|TZ:Tanzania|TH:Thailand|TL:Timor-Leste|TG:Togo|TK:Tokelau|TO:Tonga|TT:Trinidad and Tobago|TN:Tunisia|TR:Türkiye|TM:Turkmenistan|TC:Turks and Caicos Islands|TV:Tuvalu|UG:Uganda|UA:Ukraine|AE:United Arab Emirates|GB:United Kingdom|US:United States|UM:U.S. Minor Outlying Islands|VI:U.S. Virgin Islands|UY:Uruguay|UZ:Uzbekistan|VU:Vanuatu|VE:Venezuela|VN:Vietnam|WF:Wallis and Futuna|EH:Western Sahara|YE:Yemen|ZM:Zambia|ZW:Zimbabwe";
+
+  var SAVE_URL = location.pathname.replace(/\/+$/, "") + "/countries";
+  var saved = (root.dataset.countries || "").split(",").filter(Boolean);
+
+  function norm(s) {
+    return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  }
+
+  var COUNTRIES = RAW.split("|").map(function (s) {
+    var i = s.indexOf(":");
+    var name = s.slice(i + 1);
+    return { code: s.slice(0, i), name: name, n: norm(name) };
+  }).sort(function (a, b) { return a.name.localeCompare(b.name); });
+
+  var BY_CODE = {};
+  COUNTRIES.forEach(function (c) { BY_CODE[c.code] = c; });
+
+  var el = {
+    segBtns: root.querySelectorAll(".mb-seg-btn"),
+    hint: root.querySelector("#mbHint"),
+    pickerWrap: root.querySelector("#mbPickerWrap"),
+    field: root.querySelector("#mbField"),
+    chips: root.querySelector("#mbChips"),
+    count: root.querySelector("#mbCount"),
+    saveBar: root.querySelector("#mbSaveBar"),
+    status: root.querySelector("#mbStatus"),
+    discard: root.querySelector("#mbDiscard"),
+    save: root.querySelector("#mbSave"),
+    search: modal.querySelector("#mbSearch"),
+    meta: modal.querySelector("#mbMeta"),
+    selectShown: modal.querySelector("#mbSelectShown"),
+    clear: modal.querySelector("#mbClear"),
+    list: modal.querySelector("#mbList"),
+    modalCount: modal.querySelector("#mbModalCount"),
+    close: modal.querySelector("#mbClose"),
+    cancel: modal.querySelector("#mbCancel"),
+    apply: modal.querySelector("#mbApply")
+  };
+
+  var CHECK = '<svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  var CROSS = '<svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>';
+
+  var validSaved = saved.filter(function (c) { return BY_CODE[c]; });
+  var selected = new Set(validSaved);
+  var draft = new Set(selected);
+  var mode = validSaved.length ? "selected" : "anywhere";
+  var baseline = keyFor(mode, selected);
+  var filtered = COUNTRIES.slice();
+  var activeIndex = -1;
+  var saving = false;
+
+  function keyFor(m, set) {
+    if (m === "anywhere") return "anywhere";
+    return Array.from(set).sort().join(",");
+  }
+
+  function esc(s) {
+    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  // Scroll a child to the vertical centre of its own scroll container only
+  // (never scrolls the page itself).
+  el.chips.style.position = "relative";
+  el.list.style.position = "relative";
+
+  function scrollToCenter(container, child) {
+    if (!container || !child) return;
+    container.scrollTop = child.offsetTop - (container.clientHeight - child.offsetHeight) / 2;
+  }
+
+  function isModalOpen() {
+    return modal.classList.contains("show");
+  }
+
+  function openModal() {
+    if (isModalOpen()) return;
+    draft = new Set(selected);
+    el.search.value = "";
+    applyFilter("", true);
+    renderModalCount();
+    modal.classList.add("show");
+
+    // jump the list to the first already-selected country
+    var first = el.list.querySelector(".mb-item.selected");
+    if (first) scrollToCenter(el.list, first);
+  }
+
+  function closeModal() {
+    if (!isModalOpen()) return;
+    modal.classList.remove("show");
+    el.field.focus();
+  }
+
+  function cancelModal() {
+    if (!isModalOpen()) return;
+    renderChips();
+    closeModal();
+  }
+
+  function renderMode() {
+    el.segBtns.forEach(function (b) {
+      b.classList.toggle("active", b.dataset.mode === mode);
+    });
+    el.pickerWrap.classList.toggle("mb-hidden", mode !== "selected");
+    el.hint.textContent = mode === "anywhere"
+      ? "Anyone can join your community, from any country."
+      : "Only people from the countries you choose can join.";
+    if (mode !== "selected") cancelModal();
+  }
+
+  function renderChips(set) {
+    var src = set || selected;
+    if (!src.size) {
+      el.chips.innerHTML = '<span class="mb-placeholder">No countries selected</span>';
+    } else {
+      var html = "";
+      COUNTRIES.forEach(function (c) {
+        if (src.has(c.code)) {
+          html += '<span class="mb-chip">' + esc(c.name) +
+            '<button type="button" data-remove="' + c.code + '" aria-label="Remove ' + esc(c.name) + '">' + CROSS + '</button></span>';
+        }
+      });
+      el.chips.innerHTML = html;
+    }
+    el.count.textContent = src.size ? src.size + " selected" : "";
+  }
+
+  function renderList() {
+    if (!filtered.length) {
+      el.list.innerHTML = '<div class="mb-empty">No countries match your search</div>';
+      return;
+    }
+    var html = "";
+    filtered.forEach(function (c, i) {
+      var sel = draft.has(c.code);
+        html += '<div class="mb-item' + (sel ? " selected" : "") + (i === activeIndex ? " active" : "") +
+          '" role="option" aria-selected="' + sel + '" data-code="' + c.code + '">' +
+          '<span class="mb-check">' + CHECK + '</span>' +
+          '<span class="mb-name">' + esc(c.name) + '</span></div>';
+    });
+    el.list.innerHTML = html;
+  }
+
+  function renderMeta() {
+    el.meta.textContent = filtered.length + (filtered.length === 1 ? " country" : " countries");
+    el.selectShown.disabled = !filtered.length;
+    el.clear.disabled = !draft.size;
+  }
+
+  function renderModalCount() {
+    el.modalCount.textContent = draft.size ? draft.size + " selected" : "None selected";
+    // Apply stays disabled until at least one country is picked
+    el.apply.disabled = !draft.size;
+  }
+
+  function setStatus(text, cls) {
+    el.status.textContent = text || "";
+    el.status.className = "mb-status" + (cls ? " " + cls : "");
+  }
+
+  function renderDirty() {
+    if (saving) return;
+    var dirty = keyFor(mode, selected) !== baseline;
+    var invalid = mode === "selected" && !selected.size;
+    el.saveBar.classList.toggle("show", dirty);
+    el.save.disabled = invalid;
+    if (dirty) {
+      setStatus(invalid ? "Select at least one country to save" : "You have unsaved changes", invalid ? "error" : "");
+    }
+  }
+
+  // Smoothly animate the list (and so the modal) to its new height
+  var REDUCED = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function sizeList(from, animate) {
+    var maxH = Math.max(160, Math.min(360, window.innerHeight - 320));
+    el.list.style.transition = "none";
+    el.list.style.height = "auto";
+    var target = Math.max(160, Math.min(maxH, el.list.scrollHeight));
+
+    if (!animate || REDUCED || !from || from === target) {
+      el.list.style.height = target + "px";
+      return;
+    }
+
+    el.list.style.height = from + "px";
+    void el.list.offsetHeight; // force reflow so the transition starts from `from`
+    el.list.style.transition = "height .28s cubic-bezier(.4, 0, .2, 1)";
+    el.list.style.height = target + "px";
+  }
+
+  function applyFilter(q, instant) {
+    var nq = norm(q.trim());
+    var from = el.list.offsetHeight;
+    filtered = nq
+      ? COUNTRIES.filter(function (c) { return c.n.indexOf(nq) !== -1 || c.code.toLowerCase() === nq; })
+      : COUNTRIES.slice();
+    activeIndex = nq && filtered.length ? 0 : -1;
+    renderList();
+    renderMeta();
+    sizeList(from, !instant);
+    el.list.scrollTop = 0;
+  }
+
+  function toggleDraft(code) {
+    if (draft.has(code)) draft.delete(code);
+    else draft.add(code);
+    var row = el.list.querySelector('[data-code="' + code + '"]');
+    if (row) {
+      var on = draft.has(code);
+      row.classList.toggle("selected", on);
+      row.setAttribute("aria-selected", on);
+    }
+    renderMeta();
+    renderModalCount();
+
+    // live preview in the field behind the modal
+    renderChips(draft);
+    if (draft.has(code)) {
+      var btn = el.chips.querySelector('[data-remove="' + code + '"]');
+      if (btn) scrollToCenter(el.chips, btn.parentElement);
+    }
+  }
+
+  function setActive(i) {
+    var rows = el.list.querySelectorAll(".mb-item");
+    if (!rows.length) return;
+    if (i < 0) i = rows.length - 1;
+    if (i >= rows.length) i = 0;
+    if (rows[activeIndex]) rows[activeIndex].classList.remove("active");
+    activeIndex = i;
+    rows[i].classList.add("active");
+    rows[i].scrollIntoView({ block: "nearest" });
+  }
+
+  el.segBtns.forEach(function (b) {
+    b.addEventListener("click", function () {
+      mode = b.dataset.mode;
+      renderMode();
+      renderDirty();
+    });
+  });
+
+  el.field.addEventListener("click", function (e) {
+    if (e.target.closest("[data-remove]")) return;
+    openModal();
+  });
+
+  el.field.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      openModal();
+    }
+  });
+
+  el.chips.addEventListener("click", function (e) {
+    var btn = e.target.closest("[data-remove]");
+    if (!btn) return;
+    e.stopPropagation();
+    selected.delete(btn.dataset.remove);
+    renderChips();
+    renderDirty();
+  });
+
+  el.list.addEventListener("mousedown", function (e) {
+    e.preventDefault();
+  });
+
+  el.list.addEventListener("click", function (e) {
+    var row = e.target.closest(".mb-item");
+    if (!row) return;
+    toggleDraft(row.dataset.code);
+    el.search.focus();
+  });
+
+  el.list.addEventListener("mousemove", function (e) {
+    var row = e.target.closest(".mb-item");
+    if (!row) return;
+    var rows = Array.prototype.slice.call(el.list.querySelectorAll(".mb-item"));
+    var idx = rows.indexOf(row);
+    if (idx === activeIndex) return;
+    if (rows[activeIndex]) rows[activeIndex].classList.remove("active");
+    activeIndex = idx;
+    row.classList.add("active");
+  });
+
+  el.search.addEventListener("input", function () {
+    applyFilter(el.search.value);
+  });
+
+  el.search.addEventListener("keydown", function (e) {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActive(activeIndex + 1);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActive(activeIndex - 1);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (filtered[activeIndex]) toggleDraft(filtered[activeIndex].code);
+    } else if (e.key === "Backspace" && !el.search.value && draft.size) {
+      toggleDraft(Array.from(draft).pop());
+    }
+  });
+
+  el.selectShown.addEventListener("click", function () {
+    filtered.forEach(function (c) { draft.add(c.code); });
+    renderChips(draft);
+    renderList();
+    renderMeta();
+    renderModalCount();
+    el.search.focus();
+  });
+
+  el.clear.addEventListener("click", function () {
+    draft.clear();
+    renderChips(draft);
+    renderList();
+    renderMeta();
+    renderModalCount();
+    el.search.focus();
+  });
+
+  el.close.addEventListener("click", cancelModal);
+  el.cancel.addEventListener("click", cancelModal);
+
+  modal.addEventListener("mousedown", function (e) {
+    if (e.target === modal) cancelModal();
+  });
+
+  el.apply.addEventListener("click", function () {
+    if (!draft.size) return;
+    var keep = el.chips.scrollTop;
+    selected = new Set(draft);
+    renderChips();
+    el.chips.scrollTop = keep;
+    renderDirty();
+    closeModal();
+  });
+
+  el.discard.addEventListener("click", function () {
+    selected = new Set(validSaved);
+    mode = validSaved.length ? "selected" : "anywhere";
+    closeModal();
+    renderMode();
+    renderChips();
+    el.saveBar.classList.remove("show");
+    setStatus("");
+  });
+
+  el.save.addEventListener("click", function () {
+    if (saving) return;
+    if (mode === "selected" && !selected.size) return;
+    saving = true;
+    el.save.disabled = true;
+    el.discard.disabled = true;
+    el.save.textContent = "Saving...";
+    setStatus("");
+
+    var codes = mode === "selected" ? Array.from(selected).sort() : [];
+    var headers = { "Content-Type": "application/json" };
+    if (typeof csrfToken !== "undefined") headers["X-CSRFToken"] = csrfToken;
+
+    fetch(SAVE_URL, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: headers,
+      body: JSON.stringify({ countries: codes })
+    })
+      .then(function (r) {
+        if (!r.ok) throw new Error("Request failed");
+        return r.json().catch(function () { return {}; });
+      })
+      .then(function () {
+        validSaved = codes.slice();
+        baseline = keyFor(mode, selected);
+        saving = false;
+        setStatus("Saved", "ok");
+        setTimeout(function () {
+          if (keyFor(mode, selected) === baseline) el.saveBar.classList.remove("show");
+        }, 1200);
+      })
+      .catch(function () {
+        saving = false;
+        setStatus("Could not save. Try again.", "error");
+      })
+      .then(function () {
+        saving = false;
+        el.save.textContent = "Save changes";
+        el.save.disabled = mode === "selected" && !selected.size;
+        el.discard.disabled = false;
+      });
+  });
+
+  function onDocKey(e) {
+    if (!document.body.contains(root)) {
+      document.removeEventListener("keydown", onDocKey);
+      modal.remove();
+      return;
+    }
+    if (e.key === "Escape" && isModalOpen()) {
+      e.preventDefault();
+      cancelModal();
+    }
+  }
+
+  document.addEventListener("keydown", onDocKey);
+
+  renderMode();
+  renderChips();
+  renderList();
+  renderMeta();
+  renderModalCount();
+  sizeList(0, false);
 }
 </script>
 </body>

@@ -1,594 +1,1756 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gleyo Docs — Quests, Tasks, Rewards & Community Platform Guide</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gleyo Documentation — Quests, Tasks, Rewards & Community Guide</title>
+<meta name="description" content="Learn how Gleyo works — quests, tasks, sprints, ZEC rewards, and community features. Complete guide for contributors and creators.">
+<meta name="keywords" content="Gleyo, quests platform, ZEC rewards, Zcash, community quests, quest app">
+<meta name="author" content="Gleyo">
+<meta property="og:title" content="Gleyo Documentation — Complete Guide">
+<meta property="og:description" content="Everything about Gleyo — quests, tasks, sprints, ZEC rewards, and community.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://zupdpwnloewdkjqsymdm.supabase.co/storage/v1/object/public/uploads/communities/7/logos/511f4996-5748-4f1f-b74c-5d5c33f7124c.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
+<link rel="shortcut icon" href="https://zupdpwnloewdkjqsymdm.supabase.co/storage/v1/object/public/uploads/communities/7/logos/511f4996-5748-4f1f-b74c-5d5c33f7124c.png">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0b0b12;
+  --panel: #181826;
+  --card: #1e1e2f;
+  --line: #2f2f4a;
+  --hi: #2a2a44;
+  --tx: #e5e7eb;
+  --mu: #9aa0b4;
+  --ac: #6366f1;
+  --sw: 300px;
+  --chev: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 6l6 6-6 6'/%3E%3C/svg%3E");
+}
 
-  <meta name="description" content="Learn how Gleyo works — quests, tasks, rewards, and community features. Complete guide for participants and creators on Gleyo.">
-  <link rel="shortcut icon" href="https://zupdpwnloewdkjqsymdm.supabase.co/storage/v1/object/public/uploads/communities/7/logos/511f4996-5748-4f1f-b74c-5d5c33f7124c.png">
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
-  <meta name="keywords" content="Gleyo, quests platform, task rewards, community quests, earn rewards online, quest app, user engagement platform">
+body {
+  background: var(--bg);
+  color: var(--tx);
+  font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+  height: 100vh;
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  overflow: hidden;
+}
 
-  <meta name="author" content="Gleyo">
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--ac); outline-offset: 2px; }
 
-  <meta property="og:title" content="Gleyo Documentation — Complete Guide">
-  <meta property="og:description" content="Everything about Gleyo — quests, tasks, rewards, and community system.">
-  <meta property="og:type" content="website">
-  <meta property="og:image" content="https://zupdpwnloewdkjqsymdm.supabase.co/storage/v1/object/public/uploads/communities/7/logos/511f4996-5748-4f1f-b74c-5d5c33f7124c.png">
+aside { scrollbar-width: none; -ms-overflow-style: none; }
+aside::-webkit-scrollbar { display: none; }
+main { scrollbar-width: thin; scrollbar-color: #3a3a55 transparent; }
 
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Gleyo Documentation">
-  <meta name="twitter:description" content="Complete guide to using Gleyo.">
+.lead, p, li, .card span, .none, .toc { font-family: 'Bricolage Grotesque', system-ui, sans-serif; }
 
-  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
+aside {
+  width: var(--sw);
+  flex: none;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  padding: 22px 14px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
 
-  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,600;12..96,700&family=Lora:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <style>
-  :root{
-    --bg-sidebar:#11111b;
-    --bg-sidebar-mob:#11111b92;
-    --bg-hover:#23233a;
-    --border:#2a2a40;
-    --text-main:#f1f5f9;
-    --text-muted:#9ca3af;
-    --accent:#6366f1;
-    --accent-soft:rgba(99,102,241,0.12);
-    --sidebar-w:270px;
+.brand {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 8px;
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: -0.5px;
+}
+.brand img { width: 30px; height: 30px; border-radius: 8px; }
+.brand i { width: 1px; height: 26px; background: var(--line); }
+.brand span { font-weight: 500; font-size: 16px; color: var(--mu); }
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 19px;
+  padding: 0 12px;
+  height: 40px;
+  min-height: 40px;
+  flex: none;
+  color: var(--mu);
+}
+.search input::-webkit-search-cancel-button,
+.search input::-webkit-search-decoration { -webkit-appearance: none; display: none; }
+.search input {
+  flex: 1; min-width: 0; height: 100%;
+  background: none; border: 0; outline: 0;
+  color: var(--tx); font: inherit; font-size: 15px;
+}
+.search:focus-within { border-color: var(--ac); }
+
+kbd {
+  font: inherit; font-size: 12px;
+  background: var(--hi);
+  border-radius: 6px;
+  padding: 3px 7px;
+  color: var(--tx);
+  flex: none;
+}
+
+nav.menu-nav { flex: none; display: flex; flex-direction: column; gap: 6px; }
+.grp { border-radius: 16px; padding: 2px; }
+.grp.open { background: var(--card); padding-bottom: 8px; }
+.grp > button {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 15.5px;
+  text-align: left;
+}
+.grp > button::after,
+.fq > button::after {
+  content: '';
+  width: 16px; height: 16px; flex: none;
+  background: var(--mu);
+  transition: transform 0.2s;
+  -webkit-mask: var(--chev) center / contain no-repeat;
+  mask: var(--chev) center / contain no-repeat;
+}
+.grp.open > button::after,
+.fq.open > button::after { transform: rotate(90deg); }
+.grp > button:hover, .grp.cur > button { background: var(--card); }
+.grp.open > button:hover { background: transparent; }
+.sub { display: none; margin: 2px 8px 0; }
+.grp.open .sub { display: block; }
+.sub a {
+  display: block;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 14.5px;
+  margin-bottom: 3px;
+  font-weight: 500;
+  color: var(--tx);
+  opacity: 0.8;
+}
+.sub a:hover { background: var(--hi); opacity: 1; }
+.sub a.on { color: #fff; opacity: 1; background: var(--hi); }
+.none { display: none; padding: 12px; color: var(--mu); font-size: 14px; }
+
+main {
+  flex: 1;
+  min-width: 0;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  overflow-y: auto;
+}
+.wrap {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 56px 48px 72px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 210px;
+  column-gap: 56px;
+}
+.wrap.nohash { grid-template-columns: minmax(0, 1fr); }
+.page { grid-column: 1; display: none; }
+.page.show { display: block; }
+
+h1 { font-size: 34px; font-weight: 700; letter-spacing: -0.9px; line-height: 1.08; margin-bottom: 18px; }
+h2 { font-size: 24px; font-weight: 600; letter-spacing: -0.4px; line-height: 1.2; margin: 44px 0 14px; scroll-margin-top: 24px; }
+h3 { font-size: 17px; font-weight: 600; letter-spacing: -0.1px; margin: 26px 0 8px; scroll-margin-top: 24px; }
+.lead { color: var(--mu); font-size: 19px; line-height: 1.55; margin: 0 0 28px; max-width: 640px; }
+#home .lead { margin: 16px 0 44px; }
+p { color: var(--mu); font-size: 16px; line-height: 1.75; margin-bottom: 14px; max-width: 700px; }
+p b, li b { color: var(--tx); font-weight: 600; }
+ul, ol { color: var(--mu); font-size: 16px; line-height: 1.7; padding-left: 22px; margin-bottom: 14px; max-width: 700px; }
+li { margin-bottom: 6px; }
+li::marker { color: var(--ac); }
+
+ol.steps { list-style: none; padding: 0; counter-reset: s; }
+ol.steps li { counter-increment: s; position: relative; padding-left: 46px; margin-bottom: 16px; }
+ol.steps li::before {
+  content: counter(s);
+  position: absolute; left: 0; top: 0;
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: var(--hi);
+  border: 1px solid var(--line);
+  color: var(--tx);
+  font-size: 14px; font-weight: 600;
+  display: grid; place-items: center;
+}
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9em;
+  background: var(--hi);
+  border-radius: 6px;
+  padding: 2px 6px;
+  color: var(--tx);
+}
+
+.crumb { font-size: 14px; color: var(--mu); margin-bottom: 18px; display: flex; gap: 8px; flex-wrap: wrap; font-family: 'Bricolage Grotesque', system-ui, sans-serif; }
+.crumb a:hover { color: var(--tx); }
+
+.flow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 18px 0 8px; }
+.flow span { background: var(--hi); border: 1px solid var(--line); border-radius: 999px; padding: 8px 16px; font-weight: 500; font-size: 15px; }
+.flow em { color: var(--ac); font-style: normal; }
+
+.note {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--ac);
+  background: var(--card);
+  border-radius: 14px;
+  padding: 14px 18px;
+  max-width: 700px;
+  margin: 20px 0;
+}
+.note.warn { border-left-color: #f59e0b; }
+.note.tip { border-left-color: #34d399; }
+.note strong { display: block; font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-size: 15px; color: var(--tx); margin-bottom: 4px; }
+.note p { margin: 0; font-size: 15px; }
+
+.tbl {
+  max-width: 700px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+  margin: 18px 0;
+  font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+}
+.tbl > div {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 16px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--line);
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--mu);
+}
+.tbl > div:last-child { border-bottom: 0; }
+.tbl > div:first-child { background: var(--card); }
+.tbl b { color: var(--tx); font-weight: 600; }
+
+.toc { grid-column: 2; grid-row: 1; position: sticky; top: 4px; align-self: start; font-size: 15px; }
+.toc:empty { display: none; }
+.toc .th { display: flex; align-items: center; gap: 10px; font-weight: 600; color: var(--tx); margin-bottom: 14px; font-size: 15.5px; }
+.toc .th::before {
+  content: '';
+  width: 18px; height: 12px;
+  background: linear-gradient(var(--mu), var(--mu)) 0 0 / 100% 2px no-repeat,
+              linear-gradient(var(--mu), var(--mu)) 0 5px / 70% 2px no-repeat,
+              linear-gradient(var(--mu), var(--mu)) 0 10px / 100% 2px no-repeat;
+}
+.toc a { display: block; padding: 6px 0; color: var(--mu); line-height: 1.35; transition: color 0.15s; }
+.toc a.l3 { padding-left: 16px; }
+.toc a:hover { color: var(--tx); }
+.toc a.on { color: var(--tx); font-weight: 600; }
+
+.pn {
+  display: flex; justify-content: space-between; gap: 16px;
+  max-width: 700px;
+  margin-top: 64px; padding-top: 36px;
+  border-top: 1px solid var(--line);
+  font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+}
+.fq + .pn { margin-top: 40px; padding-top: 0; border-top: 0; }
+.pn a { display: block; color: var(--mu); }
+.pn a.nx { margin-left: auto; }
+.pn small { display: block; font-size: 15px; margin-bottom: 10px; }
+.pn b { display: flex; align-items: center; gap: 10px; font-weight: 400; font-size: 17px; transition: color 0.2s; }
+.pn a:hover b { color: var(--tx); }
+.pn .pv b::before, .pn .nx b::after {
+  content: '';
+  width: 18px; height: 18px; flex: none;
+  background: currentColor;
+  -webkit-mask: var(--chev) center / contain no-repeat;
+  mask: var(--chev) center / contain no-repeat;
+}
+.pn .pv b::before { transform: rotate(180deg); }
+
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.card:hover { border-color: #404060; transform: translateY(-2px); }
+.prev {
+  height: 190px;
+  background: linear-gradient(180deg, hsl(var(--h) 70% 38%), hsl(calc(var(--h) + 55) 70% 62%));
+  display: flex; align-items: flex-end;
+  padding: 26px 26px 0;
+}
+.prev b {
+  display: flex; flex-direction: column; gap: 9px;
+  width: 100%; height: 100%;
+  background: #0b0b12;
+  border-radius: 12px 12px 0 0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-bottom: 0;
+  padding: 16px;
+}
+.prev u { display: block; height: 8px; border-radius: 4px; background: #2a2a44; }
+.prev u:nth-child(1) { width: 38%; background: hsl(var(--h) 80% 70%); }
+.prev u:nth-child(2) { width: 86%; }
+.prev u:nth-child(3) { width: 64%; }
+.prev u:nth-child(4) { width: 74%; }
+.card h4 { font-size: 18px; font-weight: 600; padding: 18px 20px 6px; }
+.card span { color: var(--mu); font-size: 15px; line-height: 1.5; padding: 0 20px 22px; }
+
+h2 + .fq { border-top: 1px solid var(--line); }
+.fq { border-bottom: 1px solid var(--line); max-width: 700px; }
+.fq:has(+ .pn), .fq:last-child { border-bottom: 0; }
+.fq > button {
+  width: 100%;
+  display: flex; flex-direction: row-reverse; justify-content: flex-end;
+  gap: 14px; align-items: center;
+  padding: 18px 0;
+  font-weight: 600; font-size: 16px; text-align: left;
+}
+.fq > div { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.25s; }
+.fq.open > div { grid-template-rows: 1fr; }
+.fq > div > p { overflow: hidden; margin: 0; padding-left: 30px; }
+.fq.open > div > p { margin-bottom: 18px; }
+
+.hero {
+  --h1: #3b3fd6; --h2: #7b5fd8; --h3: #dc69b5;
+  margin: 8px 0 0;
+  padding: clamp(56px, 12vw, 180px) clamp(14px, 3vw, 22px) 0;
+  border-radius: 20px;
+  overflow: hidden;
+  background: linear-gradient(180deg, var(--h1) 0%, var(--h2) 62%, var(--h3) 100%);
+}
+.hero-in {
+  min-height: 260px;
+  background: #0b0b12;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-bottom: 0;
+  border-radius: 16px 16px 0 0;
+  overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+}
+.hero-in img { display: block; width: 100%; height: auto; }
+.hero-ph { color: var(--mu); font-size: 14px; padding: 24px; text-align: center; }
+
+.top, .scrim { display: none; }
+
+@media (max-width: 1100px) {
+  .wrap { grid-template-columns: minmax(0, 1fr); }
+  .toc { display: none; }
+}
+
+@media (max-width: 860px) {
+  body { height: 100dvh; flex-direction: column; }
+  .top { display: flex; align-items: center; gap: 14px; flex: none; }
+  .menu {
+    width: 52px; height: 52px; border-radius: 16px;
+    background: var(--panel); border: 1px solid var(--line);
+    display: grid; place-content: center; justify-items: start; gap: 6px;
   }
-  *{margin:0;padding:0;box-sizing:border-box}
-  html{scroll-behavior:smooth}
-  body{
-    display:flex;
-    background:radial-gradient(circle at 20% 10%,#151528,#0b0b12);
-    color:var(--text-main);
-    font-family:'Lora',Georgia,serif;
-    min-height:100vh;
+  .menu i { display: block; width: 20px; height: 2px; background: var(--tx); border-radius: 2px; }
+  .menu i + i { width: 12px; }
+  .brand.t { padding: 0; }
+  aside {
+    position: fixed; top: 12px; bottom: 12px; left: 12px; z-index: 40;
+    width: min(86vw, 330px);
+    transform: translateX(-115%);
+    transition: transform 0.3s;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
   }
+  aside.open { transform: none; }
+  aside .brand { display: none; }
+  .scrim.on { display: block; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6); z-index: 35; }
+  main { min-height: 0; }
+  .wrap { padding: 34px 22px 48px; }
+  h1 { font-size: 28px; }
+  h2 { font-size: 21px; margin-top: 36px; }
+  .grid { grid-template-columns: 1fr; }
+  .tbl > div { grid-template-columns: 1fr; gap: 4px; }
+}
 
+@media (min-width: 861px) and (max-width: 1180px) {
+  .grid { grid-template-columns: repeat(2, 1fr); }
+}
 
-  @media (max-width: 768px) {
-    html, body {
-      height: 100% !important;
-      min-height: 100% !important;
-    }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 
-    .documentation-cotainer {
-      overflow-y: auto;
-      background: var(--bg-sidebar-mob);
-
-    }
-  }
-  
-  .topbar{
-    display:none;
-    position:fixed;top:0;left:0;right:0;
-    height:56px;
-    background:var(--bg-sidebar-mob);
-    backdrop-filter:blur(6px);
-    border-bottom:1px solid var(--border);
-    z-index:300;
-    align-items:center;
-    justify-content:space-between;
-    padding:0 18px;
-  }
-  .topbar-logo{font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:18px;color:#fff;}
-  .topbar-logo span{color:var(--accent);}
-  .hamburger{background:none;border:none;cursor:pointer;padding:6px;display:flex;flex-direction:column;gap:5px;}
-  .shortest{width:11px !important;margin-left:auto;}
-  .hamburger span{display:block;width:22px;height:2px;background:var(--text-main);border-radius:2px;transition:.3s;}
-  .hamburger.open span:nth-child(1){transform:translateY(7px) rotate(45deg);}
-  .hamburger.open span:nth-child(2){opacity:0;}
-  .hamburger.open span:nth-child(3){transform:translateY(-0.6px) rotate(-45deg);width:22px !important;margin-left:0 !important;}
-
-  .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:250;backdrop-filter:blur(2px);}
-  .overlay.active{display:block;}
-
-  aside{
-    width:var(--sidebar-w);height:100vh;
-    background:var(--bg-sidebar);
-    border-right:1px solid var(--border);
-    position:fixed;top:0;left:0;
-    padding:24px 20px;
-    overflow-y:auto;
-    z-index:260;
-    transition:transform .3s cubic-bezier(.4,0,.2,1);
-  }
-  .logo{font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:22px;letter-spacing:-0.5px;margin-bottom:30px;color:#fff;}
-  .logo span{color:var(--accent);}
-  .nav-group{margin-bottom:20px;}
-  .nav-header{
-    display:flex;justify-content:space-between;align-items:center;
-    cursor:pointer;font-size:11px;font-family:'Bricolage Grotesque',sans-serif;
-    text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);
-    margin-bottom:8px;padding:0 4px;user-select:none;
-  }
-  .chevron{transition:.3s;font-size:9px;}
-  .nav-group.open .chevron{transform:rotate(90deg);}
-  .nav-links{display:none;}
-  .nav-group.open .nav-links{display:block;}
-  .nav a{
-    display:block;padding:8px 12px;border-radius:8px;text-decoration:none;
-    color:var(--text-muted);font-size:13.5px;font-family:'Bricolage Grotesque',sans-serif;
-    font-weight:400;transition:.2s;
-  }
-  .nav a:hover{background:var(--bg-hover);color:#fff;}
-  .nav a.active{background:var(--accent-soft);color:#a5b4fc;}
-
-  main{margin-left:var(--sidebar-w);padding:64px 72px;max-width:900px;width:100%;}
-
-  h1{font-family:'Bricolage Grotesque',sans-serif;font-size:42px;font-weight:700;letter-spacing:-1px;line-height:1.1;margin-bottom:14px;color:#fff;}
-  h2{font-family:'Bricolage Grotesque',sans-serif;font-size:26px;font-weight:600;letter-spacing:-0.4px;margin-top:56px;margin-bottom:18px;color:#e2e8f0;padding-bottom:10px;border-bottom:1px solid var(--border);}
-  h3{font-family:'Bricolage Grotesque',sans-serif;font-size:17px;font-weight:600;margin-top:28px;margin-bottom:10px;color:#c7d2fe;}
-  .intro{font-family:'Lora',serif;font-size:16px;color:var(--text-muted);line-height:1.75;margin-bottom:48px;max-width:600px;}
-  p{font-family:'Lora',serif;font-size:15px;color:var(--text-muted);line-height:1.85;margin-bottom:16px;}
-  section{margin-bottom:60px;}
-
-  /* VIDEO BLOCK */
-  .video-block{background:linear-gradient(135deg,#1a1a2e,#16162a);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin:24px 0 32px;}
-  .video-wrapper{position:relative;width:100%;aspect-ratio:16/9;background:#0d0d1a;}
-
-  /* Placeholder overlay */
-  .video-placeholder{
-    position:absolute;inset:0;
-    display:flex;flex-direction:column;
-    align-items:center;justify-content:center;gap:14px;
-    background:linear-gradient(160deg,#12122a 0%,#0e0e1e 100%);
-    cursor:pointer;
-    transition:opacity .5s ease;
-    z-index:2;
-  }
-  .video-placeholder.hidden{opacity:0;pointer-events:none;}
-
-  /* Play button + ring animation */
-  .play-btn-wrap{position:relative;display:flex;align-items:center;justify-content:center;width:72px;height:72px;}
-  .play-btn{
-    width:60px;height:60px;
-    background:var(--accent);
-    border-radius:50%;
-    display:flex;align-items:center;justify-content:center;
-    font-size:20px;
-    box-shadow:0 0 30px rgba(99,102,241,0.4);
-    transition:transform .2s, box-shadow .2s;
-    position:relative;z-index:1;
-  }
-  .video-placeholder:hover .play-btn{transform:scale(1.08);box-shadow:0 0 44px rgba(99,102,241,0.6);}
-
-  /* Pulsing ring — appears on click, disappears when video shows */
-  .ring{
-    position:absolute;
-    inset:-6px;
-    border-radius:50%;
-    border:2.5px solid var(--accent);
-    opacity:0;
-    transform:scale(1);
-    pointer-events:none;
-  }
-  .ring.animate{
-    animation:ringPulse 0.7s ease-out infinite;
-  }
-  @keyframes ringPulse{
-    0%  {opacity:0.9;transform:scale(1);}
-    100%{opacity:0;transform:scale(1.8);}
-  }
-
-  .video-label{font-family:'Bricolage Grotesque',sans-serif;font-size:13px;color:var(--text-muted);}
-
-  /* The actual video / iframe — hidden until activated */
-  .video-embed{
-    position:absolute;inset:0;
-    width:100%;height:100%;
-    border:none;
-    display:block;
-    opacity:0;
-    transition:opacity .4s ease .1s;
-    z-index:1;
-  }
-  .video-embed.visible{opacity:1;}
-
-  .video-caption{
-    padding:14px 18px;
-    font-family:'Bricolage Grotesque',sans-serif;
-    font-size:13px;color:#64748b;
-    border-top:1px solid var(--border);
-    display:flex;align-items:center;gap:8px;
-  }
-  .video-caption::before{
-    content:"";display:inline-block;
-    width:14px;height:14px;
-    background:url("data:image/svg+xml,%3Csvg viewBox='9 3640 10 15' xmlns='http://www.w3.org/2000/svg' fill='%236366f1'%3E%3Cpath d='M18.074,3650.7335 L12.308,3654.6315 C10.903,3655.5815 9,3654.5835 9,3652.8985 L9,3645.1015 C9,3643.4155 10.903,3642.4185 12.308,3643.3685 L18.074,3647.2665 C19.306,3648.0995 19.306,3649.9005 18.074,3650.7335'/%3E%3C/svg%3E") no-repeat center;
-    background-size:contain;
-    position:relative;top:-2px;margin-right:6px;
-  }
-
-  code{font-family:'JetBrains Mono',monospace;background:#0f0f1e;padding:3px 8px;border-radius:6px;color:#c7d2fe;font-size:13px;border:1px solid #2a2a40;}
-  .code-flow{font-family:'JetBrains Mono',monospace;background:#0f0f1e;border:0.9px solid var(--border);border-radius:20px;padding:20px 22px;font-size:14px;color:#a5b4fc;margin:20px 0;letter-spacing:1px;}
-
-  .page-header{padding-bottom:30px}
-  .badge{display:inline-block;font-family:'Bricolage Grotesque',sans-serif;font-size:11px;background:var(--accent-soft);color:#a5b4fc;border:1px solid rgba(99,102,241,0.3);padding:4px 10px;border-radius:20px;margin-bottom:18px;letter-spacing:0.5px;text-transform:uppercase;}
-
-  .faq-q{font-family:'Bricolage Grotesque',sans-serif;font-size:14.5px;font-weight:600;color:var(--text-main);margin-top:22px;margin-bottom:6px;}
-  .faq-section-title{font-family:'Bricolage Grotesque',sans-serif;font-size:17px;font-weight:600;color:#c7d2fe;margin-top:36px;margin-bottom:10px;}
-
-  @media(max-width:768px){
-    .topbar{display:flex;}
-    aside{transform:translateX(-100%);padding-top:40px;top:56px;position:fixed;padding-bottom:144px !important;}
-    aside.open{transform:translateX(0);}
-    main{margin-left:0;padding:76px 20px 48px;max-width:100%;}
-    h1{font-size:28px;letter-spacing:-0.5px;}
-    h2{font-size:21px;margin-top:40px;}
-    h3{font-size:16px;}
-    .intro{font-size:14px;margin-bottom:28px;}
-    p{font-size:14px;}
-    #sidebar .logo{display:none !important;}
-    .code-flow{font-size:12px;padding:12px 14px;}
-    html,body{scroll-padding-top:76px;}
-  }
-  @media(max-width:400px){
-    main{padding:72px 14px 40px;}
-    h1{font-size:23px;}
-  }
-
-  .faq-item{border-bottom:0.3px solid var(--border);padding-bottom:10px;margin-bottom:10px;}
-  .faq-q{display:flex;justify-content:space-between;align-items:center;cursor:pointer;}
-  .faq-chevron{display:flex;transition:transform .25s ease;}
-  .faq-item.open .faq-chevron{transform:rotate(90deg);}
-  .faq-a{max-height:0;overflow:hidden;transition:max-height .3s ease;}
-  .faq-item.open .faq-a{max-height:200px;}
-  </style>
+.page p a { color: var(--ac); text-decoration: underline; text-underline-offset: 3px; }
+</style>
 </head>
 <body>
-<div class="documentation-cotainer">
-<div class="topbar">
-  <div class="topbar-logo">Gleyo <span>Docs</span></div>
-  <button class="hamburger" id="hamburger" aria-label="Toggle menu">
-    <span></span>
-    <span style="display:none"></span>
-    <span class="shortest"></span>
-  </button>
-</div>
 
-<div class="overlay" id="overlay"></div>
+<header class="top"><button class="menu" id="menu" aria-label="Toggle menu"><i></i><i></i></button><a class="brand t" href="#home"><img src="https://zupdpwnloewdkjqsymdm.supabase.co/storage/v1/object/public/uploads/communities/7/logos/511f4996-5748-4f1f-b74c-5d5c33f7124c.png" alt="Gleyo">Gleyo<i></i><span>Docs</span></a></header>
+<div class="scrim" id="scrim"></div>
 
-<aside id="sidebar">
-  <div class="logo">Gleyo <span>Docs</span></div>
-  <div class="nav">
-
-    <div class="nav-group open">
-      <div class="nav-header">Getting Started <span class="chevron">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24">
-        <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </span></div>
-      <div class="nav-links">
-        <a href="#create">Connect Wallet</a>
-        <a href="#first-quest">First Quest</a>
-        <a href="#flow">Basic Flow</a>
-      </div>
-    </div>
-
-    <div class="nav-group open">
-      <div class="nav-header">Features <span class="chevron">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24">
-        <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </span></div>
-      <div class="nav-links">
-        <a href="#quests">Quests</a>
-        <a href="#tasks">Tasks</a>
-        <a href="#uploads">Uploads</a>
-        <a href="#rewards">Rewards</a>
-      </div>
-    </div>
-
-    <div class="nav-group">
-      <div class="nav-header">Task Management <span class="chevron">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24">
-        <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </span></div>
-      <div class="nav-links">
-        <a href="#create-task">Creating a Task</a>
-        <a href="#review-task">Reviewing Tasks</a>
-        <a href="#task-settings">Task Settings</a>
-      </div>
-    </div>
-
-    <div class="nav-group">
-      <div class="nav-header">Community <span class="chevron">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24">
-        <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </span></div>
-      <div class="nav-links">
-        <a href="#community-overview">Overview</a>
-        <a href="#community-chat">Community Chat</a>
-        <a href="#community-setup">Setting Up</a>
-      </div>
-    </div>
-
-    <div class="nav-group">
-      <div class="nav-header">Wallet & Rewards <span class="chevron">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24">
-        <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </span></div>
-      <div class="nav-links">
-        <a href="#wallet-connect">Connecting Your Wallet</a>
-        <a href="#zec-rewards">ZEC Rewards</a>
-        <a href="#withdrawal">Withdrawing ZEC</a>
-      </div>
-    </div>
-
-    <div class="nav-group">
-      <div class="nav-header">Guides <span class="chevron">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24">
-        <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </span></div>
-      <div class="nav-links">
-        <a href="#complete">Complete Quest</a>
-        <a href="#submit">Submit Proof</a>
-        <a href="#invite">Invite Team</a>
-      </div>
-    </div>
-
-    <div class="nav-group">
-      <div class="nav-header">Troubleshooting <span class="chevron">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24">
-        <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </span></div>
-      <div class="nav-links">
-        <a href="#upload-issue">Upload Failed</a>
-        <a href="#task-issue">Task Issue</a>
-        <a href="#wallet-issue">Wallet Issue</a>
-      </div>
-    </div>
-
-    <div class="nav-group">
-      <div class="nav-header">FAQ <span class="chevron">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24">
-        <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </span></div>
-      <div class="nav-links">
-        <a href="#faq-general">General</a>
-        <a href="#faq-quests">Quests & Tasks</a>
-        <a href="#faq-rewards">Rewards</a>
-        <a href="#faq-community">Community</a>
-      </div>
-    </div>
-
-  </div>
+<aside id="side">
+  <a class="brand" href="#home"><img src="https://zupdpwnloewdkjqsymdm.supabase.co/storage/v1/object/public/uploads/communities/7/logos/511f4996-5748-4f1f-b74c-5d5c33f7124c.png" alt="Gleyo">Gleyo<i></i><span>Docs</span></a>
+  <label class="search">
+    <input id="q" type="search" placeholder="Search" autocomplete="off" aria-label="Search docs">
+    <kbd id="hint">Ctrl K</kbd>
+  </label>
+  <nav class="menu-nav">
+    <div class="grp"><button>Start guide</button><div class="sub">
+      <a href="#start/connect">Connect wallet</a><a href="#start/first-quest">First quest</a><a href="#start/flow">Basic flow</a></div></div>
+    <div class="grp"><button>Quests</button><div class="sub">
+      <a href="#quests/what">What is a quest</a><a href="#quests/create">Creating a quest</a><a href="#quests/publish">Publishing</a><a href="#quests/sprints">Quests in sprints</a></div></div>
+    <div class="grp"><button>Tasks</button><div class="sub">
+      <a href="#tasks/what">Tasks</a><a href="#tasks/create">Creating a task</a><a href="#tasks/x">X (Twitter)</a><a href="#tasks/uploads">Uploads</a><a href="#tasks/discord">Discord</a><a href="#tasks/youtube">YouTube</a><a href="#tasks/telegram">Telegram</a><a href="#tasks/github">GitHub</a><a href="#tasks/poh">Proof of Humanity</a><a href="#tasks/quiz">Quiz</a><a href="#tasks/poll">Poll</a><a href="#tasks/invite">Invite</a><a href="#tasks/visit-link">Visit Link</a><a href="#tasks/puzzle">Puzzle</a><a href="#tasks/input">URL, Text &amp; Number</a><a href="#tasks/ratings">Ratings</a><a href="#tasks/partnership">Partnership</a><a href="#tasks/coin-vote">Coin Holder Vote</a></div></div>
+    <div class="grp"><button>Reviews</button><div class="sub">
+      <a href="#reviews/queue">Review queue</a><a href="#reviews/actions">Approve or reject</a><a href="#reviews/auto">Auto-approval</a></div></div>
+    <div class="grp"><button>Sprints &amp; Leaderboard</button><div class="sub">
+      <a href="#sprints/what">Sprints</a><a href="#sprints/create">Creating a sprint</a><a href="#sprints/leaderboard">Leaderboard</a><a href="#sprints/export">Exporting rankings</a></div></div>
+    <div class="grp"><button>Wallet &amp; rewards</button><div class="sub">
+      <a href="#wallet/connect">Connecting your wallet</a><a href="#wallet/rewards">ZEC rewards</a><a href="#wallet/deposit">Depositing funds</a><a href="#wallet/withdraw">Withdrawing ZEC</a></div></div>
+    <div class="grp"><button>Community</button><div class="sub">
+      <a href="#community/overview">Overview</a><a href="#community/setup">Setting up</a></div></div>
+    <div class="grp"><button>Community chat</button><div class="sub">
+      <a href="#chat/using">Using chat</a></div></div>
+    <div class="grp"><button>Members &amp; teams</button><div class="sub">
+      <a href="#members/invite">Inviting members</a><a href="#members/roles">Roles</a></div></div>
+    <div class="grp"><button>Billing &amp; plans</button><div class="sub">
+      <a href="#billing/plans">Plans</a><a href="#billing/paying">Paying for a plan</a><a href="#billing/promotion">Twitter promotion</a></div></div>
+    <div class="grp"><button>Troubleshooting &amp; FAQ</button><div class="sub">
+      <a href="#help/troubleshooting">Troubleshooting</a><a href="#help/general">General</a><a href="#help/quests">Quests &amp; tasks</a><a href="#help/rewards">Rewards</a><a href="#help/community">Community</a></div></div>
+  </nav>
+  <p class="none" id="none">No results. Try another word.</p>
 </aside>
 
-<main>
+<main id="main"><div class="wrap" id="wrap">
 
-  <div class="page-header">
-    <div class="badge">Documentation</div>
-    <h1>Gleyo — ZEC-Native Quest, Rewards & Community Platform Documentation</h1>
-    <p class="intro">
-      Gleyo is a quest-based platform where users join communities, complete structured tasks, submit proof, and earn ZEC rewards directly to their Zcash wallet. This documentation explains how Gleyo works for both participants and admins — from wallet connection to task management and community engagement.
-    </p>
+<article class="page show" id="home">
+  <h1>Gleyo Documentation</h1>
+  <p class="lead">Get an overview of Gleyo’s features, rewards, and how to use them, whether you’re a contributor or a community admin.</p>
+  <div class="grid">
+    <a class="card" href="#start/connect" style="--h:250"><div class="prev"><b><u></u><u></u><u></u><u></u></b></div><h4>Start guide</h4><span>Verify your wallet, join a community, and finish your first quest.</span></a>
+    <a class="card" href="#quests/what" style="--h:215"><div class="prev"><b><u></u><u></u><u></u><u></u></b></div><h4>Quests</h4><span>What quests are, how to create them, and how publishing works.</span></a>
+    <a class="card" href="#tasks/what" style="--h:330"><div class="prev"><b><u></u><u></u><u></u><u></u></b></div><h4>Tasks</h4><span>Every task type, plus setup for X, Discord, YouTube, Telegram, GitHub, and file uploads.</span></a>
+    <a class="card" href="#reviews/queue" style="--h:305"><div class="prev"><b><u></u><u></u><u></u><u></u></b></div><h4>Reviews</h4><span>A guide to reviewing submissions: approve, reject, and auto-approve.</span></a>
+    <a class="card" href="#sprints/what" style="--h:20"><div class="prev"><b><u></u><u></u><u></u><u></u></b></div><h4>Sprints &amp; Leaderboard</h4><span>Run timed sprints, set reward tiers, and export rankings.</span></a>
+    <a class="card" href="#wallet/connect" style="--h:190"><div class="prev"><b><u></u><u></u><u></u><u></u></b></div><h4>Wallet &amp; rewards</h4><span>Connect your address, earn ZEC, and withdraw it.</span></a>
+    <a class="card" href="#community/overview" style="--h:285"><div class="prev"><b><u></u><u></u><u></u><u></u></b></div><h4>Community</h4><span>How communities work and how to set up yours.</span></a>
+    <a class="card" href="#chat/using" style="--h:160"><div class="prev"><b><u></u><u></u><u></u><u></u></b></div><h4>Community chat</h4><span>Real-time channels, reactions, pins, and reporting.</span></a>
+    <a class="card" href="#members/invite" style="--h:140"><div class="prev"><b><u></u><u></u><u></u><u></u></b></div><h4>Members &amp; teams</h4><span>Invite teammates and manage their roles.</span></a>
+    <a class="card" href="#billing/plans" style="--h:330"><div class="prev"><b><u></u><u></u><u></u><u></u></b></div><h4>Billing &amp; plans</h4><span>Upgrade your plan, pay, and use creator extras.</span></a>
+    <a class="card" href="#help/troubleshooting" style="--h:305"><div class="prev"><b><u></u><u></u><u></u><u></u></b></div><h4>Troubleshooting &amp; FAQ</h4><span>Quick fixes and answers to common questions.</span></a>
+  </div>
+</article>
+
+<article class="page" id="start/connect">
+  <h1>Connect wallet</h1>
+  <p class="lead">Your Zcash wallet is where your rewards are sent. Verify it once and you can join communities and receive ZEC.</p>
+  <div class="hero" style="--h1:#d9602f;--h2:#c9558f;--h3:#7b5fd8"><div class="hero-in"><img src="https://xpcqiovfesvllsljxhac.supabase.co/storage/v1/object/public/uploads/Connect_ZcashWallet.jpeg" alt="Publishing a quest"></div></div>
+
+  <h2>Overview</h2>
+  <p>Gleyo needs a Zcash wallet that supports <b>Unified</b> shielded addresses. Compatible wallets include <b>Zodl</b>, <b>Zkool</b>, and <b>Zingo</b>.</p>
+
+  <h2>Basics</h2>
+  <h3>Verify your wallet</h3>
+  <ol class="steps">
+    <li>Create your account.</li>
+    <li>Open your <b>Profile</b>, then <b>Account Settings</b>.</li>
+    <li>Choose <b>Wallets</b> in the left sidebar.</li>
+    <li>Click <b>Verify with Zcash</b> and enter your Zcash unified address.</li>
+  </ol>
+  <p>Once verified, your account is ready and you can explore communities and quests right away.</p>
+  <div class="note tip"><strong>Tip</strong><p>Your unified address starts with <code>u1</code>. Copy it straight from your wallet to avoid typos.</p></div>
+
+  <h2>FAQs</h2>
+  <div class="fq"><button>Which address should I enter?</button><div><p>A Zcash unified address that starts with u1. Transparent t-addresses are not supported.</p></div></div>
+  <div class="fq"><button>Do I need to sign a transaction to verify?</button><div><p>No. You only provide your address. Community managers use it to send your rewards.</p></div></div>
+  <div class="fq"><button>Which wallets work?</button><div><p>Any wallet that supports unified shielded addresses, including Zodl, Zkool, and Zingo.</p></div></div>
+</article>
+
+<article class="page" id="start/first-quest">
+  <h1>First quest</h1>
+  <p class="lead">Find a community, join it, and finish your first quest to start earning XP.</p>
+    <div class="hero" style="--h1:#d9602f;--h2:#c9558f;--h3:#7b5fd8"><div class="hero-in"><img src="https://xpcqiovfesvllsljxhac.supabase.co/storage/v1/object/public/uploads/First_quest.jpeg" alt="Publishing a quest"></div></div>
+
+
+  <h2>Overview</h2>
+  <p>After you log in, you land on the homepage. Scroll to the <b>Community</b> section to see verified communities and their descriptions.</p>
+
+  <h2>Basics</h2>
+  <h3>Join a community</h3>
+  <p>Open a community to see its details and quests, then join it to unlock them.</p>
+  <h3>Start a quest</h3>
+  <p>Each quest shows a short description, the number of tasks, and sometimes a ZEC reward for finishing. Click <b>Join</b> to begin. Progress saves automatically, so you can leave and come back.</p>
+  <div class="note"><strong>Note</strong><p>Expiry dates, when an admin sets one, are shown before you join a quest.</p></div>
+
+  <h2>FAQs</h2>
+  <div class="fq"><button>Do I lose my progress if I leave a community?</button><div><p>No. Your progress is saved even when you leave a community.</p></div></div>
+  <div class="fq"><button>Why is my quest still pending review?</button><div><p>The community manager has to review it first. Once it's reviewed, you'll receive a notification in your inbox.</p></div></div>
+  <div class="fq"><button>The Claim button is still disabled. What now?</button><div><p>Click the link button on each link-based task (for example Follow, Join Server, Subscribe, or Star this repo) so Gleyo registers it. The Claim button then turns on.</p></div></div>
+</article>
+
+<article class="page" id="start/flow">
+  <h1>Basic flow</h1>
+  <p class="lead">Every action on Gleyo follows one loop.</p>
+
+  <h2>Overview</h2>
+  <p>Join a community, stay engaged, take on quests, and earn ZEC as you go.</p>
+  <div class="flow"><span>Join</span><em>→</em><span>Engage</span><em>→</em><span>Grow</span><em>→</em><span>Earn ZEC</span></div>
+
+  <h2>Basics</h2>
+  <h3>Contributors</h3>
+  <ul>
+    <li><b>Join:</b> pick a community and join it.</li>
+    <li><b>Engage:</b> chat, react, and complete quests.</li>
+    <li><b>Grow:</b> earn XP and climb the leaderboard.</li>
+    <li><b>Earn ZEC:</b> withdraw rewards from your Reward Hub.</li>
+  </ul>
+  <h3>Admins</h3>
+  <p>Create quests, add tasks, publish, review submissions, and run sprints to keep your community active.</p>
+
+  <h2>FAQs</h2>
+  <div class="fq"><button>Do I have to follow the steps in order?</button><div><p>Not strictly. Connecting your shielded address isn’t mandatory to get started, but you’ll need it when you want to withdraw your ZEC. You can join communities, take on quests, and chat at your own pace in the meantime.</p></div></div>
+</article>
+
+<article class="page" id="quests/what">
+  <h1>What is a quest</h1>
+  <p class="lead">Quests are one of the main ways to get involved on Gleyo. Complete tasks, earn XP, and climb the leaderboard. Some quests also come with ZEC rewards.</p>
+
+  <h2>Overview</h2>
+  <p>A quest is a structured mission with a clear goal and a set of tasks. Almost every quest awards XP when you finish it. A smaller number also pay out ZEC on top of that. Some quests take minutes, others unfold over several sessions. Browse the quests inside each community.</p>
+
+  <h2>Basics</h2>
+  <h3>Tasks and rewards</h3>
+  <p>A quest is made of up to 5 tasks. When every task is approved, the quest is complete and you earn its XP. Only some quests have a ZEC reward. When one does, it becomes available to withdraw once the quest is completed.</p>
+  <h3>Review types</h3>
+  <p>Some tasks are verified automatically, while others need manual approval from community admins.</p>
+
+  <h2>FAQs</h2>
+  <div class="fq"><button>Do all quests pay ZEC?</button><div><p>No. Most quests reward XP only. ZEC rewards are less common and are shown on the quest itself, so you can see what's on offer before you start.</p></div></div>
+  <div class="fq"><button>How long does a quest take?</button><div><p>It depends on the quest. Some take minutes, others unfold over several sessions.</p></div></div>
+  <div class="fq"><button>Why is my quest still in review?</button><div><p>Tasks that need manual approval wait in the admin’s review queue. You’ll get a notification once your submission is approved or rejected.</p></div></div>
+</article>
+
+<article class="page" id="quests/create">
+  <h1>Creating a quest</h1>
+  <p class="lead">Set up a mission for your community in a few minutes.</p>
+
+  <h2>Overview</h2>
+  <p>Go to your community, open the <b>Quests</b> section, and create a new quest. Only Admins and Editors can create quests.</p>
+
+  <h2>Basics</h2>
+  <h3>Set up your quest</h3>
+  <ol class="steps">
+    <li>Give the quest a name.</li>
+    <li>Write a short description so contributors know the goal.</li>
+    <li>Add its tasks (up to 5).</li>
+    <li>Set the XP reward.</li>
+    <li>Optionally, add a ZEC reward pool.</li>
+  </ol>
+  <div class="note warn"><strong>Heads up</strong><p>ZEC rewards are optional. If you add a ZEC reward pool, it's paid from your wallet, so check your balance first. Only one ZEC reward is allowed per quest.</p></div>
+  <p>A new quest stays hidden until you publish it.</p>
+
+  <h2>FAQs</h2>
+  <div class="fq"><button>Can I add as many tasks as I want?</button><div><p>No. Each quest can include up to 5 tasks. Split big missions into several quests.</p></div></div>
+  <div class="fq"><button>Who can create quests?</button><div><p>Only community Admins and Editors can create quests.</p></div></div>
+  <div class="fq"><button>Does every quest need a ZEC reward?</button><div><p>No. Most quests only reward XP. Adding a ZEC reward pool is optional.</p></div></div>
+</article>
+
+<article class="page" id="quests/publish">
+  <h1>Publishing</h1>
+  <p class="lead">Publish a quest to make it visible and notify contributors.</p>
+
+  <h2>Overview</h2>
+  <p>A quest stays hidden from contributors until you publish it. Until then, you can keep working on it as a draft.</p>
+
+  <h2>Basics</h2>
+  <h3>Save as draft</h3>
+  <p>Not ready to go live? Save the quest as a draft. Drafts are only visible to you and your team, so you can come back, finish your tasks, and tweak the rewards whenever you like.</p>
+  <div class="hero" style="--h1:#d9602f;--h2:#c9558f;--h3:#7b5fd8"><div class="hero-in"><img src="https://xpcqiovfesvllsljxhac.supabase.co/storage/v1/object/public/uploads/Save_asdraft.png" alt="Publishing a quest"></div></div>
+  <h3>Publish your quest</h3>
+  <p>When you're happy with it, hit <b>Publish</b>. The quest becomes visible to contributors right away.</p>
+  <h3>Notifications</h3>
+  <p>The first time you publish, contributors get a notification inside the platform, so you don't need manual announcements.</p>
+  <div class="note"><strong>Note</strong><p>Republishing after an edit or after saving as a draft does not send the notification again.</p></div>
+
+  <h2>FAQs</h2>
+  <div class="fq"><button>Will contributors be notified when I edit a quest?</button><div><p>No. Contributors are only notified the first time a quest is published. Editing and republishing won't send another notification.</p></div></div>
+  <div class="fq"><button>Can I hide a quest again?</button><div><p>Yes. Move it back to a draft and it will be hidden from contributors until you publish it again.</p></div></div>
+  <div class="fq"><button>Who can see a draft?</button><div><p>Only you and your community team. Contributors can't see it until it's published.</p></div></div>
+</article>
+
+<article class="page" id="quests/sprints">
+  <h1>Quests in sprints</h1>
+  <p class="lead">Add a quest to a sprint so its XP counts toward the ranking.</p>
+
+  <h2>Overview</h2>
+  <p>A quest can be added to a sprint, but only while the sprint is live. When it joins a sprint, the XP contributors already earned on that quest counts toward the sprint ranking.</p>
+
+  <h2>Basics</h2>
+  <h3>Add a quest to a live sprint</h3>
+  <p>You can only add a quest to a sprint once that sprint is live. If the sprint hasn't started yet, or has already ended, the quest can't be added.</p>
+  <div class="hero" style="--h1:#d9602f;--h2:#c9558f;--h3:#7b5fd8"><div class="hero-in"><img src="https://xpcqiovfesvllsljxhac.supabase.co/storage/v1/object/public/uploads/Quest_insprint.png" alt="Publishing a quest"></div></div>
+
+  <h3>How XP is counted</h3>
+  <p>Only quests added to the sprint count. Earning XP on those quests moves contributors up the sprint leaderboard.</p>
+
+  <h2>FAQs</h2>
+  <div class="fq"><button>Do old completions count?</button><div><p>Yes. XP contributors already earned on a quest counts once that quest joins the sprint.</p></div></div>
+  <div class="fq"><button>Do all quests count in a sprint?</button><div><p>No. Only the quests you add to the sprint count.</p></div></div>
+  <div class="fq"><button>Can I add a quest to a sprint that isn't live?</button><div><p>No. A quest can only be added to a sprint while the sprint is live.</p></div></div>
+  <div class="fq"><button>I published a quest and forgot to add it to the sprint. Will people lose their XP?</button><div><p>No. Click on the quest, add it to the current live sprint, and publish again. The XP of anyone who completed it earlier is added automatically.</p></div></div>
+</article>
+
+<article class="page" id="tasks/what">
+  <h1>Tasks</h1>
+  <p class="lead">Tasks are the steps that make up a quest.</p>
+
+  <h2>Overview</h2>
+  <p>Each quest breaks into tasks: step-by-step actions like following an account on X, joining a Discord server, or uploading a file. Contributors complete all of them to finish the quest, and progress is tracked automatically.</p>
+  <div class="note"><strong>Note</strong><p>Every task on a quest is required, and each quest can include up to 5 tasks. Keep them focused so more contributors finish.</p></div>
+
+  <h2>Basics</h2>
+  <h3>Task types</h3>
+  <p>These are all the task types you can add to a quest. Each one has its own page in the sidebar with the setup steps.</p>
+  <div class="tbl">
+    <div><b>Type</b><b>What the contributor does</b></div>
+    <div><span>X (Twitter)</span><span>Follows a profile, likes, reposts or replies to a post, or joins a Space.</span></div>
+    <div><span>Discord</span><span>Joins a Discord server.</span></div>
+    <div><span>YouTube</span><span>Subscribes to a YouTube channel.</span></div>
+    <div><span>Telegram</span><span>Joins a Telegram group or channel.</span></div>
+    <div><span>GitHub</span><span>Stars or forks a public repository.</span></div>
+    <div><span>File upload</span><span>Uploads a file, like a screenshot or document, for review.</span></div>
+    <div><span>Proof of Humanity</span><span>Gets verified as a real person.</span></div>
+    <div><span>Quiz</span><span>Answers a multiple-choice question, with or without correct answers.</span></div>
+    <div><span>Poll</span><span>Picks an option, or writes their own.</span></div>
+    <div><span>Invite</span><span>Invites a set number of people to the community.</span></div>
+    <div><span>Visit Link</span><span>Opens a link you choose.</span></div>
+    <div><span>Puzzle</span><span>Enters a secret code or answer.</span></div>
+    <div><span>URL, Text, Number</span><span>Submits a link, a short text, or a numeric value.</span></div>
+    <div><span>Rating (stars or numbers)</span><span>Gives a star rating or picks a number on a scale.</span></div>
+    <div><span>Partnership</span><span>Joins another community, or goes to a quest in another community.</span></div>
+    <div><span>Coin Holder Vote</span><span>Votes on a project, weighted by the ZEC per vote you set.</span></div>
   </div>
 
-  <section id="create">
-    <h2>Getting Started</h2>
+  <h3>Before you complete a task</h3>
+  <p>A few things need to be in place first, so tasks can be checked properly:</p>
+  <ul>
+    <li><b>Discord:</b> the community owner must have Gleyo Bot inside the server. The invite link can be from any server, as long as Gleyo Bot is in it.</li>
+    <li><b>Telegram:</b> the community owner must add <b>@Gleyo_bot</b> to the group or channel with full permissions. If it isn't there, members can't claim the quest.</li>
+  </ul>
 
-    <h3>Connect Your Zcash Wallet</h3>
+  <div class="note warn"><strong>Claim button still disabled?</strong><p>After you paste a link or finish an action, the Claim button can stay disabled. Click the link button on any link task in the quest (Follow, Join Server, Subscribe, Join Channel, Star this repo, and so on) and the Claim button turns on.</p></div>
 
-    <p>
-      Getting started with Gleyo requires a Zcash wallet that supports shielded
-      Orchard addresses. Compatible wallets include <strong>Zold</strong>,
-      <strong>Zkool</strong>, and <strong>Zingo</strong>.
-    </p>
+  <h2>FAQs</h2>
+  <div class="fq"><button>Do contributors have to complete every task?</button><div><p>Yes. Every task on a quest is required, and the quest is only complete once all of them are approved.</p></div></div>
+  <div class="fq"><button>Can contributors redo a completed task?</button><div><p>No. Completed tasks are locked. They can only be redone if marked as failed.</p></div></div>
+  <div class="fq"><button>Can tasks be optional?</button><div><p>No. Every task is required. If you want something optional, make it a separate quest.</p></div></div>
+  <div class="fq"><button>How do I pass Proof of Humanity?</button><div><p>Make sure your Gleyo profile is filled in: add a profile picture and connect your socials, like X, YouTube, and Discord, in your settings. Then try the task again.</p></div></div>
+  <div class="fq"><button>The Claim button is disabled even after I did the task.</button><div><p>Click the link button on any link task in the quest, such as Follow, Join Server, or Subscribe. This enables the Claim button.</p></div></div>
+  <div class="fq"><button>Why can't I add another task next to Coin Holder Vote?</button><div><p>Coin Holder Vote has to be the only task on its quest. Remove the other tasks first, or put them in a separate quest.</p></div></div>
+  <div class="fq"><button>Do tasks cost claim credits?</button><div><p>Every claim has a base cost of 1 credit. X (Twitter) tasks add extra credits on top. See the X (Twitter) page for the exact costs.</p></div></div>
+</article>
 
-    <p>
-      After creating your account, head to your <strong>Profile</strong> and open
-      <strong>Account Settings</strong>. From the left sidebar select
-      <strong>Wallet</strong>, then click <strong>Verify with Zcash</strong> and
-      enter your Zcash unified address to complete verification.
-    </p>
+<article class="page" id="tasks/create">
+  <h1>Creating a task</h1>
+  <p class="lead">Add clear, focused steps to your quest.</p>
 
-    <p>
-      Once verified, your account is ready and you can start exploring
-      communities and quests immediately.
-    </p>
+  <h2>Overview</h2>
+  <p>Open a quest and click <b>Add Task</b>.</p>
 
-    <h3 id="first-quest">Start Your First Quest</h3>
+  <h2>Basics</h2>
+  <h3>Add a task</h3>
+  <ol class="steps">
+    <li>Click <b>Add Task</b> and choose a task type, such as X (Twitter), Discord, YouTube, Telegram, GitHub, file upload, quiz, poll, or invite.</li>
+    <li>Fill in the task's details, like the link, title, or description.</li>
+    <li>Add more tasks if you need them, up to 5.</li>
+  </ol>
+  <div class="note"><strong>Note</strong><p>Every task you add is required. Contributors must complete all of them to finish the quest.</p></div>
+  <div class="note tip"><strong>Tip</strong><p>Be specific. Clear instructions mean fewer unclear submissions to review.</p></div>
 
-    <p>
-      Once you log in, you'll be redirected to the homepage. Scroll down to the
-      <strong>Community</strong> section, where you'll see a list of verified
-      communities along with their descriptions.
-    </p>
+  <h3>Before you publish</h3>
+  <ul>
+    <li>Social tasks need a link that Gleyo can load. Wait for the preview to appear before you publish.</li>
+    <li>For Discord and Telegram, make sure Gleyo Bot is inside the server or group first.</li>
+    <li>The Publish button stays off until every task passes its checks.</li>
+  </ul>
 
-    <p>
-      Click on any community that interests you to view more details and explore
-      the quests it offers. Once inside, you can join the community to unlock and
-      access its available quests.
-    </p>
+  <h2>FAQs</h2>
+  <div class="fq"><button>How many tasks can I add?</button><div><p>Up to 5 per quest.</p></div></div>
+  <div class="fq"><button>Do contributors have to complete every task?</button><div><p>Yes. Every task on a quest is required, and the quest is only complete once all of them are approved.</p></div></div>
+  <div class="fq"><button>Can I send contributors to a link?</button><div><p>Yes. Add a Visit Link task and paste the link you want them to open.</p></div></div>
+  <div class="fq"><button>Why is the Publish button disabled?</button><div><p>One of your tasks, conditions, or rewards is incomplete. Check for an empty link, an unloaded preview, or a missing correct answer on a quiz.</p></div></div>
+</article>
 
-    <p>
-      Each quest shows a brief description, how many tasks are involved, and the
-      ZEC reward you'll earn on completion. Hit <strong>Join</strong> to
-      get started — your progress saves automatically as you go.
-    </p>
+<article class="page" id="tasks/x">
+  <h1>X (Twitter)</h1>
+  <p class="lead">Verify social actions on X automatically.</p>
+  <div class="hero" style="--h1:#d9602f;--h2:#c9558f;--h3:#7b5fd8"><div class="hero-in"><img src="https://xpcqiovfesvllsljxhac.supabase.co/storage/v1/object/public/uploads/Normaltwitter.png" alt="Publishing a quest"></div></div>
 
-    <h3 id="flow">Basic Flow</h3>
+  <h2>Overview</h2>
+  <p>X tasks come in three kinds: <b>Follow</b> a profile, <b>Like &amp; Repost</b> a post (you can also ask for a reply), and join a <b>Space</b>. Gleyo checks the action on X for you.</p>
 
-    <p>
-      Gleyo is built around community and continuous progress — every action
-      follows a simple loop. Join a community, stay engaged, take on quests, and
-      earn ZEC rewards as you grow.
-    </p>
+  <h2>Basics</h2>
+  <h3>Before you start</h3>
+  <p>Contributors must connect their X account in their settings before they can complete an X task. Without it, the task can’t be verified.</p>
 
-    <div class="code-flow">
-      Verify Wallet → Join → Engage → Grow → Earn ZEC
-    </div>
-  </section>
+  <h3>For admins: set up the task</h3>
+  <ol class="steps">
+    <li>Add an <b>X (Twitter)</b> task to your quest.</li>
+    <li>Pick a mode: <b>Follow</b>, <b>Like &amp; Repost</b>, or <b>Space</b>.</li>
+    <li>Paste the link: a profile link for Follow, a post link for Like &amp; Repost, or a Space link for Space.</li>
+    <li>For Like &amp; Repost, choose what to ask for: Like, Retweet, and Reply.</li>
+  </ol>
+  <p>Gleyo loads a preview of the profile, post, or Space so you can confirm it’s the right one. If the link can’t be found, you’ll see an error and need to fix the link before you publish.</p>
+  <div class="note"><strong>Note</strong><p>If you ask for a reply, contributors paste the link to their own reply on the task.</p></div>
 
-  <section id="quests">
-    <h2>Features</h2>
-    <h3>Quests</h3>
-    <p>Quests are one of the key parts of Gleyo — structured missions with a clear goal, a set of tasks, and a defined ZEC reward. Quests vary in complexity: some take minutes, while others unfold over multiple sessions. You can explore available quests inside each community.</p>
-    <h3 id="tasks">Tasks</h3>
-    <p>Each quest breaks down into individual tasks — step-by-step actions like watching a video, filling out a form, or completing a specific action. You move through them in order, and your progress is tracked automatically.</p>
-    <h3 id="uploads">Uploads</h3>
-    <p>Some tasks require proof of completion — a screenshot, photo, or file. Gleyo supports common image formats as well as PDFs and documents. Use the <strong>Upload File</strong> button on the task screen, select your file, and submit. Your upload is reviewed before the task is marked complete.</p>
-    <h3 id="rewards">Rewards</h3>
-    <p>When you complete all tasks and submissions are verified, your ZEC reward is queued for withdrawal to your Zcash wallet. Quests can also award XP, which builds your reputation and standing within the community. ZEC is the only token reward — no other cryptocurrencies or tokens supported.
-      
-    </p>
-  </section>
+  <h3>Claim credit costs</h3>
+  <p>Every claim has a base cost of <b>1 credit</b>. X tasks add extra credits on top of that base cost, depending on the action you ask for.</p>
+  <div class="tbl">
+    <div><b>X task or action</b><b>Additional cost</b></div>
+    <div><span>Follow</span><span>+1 credit</span></div>
+    <div><span>Space</span><span>+1 credit</span></div>
+    <div><span>Reply</span><span>+1 credit</span></div>
+    <div><span>Retweet</span><span>+2 credits</span></div>
+    <div><span>Like</span><span>+3 credits</span></div>
+  </div>
+  <p>On a Like &amp; Repost task, the actions you turn on are <b>additive</b>. Each one you select adds its own cost. If none are selected, the task adds nothing. The extra credits count toward your community’s claim usage, the same as the base cost.</p>
+  <div class="note tip"><strong>Examples</strong><p>A quest with one Follow task costs 1 + 1 = <b>2 credits</b> per claim. A quest with one Like &amp; Repost task asking for Like, Retweet, and Reply costs 1 + 3 + 2 + 1 = <b>7 credits</b> per claim.</p></div>
+  <div class="note"><strong>Note</strong><p>Costs add up across tasks. If a quest has more than one X task, the extra cost of each one is added to the 1-credit base.</p></div>
 
-  <section id="create-task">
-    <h2>Task Management</h2>
+  <h3>How contributors complete one</h3>
+  <ol class="steps">
+    <li>Connect your X account in your settings.</li>
+    <li>Do the action on the right profile, post, or Space.</li>
+    <li>Come back and claim the quest. Give it a few seconds, since Gleyo checks the action on X.</li>
+  </ol>
+  <p>For Space tasks, the button changes with the Space: <b>Join Space Now</b> when it’s live, <b>Set Reminder</b> before it starts, and <b>Space Ended</b> once it’s over.</p>
+  <div class="note warn"><strong>Claim button disabled?</strong><p>Click the link button on any link task in the quest, such as Follow on X, and the Claim button turns on.</p></div>
 
-    <h3>Creating a Task</h3>
-    <p>Tasks are the building blocks of every quest. Navigate to your community, go to the <strong>Quests</strong> section, and select a quest from the list. Once inside, click <strong>Add Task</strong>. Give it a name, write a clear description of what the participant needs to do, and choose a task type — a simple action, form submission, or proof upload.</p>
-    <p>Be specific in your instructions. The clearer the description, the easier it is to complete correctly — and the less time you spend reviewing unclear submissions. You can also set whether proof is required, add a reference link, and mark the task optional or required.</p>
+  <h2>FAQs</h2>
+  <div class="fq"><button>Do I need to connect X before I start?</button><div><p>Yes. Connect your X account in your settings first, otherwise the task can’t be verified.</p></div></div>
+  <div class="fq"><button>My X task won’t verify.</button><div><p>Make sure your X account is connected and that you did the action on the correct profile, post, or Space. Wait a moment and try again.</p></div></div>
+  <div class="fq"><button>Which X actions are supported?</button><div><p>Follow, like, repost, reply, and joining a Space.</p></div></div>
+  <div class="fq"><button>Can I ask for more than one action on the same post?</button><div><p>Yes. On a Like &amp; Repost task you can turn on Like, Retweet, and Reply together. Contributors must complete every action you select.</p></div></div>
+  <div class="fq"><button>How much do X tasks cost per claim?</button><div><p>Every claim costs 1 credit. Follow and Space add 1, Reply adds 1, Retweet adds 2, and Like adds 3.</p></div></div>
+  <div class="fq"><button>Are the costs of Like, Retweet, and Reply added together?</button><div><p>Yes. Each action you select adds its own cost to the claim. Selecting all three adds 3 + 2 + 1 = 6 credits on top of the base cost.</p></div></div>
+  <div class="fq"><button>Do contributors pay these credits?</button><div><p>No. Claim credits are part of your community’s plan usage. Contributors don’t pay anything to claim.</p></div></div>
+  <div class="fq"><button>Can I ask contributors to tweet or quote a tweet?</button><div><p>Not yet. Gleyo’s X tasks cover Follow, Like &amp; Repost (with an optional Reply), and Space.</p></div></div>
+</article>
 
-    <h3 id="review-task">Reviewing Tasks</h3>
-    <p>When a participant submits proof, it appears in your review queue. You can access this from the <strong>Reviews</strong> tab in your community sidebar. Each submission shows the participant's name, the task, and any uploaded files or screenshots.</p>
-    <p><strong>Approve</strong> to mark it complete and move the participant forward, or <strong>Reject</strong> to send it back with a note explaining what needs correcting. Participants are notified either way.</p>
+<article class="page" id="tasks/uploads">
+  <h1>Uploads</h1>
+  <p class="lead">Collect proof such as screenshots, photos, or files.</p>
 
-    <h3 id="task-settings">Task Settings</h3>
-    <p>Each task has a settings panel where you can set a deadline, limit resubmissions, or mark a task as auto-approved so it skips manual review. These settings let you control how tightly each step of your quest is managed.</p>
-  </section>
+  <h2>Overview</h2>
+  <p>A file upload task asks contributors to upload a file as proof, like a screenshot or a document. Uploads are reviewed before the task is marked complete.</p>
 
-  <section id="wallet-connect">
-    <h2>Wallet & Rewards</h2>
+  <h2>Basics</h2>
+  <h3>For admins: set up the task</h3>
+  <p>When you add a file upload task, you decide what contributors can upload:</p>
+  <ul>
+    <li><b>Number of files:</b> how many files each contributor can upload.</li>
+    <li><b>File types:</b> choose one or more of the accepted types below.</li>
+  </ul>
+  <div class="tbl">
+    <div><b>File type</b><b>Good for</b></div>
+    <div><span>Document</span><span>Written proof, reports, PDFs.</span></div>
+    <div><span>Presentation</span><span>Slide decks.</span></div>
+    <div><span>Spreadsheet</span><span>Tables, data, and sheets.</span></div>
+    <div><span>Image</span><span>Screenshots and photos.</span></div>
+    <div><span>Drawing</span><span>Design files and sketches.</span></div>
+    <div><span>Video</span><span>Screen recordings and clips.</span></div>
+    <div><span>Audio</span><span>Voice notes and recordings.</span></div>
+    <div><span>Archive</span><span>Bundled files, like zip files.</span></div>
+  </div>
+  <div class="note warn"><strong>Heads up</strong><p>Select at least one file type, or contributors won’t know what to upload. You also can’t publish the quest until one is selected.</p></div>
 
-    <h3>Connecting Your Wallet</h3>
-    <p>Gleyo uses your Zcash wallet address as your account identity. To connect, click <strong>Connect Wallet</strong> on the homepage and enter your unified Zcash address. Compatible wallets include Zodl, Zkool, and Zingo — any wallet that supports shielded Orchard addresses works.</p>
-    <p>Your address is used for authentication and for receiving ZEC rewards. You do not need to sign any transaction to log in — just provide your address.</p>
+  <h3>How contributors upload</h3>
+  <ol class="steps">
+    <li>Click <b>Choose file</b>, or drag and drop your file onto the task.</li>
+    <li>Pick a file of an allowed type.</li>
+    <li>Claim the quest to submit it for review.</li>
+  </ol>
 
-    <h3 id="zec-rewards">ZEC Rewards</h3>
-    <p>All rewards on Gleyo are paid in ZEC. When you complete a quest and all tasks are approved, your ZEC reward becomes available for withdrawal. The amount is shown clearly on each quest before you join.</p>
-    <p>Admins set the reward pool when creating a quest. Rewards are distributed non-custodially — Gleyo sends ZEC directly to your shielded Zcash wallet, with no middleman holding your funds.</p>
+  <h2>FAQs</h2>
+  <div class="fq"><button>What files can I upload?</button><div><p>It depends on the quest. The admin chooses the allowed file types and how many files you can upload, and they’re shown on the task.</p></div></div>
+  <div class="fq"><button>My upload failed. What should I do?</button><div><p>Check that the file type is one the task allows and that you haven’t gone over the number of files. Try a different browser, or refresh the page and upload again.</p></div></div>
+  <div class="fq"><button>When is an upload marked complete?</button><div><p>After an admin approves it, or right away if auto-approval is turned on for the quest.</p></div></div>
+</article>
 
-    <h3 id="withdrawal">Withdrawing ZEC</h3>
-    <p>Once your reward is approved, head to your <strong>Reward Hub</strong> and click <strong>Withdraw</strong>. Confirm your Zcash wallet address and submit the withdrawal request. ZEC is sent as a shielded Orchard transaction directly to your wallet.</p>
-    <p>Withdrawal processing depends on network conditions. You'll receive a notification once the transaction is confirmed on the Zcash mainnet.</p>
-  </section>
+<article class="page" id="tasks/discord">
+  <h1>Discord</h1>
+  <p class="lead">Ask contributors to join a Discord server.</p>
 
-  <section id="community-overview">
-    <h2>Community</h2>
-    <h3>Overview</h3>
-    <p>Gleyo's community features let you build a space where participants can connect, ask questions, share progress, and support each other. Communities are automatically attached to quests — when a participant completes a quest, they're instantly part of its community.</p>
-    <p>Everything stays in sync automatically. When a new quest or task is published, participants receive notifications directly within the platform so there's no need for manual announcements.</p>
-    <h3 id="community-chat">Community Chat</h3>
-    <p>The community chat is a real-time space for participants and quest creators to talk. Conversations are organised by channel — there's a general channel by default, and you can add channels like feedback. For support or issues, participants can use the ticket system instead.</p>
-    <p>As a quest creator, you can pin messages, moderate conversations, and see who's most active in the chat. Participants can react to messages and tag each other directly.</p>
-    <h3 id="community-setup">Setting Up Your Community</h3>
-    <p>Community features are tied to quests and can be configured from the quest settings. You can customise the community name and organise channels based on your needs.</p>
-    <p>A good welcome message helps participants understand the space and get started quickly. All settings can be updated at any time without disrupting active participants.</p>
-  </section>
+  <h2>Overview</h2>
+  <p>A Discord task sends contributors to a server and checks that they joined. Gleyo shows the server’s name and icon on the task.</p>
 
-  <section id="faq-general">
-    <h2>FAQ</h2>
+  <h2>Basics</h2>
+  <h3>For admins: set up the task</h3>
+  <ol class="steps">
+    <li>Add a <b>Discord</b> task to your quest.</li>
+    <li>Paste a Discord invite link, like <code>discord.gg/yourserver</code>.</li>
+    <li>Check that the server name and icon appear on the task.</li>
+  </ol>
+  <div class="note warn"><strong>Heads up</strong><p>Gleyo Bot must be inside the server. The invite link can be from any server, as long as Gleyo Bot is in it. If the bot isn’t there, members won’t be able to claim the quest.</p></div>
 
-    <div class="faq-section-title">General</div>
-    <div class="faq-item">
-      <p class="faq-q">Is Gleyo free to use?<span class="faq-chevron"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span></p>
-      <p class="faq-a">Yes — connecting your wallet and joining quests is free. Some advanced creator features may require a paid plan. Check the pricing page for details.</p>
-    </div>
-    <div class="faq-item">
-      <p class="faq-q">What devices does Gleyo work on?<span class="faq-chevron"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span></p>
-      <p class="faq-a">Gleyo works in any modern browser on desktop or mobile. No app to install — just open your browser and go.</p>
-    </div>
-    <div class="faq-item">
-      <p class="faq-q">Do I need a Zcash wallet to use Gleyo?<span class="faq-chevron"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span></p>
-      <p class="faq-a">Yes — Gleyo uses your Zcash wallet address as your account identity and for receiving ZEC rewards. Compatible wallets include Zodl, Zkool, and Zingo.</p>
-    </div>
+  <h3>How contributors complete one</h3>
+  <ol class="steps">
+    <li>Click <b>Join Server</b> on the task.</li>
+    <li>Join the server on Discord.</li>
+    <li>Come back and claim the quest.</li>
+  </ol>
+  <div class="note"><strong>Claim button disabled?</strong><p>Click the <b>Join Server</b> button (or any link task in the quest) and the Claim button turns on.</p></div>
 
-    <div class="faq-section-title" id="faq-quests">Quests &amp; Tasks</div>
-    <div class="faq-item">
-      <p class="faq-q">How many tasks can a quest have?<span class="faq-chevron"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span></p>
-      <p class="faq-a">Each quest can include up to 5 tasks. We recommend keeping tasks focused and meaningful to maximize participant completion.</p>
-    </div>
-    <div class="faq-item">
-      <p class="faq-q">Can participants redo a completed task?<span class="faq-chevron"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span></p>
-      <p class="faq-a">No. Completed tasks are locked and can only be redone if they are marked as failed.</p>
-    </div>
-    <div class="faq-item">
-      <p class="faq-q">What happens if a review is rejected?<span class="faq-chevron"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span></p>
-      <p class="faq-a">The participant is notified with your feedback and can resubmit if no cooldown is active. The task remains incomplete until approved or the quest ends.</p>
-    </div>
+  <h2>FAQs</h2>
+  <div class="fq"><button>Do I need to add Gleyo Bot to my server?</button><div><p>Yes. Gleyo Bot has to be inside the server so Gleyo can check who joined. The invite link can be from any server, as long as the bot is in it.</p></div></div>
+  <div class="fq"><button>Members say they can’t claim the Discord task. Why?</button><div><p>Usually Gleyo Bot isn’t in the server. Add the bot, then ask members to try again.</p></div></div>
+  <div class="fq"><button>Do I need to pick a verification option?</button><div><p>No. Discord tasks are verified automatically, so there’s no review step and no auto-approval option.</p></div></div>
+</article>
 
-    <div class="faq-section-title" id="faq-rewards">Rewards</div>
-    <div class="faq-item">
-      <p class="faq-q">How long does it take to receive a ZEC reward?<span class="faq-chevron"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span></p>
-      <p class="faq-a">ZEC rewards are available for withdrawal once your quest is fully approved. Processing time depends on Zcash network conditions after you submit a withdrawal request — in most cases, this completes in under 2 minutes.</p>
-    </div>
-    <div class="faq-item">
-      <p class="faq-q">Can rewards expire?<span class="faq-chevron"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span></p>
-      <p class="faq-a">That depends on how the admin configured the reward. Expiry dates are always shown clearly before you join a quest.</p>
-    </div>
-    <div class="faq-item">
-      <p class="faq-q">What wallet do I need to receive ZEC?<span class="faq-chevron"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span></p>
-      <p class="faq-a">Any Zcash wallet that supports shielded Orchard addresses — including Zodl, Zkool, and Zingo. ZEC is sent directly to your shielded address.</p>
-    </div>
+<article class="page" id="tasks/youtube">
+  <h1>YouTube</h1>
+  <p class="lead">Ask contributors to subscribe to a YouTube channel.</p>
 
-    <div class="faq-section-title" id="faq-community">Community</div>
-    <div class="faq-item">
-      <p class="faq-q">Who can see the community chat?<span class="faq-chevron"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span></p>
-      <p class="faq-a">The community chat is visible to anyone logged into Gleyo. However, you will only see and access communities that you are a member of.</p>
-    </div>
-    <div class="faq-item">
-      <p class="faq-q">Can I leave a community?<span class="faq-chevron"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span></p>
-      <p class="faq-a">Yes — you can leave a community at any time without affecting your quest progress. Open the community, tap or click the <strong>info (ℹ️) icon</strong>, and select <strong>Leave Community</strong>.</p>
-    </div>
-    <div class="faq-item">
-      <p class="faq-q">How do I report someone in the chat?<span class="faq-chevron"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span></p>
-      <p class="faq-a">Right-click a message on desktop or press and hold on mobile, then select <strong>Report</strong>. Reports are sent to the quest creator and Gleyo's moderation team and are handled confidentially.</p>
-    </div>
+  <h2>Overview</h2>
+  <p>A YouTube task sends contributors to your channel and asks them to subscribe. Gleyo shows the channel’s name and picture on the task.</p>
 
-    <div class="faq-section-title" id="wallet-issue">Troubleshooting</div>
-    <div class="faq-item">
-      <p class="faq-q">My wallet won't connect — what do I do?<span class="faq-chevron"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span></p>
-      <p class="faq-a">Make sure you are entering a valid Zcash unified address that starts with <strong>u1</strong>. Transparent t-addresses are not supported. If the issue persists, try a different compatible wallet like Zodl, Zkool, or Zingo.</p>
-    </div>
-    <div class="faq-item" id="upload-issue">
-      <p class="faq-q">My upload failed — what should I do?<span class="faq-chevron"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span></p>
-      <p class="faq-a">Check that your file is under the size limit and is a supported format (JPG, PNG, PDF). Try a different browser or refresh the page and reupload.</p>
-    </div>
-    <div class="faq-item" id="task-issue">
-      <p class="faq-q">A task is stuck or not updating — what do I do?<span class="faq-chevron"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span></p>
-      <p class="faq-a">Refresh the page and check your quest progress again. If the issue continues, use the ticket system in your community to contact the quest admin directly.</p>
-    </div>
+  <h2>Basics</h2>
+  <h3>For admins: set up the task</h3>
+  <ol class="steps">
+    <li>Add a <b>YouTube</b> task to your quest.</li>
+    <li>Paste your channel link, like <code>youtube.com/@yourchannel</code>.</li>
+    <li>Check that the channel name and picture appear on the task.</li>
+  </ol>
+  <div class="note"><strong>Note</strong><p>Use a channel link, not a link to a video. Video links aren’t supported yet.</p></div>
 
-  </section>
+  <h3>How contributors complete one</h3>
+  <ol class="steps">
+    <li>Click <b>Subscribe</b> on the task.</li>
+    <li>Subscribe to the channel on YouTube.</li>
+    <li>Come back and claim the quest.</li>
+  </ol>
+  <div class="note"><strong>Claim button disabled?</strong><p>Click the <b>Subscribe</b> button (or any link task in the quest) and the Claim button turns on.</p></div>
 
-</main>
+  <h2>FAQs</h2>
+  <div class="fq"><button>Which links work for the channel?</button><div><p>A channel link, a channel handle link like youtube.com/@yourchannel, or a youtube.com/channel link. Links to individual videos don’t work.</p></div></div>
+  <div class="fq"><button>The channel won’t load on my task.</button><div><p>Check that you pasted a channel link, not a video link, and that the channel is public. Then paste it again.</p></div></div>
+</article>
 
-</div>
+<article class="page" id="tasks/telegram">
+  <h1>Telegram</h1>
+  <p class="lead">Ask contributors to join a Telegram group or channel.</p>
+
+  <h2>Overview</h2>
+  <p>A Telegram task sends contributors to a group or channel and checks that they joined. Gleyo shows its name and picture on the task.</p>
+
+  <h2>Basics</h2>
+  <h3>For admins: set up the task</h3>
+  <ol class="steps">
+    <li>Add <b>@Gleyo_bot</b> to the group or channel you want people to join, with full permissions.</li>
+    <li>Add a <b>Telegram</b> task to your quest.</li>
+    <li>Paste the group or channel link, like <code>t.me/yourgroup</code>.</li>
+  </ol>
+  <div class="note warn"><strong>Heads up</strong><p>Gleyo Bot must be in the group with full permissions. This is how Gleyo verifies membership. If the bot isn’t there, members won’t be able to claim the quest.</p></div>
+
+  <h3>How contributors complete one</h3>
+  <ol class="steps">
+    <li>Click <b>Join Channel</b> on the task.</li>
+    <li>Join the group or channel on Telegram.</li>
+    <li>Come back and claim the quest.</li>
+  </ol>
+  <div class="note"><strong>Claim button disabled?</strong><p>Click the <b>Join Channel</b> button (or any link task in the quest) and the Claim button turns on.</p></div>
+
+  <h2>FAQs</h2>
+  <div class="fq"><button>Do I need to add Gleyo Bot to my group?</button><div><p>Yes. Add @Gleyo_bot to the group or channel with full permissions. Without it, Gleyo can’t verify members.</p></div></div>
+  <div class="fq"><button>Members say they can’t claim the Telegram task. Why?</button><div><p>Usually Gleyo Bot isn’t in the group, or it doesn’t have full permissions. Fix that, then ask members to try again.</p></div></div>
+</article>
+
+<article class="page" id="tasks/github">
+  <h1>GitHub</h1>
+  <p class="lead">Ask contributors to star or fork a repository.</p>
+
+  <h2>Overview</h2>
+  <p>A GitHub task sends contributors to a public repository and asks them to star it, fork it, or both. Gleyo shows the repository’s name and owner on the task.</p>
+
+  <h2>Basics</h2>
+  <h3>For admins: set up the task</h3>
+  <ol class="steps">
+    <li>Add a <b>GitHub</b> task to your quest.</li>
+    <li>Paste the repository link, like <code>github.com/owner/repo</code>.</li>
+    <li>Turn <b>Star</b> and <b>Fork</b> on or off to choose what you want contributors to do.</li>
+  </ol>
+  <div class="note"><strong>Note</strong><p>The repository must be public. If Gleyo can’t find it, you’ll see an error.</p></div>
+  <p>The button on the task updates to match your choice: <b>Star this repo</b>, <b>Fork this repo</b>, or <b>Star &amp; Fork this repo</b>.</p>
+
+  <h3>How contributors complete one</h3>
+  <ol class="steps">
+    <li>Click the button on the task to open the repository.</li>
+    <li>Star it, fork it, or both, depending on the task.</li>
+    <li>Come back and claim the quest.</li>
+  </ol>
+  <div class="note"><strong>Claim button disabled?</strong><p>Click the repo button (or any link task in the quest) and the Claim button turns on.</p></div>
+
+  <h2>FAQs</h2>
+  <div class="fq"><button>Can I use a private repository?</button><div><p>No. The repository has to be public so Gleyo can find it.</p></div></div>
+  <div class="fq"><button>Can I ask for both a star and a fork?</button><div><p>Yes. Turn both Star and Fork on in the task settings.</p></div></div>
+</article>
+
+<article class="page" id="tasks/poh">
+  <h1>Proof of Humanity</h1>
+  <p class="lead">Check that a contributor is a real person.</p>
+
+  <h2>Overview</h2>
+  <p>This task checks that you’re a real person. Gleyo looks at your profile on Gleyo: whether you have a profile picture and whether you’ve connected socials like X, YouTube, and Discord. It’s verified automatically, so there’s nothing to upload.</p>
+
+  <h2>Basics</h2>
+  <h3>For admins: set up the task</h3>
+  <p>Add a <b>Proof of Humanity</b> task to your quest. There's nothing to configure.</p>
+  <h3>How contributors complete one</h3>
+  <ol class="steps">
+    <li>Add a profile picture in your settings.</li>
+    <li>Connect your socials: X, YouTube, and Discord.</li>
+    <li>Click <b>Claim Verification</b> on the task, then claim the quest.</li>
+  </ol>
+  <div class="note"><strong>Note</strong><p>This task is verified automatically, so it never enters the review queue and has no auto-approval option.</p></div>
+
+  <h2>FAQs</h2>
+  <div class="fq"><button>How do I pass Proof of Humanity?</button><div><p>Make sure your Gleyo profile is filled in: add a profile picture and connect your socials, like X, YouTube, and Discord, in your settings. Then try the task again.</p></div></div>
+  <div class="fq"><button>Do I upload anything?</button><div><p>No. Gleyo checks your profile automatically.</p></div></div>
+</article>
+
+<article class="page" id="tasks/quiz">
+  <h1>Quiz</h1>
+  <p class="lead">Ask a multiple-choice question, with or without correct answers.</p>
+
+  <h2>Overview</h2>
+  <p>A quiz shows a title, a description, and a list of options. Contributors pick their answer and claim the quest.</p>
+
+  <h2>Basics</h2>
+  <h3>For admins: set up the task</h3>
+  <ol class="steps">
+    <li>Add a <b>Quiz</b> task to your quest.</li>
+    <li>Write the title and description.</li>
+    <li>Add your options with <b>Add option</b>.</li>
+    <li>Choose your switches below.</li>
+  </ol>
+  <ul>
+    <li><b>Correct answer(s):</b> turn on to mark which options are correct. Contributors must pick right to pass.</li>
+    <li><b>Multiple selection:</b> lets contributors choose more than one option. It turns on automatically when correct answers are on.</li>
+  </ul>
+  <div class="note warn"><strong>Heads up</strong><p>You must select at least one correct option before you can publish.</p></div>
+
+  <h3>How contributors complete one</h3>
+  <p>Pick one or more options, then claim the quest. A wrong answer shows an error and they can try again.</p>
+
+  <h2>FAQs</h2>
+  <div class="fq"><button>Can a quiz have more than one correct answer?</button><div><p>Yes. Turn on Multiple selection and mark each correct option.</p></div></div>
+  <div class="fq"><button>Why can't I publish my quiz?</button><div><p>Select at least one correct answer first.</p></div></div>
+</article>
+
+<article class="page" id="tasks/poll">
+  <h1>Poll</h1>
+  <p class="lead">Ask a question where there is no right answer.</p>
+
+  <h2>Overview</h2>
+  <p>A poll collects opinions. Contributors pick an option, and any choice counts as complete.</p>
+
+  <h2>Basics</h2>
+  <h3>For admins: set up the task</h3>
+  <ol class="steps">
+    <li>Add a <b>Poll</b> task to your quest.</li>
+    <li>Write the title and description.</li>
+    <li>Add your options with <b>Add option</b>.</li>
+  </ol>
+  <ul>
+    <li><b>Multiple selection:</b> lets contributors choose more than one option.</li>
+    <li><b>Other option:</b> adds a box where contributors type their own answer. It always appears last.</li>
+  </ul>
+  <h3>How contributors complete one</h3>
+  <p>Pick an option (or type an answer under Other), then claim the quest.</p>
+
+  <h2>FAQs</h2>
+  <div class="fq"><button>Is there a right answer?</button><div><p>No. Use a Quiz if you need correct answers.</p></div></div>
+  <div class="fq"><button>Can people write their own answer?</button><div><p>Yes, if you turn on the Other option.</p></div></div>
+</article>
+
+<article class="page" id="tasks/invite">
+  <h1>Invite</h1>
+  <p class="lead">Ask contributors to bring in new people.</p>
+
+  <h2>Overview</h2>
+  <p>An invite task asks each contributor to invite a set number of people to the community.</p>
+
+  <h2>Basics</h2>
+  <h3>For admins: set up the task</h3>
+  <ul>
+    <li><b>Number of invitations required:</b> how many people each contributor must bring in.</li>
+    <li><b>Quest needed to count (optional):</b> only invited people who claimed the quest you pick are counted.</li>
+    <li><b>XP required:</b> the XP an invited person needs for the invite to count is set in your community settings.</li>
+    <li><b>Require X (Twitter) match:</b> only counts invited users who were tagged in your tracked X post and have connected their X account.</li>
+  </ul>
+  <div class="note warn"><strong>Monthly limit</strong><p>Each community has a limit of 30 total invites per month across all invite tasks. Once it's reached, you can't create more invite tasks until next month. The counter on the task shows how much is used.</p></div>
+  <h3>Unlock the X match option</h3>
+  <p>Add a <b>URL</b> task that points to an X post, then turn on <b>Track invites from mentions</b>. The switch on the invite task then becomes available.</p>
+  <h3>How contributors complete one</h3>
+  <p>Share your invite link from the community's info (ℹ️) icon. When enough invited people join, claim the quest.</p>
+
+  <h2>FAQs</h2>
+  <div class="fq"><button>What is the invite limit?</button><div><p>30 total invites per month for your community, across all invite tasks.</p></div></div>
+  <div class="fq"><button>Why can't I turn on X match?</button><div><p>You need a URL task pointing to an X post with Track invites from mentions turned on.</p></div></div>
+</article>
+
+<article class="page" id="tasks/visit-link">
+  <h1>Visit Link</h1>
+  <p class="lead">Send contributors to a link you choose.</p>
+
+  <h2>Overview</h2>
+  <p>Paste any link and Gleyo shows a preview card with its image, title, and description.</p>
+
+  <h2>Basics</h2>
+  <h3>For admins: set up the task</h3>
+  <ol class="steps">
+    <li>Add a <b>Visit Link</b> task to your quest.</li>
+    <li>Paste the link. Gleyo loads the preview.</li>
+    <li>Wait for the preview to appear before you publish.</li>
+  </ol>
+  <h3>How contributors complete one</h3>
+  <p>Click the card to open the link, come back, and claim the quest. They must click it first or they can't claim.</p>
+
+  <h2>FAQs</h2>
+  <div class="fq"><button>The preview failed to load.</button><div><p>Check that the link is public and starts with https://, then paste it again.</p></div></div>
+  <div class="fq"><button>Can contributors skip clicking?</button><div><p>No. The card has to be clicked before claiming.</p></div></div>
+</article>
+
+<article class="page" id="tasks/puzzle">
+  <h1>Puzzle</h1>
+  <p class="lead">Ask for a secret code or answer.</p>
+
+  <h2>Overview</h2>
+  <p>A puzzle asks contributors to type the correct answer, like a code hidden in a video or post.</p>
+
+  <h2>Basics</h2>
+  <h3>For admins: set up the task</h3>
+  <ol class="steps">
+    <li>Add a <b>Puzzle</b> task to your quest.</li>
+    <li>Write the title and describe the riddle or challenge.</li>
+    <li>Set the <b>Expected answer</b> (required).</li>
+    <li>Optionally change the input placeholder.</li>
+  </ol>
+  <p><b>Automatic validation</b> is on by default: a correct answer passes right away and skips review.</p>
+  <h3>How contributors complete one</h3>
+  <p>Type the answer and claim the quest. A wrong answer shows an error.</p>
+
+  <h2>FAQs</h2>
+  <div class="fq"><button>Can I publish without an expected answer?</button><div><p>No. The expected answer is required.</p></div></div>
+</article>
+
+<article class="page" id="tasks/input">
+  <h1>URL, Text &amp; Number</h1>
+  <p class="lead">Collect a link, a short text, or a number.</p>
+
+  <h2>Overview</h2>
+  <p>These three tasks show an input box. Contributors submit a link (URL), a short text, or a numeric value.</p>
+
+  <h2>Basics</h2>
+  <h3>For admins: set up the task</h3>
+  <ol class="steps">
+    <li>Add a <b>URL</b>, <b>Text</b>, or <b>Number</b> task.</li>
+    <li>Write the title and description.</li>
+    <li>Choose whether to turn on <b>Automatic validation</b>.</li>
+  </ol>
+  <ul>
+    <li><b>Automatic validation on:</b> the claim skips review.</li>
+    <li><b>Automatic validation off:</b> each submission waits in the review queue.</li>
+    <li><b>Track invites from mentions</b> (URL only): Gleyo scans an X post for tagged friends and logs them as pending invites until they join and connect X.</li>
+  </ul>
+  <h3>How contributors complete one</h3>
+  <p>Fill in the box and claim the quest.</p>
+
+  <h2>FAQs</h2>
+  <div class="fq"><button>Is a title required?</button><div><p>Yes. The task needs a title before you can publish.</p></div></div>
+</article>
+
+<article class="page" id="tasks/ratings">
+  <h1>Ratings</h1>
+  <p class="lead">Collect a star rating or a number on a scale.</p>
+
+  <h2>Overview</h2>
+  <p>There are two rating tasks: <b>Star take</b> and <b>Your take</b>.</p>
+
+  <h2>Basics</h2>
+  <h3>Star take</h3>
+  <p>Contributors pick a star rating. You choose how many stars to show, from 1 to 10.</p>
+  <h3>Your take</h3>
+  <p>Contributors pick a number on a scale you define, with a label at each end, like Not Likely and Very Likely. The scale can't start or end at 0, and the first number must be lower than the last.</p>
+  <h3>How contributors complete one</h3>
+  <p>Pick a rating and claim the quest.</p>
+
+  <h2>FAQs</h2>
+  <div class="fq"><button>How many stars can I use?</button><div><p>Up to 10.</p></div></div>
+</article>
+
+<article class="page" id="tasks/partnership">
+  <h1>Partnership</h1>
+  <p class="lead">Send contributors to another community or quest.</p>
+
+  <h2>Overview</h2>
+  <p><b>Partnership</b> sends contributors to join another community on Gleyo. <b>Partnership Quest</b> sends them to a specific quest in another community.</p>
+
+  <h2>Basics</h2>
+  <h3>For admins: set up the task</h3>
+  <ol class="steps">
+    <li>Add a <b>Partnership</b> or <b>Partnership Quest</b> task.</li>
+    <li>Paste the Gleyo link to the community or quest.</li>
+    <li>Check that the name and logo load on the task.</li>
+  </ol>
+  <h3>How contributors complete one</h3>
+  <p>Click <b>Join Community</b> or <b>Go to Quest</b>, then come back and claim.</p>
+
+  <h2>FAQs</h2>
+  <div class="fq"><button>Which links work?</button><div><p>Links to a community on Gleyo, or to a quest in a community on Gleyo.</p></div></div>
+</article>
+
+<article class="page" id="tasks/coin-vote">
+  <h1>Coin Holder Vote</h1>
+  <p class="lead">Let contributors vote on projects.</p>
+
+  <h2>Overview</h2>
+  <p>Contributors vote on projects you list. Each vote pays the ZEC per vote you set.</p>
+
+  <h2>Basics</h2>
+  <h3>For admins: set up the task</h3>
+  <ol class="steps">
+    <li>Add a <b>Coin Holder Vote</b> task.</li>
+    <li>Set the <b>ZEC per vote</b>.</li>
+    <li>Add the <b>payout receiving address</b>. It must be a valid shielded address.</li>
+    <li>List your projects with a name and description each.</li>
+    <li>Set the vote start and end dates.</li>
+  </ol>
+  <div class="note warn"><strong>Heads up</strong><p>Coin Holder Vote must be the only task on its quest, and it can't be previewed. Publish the quest to see it live.</p></div>
+
+  <h2>FAQs</h2>
+  <div class="fq"><button>Why can't I add another task?</button><div><p>Coin Holder Vote has to be the only task on its quest. Remove the others or use a separate quest.</p></div></div>
+  <div class="fq"><button>Why can't I preview it?</button><div><p>Coin Holder Vote tasks can't be previewed. Publish the quest to see it live.</p></div></div>
+</article>
+
+<article class="page" id="reviews/queue">
+  <h1>Review queue</h1>
+  <p class="lead">See every submission waiting for your decision.</p>
+
+  <h2>Overview</h2>
+  <p>Submitted proof appears in your review queue under the <b>Reviews</b> tab in your community sidebar.</p>
+
+  <h2>Basics</h2>
+  <h3>What you see</h3>
+  <p>Each submission shows the contributor’s name, the task, how long ago it was submitted, and any uploaded files or screenshots.</p>
+
+  <h3>Queue order</h3>
+  <p>The newest submissions appear at the top of the queue, and older ones sit below them.</p>
+
+  <h2>FAQs</h2>
+  <div class="fq"><button>Where do I find the queue?</button><div><p>Open your community and choose the Reviews tab in the sidebar.</p></div></div>
+  <div class="fq"><button>In what order are submissions listed?</button><div><p>Newest first. The most recent submission is at the top, and each one shows how long ago it was submitted.</p></div></div>
+  <div class="fq"><button>Can I skip the queue?</button><div><p>Not for tasks that need a manual review. Those submissions always wait in the queue for your decision. Tasks that are verified automatically, like X (Twitter), Discord, YouTube, Telegram, GitHub, and Proof of Humanity, never enter the queue because the platform checks them for you.</p></div></div>
+</article>
+
+<article class="page" id="reviews/actions">
+  <h1>Approve or reject</h1>
+  <p class="lead">Decide whether each submission moves forward.</p>
+
+  <h2>Overview</h2>
+  <p>Contributors are notified either way.</p>
+
+  <h2>Basics</h2>
+  <h3>Approve</h3>
+  <p>Marks the task complete and moves the contributor forward.</p>
+  <h3>Reject</h3>
+  <p>Sends the task back with a note on what to fix.</p>
+  <div class="hero" style="--h1:#d9602f;--h2:#c9558f;--h3:#7b5fd8"><div class="hero-in"><img src="https://xpcqiovfesvllsljxhac.supabase.co/storage/v1/object/public/uploads/Approve_reject.png" alt="Publishing a quest"></div></div>
+  <div class="note tip"><strong>Tip</strong><p>A clear rejection note saves you from reviewing the same submission twice.</p></div>
+
+  <h2>FAQs</h2>
+  <div class="fq"><button>What happens if a review is rejected?</button><div><p>The contributor gets your feedback and can resubmit if no cooldown is active. The task stays incomplete until it’s approved.</p></div></div>
+  <div class="fq"><button>Do contributors know my decision?</button><div><p>Yes. They get a notification for both approvals and rejections.</p></div></div>
+</article>
+
+<article class="page" id="reviews/auto">
+  <h1>Auto-approval</h1>
+  <p class="lead">Let simple tasks skip the queue.</p>
+
+  <h2>Overview</h2>
+  <p>For simple tasks you can turn on auto-approval in the quest settings so submissions skip the queue. Some tasks are verified automatically and don't need it, so you won't see the option on them.</p>
+
+  <h2>Basics</h2>
+  <h3>Turn it on</h3>
+  <ol class="steps">
+    <li>Click on the quest.</li>
+    <li>On the right is the quest settings.</li>
+    <li>Mark the task as auto-approved.</li>
+  </ol>
+  <div class="note warn"><strong>Heads up</strong><p>Auto-approved tasks are not checked by hand. Use it only when proof doesn’t matter.</p></div>
+
+  <h3>Tasks that are verified automatically</h3>
+  <p>Tasks that can be verified automatically, like X (Twitter), Discord, YouTube, Telegram, GitHub, and Proof of Humanity, are checked by the platform itself. They are validated automatically from the start, so the auto-approval option is hidden and you can't turn it on or off for them.</p>
+
+  <h3>Tasks with their own validation switch</h3>
+  <p>URL, Text, Number, and Puzzle tasks have an <b>Automatic validation</b> switch inside the task. Turn it on and the claim skips review. Turn it off and each submission waits in the queue. File uploads always need review unless auto-approval is on.</p>
+
+  <h2>FAQs</h2>
+  <div class="fq"><button>Can I turn auto-approval off later?</button><div><p>Yes, for tasks that show the option. Change it any time in the quest settings. Tasks that are verified automatically don't show it, so it can't be changed for them.</p></div></div>
+  <div class="fq"><button>Why don't I see the auto-approval option on my task?</button><div><p>Tasks like X (Twitter), Discord, YouTube, Telegram, GitHub, and Proof of Humanity are verified automatically, so they are already set to auto-validate and the option is hidden. It only appears on tasks that would otherwise need a manual review, like file uploads.</p></div></div>
+</article>
+
+<article class="page" id="sprints/what">
+  <h1>Sprints</h1>
+  <p class="lead">Short, competitive bursts with a start date, an end date, and prizes.</p>
+
+  <h2>Overview</h2>
+  <p>A sprint is a time-boxed competition. Contributors earn XP from the quests inside the sprint and climb the leaderboard.</p>
+
+  <h2>Basics</h2>
+  <h3>Who wins</h3>
+  <p>Contributors at the top of the sprint ranking win the reward tiers set for the sprint. Only quests added to the sprint count.</p>
+
+  <h3>Who distributes the rewards</h3>
+  <p>Not every sprint is paid out by Gleyo. Each sprint is either distributed by Gleyo or self-distributed:</p>
+  <ul>
+    <li><b>Distributed by Gleyo:</b> Gleyo pays the winners. Rewards are disbursed 2 days after the sprint ends.</li>
+    <li><b>Self-distributed:</b> The community owner pays the winners themselves.</li>
+  </ul>
+  <div class="note"><strong>Note</strong><p>Check the tag on the sprint page to see how a sprint is distributed before you join, so you know who will pay out the rewards and when.</p></div>
+
+  <h2>FAQs</h2>
+  <div class="fq"><button>What do winners receive?</button><div><p>Rewards are paid in ZEC according to the reward tiers set when the sprint was created.</p></div></div>
+  <div class="fq"><button>When are rewards paid out?</button><div><p>It depends on who distributes the sprint. If Gleyo distributes it, rewards are disbursed 2 days after the sprint ends. If it's self-distributed, the community owner pays the winners.</p></div></div>
+  <div class="fq"><button>How do I know if a sprint is self-distributed?</button><div><p>Look for the tag on the sprint page. It shows whether the sprint is distributed by Gleyo or self-distributed by the community owner.</p></div></div>
+  <div class="fq"><button>How are sprints different from the all-time leaderboard?</button><div><p>A sprint ranks XP earned from its quests within its dates. The all-time view ranks total XP.</p></div></div>
+</article>
+
+<article class="page" id="sprints/create">
+  <h1>Creating a sprint</h1>
+  <p class="lead">Launch a timed competition for your community.</p>
+
+  <h2>Overview</h2>
+  <p>Open your community, go to <b>Leaderboard</b>, and click <b>Create Sprint</b>.</p>
+
+  <h2>Basics</h2>
+  <h3>Set it up</h3>
+  <ol class="steps">
+    <li>Set the name.</li>
+    <li>Choose the dates.</li>
+    <li>Set the reward tiers.</li>
+    <li>Choose your preferred way to distribute the rewards.</li>
+    <li>Add the quests that should count.</li>
+  </ol>
+  <div class="note warn"><strong>Heads up</strong><p>Rewards are paid in ZEC. Check your wallet balance before you set the reward pool.</p></div>
+
+  <h3>Choose how rewards are distributed</h3>
+  <p>The choice is yours. When you create a sprint, pick the distribution method you prefer:</p>
+  <ul>
+    <li><b>Let Gleyo hold and distribute the rewards:</b> Gleyo holds the rewards and pays the winners for you. Rewards are disbursed 2 days after the sprint ends.</li>
+    <li><b>Self-distribute:</b> You, as the community owner, pay the winners yourself.</li>
+  </ul>
+  <div class="note"><strong>Note</strong><p>Your choice is shown as a tag on the sprint page, so contributors know who will pay out the rewards and when.</p></div>
+
+  <h2>FAQs</h2>
+  <div class="fq"><button>Can I choose how my sprint rewards are distributed?</button><div><p>Yes. You can let Gleyo hold and distribute the rewards, or you can self-distribute them to the winners yourself. Pick whichever you prefer when you create the sprint.</p></div></div>
+  <div class="fq"><button>When are sprint rewards paid out?</button><div><p>It depends on the option you chose. If Gleyo distributes the sprint, rewards are disbursed 2 days after it ends. If you self-distribute, you pay the winners yourself.</p></div></div>
+  <div class="fq"><button>Can I add quests after creating the sprint?</button><div><p>Yes, while the sprint is live. A quest can be added to a sprint, and the XP already earned on it counts toward the ranking.</p></div></div>
+</article>
+
+<article class="page" id="sprints/leaderboard">
+  <h1>Leaderboard</h1>
+  <p class="lead">See who’s leading the community.</p>
+
+  <h2>Overview</h2>
+  <p>The leaderboard shows every contributor ranked by XP for the current sprint, with an all-time view as well.</p>
+
+  <h2>Basics</h2>
+  <h3>Earning XP</h3>
+  <p>Earning XP places you on the leaderboard, showcasing your standing within the community. Aim for the top to win prizes in sprints.</p>
+
+  <h3>Bonus XP from admins</h3>
+  <p>Admins can also give you additional XP through the community chat, for example to reward great contributions or help.</p>
+
+  <h2>FAQs</h2>
+  <div class="fq"><button>Can I see the all-time ranking?</button><div><p>Yes. Switch to the all-time view on the leaderboard.</p></div></div>
+  <div class="fq"><button>How do I earn more XP?</button><div><p>Complete quests. Some quests award XP in addition to ZEC. Admins can also give you additional XP through the community chat.</p></div></div>
+  <div class="fq"><button>Can admins give me extra XP?</button><div><p>Yes. Admins can give additional XP through the community chat, and it counts toward your place on the leaderboard.</p></div></div>
+</article>
+
+<article class="page" id="sprints/export">
+  <h1>Exporting rankings</h1>
+  <p class="lead">Download rankings for payouts or reporting.</p>
+
+  <h2>Overview</h2>
+  <p>Admins can export the leaderboard or sprint ranking as an <b>.xlsx</b> file.</p>
+
+  <h2>Basics</h2>
+  <h3>Get the file</h3>
+  <p>The file is sent to your email once it’s ready.</p>
+
+  <h2>FAQs</h2>
+  <div class="fq"><button>Who can export?</button><div><p>Admins.</p></div></div>
+  <div class="fq"><button>I haven’t received the file.</button><div><p>Give it a little time, then check your email’s spam folder.</p></div></div>
+</article>
+
+<article class="page" id="wallet/connect">
+  <h1>Connecting your wallet</h1>
+  <p class="lead">Add your Zcash address so you can receive your rewards.</p>
+
+  <h2>Overview</h2>
+  <p>Gleyo doesn't use your address to sign you in, and you don't sign any transaction. You just connect your unified shielded address by pasting it in your account settings. Gleyo collects it and gives it to community admins through the ranking export, so the community owner can distribute your rewards.</p>
+
+  <h2>Basics</h2>
+  <h3>Connect your address</h3>
+  <ol class="steps">
+    <li>Open your <b>Account Settings</b>.</li>
+    <li>Select <b>Wallets</b> in the sidebar.</li>
+    <li>Paste your unified shielded Zcash address and connect it.</li>
+  </ol>
+  <p>Any wallet that supports unified shielded addresses works, including Zodl, Zkool, and Zingo.</p>
+  <div class="note"><strong>Note</strong><p>Your address is only used to send you rewards. It is shared with community admins in the export, and nothing else about your wallet is shared.</p></div>
+
+  <h2>FAQs</h2>
+  <div class="fq"><button>Where do I connect my address?</button><div><p>Open your Account Settings, select Wallets in the sidebar, then paste your address and connect it.</p></div></div>
+  <div class="fq"><button>Do I need to connect my wallet app?</button><div><p>No. You don’t connect a wallet app or sign anything. Just paste your shielded address.</p></div></div>
+  <div class="fq"><button>Is my address used to sign me in?</button><div><p>No. Gleyo only collects your address so you can receive rewards.</p></div></div>
+  <div class="fq"><button>Who can see my address?</button><div><p>Gleyo collects it and gives it to community admins through the ranking export, so the community owner can distribute your rewards.</p></div></div>
+  <div class="fq"><button>My address won’t work. What do I do?</button><div><p>Make sure you’re pasting a valid Zcash unified shielded address that starts with u1. Transparent t-addresses are not supported. If it still fails, create an address in another compatible wallet like Zodl, Zkool, or Zingo.</p></div></div>
+</article>
+
+<article class="page" id="wallet/rewards">
+  <h1>ZEC rewards</h1>
+  <p class="lead">Complete quests, get approved, and withdraw ZEC.</p>
+
+  <h2>Overview</h2>
+  <p>All rewards are paid in ZEC. Once you complete a quest and every task is approved, your reward is available to withdraw. The amount is shown on each quest before you join.</p>
+  <div class="note"><strong>Note</strong><p>ZEC is the only token reward. You can deposit USDT or USDC, but they are converted to shielded ZEC automatically.</p></div>
+
+  <h2>Basics</h2>
+  <h3>XP</h3>
+  <p>Quests can also award XP, which builds your reputation within the community.</p>
+
+  <h3>Reward methods</h3>
+  <p>Admins choose how each reward is given out:</p>
+  <ul>
+    <li><b>All:</b> everyone who completes the quest gets the reward.</li>
+    <li><b>FCFS:</b> the first people to finish get it, up to a max supply.</li>
+    <li><b>Raffle:</b> completers enter a draw, and winners are picked when the quest ends or reaches max contributors.</li>
+    <li><b>Vote:</b> completers are voted on by other community members.</li>
+  </ul>
+  <p>ZEC rewards use <b>FCFS</b>, so a ZEC reward has a max supply of winners.</p>
+
+  <h2>FAQs</h2>
+  <div class="fq"><button>Can rewards expire?</button><div><p>It depends on how the admin set up the reward. Expiry dates are always shown before you join a quest.</p></div></div>
+  <div class="fq"><button>Can I be paid in another token?</button><div><p>No. ZEC is the only token reward. Deposits in USDT or USDC are converted to shielded ZEC automatically.</p></div></div>
+</article>
+
+<article class="page" id="wallet/deposit">
+  <h1>Depositing funds</h1>
+  <p class="lead">Add USDT or USDC and it becomes shielded ZEC automatically.</p>
+
+  <h2>Overview</h2>
+  <p>You can deposit USDT or USDC on Polygon or Base. Your deposit is converted to shielded ZEC automatically, so you don’t need to swap anything yourself.</p>
+
+  <h2>Basics</h2>
+  <h3>Deposit</h3>
+  <ol class="steps">
+    <li>Open your <b>Reward Hub</b> and click <b>Deposit</b>.</li>
+    <li>Choose USDT or USDC and the network, Polygon or Base.</li>
+    <li>Send the funds. They are converted to shielded ZEC automatically.</li>
+  </ol>
+  <div class="note warn"><strong>Heads up</strong><p>Only deposit USDT or USDC on Polygon or Base. Sending other tokens or using another network can result in lost funds.</p></div>
+
+  <h2>FAQs</h2>
+  <div class="fq"><button>Which tokens and networks can I deposit?</button><div><p>USDT and USDC, on Polygon or Base.</p></div></div>
+  <div class="fq"><button>Do I need to convert to ZEC myself?</button><div><p>No. Deposits are converted to shielded ZEC automatically.</p></div></div>
+</article>
+
+<article class="page" id="wallet/withdraw">
+  <h1>Withdrawing ZEC</h1>
+  <p class="lead">Send your ZEC to any unified shielded address.</p>
+
+  <h2>Overview</h2>
+  <p>ZEC is sent as a shielded transaction. You can withdraw to any unified shielded address. You are not restricted to the address you connected.</p>
+
+  <h2>Basics</h2>
+  <h3>Withdraw</h3>
+  <ol class="steps">
+    <li>Wait until your reward is approved, or make sure your deposit has been converted.</li>
+    <li>Open your <b>Reward Hub</b> and click <b>Withdraw</b>.</li>
+    <li>Paste the unified shielded address you want to send to and submit the request.</li>
+  </ol>
+  <p>It usually takes less than a minute to receive your shielded ZEC. You’ll get a notification once the transaction is confirmed on Zcash mainnet.</p>
+
+  <h2>FAQs</h2>
+  <div class="fq"><button>Can I withdraw to a different address than the one I connected?</button><div><p>Yes. You can withdraw to any unified shielded address. It doesn’t have to be the one you connected in your account settings.</p></div></div>
+  <div class="fq"><button>How long until I receive my ZEC?</button><div><p>It takes less than a minute. Once your reward is approved and you request a withdrawal, your shielded ZEC arrives in less than a minute.</p></div></div>
+</article>
+
+<article class="page" id="community/overview">
+  <h1>Overview</h1>
+  <p class="lead">Every quest has a community around it.</p>
+
+  <h2>Overview</h2>
+  <p>Communities are attached to quests automatically. When a contributor completes a quest, they’re instantly part of its community.</p>
+
+  <h2>Basics</h2>
+  <h3>Stay up to date</h3>
+  <p>When a new quest or task is published, contributors get a notification inside the platform.</p>
+  <h3>Joining and leaving</h3>
+  <p>You only see and access communities you’ve joined. You can leave any time without affecting your quest progress.</p>
+
+  <h2>FAQs</h2>
+  <div class="fq"><button>Who can see the community chat?</button><div><p>Anyone logged into Gleyo can see chat, but you only see and access communities you’ve joined.</p></div></div>
+  <div class="fq"><button>Can I leave a community?</button><div><p>Yes, any time, and your quest progress is unaffected. Open the community, click the info (ℹ️) icon, and select Leave Community.</p></div></div>
+</article>
+
+<article class="page" id="community/setup">
+  <h1>Setting up</h1>
+  <p class="lead">Make your community easy to understand from the first visit.</p>
+
+  <h2>Overview</h2>
+  <p>You can update every setting at any time without disrupting active contributors.</p>
+
+  <h2>Basics</h2>
+  <h3>Name and channels</h3>
+  <p>Rename the community and organise channels to fit your needs.</p>
+
+  <h3>Bots for Discord and Telegram tasks</h3>
+  <p>If you plan to use Discord or Telegram tasks, add Gleyo Bot to your server first. For Telegram, add <b>@Gleyo_bot</b> to the group or channel with full permissions. Without the bot, members can't claim those tasks.</p>
+
+  <h2>FAQs</h2>
+  <div class="fq"><button>Will changing settings affect active contributors?</button><div><p>No. You can update every setting without disrupting them.</p></div></div>
+</article>
+
+<article class="page" id="chat/using">
+  <h1>Community chat</h1>
+  <p class="lead">Real-time conversation, organised by channel.</p>
+
+  <h2>Overview</h2>
+  <p>Chat is real-time and organised by channel. There’s a general channel by default, and you can add others such as feedback. For support or issues, contributors can use the ticket system instead.</p>
+
+  <h2>Basics</h2>
+  <h3>For contributors</h3>
+  <p>React to messages and tag each other.</p>
+  <h3>For quest creators</h3>
+  <p>Pin messages, moderate conversations, and see who’s most active.</p>
+  <h3>Reporting a message</h3>
+  <p>Right-click a message on desktop, or press and hold on mobile, then select <b>Report</b>.</p>
+
+  <h2>FAQs</h2>
+  <div class="fq"><button>How do I report someone in the chat?</button><div><p>Right-click a message on desktop, or press and hold on mobile, then select Report. Reports go to the quest creator and Gleyo’s moderation team and are handled confidentially.</p></div></div>
+  <div class="fq"><button>Where do I get support?</button><div><p>Use the ticket system in your community instead of the chat.</p></div></div>
+</article>
+
+<article class="page" id="members/invite">
+  <h1>Inviting friends</h1>
+  <p class="lead">Bring your friends into a community with your own invitation link.</p>
+
+  <h2>Overview</h2>
+  <p>Every member gets a special invitation link that is unique to them. Share it with friends, and they can join the community through it.</p>
+
+  <h2>Basics</h2>
+  <h3>Get your invitation link</h3>
+  <ol class="steps">
+    <li>Visit the community you want to invite friends to.</li>
+    <li>Click the <b>info</b> icon (ℹ️).</li>
+    <li>Select <b>Invite friends</b>.</li>
+    <li>Copy your special invitation link and share it with your friends.</li>
+  </ol>
+
+  <h2>FAQs</h2>
+  <div class="fq"><button>Where do I find my invitation link?</button><div><p>Open the community, click the info icon (ℹ️), then select Invite friends.</p></div></div>
+  <div class="fq"><button>Is the invitation link the same for everyone?</button><div><p>No. It is special to you, so friends who join through it are linked to your invite.</p></div></div>
+  <div class="fq"><button>When does my friend join the community?</button><div><p>Once they open your link and join.</p></div></div>
+</article>
+
+<article class="page" id="members/roles">
+  <h1>Roles</h1>
+  <p class="lead">Control what each teammate can do.</p>
+
+  <h2>Overview</h2>
+  <p>Each member has a role that decides what they can do, such as managing quests or reviewing submissions.</p>
+
+  <h2>Basics</h2>
+  <h3>Change a role</h3>
+  <p>Use the dropdown next to the member’s name.</p>
+
+  <h3>Role limits by plan</h3>
+  <p>You can add team members, but how many you can add to each role depends on the plan your community is on. For example, on the free plan you can't add two or more admins.</p>
+  <div class="note"><strong>Note</strong><p>Some roles are locked until your community is on a paid plan.</p></div>
+
+  <h3>What's coming</h3>
+  <p>We plan to expand this in the future, with more flexible and more varied role management so you have more control over what each teammate can do.</p>
+
+  <h2>FAQs</h2>
+  <div class="fq"><button>Why can’t I pick a role?</button><div><p>Some roles need a plan that includes them. See <a href="/pricing" target="_blank" rel="noopener">Plans</a> for details.</p></div></div>
+  <div class="fq"><button>How many members can I add?</button><div><p>It depends on your plan. Each plan allows a different number of members per role. See <a href="/pricing" target="_blank" rel="noopener">Plans</a> for details.</p></div></div>
+  <div class="fq"><button>Can I add more than one admin on the free plan?</button><div><p>No. On the free plan you can't add two or more admins. Upgrade your plan to add more.</p></div></div>
+  <div class="fq"><button>Will there be more roles in the future?</button><div><p>Yes. We plan to make role management wider and more varied, so you'll have more options over time.</p></div></div>
+</article>
+
+<article class="page" id="billing/plans">
+  <h1>Plans</h1>
+  <p class="lead">Free for contributors. Upgrades are for communities.</p>
+
+  <h2>Overview</h2>
+  <p>Joining quests is free for contributors. Communities start on the Free plan and can upgrade to Standard, Pro, or Enterprise to unlock more roles and advanced creator features. Check the <a href="/pricing" target="_blank" rel="noopener">pricing page</a> to see what each plan includes.</p>
+
+  <h2>Basics</h2>
+  <h3>Your plan page</h3>
+  <p>Your community's plan page shows the plan you're on, its tier, and its status: <b>Active</b>, <b>Ending</b> (cancelled, but still running until it expires), or <b>Payment failed</b>. On a paid plan it also shows when you paid, when the plan expires, and how many days are left.</p>
+  <h3>Claim usage</h3>
+  <p>The plan page also shows your claim usage for the month: how many claims you've used out of your plan's limit, and the date it resets. Enterprise has no monthly claim limit.</p>
+  <p>Every claim uses 1 credit, and X (Twitter) tasks use extra credits on top of that. See <a href="#tasks/x">X (Twitter)</a> for the exact costs.</p>
+  <h3>Cancel or resume</h3>
+  <p>On Standard and Pro you can cancel your subscription from the plan page. It won't renew, you keep full access until it expires, and then your community drops to the Free plan. Changed your mind? Click <b>Resume subscription</b> before it expires.</p>
+
+  <h2>FAQs</h2>
+  <div class="fq"><button>Is Gleyo free to use?</button><div><p>Yes. Connecting your wallet and joining quests is free. Some advanced creator features need a paid plan. Check the <a href="/pricing" target="_blank" rel="noopener">pricing page</a> for details.</p></div></div>
+  <div class="fq"><button>What does each plan include?</button><div><p>Check the <a href="/pricing" target="_blank" rel="noopener">pricing page</a> for what each plan includes.</p></div></div>
+  <div class="fq"><button>What happens when I cancel?</button><div><p>Your subscription won't renew, and you keep full access until it expires. After that your community drops to the Free plan.</p></div></div>
+  <div class="fq"><button>Where do I see my plan and claim usage?</button><div><p>On your community's plan page. It shows your plan, its status, when it expires, and your claim usage for the month.</p></div></div>
+  <div class="fq"><button>Why does my claim usage go up by more than 1 per claim?</button><div><p>Every claim costs 1 credit, and X (Twitter) tasks add extra credits on top. Follow, Space, and Reply add 1, Retweet adds 2, and Like adds 3.</p></div></div>
+</article>
+
+<article class="page" id="billing/paying">
+  <h1>Paying for a plan</h1>
+  <p class="lead">Upgrade from your community’s plan page.</p>
+
+  <h2>Basics</h2>
+  <h3>Upgrade</h3>
+  <ol class="steps">
+    <li>Open your community's plan page.</li>
+    <li>Click <b>Upgrade plan</b>. It shows on the Free and Standard plans.</li>
+    <li>Pick a plan on the Billing page.</li>
+    <li>Complete the payment in the checkout window.</li>
+  </ol>
+  <p>You can pay by card or from your wallet balance. Check the <a href="/pricing" target="_blank" rel="noopener">pricing page</a> to compare plans before you upgrade.</p>
+
+  <h3>Your wallet</h3>
+  <p>The plan page shows your wallet in ZEC: <b>Total Fund</b>, <b>Available</b>, and <b>Locked</b>. Locked funds are ZEC set aside as rewards for active quests and leaderboards, and they can't be spent elsewhere while reserved.</p>
+  <h3>Top up your wallet</h3>
+  <p>Click <b>Top up wallet</b>, choose 0.5, 1, 2, 3, 5, or 10 ZEC, or enter a custom amount (minimum 0.1 ZEC), then click <b>Continue Payment</b>.</p>
+
+  <h3>Auto-renew</h3>
+  <p>On paid plans you can turn on <b>Auto-Renew Using Wallet Balance</b>. Your subscription then renews automatically from your available wallet funds. If your balance is too low, we notify you before your plan expires.</p>
+
+  <h2>FAQs</h2>
+  <div class="fq"><button>Can I pay with crypto?</button><div><p>Yes. Top up your wallet with ZEC and pay from your wallet balance.</p></div></div>
+  <div class="fq"><button>What are locked funds?</button><div><p>ZEC set aside as rewards for active quests and leaderboards. It can't be spent elsewhere while it's reserved.</p></div></div>
+  <div class="fq"><button>What if my wallet balance is too low for auto-renew?</button><div><p>We notify you before your plan expires, so you have time to top up your wallet.</p></div></div>
+  <div class="fq"><button>Which plan should I pick?</button><div><p>Check the <a href="/pricing" target="_blank" rel="noopener">pricing page</a> for what each plan includes.</p></div></div>
+</article>
+
+<article class="page" id="billing/promotion">
+  <h1>Twitter promotion</h1>
+  <p class="lead">Get your community featured on our X account.</p>
+
+  <h2>Overview</h2>
+  <p>On eligible plans you can ask our team to promote a sprint, a quest, or your whole community on our X account. You pick your preferred date, and our team confirms the final slot by email. Check the <a href="/pricing" target="_blank" rel="noopener">pricing page</a> to see which plans include it.</p>
+
+  <h2>Basics</h2>
+  <h3>Send a request</h3>
+  <ol class="steps">
+    <li>Open your community's plan page and find the <b>Twitter Promotion</b> card.</li>
+    <li>Click <b>Request promotion</b>.</li>
+    <li>Choose what to promote: a sprint, a quest, your community, or something else.</li>
+    <li>Pick your preferred date.</li>
+    <li>Optionally write what the post should say and add your X handle, then click <b>Send request</b>.</li>
+  </ol>
+  <p>You'll see a confirmation that your request was received. Our team then confirms the final date by email.</p>
+
+  <h3>What you can fill in</h3>
+  <ul>
+    <li><b>What to promote:</b> a sprint (shown if you have one), a quest, your community, or something else.</li>
+    <li><b>Sprint, quest, or details:</b> pick the sprint, paste the quest name or link, or briefly describe what you want promoted.</li>
+    <li><b>Preferred date:</b> the final date is confirmed by our team.</li>
+    <li><b>Post message (optional):</b> what the post should say, up to 280 characters.</li>
+    <li><b>Your X handle (optional):</b> so we can tag you.</li>
+  </ul>
+
+  <h3>One request per week</h3>
+  <p>You can send one promotion request per week. After you send one, the button is locked and shows how many days are left and the date your next request opens.</p>
+
+  <h2>FAQs</h2>
+  <div class="fq"><button>Which plans include promotion?</button><div><p>Eligible plans only. If you don't see the Twitter Promotion card on your plan page, check the <a href="/pricing" target="_blank" rel="noopener">pricing page</a> for what each plan includes.</p></div></div>
+  <div class="fq"><button>Can I choose the date?</button><div><p>You pick your preferred date, and our team confirms the final slot by email.</p></div></div>
+  <div class="fq"><button>What can I promote?</button><div><p>A sprint, a quest, your whole community, or something else you describe.</p></div></div>
+  <div class="fq"><button>Why is the Request promotion button locked?</button><div><p>You can send one request per week. Hover over the button to see how many days are left and when your next request opens.</p></div></div>
+</article>
+
+<article class="page" id="help/troubleshooting">
+  <h1>Troubleshooting</h1>
+  <p class="lead">Quick fixes for the most common problems.</p>
+
+  <h2>FAQs</h2>
+  <div class="fq"><button>The Claim button is disabled even though I did the task.</button><div><p>This is the most common one. Click the link button on any link task in the quest (Follow on X, Join Server, Subscribe, Join Channel, Star this repo). The Claim button then turns on.</p></div></div>
+  <div class="fq"><button>My wallet won’t connect. What do I do?</button><div><p>Make sure you’re entering a valid Zcash unified address that starts with u1. Transparent t-addresses are not supported. If it still fails, try another compatible wallet like Zodl, Zkool, or Zingo.</p></div></div>
+  <div class="fq"><button>My upload failed. What should I do?</button><div><p>Check that the file type is one the task allows and that you haven’t gone over the number of files. Try a different browser, or refresh the page and upload again.</p></div></div>
+  <div class="fq"><button>A task is stuck or not updating.</button><div><p>Refresh the page and check your quest progress again. If it continues, use the ticket system in your community to contact the quest admin.</p></div></div>
+  <div class="fq"><button>My X task won’t verify.</button><div><p>Make sure your X account is connected in your settings and that you did the action on the correct profile, post, or Space. Wait a moment and try again.</p></div></div>
+  <div class="fq"><button>I can’t claim a Discord or Telegram task.</button><div><p>The community owner needs to make sure Gleyo Bot is inside the Discord server or Telegram group (with full permissions on Telegram). Let them know, and try again once the bot has been added.</p></div></div>
+  <div class="fq"><button>My YouTube channel link won’t load.</button><div><p>Use a channel link, like youtube.com/@yourchannel, not a link to a video.</p></div></div>
+  <div class="fq"><button>I failed Proof of Humanity.</button><div><p>Add a profile picture and connect your socials (X, YouTube, Discord) in your settings, then try again.</p></div></div>
+</article>
+
+<article class="page" id="help/general">
+  <h1>General</h1>
+  <p class="lead">The basics of using Gleyo.</p>
+
+  <h2>FAQs</h2>
+  <div class="fq"><button>Is Gleyo free to use?</button><div><p>Yes. Connecting your wallet and joining quests is free. Some advanced creator features may need a paid plan. Check the pricing page for details.</p></div></div>
+  <div class="fq"><button>What devices does Gleyo work on?</button><div><p>Any modern browser on desktop or mobile. There’s no app to install.</p></div></div>
+  <div class="fq"><button>Do I need a Zcash wallet to use Gleyo?</button><div><p>You need one to receive ZEC rewards. Gleyo only collects your unified shielded address for payouts. Compatible wallets include Zodl, Zkool, and Zingo.</p></div></div>
+</article>
+
+<article class="page" id="help/quests">
+  <h1>Quests &amp; tasks</h1>
+  <p class="lead">Answers about quests, tasks, and reviews.</p>
+
+  <h2>FAQs</h2>
+  <div class="fq"><button>How many tasks can a quest have?</button><div><p>Up to 5 tasks per quest. Keep tasks focused and meaningful to help more contributors finish.</p></div></div>
+  <div class="fq"><button>Can contributors redo a completed task?</button><div><p>No. Completed tasks are locked. They can only be redone if marked as failed.</p></div></div>
+  <div class="fq"><button>What happens if a review is rejected?</button><div><p>The contributor gets your feedback and can resubmit if no cooldown is active. The task stays incomplete until it’s approved or the quest ends.</p></div></div>
+  <div class="fq"><button>Do I need to connect X before doing tasks?</button><div><p>Only for X tasks. Connect your X account in your settings before you complete an X task. Discord, YouTube, Telegram, and GitHub tasks don’t need it.</p></div></div>
+  <div class="fq"><button>Do X tasks cost more credits to claim?</button><div><p>Yes. Every claim costs 1 credit, and X tasks add extra: Follow, Space, and Reply add 1, Retweet adds 2, and Like adds 3. See the X (Twitter) page for examples.</p></div></div>
+</article>
+
+<article class="page" id="help/rewards">
+  <h1>Rewards</h1>
+  <p class="lead">Answers about earning and withdrawing ZEC.</p>
+
+  <h2>FAQs</h2>
+  <div class="fq"><button>How long until I receive my ZEC?</button><div><p>Rewards can be withdrawn once your quest is fully approved. After you request a withdrawal, processing depends on Zcash network conditions. In most cases it completes in under 2 minutes.</p></div></div>
+  <div class="fq"><button>Can rewards expire?</button><div><p>It depends on how the admin set up the reward. Expiry dates are always shown before you join a quest.</p></div></div>
+  <div class="fq"><button>What wallet do I need to receive ZEC?</button><div><p>Any Zcash wallet that supports shielded Orchard addresses, including Zodl, Zkool, and Zingo.</p></div></div>
+</article>
+
+<article class="page" id="help/community">
+  <h1>Community</h1>
+  <p class="lead">Answers about chat, privacy, and leaving.</p>
+
+  <h2>FAQs</h2>
+  <div class="fq"><button>Who can see the community chat?</button><div><p>Anyone logged into Gleyo can see chat, but you only see and access communities you’ve joined.</p></div></div>
+  <div class="fq"><button>Can I leave a community?</button><div><p>Yes, any time, and your quest progress is unaffected. Open the community, click the <b>info (ℹ️) icon</b>, and select <b>Leave Community</b>.</p></div></div>
+  <div class="fq"><button>How do I report someone in the chat?</button><div><p>Right-click a message on desktop, or press and hold on mobile, then select <b>Report</b>. Reports go to the quest creator and Gleyo’s moderation team and are handled confidentially.</p></div></div>
+</article>
+
+<nav class="toc" id="toc" aria-label="On this page"></nav>
+
+</div></main>
 
 <script>
-const hamburger = document.getElementById('hamburger');
-const sidebar   = document.getElementById('sidebar');
-const overlay   = document.getElementById('overlay');
+const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
+const side=$('#side'),scrim=$('#scrim'),main=$('#main'),wrap=$('#wrap'),toc=$('#toc');
+const links=$$('.sub a');
+let cur=null;
 
-function openSidebar(){sidebar.classList.add('open');overlay.classList.add('active');hamburger.classList.add('open');document.body.style.overflow='hidden';}
-function closeSidebar(){sidebar.classList.remove('open');overlay.classList.remove('active');hamburger.classList.remove('open');document.body.style.overflow='';}
+links.forEach((a,i)=>{
+  const pg=document.getElementById(a.getAttribute('href').slice(1));if(!pg)return;
+  const p=links[i-1],n=links[i+1];
+  pg.insertAdjacentHTML('beforeend',`<div class="pn">${p?`<a class="pv" href="${p.getAttribute('href')}"><small>Previous</small><b>${p.textContent}</b></a>`:'<span></span>'}${n?`<a class="nx" href="${n.getAttribute('href')}"><small>Next</small><b>${n.textContent}</b></a>`:'<span></span>'}</div>`);
+});
 
-hamburger.addEventListener('click',()=>sidebar.classList.contains('open')?closeSidebar():openSidebar());
-overlay.addEventListener('click',closeSidebar);
-document.querySelectorAll('.nav a').forEach(a=>{a.addEventListener('click',()=>{if(window.innerWidth<=768)closeSidebar();});});
-document.querySelectorAll('.nav-header').forEach(h=>{h.addEventListener('click',()=>h.parentElement.classList.toggle('open'));});
+function buildToc(pg){
+  const hs=$$('h2,h3',pg);
+  if(!hs.length||pg.id==='home'){toc.innerHTML='';wrap.classList.add('nohash');return}
+  wrap.classList.remove('nohash');
+  toc.innerHTML='<div class="th">On this page</div>'+hs.map((h,i)=>{
+    h.id=pg.id.replace('/','-')+'-'+i;
+    return `<a href="#" class="${h.tagName==='H3'?'l3':'l2'}" data-t="${h.id}">${h.textContent}</a>`;
+  }).join('');
+  spy();
+}
+toc.addEventListener('click',e=>{
+  const a=e.target.closest('a');if(!a)return;
+  e.preventDefault();
+  const h=document.getElementById(a.dataset.t);
+  if(h)h.scrollIntoView({behavior:'smooth',block:'start'});
+});
+function spy(){
+  if(!cur)return;
+  const hs=$$('h2,h3',cur);if(!hs.length)return;
+  const top=main.getBoundingClientRect().top;
+  let act=hs[0];
+  hs.forEach(h=>{if(h.getBoundingClientRect().top-top<120)act=h});
+  if(main.scrollTop+main.clientHeight>=main.scrollHeight-4)act=hs[hs.length-1];
+  $$('a',toc).forEach(l=>l.classList.toggle('on',l.dataset.t===act.id));
+}
+main.addEventListener('scroll',spy,{passive:true});
 
-const links=document.querySelectorAll('.nav a');
-const allIds=document.querySelectorAll('[id]');
-window.addEventListener('scroll',()=>{
-  let cur='';
-  allIds.forEach(el=>{if(scrollY>=el.offsetTop-160)cur=el.id;});
-  links.forEach(a=>{a.classList.remove('active');if(a.getAttribute('href')==='#'+cur)a.classList.add('active');});
-},{passive:true});
+function closeNav(){side.classList.remove('open');scrim.classList.remove('on')}
+function route(){
+  let key=location.hash.slice(1)||'home';
+  const pg=document.getElementById(key);
+  if(!pg||!pg.classList.contains('page'))key='home';
+  $$('.page').forEach(p=>p.classList.toggle('show',p.id===key));
+  $$('.grp').forEach(g=>{
+    const on=!!$(`.sub a[href="#${key}"]`,g);
+    g.classList.toggle('cur',on);if(on)g.classList.add('open');
+  });
+  links.forEach(a=>a.classList.toggle('on',a.getAttribute('href')==='#'+key));
+  cur=document.getElementById(key);
+  buildToc(cur);
+  main.scrollTo(0,0);
+  const h=cur.querySelector('h1').textContent;
+  document.title=(key==='home'?'':h+' · ')+'Gleyo Docs';
+  closeNav();
+}
+window.addEventListener('hashchange',route);route();
 
-document.querySelectorAll('.faq-item').forEach(item=>{
-  item.querySelector('.faq-q').addEventListener('click',()=>item.classList.toggle('open'));
+$$('.grp>button').forEach(b=>b.addEventListener('click',()=>b.parentElement.classList.toggle('open')));
+
+$$('.fq>button').forEach(b=>b.addEventListener('click',()=>{
+  const item=b.parentElement;
+  const wasOpen=item.classList.contains('open');
+  const page=item.closest('.page')||document;
+  $$('.fq.open',page).forEach(o=>{if(o!==item)o.classList.remove('open')});
+  item.classList.toggle('open',!wasOpen);
+}));
+
+$('#menu').addEventListener('click',()=>{side.classList.toggle('open');scrim.classList.toggle('on')});
+scrim.addEventListener('click',closeNav);
+
+const q=$('#q'),none=$('#none');
+q.addEventListener('input',()=>{
+  const v=q.value.trim().toLowerCase();let any=false;
+  $$('.grp').forEach(g=>{
+    let shown=0;
+    $$('.sub a',g).forEach(a=>{
+      const pg=document.getElementById(a.getAttribute('href').slice(1));
+      const hit=!v||a.textContent.toLowerCase().includes(v)||(pg&&pg.textContent.toLowerCase().includes(v));
+      a.style.display=hit?'':'none';if(hit)shown++;
+    });
+    g.style.display=shown?'':'none';
+    if(v&&shown)g.classList.add('open');
+    if(shown)any=true;
+  });
+  none.style.display=any?'none':'block';
+});
+$('#hint').textContent=/Mac|iPhone|iPad/.test(navigator.platform)?'⌘ K':'Ctrl K';
+document.addEventListener('keydown',e=>{
+  if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();if(innerWidth<=860){side.classList.add('open');scrim.classList.add('on')}q.focus();q.select()}
+  if(e.key==='Escape'){q.blur();closeNav()}
 });
 </script>
 </body>

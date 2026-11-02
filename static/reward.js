@@ -192,7 +192,7 @@ function showAddrOk(r, target) {
   if (el) el.innerHTML = `
     <span style="color:var(--green);display:inline-flex;align-items:center;gap:4px;font-size:11px">
       <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="-5.0 -10.0 110.0 135.0" fill="currentColor" stroke="currentColor" style="position: relative; top: 2px">
-        <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11719c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
+        <path d="m85.652 6.5938c-15.199 4.6992-33.309 28.609-50.668 53.164-7.3672-12.414-15.172-16.559-23.242-12.312-0.99609 0.52344-1.6523 1.5273-1.7344 2.6562-0.082031 1.1406 0.42969 2.2422 1.3555 2.918 5.8516 4.2734 11.922 11.848 19.141 23.84v-0.003906c1.2891 2.1758 3.6328 3.5039 6.1562 3.4883h0.11717c2.6016-0.023438 4.9844-1.4453 6.2461-3.7188 7.0234-12.734 14.738-25.07 23.109-36.957 6.8594-9.75 14.508-18.926 22.867-27.43 1.125-1.1016 1.332-2.8359 0.5-4.1719-0.77734-1.332-2.3789-1.9453-3.8477-1.4727z"/>
       </svg>
       Valid shielded address
     </span>`;
@@ -934,8 +934,9 @@ const depNetworkOptions= document.getElementById('depNetworkOptions');
 
 let selectedDepToken = null, selectedDepNetwork = null, selectedDepNetworkLabel = null;
 let currentDepositId = null, depCheckInterval = null, depPhaseEnd = null, depTimerInterval = null;
+let depChecking = false, depStatusTimer = null;
 
-const DEP_ACTIVE = 10, DEP_COOLDOWN = 30, DEP_SWAP_RECHECK = 20;
+const DEP_ACTIVE = 10, DEP_COOLDOWN = 30, DEP_SWAP_RECHECK = 20, DEP_STATUS_CLEAR = 5000;
 
 const DEP_NETWORKS_BY_TOKEN = {
   USDT: [{ value:'Polygon', label:'Polygon' }],
@@ -952,6 +953,21 @@ function depConvertToZec(amount, token){ return token === 'ZEC' ? amount : (ZEC_
 function truncateAddrRP(addr, front=10, back=8){
   if (!addr) return '';
   return addr.length <= front+back+3 ? addr : addr.slice(0,front) + '…' + addr.slice(-back);
+}
+
+function b64url(s){
+  return btoa(unescape(encodeURIComponent(s)))
+    .replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+
+function setDepStatus(html, clearAfter){
+  const statusEl = document.getElementById('depStatus');
+  clearTimeout(depStatusTimer);
+  if (!statusEl) return;
+  statusEl.innerHTML = html;
+  if (clearAfter) {
+    depStatusTimer = setTimeout(() => { statusEl.innerHTML = ''; }, clearAfter);
+  }
 }
 
 function depCloseAllSelects(){
@@ -1068,8 +1084,12 @@ function openDeposit(){
   r('depRefundGroup').style.display = 'none';
   r('depAmountBadge').textContent = 'TOKEN';
   r('depAmountLabel').textContent = 'Amount';
+  const mb = r('depMemoBox'); if (mb) mb.style.display = 'none';
+  const mv = r('depMemoVal'); if (mv) { mv.textContent = '—'; mv.dataset.full = ''; }
+  clearTimeout(depStatusTimer);
   r('depStatus').innerHTML = ''; r('depTimer').textContent = '';
   currentDepositId = null;
+  depChecking = false;
   stopDepCheckCycle();
   clearInterval(depTimerInterval);
   r('depOv').classList.add('open');
@@ -1079,6 +1099,9 @@ function closeDeposit(){
   document.getElementById('depOv').classList.remove('open');
   clearInterval(depCheckInterval);
   clearInterval(depTimerInterval);
+  clearTimeout(depStatusTimer);
+  depChecking = false;
+  currentDepositId = null;
 }
 
 function enterDepositView(payload){
@@ -1094,7 +1117,8 @@ function enterDepositView(payload){
     payload.token,
     networkLabel,
     payload.originAmount ?? payload.amount,
-    payload.network
+    payload.network,
+    payload.memo
   );
 
   const expiresAt  = payload.expires_at ?? (Math.floor(Date.now() / 1000) + 1800);
@@ -1142,6 +1166,7 @@ async function generateDeposit(){
         amount: data.amount,
         token: data.token,
         network: data.network,
+        memo: data.memo,
         expires_at: data.expires_at,
         server_time: data.server_time,
       });
@@ -1150,7 +1175,7 @@ async function generateDeposit(){
     }
     if (!res.ok) throw data;
     currentDepositId = data.id;
-    showDepositView(data.amount ?? zecAmount, data.address, selectedDepToken, selectedDepNetworkLabel, rawAmount, selectedDepNetwork);
+    showDepositView(data.amount ?? zecAmount, data.address, selectedDepToken, selectedDepNetworkLabel, rawAmount, selectedDepNetwork, data.memo);
 
     const expiresAt  = data.expires_at ?? (Math.floor(Date.now()/1000) + 1800);
     const serverTime = data.server_time ?? Math.floor(Date.now()/1000);
@@ -1164,7 +1189,7 @@ async function generateDeposit(){
   }
 }
 
-function showDepositView(zecAmount, address, originToken, originNetworkLabel, originAmount, originNetworkValue){
+function showDepositView(zecAmount, address, originToken, originNetworkLabel, originAmount, originNetworkValue, memo){
   document.getElementById('dep1').style.display = 'none';
   document.getElementById('dep2').style.display = '';
 
@@ -1180,23 +1205,39 @@ function showDepositView(zecAmount, address, originToken, originNetworkLabel, or
   addrEl.dataset.full = address;
   document.getElementById('depNetworkVal').textContent = originNetworkLabel || selectedDepNetworkLabel || '—';
 
+  const memoBox = document.getElementById('depMemoBox');
+  const memoVal = document.getElementById('depMemoVal');
+  if (memo && displayToken === 'ZEC') {
+    memoVal.textContent = memo;
+    memoVal.dataset.full = memo;
+    memoBox.style.display = '';
+  } else {
+    memoVal.textContent = '—';
+    memoVal.dataset.full = '';
+    memoBox.style.display = 'none';
+  }
+
   const instr = document.getElementById('depInstruction');
   instr.innerHTML = displayToken === 'ZEC'
-    ? `Use your <b>ZEC</b> wallet on <b>Zcash</b> to send funds. Sending other assets may result in loss of funds.`
+    ? `Use your <b>ZEC</b> wallet on <b>Zcash</b> and add the memo above to your transaction. Payments without the memo can't be matched. Sending other assets may result in loss of funds.`
     : `Use your <b>${displayToken}</b> on <b>${originNetworkLabel}</b> wallet to deposit funds. This settles as <b>${depFormatZec(zecAmount)} ZEC</b> on Zcash.`;
 
-  renderDepQR(address, zecAmount, displayToken);
+  renderDepQR(address, zecAmount, displayToken, memo);
 }
 
-function renderDepQR(address, zecAmount, token){
+function renderDepQR(address, zecAmount, token, memo){
   const container = document.getElementById('depQrcode');
   if (!container) return;
   container.innerHTML = '';
   if (typeof QRCodeStyling === 'undefined') return;
-  const qrData = token === 'ZEC' ? `zcash:${address}?amount=${zecAmount}` : address;
+  let qrData = address;
+  if (token === 'ZEC') {
+    qrData = `zcash:${address}?amount=${zecAmount}`;
+    if (memo) qrData += `&memo=${b64url(memo)}`;
+  }
   new QRCodeStyling({
-    width: 148, height: 148, type: 'svg', data: qrData,
-    qrOptions: { errorCorrectionLevel: 'H' },
+    width: 190, height: 190, type: 'svg', data: qrData, margin: 0,
+    qrOptions: { errorCorrectionLevel: 'M' },
     dotsOptions: { color: '#000000', type: 'rounded' },
     backgroundOptions: { color: '#d9d8d8' },
     cornersSquareOptions: { type: 'extra-rounded' },
@@ -1219,21 +1260,41 @@ function copyDepositAddress(){
   showToast('Address copied', 'success');
 }
 
+function copyDepositMemo(){
+  const memo = document.getElementById('depMemoVal')?.dataset?.full || '';
+  if (!memo) { showToast('No memo to copy.', 'error'); return; }
+  const fallback = () => {
+    const ta = document.createElement('textarea');
+    ta.value = memo; ta.style.cssText = 'position:fixed;opacity:0;left:-9999px';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    try { document.execCommand('copy'); } catch (_) {}
+    document.body.removeChild(ta);
+  };
+  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(memo).catch(fallback);
+  else fallback();
+  showToast('Memo copied', 'success');
+}
+
 function shareDeposit(){
   const addr = document.getElementById('depAddrShort')?.dataset?.full || '';
   if (!addr) { showToast('Generate a deposit first.', 'error'); return; }
-  const text = `Deposit address:\n${addr}\n\n${document.getElementById('depInstruction')?.textContent || ''}`;
+  const memo = document.getElementById('depMemoVal')?.dataset?.full || '';
+  const text = `Deposit address:\n${addr}\n\n` +
+    (memo ? `Memo (required): ${memo}\n\n` : '') +
+    (document.getElementById('depInstruction')?.textContent || '');
   if (navigator.share) navigator.share({ text }).catch(() => {});
   else copyDepositAddress();
 }
 
 function enterDepActive(){
+  if (depChecking) return;
   clearInterval(depCheckInterval);
   const btn = document.getElementById('depCheckBtn');
   const cd  = document.getElementById('depCheckCooldown');
   btn.disabled = false; btn.textContent = "I've sent the funds";
   depPhaseEnd = Date.now() + DEP_ACTIVE * 1000;
   depCheckInterval = setInterval(() => {
+    if (depChecking) { clearInterval(depCheckInterval); return; }
     const remaining = Math.ceil((depPhaseEnd - Date.now()) / 1000);
     if (remaining <= 0) { enterDepCooldown(); return; }
     cd.textContent = `Click within ${remaining}s`;
@@ -1241,12 +1302,14 @@ function enterDepActive(){
 }
 
 function enterDepCooldown(){
+  if (depChecking) return;
   clearInterval(depCheckInterval);
   const btn = document.getElementById('depCheckBtn');
   const cd  = document.getElementById('depCheckCooldown');
   btn.disabled = true;
   depPhaseEnd = Date.now() + DEP_COOLDOWN * 1000;
   depCheckInterval = setInterval(() => {
+    if (depChecking) { clearInterval(depCheckInterval); return; }
     const remaining = Math.ceil((depPhaseEnd - Date.now()) / 1000);
     if (remaining <= 0) { enterDepActive(); return; }
     btn.textContent = `Checking available in ${remaining}s`;
@@ -1284,40 +1347,61 @@ function startDepTimer(secondsRemaining){
 }
 
 function checkDepositPayment(){
-  if (!currentDepositId) return;
-  const btn = document.getElementById('depCheckBtn');
-  const statusEl = document.getElementById('depStatus');
-  btn.disabled = true;
-  statusEl.innerHTML = `<span class="payment-waiting" style="color:var(--p-light)"><span class="spinner"></span> Checking payment...</span>`;
+  if (!currentDepositId || depChecking) return;
 
-  fetch(`/api/wallet/zec/deposit/verify/${currentDepositId}`, { method: 'POST', headers: { 'X-CSRFToken': csrfToken } })
+  const myDepositId = currentDepositId;
+  const btn = document.getElementById('depCheckBtn');
+  const cd  = document.getElementById('depCheckCooldown');
+
+  depChecking = true;
+  clearInterval(depCheckInterval);
+  btn.disabled = true;
+  btn.textContent = 'Checking…';
+  if (cd) cd.textContent = '';
+
+  setDepStatus(`<span class="payment-waiting" style="color:var(--p-light)"><span class="spinner"></span> Checking payment...</span>`);
+
+  fetch(`/api/wallet/zec/deposit/verify/${myDepositId}`, { method: 'POST', headers: { 'X-CSRFToken': csrfToken } })
     .then(res => res.json())
     .then(data => {
+      depChecking = false;
+      if (myDepositId !== currentDepositId) return;
+
       if (data.status === 'paid') {
         stopDepCheckCycle();
         clearInterval(depTimerInterval);
-        statusEl.innerHTML = `<span class="pop-status" style="color:var(--green)"><span class="check-circle">✔️</span> Deposit received!</span>`;
+        setDepStatus(`<span class="pop-status" style="color:var(--green)"><span class="check-circle">✔️</span> Deposit received!</span>`);
         if (typeof confetti === 'function') confetti({ particleCount: 200, spread: 100, origin: { y: .6 } });
         if (data.new_balance != null) setBalanceDisplay(data.new_balance);
         setTimeout(() => { closeDeposit(); loadTransactions(); }, 2000);
       } else if (data.status === 'expired') {
         stopDepCheckCycle(); clearInterval(depTimerInterval);
-        statusEl.innerHTML = '❌ Deposit expired';
+        setDepStatus('❌ Deposit expired');
         setTimeout(closeDeposit, 2000);
       } else if (data.stage === 'swapping') {
-        statusEl.innerHTML = `<span class="payment-waiting" style="color:var(--p-light)"><span class="spinner"></span> Swapping — this will confirm automatically...</span>`;
+        btn.disabled = true;
+        btn.textContent = 'Checking…';
+        setDepStatus(`<span class="payment-waiting" style="color:var(--p-light)"><span class="spinner"></span> Swapping — this will confirm automatically...</span>`);
         clearInterval(depCheckInterval);
         depPhaseEnd = Date.now() + DEP_SWAP_RECHECK * 1000;
         depCheckInterval = setInterval(() => {
           const remaining = Math.ceil((depPhaseEnd - Date.now()) / 1000);
           if (remaining <= 0) { clearInterval(depCheckInterval); checkDepositPayment(); }
         }, 250);
+      } else if (data.stage === 'seen') {
+        setDepStatus(`<span class="payment-waiting" style="color:var(--p-light)"><span class="spinner"></span> Payment detected, waiting for confirmation…</span>`, DEP_STATUS_CLEAR);
+        enterDepCooldown();
       } else {
-        statusEl.innerHTML = '❌ Payment not detected yet. Try again shortly.';
+        setDepStatus('❌ Payment not detected yet. Try again shortly.', DEP_STATUS_CLEAR);
         enterDepCooldown();
       }
     })
-    .catch(() => { statusEl.innerHTML = '❌ Error checking payment.'; enterDepCooldown(); });
+    .catch(() => {
+      depChecking = false;
+      if (myDepositId !== currentDepositId) return;
+      setDepStatus('❌ Error checking payment.', DEP_STATUS_CLEAR);
+      enterDepCooldown();
+    });
 }
 
 function openComingSoon() {
@@ -1340,7 +1424,7 @@ setupOTPInputs();
 Object.assign(window, {
   doCopy, bgClose, openWithdraw, revealID, setMax, calcFee,
   toW2, toW1, doSend, closeW, closeTFA, goToSettings, openAll, openTxFromAPI,
-  openDeposit, closeDeposit, generateDeposit, copyDepositAddress, shareDeposit, checkDepositPayment,
+  openDeposit, closeDeposit, generateDeposit, copyDepositAddress, copyDepositMemo, shareDeposit, checkDepositPayment,
   setDestMode, onNameInput,
   openComingSoon, closeComingSoon,
 });

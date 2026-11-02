@@ -27,9 +27,6 @@ input[type="number"] { -moz-appearance: textfield; }
 .desktop-grid > div, .tx-section, .tx-card, .stx { min-width: 0; }
 .no-tx { text-align:center; color:var(--text-muted); font-size:14px; font-style:italic; padding:20px 0; }
 
-/* =====================================================
-   EDGE (gradient edge, replaces every border)
-===================================================== */
 .wallet,.stat,.tx-card,.tfa-box,.b-disp,.fbox,.dg,.w-addr,.net-badge,.zec-tag,
 .copy,.btn-s,.resolved-box,.custom-select-rp,.rp-options,.cta-ghost,
 .tfa-settings-btn,.exp-btn,.hash-box,.act-ic,.tx-dot,.sbadge,.req-badge,.maxbtn,.s-num,.suc-ring{
@@ -38,10 +35,6 @@ input[type="number"] { -moz-appearance: textfield; }
 }
 .rp-options{ position:absolute; }
 
-/* NOTE: .sheet is intentionally NOT in this ::before list anymore.
-   It scrolls (overflow-y:auto), and an absolutely-positioned ::before
-   scrolls away with the content and distorts. .sheet draws its edge
-   with layered backgrounds instead (see the .sheet rule below). */
 .wallet::before,.stat::before,.tx-card::before,.tfa-box::before,.b-disp::before,.fbox::before,.sheet::before,
 .dg::before,.w-addr::before,.net-badge::before,.zec-tag::before,.copy::before,.btn-s::before,
 .resolved-box::before,.custom-select-rp::before,.rp-options::before,
@@ -54,7 +47,6 @@ input[type="number"] { -moz-appearance: textfield; }
   -webkit-mask-composite:xor; mask-composite:exclude;
   pointer-events:none; z-index:2;
 }
-/* inputs can't have ::before, so layered backgrounds */
 .iw input,.otp-cell,.cv-plain{
   border: var(--edge-w) solid transparent !important;
   background:
@@ -80,13 +72,9 @@ input[type="number"] { -moz-appearance: textfield; }
 .s-step.on .s-num{ --edge-hi:rgba(160,175,255,.9); --edge-lo:rgba(160,175,255,.2); }
 .s-step.done .s-num{ --edge-hi:rgba(18,216,122,.8); --edge-lo:rgba(18,216,122,.2); }
 
-/* divider lines without borders */
 .tx-row,.stx,.dr,.rp-option{ box-shadow: inset 0 -1px 0 rgba(255,255,255,.05); }
 .tx-row:last-child,.stx:last-child,.dr:last-child,.rp-option:last-child{ box-shadow:none; }
 
-/* =====================================================
-   NAV
-===================================================== */
 .topnav-reward{
   position:sticky;top:0;z-index:10;
   display:flex;align-items:center;justify-content:space-between;
@@ -126,9 +114,6 @@ input[type="number"] { -moz-appearance: textfield; }
 .desktop-grid{display:grid;grid-template-columns:1fr;gap:14px;min-width:0}
 @media(min-width:1126px){.desktop-grid{grid-template-columns:1fr 300px;gap:20px;align-items:start;}}
 
-/* =====================================================
-   WALLET
-===================================================== */
 .wallet{
   background:
     radial-gradient(circle at 100% 0%, rgba(244,183,40,.11) 0, transparent 170px),
@@ -161,7 +146,6 @@ input[type="number"] { -moz-appearance: textfield; }
 .copy:hover{color:var(--txt);}
 .copy.ok{color:var(--green);}
 
-/* STATS */
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
 .stat{background:var(--surface);border-radius:24px;padding:14px 16px;cursor:pointer;transition:transform .12s;}
 .stat:hover{transform:translateY(-1px);}
@@ -175,9 +159,6 @@ input[type="number"] { -moz-appearance: textfield; }
 .stat.g .stat-val{color:var(--green);}
 .stat.a .stat-val{color:var(--amber);}
 
-/* =====================================================
-   ACTIONS (Bybit style: round icon on top, label below)
-===================================================== */
 .actions-4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;}
 @media(min-width:1126px){.actions-4{margin-bottom:0;}}
 .act{
@@ -200,14 +181,12 @@ input[type="number"] { -moz-appearance: textfield; }
 .act-ic.green{background:linear-gradient(135deg,#12d87a,#0a9c58);color:#02150b;box-shadow:0 4px 14px rgba(18,216,122,.2);--edge-hi:rgba(170,255,210,.7);--edge-lo:rgba(170,255,210,.1);}
 .act-lbl{color:var(--txt);opacity:.92;}
 
-/* buttons */
 .btn{display:flex;align-items:center;justify-content:center;gap:7px;padding:13px;border-radius:13px;font-size:.85rem;font-weight:600;cursor:pointer;border:none;font-family:var(--ff);transition:all .15s;}
 .btn-p{background:linear-gradient(135deg,var(--p),#7b4fff);color:#fff;}
 .btn-p:hover{filter:brightness(1.1);transform:translateY(-1px);}
 .btn-s{background:var(--surface2);color:var(--txt);}
 .btn-s:hover{transform:translateY(-1px);}
 
-/* TRANSACTIONS */
 .sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding:0 2px;}
 .sec-title{font-weight:600;font-size:.88rem;}
 .see-all{background:none;border:none;color:var(--p-light);font-size:.75rem;cursor:pointer;font-family:var(--ff);font-weight:500;}
@@ -230,9 +209,6 @@ input[type="number"] { -moz-appearance: textfield; }
 .tx-usd{font-size:10px;color:#bbbfc7;margin-top:1px;}
 .chevron{color:var(--sub2);flex-shrink:0;margin-left:4px;}
 
-/* =====================================================
-   SHEETS / OVERLAYS
-===================================================== */
 .overlay{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .22s;}
 .overlay.open{opacity:1;pointer-events:all;}
 
@@ -245,8 +221,6 @@ input[type="number"] { -moz-appearance: textfield; }
   transform:translateY(30px);opacity:0;
   transition:transform .28s cubic-bezier(.22,.8,.36,1),opacity .22s;
 }
-/* .sheet = static shell that owns the ::before ring (never scrolls).
-   .sheet-in = the part that scrolls. */
 .sheet-in{
   max-height:90vh;overflow-y:auto;
   padding:20px 20px 32px;
@@ -300,7 +274,7 @@ input[type="number"] { -moz-appearance: textfield; }
 .bal-remain{font-size:.68rem;font-weight:500;color:var(--sub);transition:color .2s;}
 .bal-remain.warn{color:var(--amber);}
 .bal-remain.danger{color:var(--red);}
-.req-badge{font-size:.64rem;font-weight:600;background:rgba(245,166,35,.1);color:var(--amber);border-radius:4px;padding:2px 6px;}
+.req-badge{font-size:.64rem;font-weight:600;background:rgba(245,166,35,.1);color:var(--amber);border-radius:12px;padding:4px 6px;}
 .amt-err,.addr-err{font-size:.68rem;color:var(--red);min-height:16px;margin-top:4px;padding-left:2px;}
 .fbox{background:var(--surface2-dip);border-radius:25px;padding:11px 13px;margin-bottom:16px;}
 .fr{display:flex;justify-content:space-between;align-items:center;padding:3px 0;}
@@ -357,7 +331,6 @@ input[type="number"] { -moz-appearance: textfield; }
 .tx-amt.exp{color:var(--red,#f05070);text-decoration:line-through;}
 .sbadge.exp{background:rgba(240,80,112,.15);color:var(--red,#f05070);}
 
-/* reveal ID */
 .id-wrap{position:relative;display:inline-block;cursor:pointer;overflow:visible;}
 .id-text{opacity:0;transition:opacity .4s ease;}
 .id-cover{position:absolute;top:0;left:0;width:100%;height:100%;background-color:rgb(59,66,94) !important;backdrop-filter:blur(17px);-webkit-backdrop-filter:blur(17px);border-radius:4px;}
@@ -369,7 +342,6 @@ input[type="number"] { -moz-appearance: textfield; }
 ::placeholder{opacity:1 !important;}
 @keyframes zec-spin{to{transform:rotate(360deg)}}
 
-/* selects */
 .rp-selects-row{display:flex;gap:10px;margin-bottom:12px;}
 .rp-selects-row .ig{flex:1;margin-bottom:0;min-width:0;}
 .rp-select-wrap{position:relative;width:100%;}
@@ -378,17 +350,15 @@ input[type="number"] { -moz-appearance: textfield; }
 .custom-select-rp .sel-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .custom-select-rp .chev{width:8px;height:8px;border-right:1.6px solid var(--sub);border-bottom:1.6px solid var(--sub);transform:rotate(45deg);transition:transform .2s;flex-shrink:0;margin-top:-2px;}
 .custom-select-rp.open .chev{transform:rotate(-135deg);margin-top:2px;}
-.rp-options{top:calc(100% + 6px);left:0;right:0;background:var(--surface2);backdrop-filter:blur(18px);border-radius:12px;overflow-y:auto;max-height:200px;z-index:30;display:none;box-shadow:0 14px 30px rgba(0,0,0,.5);}
+.rp-options{top:calc(100% + 6px);left:0;right:0;background:var(--card-bg-glassy);backdrop-filter:blur(18px);border-radius:20px;overflow-y:auto;max-height:200px;z-index:30;display:none;box-shadow:0 14px 30px rgba(0,0,0,.5);}
 .rp-options.open{display:block;}
 .rp-option{padding:11px 14px;font-size:.8rem;color:var(--sub);cursor:pointer;transition:background .12s,color .12s;}
-.rp-option:hover{background:var(--surface2-dip);color:var(--txt);}
+.rp-option:hover{background:var(--bg-hover-hover);color:var(--txt);}
 .rp-option.active{color:var(--p-light);background:rgba(91,110,245,.08);}
 
 .dep-qr-wrap{display:flex;justify-content:center;margin-bottom:14px;}
-.dep-qr{background:#d9d8d8;border-radius:16px;padding:12px;width:168px;height:168px;display:flex;align-items:center;justify-content:center;}
+.dep-qr{background:#d9d8d8;border-radius:20px;padding:10px;width:210px;height:210px;display:flex;align-items:center;justify-content:center;}
 .dep-qr svg,.dep-qr canvas,.dep-qr img{width:100% !important;height:100% !important;display:block;}
-
-/* Wallet / Name switch (sliding pill) */
 .dest-tabs{
   position:relative;display:flex;width:100%;
   padding:4px;margin-bottom:12px;
@@ -407,7 +377,6 @@ input[type="number"] { -moz-appearance: textfield; }
   transition:transform .52s cubic-bezier(.2,.9,.2,1);
   z-index:1;
 }
-/* pill follows whichever tab has .on (no JS change needed) */
 .dest-tabs:has(#tabName.on) .dest-pill{transform:translateX(100%);}
 .dest-tab{
   all:unset;box-sizing:border-box;
@@ -418,9 +387,27 @@ input[type="number"] { -moz-appearance: textfield; }
 }
 .dest-tab:hover{color:var(--text-main-items,var(--txt));opacity:.9;}
 .dest-tab.on{color:var(--text-main,var(--txt));}
+.new-badge{
+  display:inline-block;vertical-align:middle;
+  margin-left:14px;padding:2px 6px;
+  border-radius:999px;
+  font-size:9px;font-weight:700;line-height:1.3;
+  letter-spacing:.05em;text-transform:uppercase;
+  color:#02150b;
+  position:relative;
+  background:linear-gradient(135deg,#12d87a,#0a9c58);
+  box-shadow:0 2px 8px rgba(18,216,122,.3);
+}
+.new-badge::before{
+  content:"";position:absolute;inset:0;padding:1px;border-radius:inherit;
+  background:linear-gradient(135deg,rgba(200,255,225,1) 0%,rgba(200,255,225,.45) 28%,rgba(200,255,225,.45) 72%,rgba(200,255,225,1) 100%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+  pointer-events:none;z-index:2;
+}
 .resolved-box{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;background:var(--surface2-dip);border-radius:18px;padding:9px 12px;margin-top:15px;}
 
-/* convert */
 .cv-rate{display:flex;align-items:center;justify-content:space-between;font-size:.72rem;color:var(--sub);margin:-2px 2px 12px;}
 .cv-rate b{color:var(--txt);font-weight:600;}
 .cv-plain{width:100%;border-radius:14px;padding:13px 12px;font-size:.88rem;color:var(--txt);font-family:var(--ff);outline:none;}
@@ -430,7 +417,6 @@ input[type="number"] { -moz-appearance: textfield; }
 </style>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 
-{# ---------- Avatar colours (same logic as account settings) ---------- #}
 {% set colors = [
   '#FF6F61', '#6B5B95', '#88B04B', '#F7CAC9',
   '#92A8D1', '#955251', '#B565A7', '#009B77',
@@ -576,7 +562,6 @@ input[type="number"] { -moz-appearance: textfield; }
             </div>
           </div>
 
-          <!-- ACTIONS: round icon on top, label underneath -->
           <div class="actions-4">
             <button class="act" onclick="openWithdraw()">
               <span class="act-ic amber">
@@ -624,7 +609,7 @@ input[type="number"] { -moz-appearance: textfield; }
 
             <button class="act" onclick="openAll()">
               <span class="act-ic">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" shape-rendering="geometricPrecision" text-rendering="geometricPrecision" image-rendering="optimizeQuality" fill-rule="evenodd" clip-rule="evenodd" viewBox="0 0 512 513.11">
+                <svg xmlns="http://www.w3.org/2000/svg" style="width: 17px !important; height: 17px !important" fill="currentColor" shape-rendering="geometricPrecision" text-rendering="geometricPrecision" image-rendering="optimizeQuality" fill-rule="evenodd" clip-rule="evenodd" viewBox="0 0 512 513.11">
                   <path fill-rule="nonzero" d="M210.48 160.8c0-14.61 11.84-26.46 26.45-26.46s26.45 11.85 26.45 26.46v110.88l73.34 32.24c13.36 5.88 19.42 21.47 13.54 34.82-5.88 13.35-21.47 19.41-34.82 13.54l-87.8-38.6c-10.03-3.76-17.16-13.43-17.16-24.77V160.8zM5.4 168.54c-.76-2.25-1.23-4.64-1.36-7.13l-4-73.49c-.75-14.55 10.45-26.95 25-27.69 14.55-.75 26.95 10.45 27.69 25l.74 13.6a254.258 254.258 0 0136.81-38.32c17.97-15.16 38.38-28.09 61.01-38.18 64.67-28.85 134.85-28.78 196.02-5.35 60.55 23.2 112.36 69.27 141.4 132.83.77 1.38 1.42 2.84 1.94 4.36 27.86 64.06 27.53 133.33 4.37 193.81-23.2 60.55-69.27 112.36-132.83 141.39a26.24 26.24 0 01-12.89 3.35c-14.61 0-26.45-11.84-26.45-26.45 0-11.5 7.34-21.28 17.59-24.92 7.69-3.53 15.06-7.47 22.09-11.8.8-.66 1.65-1.28 2.55-1.86 11.33-7.32 22.1-15.7 31.84-25.04.64-.61 1.31-1.19 2-1.72 20.66-20.5 36.48-45.06 46.71-71.76 18.66-48.7 18.77-104.46-4.1-155.72l-.01-.03C418.65 122.16 377.13 85 328.5 66.37c-48.7-18.65-104.46-18.76-155.72 4.1a203.616 203.616 0 00-48.4 30.33c-9.86 8.32-18.8 17.46-26.75 27.29l3.45-.43c14.49-1.77 27.68 8.55 29.45 23.04 1.77 14.49-8.55 27.68-23.04 29.45l-73.06 9c-13.66 1.66-26.16-7.41-29.03-20.61zM283.49 511.5c20.88-2.34 30.84-26.93 17.46-43.16-5.71-6.93-14.39-10.34-23.29-9.42-15.56 1.75-31.13 1.72-46.68-.13-9.34-1.11-18.45 2.72-24.19 10.17-12.36 16.43-2.55 39.77 17.82 42.35 19.58 2.34 39.28 2.39 58.88.19zm-168.74-40.67c7.92 5.26 17.77 5.86 26.32 1.74 18.29-9.06 19.97-34.41 3.01-45.76-12.81-8.45-25.14-18.96-35.61-30.16-9.58-10.2-25.28-11.25-36.11-2.39a26.436 26.436 0 00-2.55 38.5c13.34 14.2 28.66 27.34 44.94 38.07zM10.93 331.97c2.92 9.44 10.72 16.32 20.41 18.18 19.54 3.63 36.01-14.84 30.13-33.82-4.66-15-7.49-30.26-8.64-45.93-1.36-18.33-20.21-29.62-37.06-22.33C5.5 252.72-.69 262.86.06 274.14c1.42 19.66 5.02 39 10.87 57.83z"/>
                 </svg>
               </span>
@@ -660,7 +645,6 @@ input[type="number"] { -moz-appearance: textfield; }
     </div>
 
 
-    <!-- ================= SEND (withdraw) ================= -->
     <div class="overlay" id="wOv" onclick="bgClose(event,'wOv')">
       <div class="sheet"><div class="sheet-in">
         <div class="handle"></div>
@@ -697,7 +681,7 @@ input[type="number"] { -moz-appearance: textfield; }
           <div class="dest-tabs">
             <div class="dest-pill"></div>
             <button type="button" class="dest-tab on" id="tabWallet" onclick="setDestMode('wallet')">Wallet</button>
-            <button type="button" class="dest-tab" id="tabName" onclick="setDestMode('name')">Name</button>
+            <button type="button" class="dest-tab" id="tabName" onclick="setDestMode('name')">Name<span class="new-badge">New</span></button>
           </div>
 
           <div class="ig" id="destWalletGroup">
@@ -800,7 +784,6 @@ input[type="number"] { -moz-appearance: textfield; }
     </div>
 
 
-    <!-- ================= 2FA ================= -->
     <div class="tfa-overlay" id="tfaOv">
       <div class="tfa-box" id="tfaBlocked" style="display:none">
         <div class="tfa-block-icon"><svg width="26" height="26" viewBox="0 0 26 26" fill="none"><rect x="5" y="11" width="16" height="11" rx="2.5" stroke="#f05070" stroke-width="1.6" fill="none"/><path d="M9 11V8.5C9 6.57 10.57 5 12.5 5V5C14.43 5 16 6.57 16 8.5V11" stroke="#f05070" stroke-width="1.6" stroke-linecap="round"/><circle cx="13" cy="16.5" r="1.5" fill="#f05070"/><path d="M13 16.5V19" stroke="#f05070" stroke-width="1.4" stroke-linecap="round"/></svg></div>
@@ -836,7 +819,6 @@ input[type="number"] { -moz-appearance: textfield; }
     </div>
 
 
-    <!-- ================= TX DETAIL ================= -->
     <div class="overlay" id="txOv" onclick="bgClose(event,'txOv')">
       <div class="sheet"><div class="sheet-in"><div class="handle"></div><div id="txContent"></div></div></div>
     </div>
@@ -845,7 +827,6 @@ input[type="number"] { -moz-appearance: textfield; }
 </div>
 
 
-<!-- ================= RECEIVE (deposit) ================= -->
 <div class="overlay" id="depOv" onclick="bgClose(event,'depOv')">
   <div class="sheet"><div class="sheet-in">
     <div class="handle"></div>
@@ -930,13 +911,24 @@ input[type="number"] { -moz-appearance: textfield; }
       </div>
 
       <div class="dg">
-        <div class="dr"><span class="dk">Address</span><span class="dv" id="depAddrShort">—</span></div>
-        <div class="dr"><span class="dk">Network</span><span class="dv" id="depNetworkVal">—</span></div>
+        <div class="dr"><span class="dk" style="font-size: 12.5px; color: var(--text-muted);">Address</span><span class="dv" id="depAddrShort">—</span></div>
+        <div class="dr"><span class="dk" style="font-size: 12.5px; color: var(--text-muted);">Network</span><span class="dv" id="depNetworkVal">—</span></div>
+      </div>
+
+      <!-- Memo (native ZEC deposits only) -->
+      <div id="depMemoBox" style="display:none;margin-bottom:14px">
+        <div class="dg" style="margin-bottom:8px">
+          <div class="dr">
+            <span class="dk" style="font-size:12.5px;color:var(--amber)">Memo (required)</span>
+            <span class="dv a" id="depMemoVal" style="font-family:var(--mono)">—</span>
+          </div>
+        </div>
+        <button class="cta cta-ghost" style="margin:0 0 8px;border-radius:20px !important" onclick="copyDepositMemo()">Copy Memo</button>
       </div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:14px">
-        <button class="cta cta-ghost" style="margin:0" onclick="copyDepositAddress()">Copy Address</button>
-        <button class="cta cta-ghost" style="margin:0" onclick="shareDeposit()">Share</button>
+        <button class="cta cta-ghost" style="margin:0; border-radius: 20px !important;" onclick="copyDepositAddress()">Copy Address</button>
+        <button class="cta cta-ghost" style="margin:0; border-radius: 20px !important;" onclick="shareDeposit()">Share</button>
       </div>
 
       <div style="font-size:11px;color:var(--sub);margin:0 0 14px;line-height:1.6" id="depInstruction"></div>
@@ -950,7 +942,6 @@ input[type="number"] { -moz-appearance: textfield; }
 </div>
 
 
-<!-- ================= CONVERT (ZEC -> local currency) ================= -->
 <div class="overlay" id="cvOv" onclick="bgClose(event,'cvOv')">
   <div class="sheet"><div class="sheet-in">
     <div class="handle"></div>

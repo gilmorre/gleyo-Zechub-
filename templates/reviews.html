@@ -827,7 +827,6 @@ margin-left: 4px;
 
 .review-split {
   display: grid;
-  grid-template-columns: 1fr 1fr;
   gap: 10px;
   margin-top: 10px;
 }
@@ -3699,8 +3698,7 @@ color: #ff5c5c;
           </div>
 
           <div class="review-split" style="margin-top:12px;">
-            <div class="review-ghost" style="color: var(--text-main);">View profile</div>
-            <div class="review-ghost"  style="color: var(--text-main);">View claims</div>
+            <div class="review-ghost see-profile" style="color: var(--text-main);">View profile</div>
           </div>
         </div>
 
@@ -3717,9 +3715,9 @@ color: #ff5c5c;
           <div class="review-row recoccurence"><span>Recurrence</span><span>None</span></div>
           <div class="review-row cooldown"><span>Cooldown</span><span>None</span></div>
           <div class="review-row for-reward"><span>Rewards</span><span class="review-pill"></span></div>
-          <div class="review-split" style="margin-top:12px;">
+          <div class="review-split" style="margin-top:12px; grid-template-columns: 1fr 1fr;" >
             <div class="review-ghost see-quest">View quest</div>
-            <div class="review-ghost">View claims</div>
+            <div class="review-ghost see-claims" style="color: var(--text-main);">View claims</div>
           </div>
         </div>
         </div>

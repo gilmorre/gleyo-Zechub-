@@ -4495,14 +4495,35 @@ border-top-color: var(--text-main) !important;
 }
 
 .modal-glass {
+  position: relative;
   width: 100%;
   max-width: 420px;
   background: rgba(34, 34, 54, 0.448);
   backdrop-filter: blur(14px);
-  border: 0.9px solid var(--border);
-  border-radius: 16px;
+  border: 0.9px solid transparent;
+  border-radius: 30px;
   padding: 20px;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+.modal-glass::before {
+  content: "";
+  position: absolute;
+  inset: -0.9px;
+  padding: 0.9px;
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    var(--edge-hi, rgba(255, 255, 255, 0.42)) 0%,
+    var(--edge-lo, rgba(255, 255, 255, 0.05)) 28%,
+    var(--edge-lo, rgba(255, 255, 255, 0.05)) 72%,
+    var(--edge-hi, rgba(255, 255, 255, 0.42)) 100%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
 }
 
 .modal-glass h3 {
@@ -9990,12 +10011,7 @@ width: 220px
 
     min-height: 0;  
     
-  }
-
-  .layout-root{
-
-    height: calc(100dvh - 86px - var(--join-banner-height)) !important;
-}
+  } 
 }
 
 
@@ -14941,6 +14957,7 @@ background-color: var(--bg-app);
   border: 0.9px solid var(--border);
   border-radius: 16px;
   padding: 8px;
+  z-index: 9999;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
 }
 
@@ -15352,7 +15369,10 @@ background-color: var(--bg-app);
     flex-shrink: 0;
     margin-top: 0;
   }
+  .layout-root{
 
+    height: calc(100dvh - 94px - var(--join-banner-height)) !important;
+}
   /* ===== PAGE HEIGHT FIX =====
      every page root = exactly the height of .container-layout,
      so nothing gets clipped at the bottom (banner included) */
@@ -15362,13 +15382,13 @@ background-color: var(--bg-app);
   .sqkvwapp,
   .sqkvwapp.middle-area,
   .an-shell,
+  
   .lb-s-wrapper,
   .reward-conte-inner,
   .container-part,
   .content-mmpppaaa,
   #app.init,
   #app.mobile-banner-height,
-  .partnerss#app,
   .that-section-rater {
     height: var(--page-h) !important;
     min-height: var(--page-h) !important;

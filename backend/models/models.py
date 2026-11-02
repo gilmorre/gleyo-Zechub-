@@ -266,6 +266,7 @@ class UserTransaction(db.Model):
     expires_at = db.Column(db.DateTime, nullable=True)
     paid_at = db.Column(db.DateTime, nullable=True)
 
+    memo = db.Column(db.String(100), nullable=True)           
     balance_before = db.Column(Numeric(18, 8), nullable=True)  # Nozy ZEC snapshot, native-ZEC deposits only
     swap_status = db.Column(db.String(20), nullable=True)      # 'locked' / 'completed' / 'failed' etc, EVM deposits only
     swap_zec_amount = db.Column(Numeric(18, 8), nullable=True) # ZEC estimate → final, EVM deposits only

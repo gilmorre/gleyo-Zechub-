@@ -34,7 +34,7 @@ PLAN_PRICES = {
 }
 
 CLAIM_LIMITS = {
-    "free": 200,  
+    "free": 200,
     "standard": 1000,
     "plus": 4000,
     "enterprise": None,
@@ -413,6 +413,8 @@ def credit_pack(community_id, pack_id, *, amount_cents, payment_method, ref):
 
 
 def consume_claim(community, amount=1, commit=True):
+    amount = max(int(amount), 1)
+
     if not claims_open(community):
         raise BillingError(CLAIM_LIMIT_MESSAGE, 403)
 
@@ -423,30 +425,34 @@ def consume_claim(community, amount=1, commit=True):
 
     now = datetime.utcnow()
     usage = _locked_usage_row(community.id, now.year, now.month)
+    extra = _locked_extra_row(community.id)
 
     room = max(limit - usage.claim_count, 0)
-    from_plan = min(room, amount)
-    from_extra = amount - from_plan
+    available = room + extra.balance
 
-    extra = None
-    if from_extra:
-        extra = _locked_extra_row(community.id)
-        if extra.balance < from_extra:
-            db.session.rollback()
+    if amount > available:
+        db.session.rollback()
+        if available <= 0:
             community.claims_locked = True
             db.session.commit()
             raise BillingError(CLAIM_LIMIT_MESSAGE, 403)
+        raise BillingError(
+            f"This quest needs {amount} claims but this community only has {available} left. Please check back later.",
+            403,
+        )
+
+    from_plan = min(room, amount)
+    from_extra = amount - from_plan
+
+    if from_extra:
         extra.balance -= from_extra
-        extra_left = extra.balance
-    else:
-        extra_left = get_extra_left(community)
 
     usage.claim_count += from_plan
     plan_left = room - from_plan
+    extra_left = extra.balance
 
     if plan_left + extra_left <= 0:
-        if extra is not None:
-            extra.balance = 0
+        extra.balance = 0
         community.claims_locked = True
     else:
         community.claims_locked = False
@@ -681,8 +687,6 @@ def activate_plan(community_id, plan, interval, *, paid_at=None, period_start=No
     db.session.commit()
     sync_claims_lock(community)
 
-    # Any non-card payment (wallet or crypto) replaces the card plan, so the old
-    # Paystack subscription must be stopped or the card keeps getting charged.
     if payment_method != "card" and prev_stripe_id and not prev_cancel_pending:
         _disable_subscription(prev_stripe_id)
 

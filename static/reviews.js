@@ -3987,6 +3987,21 @@ undoBtn?.addEventListener('click', async () => {
     }  
 
   });
+
+  function openLeaderboardFor(param) {
+    const username = CURRENT_USER_DATA?.username;
+    if (!username) return;
+
+    let url = `/${communitySlug}/leaderboard?${param}=${encodeURIComponent(username)}`;
+    if (param === "showclaim" && CURRENT_USER_DATA.subquest) {
+      url += `&quest=${encodeURIComponent(CURRENT_USER_DATA.subquest)}`;
+    }
+
+    window.open(url, "_blank");
+  }
+
+  document.querySelector(".see-profile")?.addEventListener("click", () => openLeaderboardFor("showprofile"));
+  document.querySelector(".see-claims")?.addEventListener("click", () => openLeaderboardFor("showclaim"));
   setupImageLightbox();
 
   window.ReviewsModule = {

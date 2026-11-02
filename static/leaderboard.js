@@ -15,51 +15,33 @@ let isLoadingMore = false;
 let scrollContainer = null;
 
 let exportTotalCount = 0;
-/* ==========================================================
-   RewardTiers
-   Shown when "Platform distribution" (pay_to_creator) is picked.
-   Rows look like:   [1]  –  [to ▾]   [ 0.50 ZEC ]
-   - the first "from" is always 1 and can never be changed
-   - every other "from" is set automatically (previous "to" + 1)
-   - "to" is a smart dropdown that can go to any rank
-   - amounts are per winner, typed in ZEC, handled as zatoshi (BigInt)
-   - total is checked against the community wallet balance
-   - if the wallet is EMPTY the form is NOT blocked: the rows are replaced
-     by a short notice (with an "Add funds" link) and no tiers are sent
-   - the slot's height is animated: CSS transitions `height`, and a
-     ResizeObserver keeps it equal to the tier box height, so opening,
-     closing, adding/removing a range and the alert all glide
-   Exposes: window.RewardTiers = { init, getTiers, isValid }
-   ========================================================== */
+
 (function () {
   "use strict";
 
-  const ZAT = 100000000n;      // 1 ZEC = 100,000,000 zatoshi
-  const MAX_RANK = 100000;     // highest rank the dropdown can reach
-  const PAGE = 10;             // options added at a time
-  const PAY_URL = "pay";       // "Add funds" target
+  const ZAT = 100000000n;
+  const MAX_RANK = 100000;
+  const PAGE = 10;
+  const PAY_URL = "pay";
 
   let slot = null;
   let active = false;
-  let available = 0n;          // wallet available balance, in zatoshi
+  let available = 0n;
   let currency = "ZEC";
-  let tiers = [];              // { from, to, amount }
+  let tiers = [];
 
   let menu = null;
   let menuTier = -1;
   let menuStart = 1;
   let menuEnd = 0;
   let docBound = false;
-  let ro = null;               // ResizeObserver for the height animation
-
-  /* ---------------- helpers ---------------- */
+  let ro = null;
 
   const esc = (s) =>
     String(s).replace(/[&<>"']/g, (c) => ({
       "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
     }[c]));
 
-  // "1.5" -> 150000000n ; invalid/empty -> null
   function parseZec(str) {
     const s = String(str || "").trim();
     if (!s || s === "." || !/^\d*\.?\d{0,8}$/.test(s)) return null;
@@ -69,7 +51,6 @@ let exportTotalCount = 0;
     return BigInt(whole) * ZAT + BigInt(frac);
   }
 
-  // 150000000n -> "1.5"
   function formatZec(zat) {
     const whole = zat / ZAT;
     const frac = (zat % ZAT).toString().padStart(8, "0").replace(/0+$/, "");
@@ -79,9 +60,6 @@ let exportTotalCount = 0;
 
   const emit = () => window.dispatchEvent(new CustomEvent("reward-tiers:change"));
 
-  /* ---------------- height animation ---------------- */
-
-  // the slot's height always follows the tier box; CSS does the transition
   function syncHeight() {
     if (!slot || !active) return;
     const box = slot.firstElementChild;
@@ -99,9 +77,6 @@ let exportTotalCount = 0;
     syncHeight();
   }
 
-  /* ---------------- state ---------------- */
-
-  // keeps every "from" in sync with the previous "to"
   function normalize() {
     tiers.forEach((t, i) => {
       t.from = i === 0 ? 1 : (tiers[i - 1].to ? tiers[i - 1].to + 1 : null);
@@ -128,7 +103,6 @@ let exportTotalCount = 0;
 
   function isValid() {
     if (!active) return true;
-    // empty wallet: don't block the form, the notice explains it and no tiers are sent
     if (available <= 0n) return true;
     if (!tiers.length) return false;
     for (const t of tiers) {
@@ -143,11 +117,9 @@ let exportTotalCount = 0;
     return tiers.map((t) => ({
       from: t.from,
       to: t.to,
-      amount_zat: String(parseZec(t.amount) || 0n)   // per winner, in zatoshi
+      amount_zat: String(parseZec(t.amount) || 0n)
     }));
   }
-
-  /* ---------------- rendering ---------------- */
 
   const LOCK_SVG =
     '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
@@ -178,7 +150,6 @@ let exportTotalCount = 0;
       </div>`;
   }
 
-  // empty wallet: just a notice, nothing is blocked
   function renderEmptyWallet() {
     slot.innerHTML = `
       <div class="tier-box">
@@ -235,8 +206,6 @@ let exportTotalCount = 0;
     observeBox();
   }
 
-  // updates totals, per-row hints, alert and Add button WITHOUT re-rendering rows
-  // (so typing in an amount box never loses focus)
   function refresh() {
     if (!slot) return;
 
@@ -281,8 +250,6 @@ let exportTotalCount = 0;
     if (add) add.disabled = !canAdd();
   }
 
-  /* ---------------- actions ---------------- */
-
   function onAmount(inp) {
     let v = inp.value.replace(/[^\d.]/g, "");
     const dot = v.indexOf(".");
@@ -305,14 +272,12 @@ let exportTotalCount = 0;
   }
 
   function removeTier(i) {
-    if (i === 0) return;               // the first range is locked
+    if (i === 0) return;
     tiers.splice(i, 1);
     normalize();
     render();
     emit();
   }
-
-  /* ---------------- smart dropdown ---------------- */
 
   function optionHtml(n, t, amt, budgetForRow) {
     const w = n - t.from + 1;
@@ -359,7 +324,6 @@ let exportTotalCount = 0;
       `<div class="tier-menu-list"></div>`;
     document.body.appendChild(menu);
 
-    // make sure the current selection is visible in the first batch
     const visible = Math.max(PAGE, t.to ? t.to - t.from + 3 : 0);
     fillMenu(visible);
 
@@ -373,14 +337,12 @@ let exportTotalCount = 0;
       if (b) pick(Number(b.dataset.v));
     });
 
-    // keeps going as you scroll: the list can reach any rank
     list.addEventListener("scroll", () => {
       if (menuEnd < MAX_RANK && list.scrollTop + list.clientHeight >= list.scrollHeight - 40) {
         extendMenu(PAGE);
       }
     });
 
-    // typing a rank jumps the list to start at that rank
     input.addEventListener("input", () => {
       const n = parseInt(input.value, 10);
       menuStart = validRank(n) ? n : tiers[menuTier].from;
@@ -400,7 +362,6 @@ let exportTotalCount = 0;
 
     positionMenu(trigger);
 
-    // avoid popping the keyboard on touch devices
     if (window.matchMedia("(hover: hover)").matches) input.focus();
 
     const selected = list.querySelector(".is-selected");
@@ -446,8 +407,6 @@ let exportTotalCount = 0;
     menuTier = -1;
   }
 
-  /* ---------------- setup ---------------- */
-
   function bindDocument() {
     if (docBound) return;
     docBound = true;
@@ -457,7 +416,6 @@ let exportTotalCount = 0;
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") closeMenu();
     });
-    // close when the page/wrapper scrolls (but not when the list itself scrolls)
     window.addEventListener("scroll", (e) => {
       if (menu && !menu.contains(e.target)) closeMenu();
     }, true);
@@ -467,12 +425,12 @@ let exportTotalCount = 0;
     active = value === "pay_to_creator";
 
     if (active) {
-      render();                          // fills the slot + sets the target height
-      slot.classList.add("is-open");     // CSS animates height / margin / opacity
+      render();
+      slot.classList.add("is-open");
     } else {
       closeMenu();
       slot.classList.remove("is-open");
-      slot.style.height = "0px";         // animates closed; content stays until reopened
+      slot.style.height = "0px";
     }
     emit();
   }
@@ -515,8 +473,6 @@ let exportTotalCount = 0;
     const checked = document.querySelector('input[name="distribution"]:checked');
     if (checked) onDistribution(checked.value);
   }
-
-  /* ---------------- styles (self-injected) ---------------- */
 
   function injectCss() {
     if (document.getElementById("reward-tiers-css")) return;
@@ -599,7 +555,6 @@ function adjustColor(hex, amount) {
     .toString(16)
     .padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 }
-
 
 function getTextColor(bgColor) {
   const r = parseInt(bgColor.substring(1, 3), 16);
@@ -764,6 +719,85 @@ async function loadMoreParticipants() {
   }
 }
 
+function injectClaimFlashCss() {
+  if (document.getElementById("claim-flash-css")) return;
+  const style = document.createElement("style");
+  style.id = "claim-flash-css";
+  style.textContent = `
+    .activity-item.claim-flash{
+      animation: claimFlash 3s ease-out;
+      border-radius: 10px;
+    }
+    @keyframes claimFlash{
+      0%,70%{ background: rgba(72,136,240,.28); box-shadow: 0 0 0 1px rgba(72,136,240,.8); }
+      100%{ background: transparent; box-shadow: 0 0 0 1px transparent; }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+async function openUserFromParams() {
+  const params = new URLSearchParams(window.location.search);
+  const target = params.get("showprofile") || params.get("showclaim");
+  if (!target) return;
+
+  const wantClaims = !params.get("showprofile") && !!params.get("showclaim");
+  const key = target.trim().toLowerCase();
+  const questKey = (params.get("quest") || "").trim().toLowerCase();
+  const list = document.querySelector(".participants-list");
+  if (!list) return;
+
+  const find = () =>
+    Array.from(list.querySelectorAll(".participant-item")).find(
+      li => li.querySelector(".participant-name")?.textContent.trim().toLowerCase() === key
+    );
+
+  let li = find();
+  while (!li && hasMore) {
+    if (isLoadingMore) {
+      await new Promise(r => setTimeout(r, 50));
+    } else {
+      await loadMoreParticipants();
+    }
+    li = find();
+  }
+
+  params.delete("showprofile");
+  params.delete("showclaim");
+  params.delete("quest");
+  const qs = params.toString();
+  history.replaceState({}, "", window.location.pathname + (qs ? "?" + qs : ""));
+
+  if (!li) {
+    showError("User not found on the leaderboard.");
+    return;
+  }
+
+  li.scrollIntoView({ behavior: "auto", block: "center" });
+
+  await new Promise(r => requestAnimationFrame(r));
+
+  const rect = li.getBoundingClientRect();
+  const name = li.querySelector(".participant-name").textContent.trim();
+
+  await showUserActivity(name, { x: rect.left + rect.width / 2, y: rect.top });
+
+  if (wantClaims && questKey) {
+    const items = modal.querySelectorAll(".act-activity-list .activity-item");
+    const match = Array.from(items).find(
+      el => el.querySelector(".activity-quest")?.textContent.trim().toLowerCase() === questKey
+    );
+
+    if (match) {
+      injectClaimFlashCss();
+      match.scrollIntoView({ block: "center" });
+      match.classList.add("claim-flash");
+      setTimeout(() => match.classList.remove("claim-flash"), 3000);
+    }
+  } else if (wantClaims) {
+    modal.querySelector(".act-activities")?.scrollIntoView({ block: "nearest" });
+  }
+}
 
 async function loadLeaderboard() {
 
@@ -850,7 +884,7 @@ async function loadLeaderboard() {
       topRankRow.style.display = "none";
 
     }
-
+    openUserFromParams();
 
   } catch (err) {
     console.error("Leaderboard failed to load:", err);
@@ -858,11 +892,8 @@ async function loadLeaderboard() {
 
 }
 
-
-
 function showCountdown() {
   const countdownWrapper = document.getElementById('countdownWrapper');
-
 
   if (!countdownWrapper) return;
   const h = countdownWrapper.scrollHeight;
@@ -1084,7 +1115,6 @@ function initSprintDatePickers({
     window.openCalendar(triggerEl, calendarEl);
   }
 
-
   startBox.addEventListener("click", (e) => {
     e.stopPropagation();
     toggleCalendar(startBox, startCalendar, "start");
@@ -1110,15 +1140,13 @@ function initSprintDatePickers({
   updatePreview(endPreview, endDate);
 
   startCountdown(startDate, endDate);
-window.addEventListener("calendar:select", (e) => {
-  commitDate({
-    type: activePicker,
-    date: e.detail.date
+  window.addEventListener("calendar:select", (e) => {
+    commitDate({
+      type: activePicker,
+      date: e.detail.date
+    });
   });
-});
 }
-
-
 
 function initLiveTextPreview() {
 
@@ -1205,19 +1233,13 @@ const INFO_SVG = `
 </svg>
 `;
 
-
-
 function isMobile() {
   return window.innerWidth < 750;
 }
 
-
-
 let paymentConfirmed = false;
 let selectedOption = null;
 
-/* The reward tiers slot is handled by RewardTiers (top of this file).
-   This only keeps track of which option is picked and clears old errors. */
 function initPayDistributionUI() {
   const radios = document.querySelectorAll('input[name="distribution"]');
   const errorDiv = document.getElementById("paymentError");
@@ -1231,7 +1253,13 @@ function initPayDistributionUI() {
   });
 }
 
-
+function hideActivity() {
+  clearTimeout(hoverTimeout);
+  clearTimeout(hideTimeout);
+  isHoveringTrigger = false;
+  isHoveringModal = false;
+  modal.classList.add("hidden");
+}
 
 function createOrionDropdown() {
   const panel = document.createElement('div');
@@ -1307,18 +1335,14 @@ function positionDropdown(panel, anchor) {
   panel.style.left = `${left}px`;
 }
 
+const isPremiumUntil = document.querySelector(".main-wrapper.badged")
 
-  const isPremiumUntil = document.querySelector(".main-wrapper.badged")
-
-  let isPremium = false
-  if(isPremiumUntil) {
-    isPremium= true
-  } else {
-    isPremium=false
-  }
-  
-
-
+let isPremium = false
+if(isPremiumUntil) {
+  isPremium= true
+} else {
+  isPremium=false
+}
 
 function bindOrionPickerEvents(picker) {
   let draftColor = null;
@@ -1337,7 +1361,7 @@ function bindOrionPickerEvents(picker) {
   function setSprintColor(color) {
     document.documentElement.style.setProperty('--sprint-color', color);
     hiddenInput.value = color;
-    window.selectedColor = color;   // read by the save handler
+    window.selectedColor = color;
   }
 
   if (isPremium) {
@@ -1352,7 +1376,6 @@ function bindOrionPickerEvents(picker) {
       });
     });
 
-
     confirmBtn.addEventListener('click', () => {
       if (draftColor) {
         setSprintColor(draftColor); 
@@ -1360,7 +1383,6 @@ function bindOrionPickerEvents(picker) {
       }
       picker.classList.remove('is-open');
     });
-
 
     if (hashtagIcon && colorInputField) {
       hashtagIcon.addEventListener('click', () => {
@@ -1370,43 +1392,39 @@ function bindOrionPickerEvents(picker) {
         colorInputField.value = '#';
       });
 
+      colorInputField.addEventListener('input', () => {
+        let val = colorInputField.value;
 
-    colorInputField.addEventListener('input', () => {
-      let val = colorInputField.value;
+        if (!val.startsWith('#')) {
+          val = '#' + val.replace(/#/g, '');
+        }
 
-      if (!val.startsWith('#')) {
-        val = '#' + val.replace(/#/g, '');
-      }
+        val = '#' + val.slice(1).replace(/[^0-9a-fA-F]/g, '');
 
-      val = '#' + val.slice(1).replace(/[^0-9a-fA-F]/g, '');
+        val = val.slice(0, 7);
 
-      val = val.slice(0, 7);
+        colorInputField.value = val;
 
-      colorInputField.value = val;
+        if (/^#[0-9a-fA-F]{3,6}$/.test(val)) {
+          draftColor = val;
 
-      if (/^#[0-9a-fA-F]{3,6}$/.test(val)) {
-        draftColor = val;
+          if (preview) preview.style.backgroundColor = val;
+          if (previewHeader) previewHeader.style.backgroundColor = val;
+          if (previewContainer) previewContainer.style.backgroundColor = val;
+        }
+      });
 
-        if (preview) preview.style.backgroundColor = val;
-        if (previewHeader) previewHeader.style.backgroundColor = val;
-        if (previewContainer) previewContainer.style.backgroundColor = val;
-      }
-    });
+      colorInputField.addEventListener('keydown', (e) => {
+        const cursorPos = colorInputField.selectionStart;
 
+        if (e.key === 'Backspace' && cursorPos <= 1) {
+          e.preventDefault();
+        }
 
-    colorInputField.addEventListener('keydown', (e) => {
-      const cursorPos = colorInputField.selectionStart;
-
-      if (e.key === 'Backspace' && cursorPos <= 1) {
-        e.preventDefault();
-      }
-
-      if (e.key === 'ArrowLeft' && cursorPos <= 1) {
-        e.preventDefault();
-      }
-    });
-
-
+        if (e.key === 'ArrowLeft' && cursorPos <= 1) {
+          e.preventDefault();
+        }
+      });
     }
 
     if (eyedropperIcon) {
@@ -1472,17 +1490,13 @@ function bindOrionPickerEvents(picker) {
       }, true);
     }
   }
-
-
 }
-
-
 
 function initOrionColorPicker() {
   const toggle = document.getElementById('orion-toggle-picker');
   if (!toggle) return;
 
-  let picker = null;   // was undeclared before, which threw a ReferenceError on click
+  let picker = null;
 
   toggle.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -1507,7 +1521,6 @@ function initOrionColorPicker() {
     picker.classList.remove('is-open');
   });
 
-
   window.addEventListener('resize', () => {
     if (picker?.classList.contains('is-open')) {
       positionDropdown(picker, toggle);
@@ -1515,20 +1528,9 @@ function initOrionColorPicker() {
   });
 }
 
-
-
-
-
-
-
-
-
-
-// The date inputs hold LOCAL time ("2026-10-17T19:00", no offset).
-// Convert to real UTC before sending, so the server never has to guess the timezone.
 function localToUtcISO(localStr) {
-  const d = new Date(localStr);            // no offset in the string = parsed as local time
-  return isNaN(d) ? localStr : d.toISOString();   // "2026-10-17T18:00:00.000Z"
+  const d = new Date(localStr);
+  return isNaN(d) ? localStr : d.toISOString();
 }
 
 function snapTo30Minutes(date) {
@@ -1549,8 +1551,6 @@ function snapTo30Minutes(date) {
 
   return d;
 }
-
-
 
 function initSprintDates({
   startOffsetMinutes = 10,
@@ -1620,242 +1620,232 @@ function initSprintDates({
   }
 }
 
-  function createSprint(prefillData = null) {
-    const url = new URL(window.location.href);
-    url.searchParams.set("open", "sprint");
-    history.replaceState({}, "", url);
+function createSprint(prefillData = null) {
+  const url = new URL(window.location.href);
+  url.searchParams.set("open", "sprint");
+  history.replaceState({}, "", url);
 
-    const isMobile = window.innerWidth <= 991;
+  const isMobile = window.innerWidth <= 991;
 
-    if (isMobile) {
-      let url = `/sprint_create?community_id=${communityId}`;
-   
+  if (isMobile) {
+    let url = `/sprint_create?community_id=${communityId}`;
 
-      fetch(url, { credentials: 'include' })
-        .then(r => {
-          if (!r.ok) throw new Error("Failed to load sprint_create");
-          return r.text();
-        })
-        .then(html => {
-          const wrapper = document.querySelector('.main-wrapper');
-          wrapper.innerHTML = html;
+    fetch(url, { credentials: 'include' })
+      .then(r => {
+        if (!r.ok) throw new Error("Failed to load sprint_create");
+        return r.text();
+      })
+      .then(html => {
+        const wrapper = document.querySelector('.main-wrapper');
+        wrapper.innerHTML = html;
 
         initOrionColorPicker();
         initSprintDates();
         initSprintDatePickers();
         initLiveTextPreview();
         initPayDistributionUI();
-        window.RewardTiers.init();      // reward tiers slot
+        window.RewardTiers.init();
         Savehanler();
         setupSprintValidation();
+      })
+      .catch(err => {
+        console.error("❌ Mobile sprint error:", err);
+        alert("Could not load sprint planner.");
+      });
 
+    return;
+  }
 
+  const panel = document.getElementById('rightPanel');
+  const leftPanel = document.getElementById('leftPanel');
 
-        })
-        .catch(err => {
-          console.error("❌ Mobile sprint error:", err);
-          alert("Could not load sprint planner.");
-        });
+  document.querySelector('.main-wrapper').classList.add('sprint-mode');
 
+  if (window.innerWidth <= 900) {
+    document.querySelector('.main-wrapper').style.flexDirection = 'column';
+    panel.style.borderRadius = '0';
+  }
+
+  panel.classList.add('fade-out');
+  panel.classList.add('sprint-mode');
+
+  setTimeout(() => {
+
+    let url = `/sprint_create?community_id=${communityId}`;
+
+    console.log("🔍 Sprint fetch URL:", url);
+
+    Promise.all([
+      fetch(url).then(r => { if (!r.ok) throw new Error("Failed to load sprint_create"); return r.text(); }),
+      fetch('/live_view').then(r => { if (!r.ok) throw new Error("Failed to load live_view"); return r.text(); })
+    ])
+    .then(([sprintHtml, liveHtml]) => {
+      panel.innerHTML = sprintHtml;
+      panel.classList.remove('fade-out');
+
+      leftPanel.innerHTML = liveHtml;
+
+      initOrionColorPicker();
+      initSprintDates();
+      initSprintDatePickers();
+      initLiveTextPreview();
+      initPayDistributionUI();
+      window.RewardTiers.init();
+      Savehanler();
+
+      setupSprintValidation();
+    })
+    .catch(err => {
+      alert("Failed to load sprint planner.");
+      console.error("❌ Load Error:", err);
+    });
+
+  }, 300);
+}
+
+function setupSprintValidation() {
+  const saveBtn = document.getElementById("saveBtn");
+  if (!saveBtn) return;
+
+  const titleInput = document.getElementById("title");
+  const startDateInput = document.getElementById("start_date_iso");
+  const endDateInput = document.getElementById("end_date_iso");
+  const distributionInputs = document.querySelectorAll('input[name="distribution"]');
+
+  function validateForm() {
+    const title = titleInput.value.trim();
+    const startDate = startDateInput.value;
+    const endDate = endDateInput.value;
+
+    const distributionRequired = distributionInputs.length > 0;
+    const distributionChecked = document.querySelector('input[name="distribution"]:checked');
+
+    const tiersOk = window.RewardTiers ? window.RewardTiers.isValid() : true;
+
+    const isValid =
+      title &&
+      startDate &&
+      endDate &&
+      (!distributionRequired || distributionChecked) &&
+      tiersOk;
+
+    if (isValid) {
+      saveBtn.classList.remove("disable");
+    } else {
+      saveBtn.classList.add("disable");
+    }
+  }
+
+  titleInput.addEventListener("input", validateForm);
+  startDateInput.addEventListener("change", validateForm);
+  endDateInput.addEventListener("change", validateForm);
+  distributionInputs.forEach(radio =>
+    radio.addEventListener("change", validateForm)
+  );
+
+  if (window.__sprintValidate) {
+    window.removeEventListener("reward-tiers:change", window.__sprintValidate);
+  }
+  window.__sprintValidate = validateForm;
+  window.addEventListener("reward-tiers:change", validateForm);
+
+  validateForm();
+}
+
+function Savehanler() {
+  const SaveBtn = document.getElementById("saveBtn");
+  if (!SaveBtn) return;
+
+  SaveBtn.addEventListener("click", async function () {
+
+    const saveBtn = this;
+    if (saveBtn.disabled || saveBtn.classList.contains("disable")) {
       return;
     }
 
+    const distribution =
+      document.querySelector('input[name="distribution"]:checked')?.value || null;
 
-
-    const panel = document.getElementById('rightPanel');
-    const leftPanel = document.getElementById('leftPanel');
-
-    document.querySelector('.main-wrapper').classList.add('sprint-mode');
-
-    if (window.innerWidth <= 900) {
-      document.querySelector('.main-wrapper').style.flexDirection = 'column';
-      panel.style.borderRadius = '0';
+    if (distribution === "pay_to_creator" && !window.RewardTiers.isValid()) {
+      showError("Fill in every reward rank and keep the total within your wallet balance.");
+      return;
     }
 
-    panel.classList.add('fade-out');
-    panel.classList.add('sprint-mode');
+    const payload = {
+      title: document.getElementById("title").value.trim(),
+      description: document.getElementById("description").value.trim(),
+      rewards: document.getElementById("rewards").value.trim(),
+      end_zone: document.getElementById("end_zone").value || null,
+      color: window.selectedColor || null,
+      distribution: distribution,
+      reward_tiers: distribution === "pay_to_creator" ? window.RewardTiers.getTiers() : [],
+      start_date: localToUtcISO(document.getElementById("start_date_iso").value),
+      end_date: localToUtcISO(document.getElementById("end_date_iso").value)
+    };
 
-    setTimeout(() => {
-  
-      let url = `/sprint_create?community_id=${communityId}`;
-   
+    saveBtn.disabled = true;
 
-      console.log("🔍 Sprint fetch URL:", url);
-
-      Promise.all([
-        fetch(url).then(r => { if (!r.ok) throw new Error("Failed to load sprint_create"); return r.text(); }),
-        fetch('/live_view').then(r => { if (!r.ok) throw new Error("Failed to load live_view"); return r.text(); })
-      ])
-      .then(([sprintHtml, liveHtml]) => {
-        panel.innerHTML = sprintHtml;
-        panel.classList.remove('fade-out');
-
-        leftPanel.innerHTML = liveHtml;
-
-   
-        initOrionColorPicker();
-        initSprintDates();
-        initSprintDatePickers();
-        initLiveTextPreview();
-        initPayDistributionUI();
-        window.RewardTiers.init();      // reward tiers slot
-        Savehanler();
-
-        setupSprintValidation();
-        
-
-
-      })
-      .catch(err => {
-        alert("Failed to load sprint planner.");
-        console.error("❌ Load Error:", err);
+    try {
+      const res = await fetch(`/${communitySlug}/sprints/create`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": csrfToken
+        },
+        body: JSON.stringify(payload)
       });
 
-    }, 300);
+      const data = await res.json();
+      saveBtn.disabled = false;
 
-
-
-  }
-
-
-  function setupSprintValidation() {
-    const saveBtn = document.getElementById("saveBtn");
-    if (!saveBtn) return;
-
-    const titleInput = document.getElementById("title");
-    const startDateInput = document.getElementById("start_date_iso");
-    const endDateInput = document.getElementById("end_date_iso");
-    const distributionInputs = document.querySelectorAll('input[name="distribution"]');
-
-    function validateForm() {
-      const title = titleInput.value.trim();
-      const startDate = startDateInput.value;
-      const endDate = endDateInput.value;
-
-      const distributionRequired = distributionInputs.length > 0;
-      const distributionChecked = document.querySelector('input[name="distribution"]:checked');
-
-      // when "Platform distribution" is picked the reward tiers must be valid too
-      // (an empty wallet does NOT count as invalid, see RewardTiers.isValid)
-      const tiersOk = window.RewardTiers ? window.RewardTiers.isValid() : true;
-
-      const isValid =
-        title &&
-        startDate &&
-        endDate &&
-        (!distributionRequired || distributionChecked) &&
-        tiersOk;
-
-      if (isValid) {
-        saveBtn.classList.remove("disable");
-      } else {
-        saveBtn.classList.add("disable");
-      }
-    }
-
-    titleInput.addEventListener("input", validateForm);
-    startDateInput.addEventListener("change", validateForm);
-    endDateInput.addEventListener("change", validateForm);
-    distributionInputs.forEach(radio =>
-      radio.addEventListener("change", validateForm)
-    );
-
-    // re-check whenever the tiers change (replace the old listener from a previous open)
-    if (window.__sprintValidate) {
-      window.removeEventListener("reward-tiers:change", window.__sprintValidate);
-    }
-    window.__sprintValidate = validateForm;
-    window.addEventListener("reward-tiers:change", validateForm);
-
-    validateForm();
-  }
-
-  function Savehanler() {
-    const SaveBtn = document.getElementById("saveBtn");
-    if (!SaveBtn) return;
-
-    SaveBtn.addEventListener("click", async function () {
-
-      const saveBtn = this;
-      if (saveBtn.disabled || saveBtn.classList.contains("disable")) {
+      if (!res.ok) {
+        showError(data.message || "Something went wrong.");
         return;
       }
 
-      const distribution =
-        document.querySelector('input[name="distribution"]:checked')?.value || null;
+      showSuccess(data.message || "Sprint created successfully.");
 
-      if (distribution === "pay_to_creator" && !window.RewardTiers.isValid()) {
-        showError("Fill in every reward rank and keep the total within your wallet balance.");
-        return;
-      }
+      setTimeout(async () => {
 
-      const payload = {
-        title: document.getElementById("title").value.trim(),
-        description: document.getElementById("description").value.trim(),
-        rewards: document.getElementById("rewards").value.trim(),
-        end_zone: document.getElementById("end_zone").value || null,
-        color: window.selectedColor || null,
-        distribution: distribution,
-        // [{ from, to, amount_zat }]  amount_zat = per winner, in zatoshi (string)
-        // empty list when the wallet is empty
-        reward_tiers: distribution === "pay_to_creator" ? window.RewardTiers.getTiers() : [],
-        start_date: localToUtcISO(document.getElementById("start_date_iso").value),
-        end_date: localToUtcISO(document.getElementById("end_date_iso").value)
-      };
+        await refreshCommunityNav(communitySlug); 
 
-      saveBtn.disabled = true;
+        loadMainSettingsSection(data.redirect_url);
 
-      try {
-        const res = await fetch(`/${communitySlug}/sprints/create`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-CSRFToken": csrfToken
-          },
-          body: JSON.stringify(payload)
-        });
+      }, 700);
 
-        const data = await res.json();
-        saveBtn.disabled = false;
-
-        if (!res.ok) {
-          showError(data.message || "Something went wrong.");
-          return;
-        }
-
-        showSuccess(data.message || "Sprint created successfully.");
-
-        setTimeout(async () => {
-
-          await refreshCommunityNav(communitySlug); 
-
-          loadMainSettingsSection(data.redirect_url);
-
-        }, 700);
-
-      } catch (err) {
-        saveBtn.disabled = false;
-        showError("Network error. Please try again.");
-      }
-    });
-  }
-
-
- 
+    } catch (err) {
+      saveBtn.disabled = false;
+      showError("Network error. Please try again.");
+    }
+  });
+}
 
 const modal = document.getElementById("activity-modal");
 const modalContent = modal.querySelector(".activity-content");
-if(window.innerWidth >= 768) {
+if (window.innerWidth >= 768) {
 
   modal.addEventListener("mouseenter", () => {
     isHoveringModal = true;
     clearTimeout(hideTimeout);
   });
 
-
   modal.addEventListener("mouseleave", () => {
     isHoveringModal = false;
     scheduleHide();
+  });
+
+  // Close when clicking anywhere outside the modal (needed when it was
+  // opened from ?showprofile= / ?showclaim=, where mouseleave never fires)
+  document.addEventListener("click", (e) => {
+    if (modal.classList.contains("hidden")) return;
+    if (modal.contains(e.target)) return;
+    hideActivity();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !modal.classList.contains("hidden")) {
+      hideActivity();
+    }
   });
 } else {
   modal.addEventListener("click", (e) => {
@@ -1866,8 +1856,6 @@ if(window.innerWidth >= 768) {
     }
   });  
 }
-
-
 
 function timeAgo(date) {
 
@@ -1894,15 +1882,6 @@ function timeAgo(date) {
   return "just now";
 }
 
-/* ==========================================================
-   Desktop profile hover card placement
-   The card must stay INSIDE the main left panel (#leftPanel):
-   - starts next to the cursor
-   - flips to the left of the cursor if there is no room on the right
-   - flips above the cursor if there is no room below
-   - then gets clamped so it can never cross the panel edges
-   (mobile uses the fixed full-screen layout from the CSS)
-   ========================================================== */
 function placeActivityModal(position) {
   if (window.innerWidth <= 767 || !position) return;
 
@@ -1911,8 +1890,8 @@ function placeActivityModal(position) {
     ? panel.getBoundingClientRect()
     : { left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight };
 
-  const gap = 12;       // breathing room from the panel edges
-  const offset = 12;    // distance from the cursor
+  const gap = 12;
+  const offset = 12;
 
   const w = modal.offsetWidth;
   const h = modal.offsetHeight;
@@ -1920,16 +1899,10 @@ function placeActivityModal(position) {
   let left = position.x + offset;
   let top = position.y + offset;
 
-  // no room on the right of the cursor -> open to its left
   if (left + w > bounds.right - gap) {
     left = position.x - w - offset;
   }
 
-  // vertical: never jump above the cursor. Start at the cursor and, if the
-  // card is taller than the space below, only slide it up by the overflow
-  // (the clamp below), so it stays as low as the panel allows.
-
-  // final safety clamp, always inside the panel
   left = Math.max(bounds.left + gap, Math.min(left, bounds.right - w - gap));
   top = Math.max(bounds.top + gap, Math.min(top, bounds.bottom - h - gap));
 
@@ -1970,7 +1943,6 @@ async function showUserActivity(username, position) {
   }
 }
 
-
 function activityItemHtml(act, data) {
   if (act.type === "admin_xp_action") {
     const sign = act.xp > 0 ? "+" : "";
@@ -2001,7 +1973,6 @@ function activityItemHtml(act, data) {
     </div>
   `;
 }
-
 
 function buildActivityCard(data, isMobile) {
   const bg = getColor(data.user_id);
@@ -2090,7 +2061,6 @@ function buildActivityCard(data, isMobile) {
   `;
 }
 
-
 function renderUserActivity(data, isMobile, position) {
 
   modalContent.innerHTML = buildActivityCard(data, isMobile);
@@ -2101,17 +2071,14 @@ function renderUserActivity(data, isMobile, position) {
       backBtn.addEventListener("click", hideActivity);
     }
   } else {
-    // the card is taller now than the loading spinner was, so place it again
     requestAnimationFrame(() => placeActivityModal(position));
   }
 }
-
 
 function hideActivity(){
   modal.classList.add("hidden");
 }
 
- 
 function closeExportModal() {
   const modal = document.getElementById("exportModal");
   if (!modal) return;
@@ -2304,8 +2271,6 @@ function initExportButton() {
   });
 }
 
-
-
 function checkOpenSprintFromURL() {
   const params = new URLSearchParams(window.location.search);
   __CURRENT_PATH__ = null;
@@ -2316,14 +2281,12 @@ function checkOpenSprintFromURL() {
   }
 }
 
-
-
-  checkOpenSprintFromURL();
-  initExportButton();
-  window.createSprint = createSprint;
-  window.openExportModal = openExportModal;
-  window.LeaderboardModule = {
-    init: loadLeaderboard
-  };
+checkOpenSprintFromURL();
+initExportButton();
+window.createSprint = createSprint;
+window.openExportModal = openExportModal;
+window.LeaderboardModule = {
+  init: loadLeaderboard
+};
 
 })();

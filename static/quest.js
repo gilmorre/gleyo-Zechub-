@@ -154,6 +154,14 @@ function setItemModule(item, moduleId) {
   item.id = `subquests-${moduleId}`;
 }
 
+function bindOnce(key, target, type, handler, options) {
+  window.__bound = window.__bound || {};
+  const prev = window.__bound[key];
+  if (prev) prev.target.removeEventListener(prev.type, prev.handler, prev.options);
+  target.addEventListener(type, handler, options);
+  window.__bound[key] = { target, type, handler, options };
+}
+
 function persistModuleOpen(moduleId) {
   fetch("/save_subquest_state", {
     method: "POST",
@@ -920,6 +928,95 @@ function syncInitialToggleState() {
 }
 
 
+function buildModuleElement(quest, communitySlug) {
+  const is_open = quest.is_open === true;
+
+  const module = document.createElement("div");
+  module.className = "content-init-q scrollable";
+  module.id = `module-${quest.uuid}`;
+  module.dataset.community = communitySlug;
+
+  module.innerHTML = `
+    <div class="cardin">
+
+      <div class="module-header">
+        <div class="module-title-wrapper" data-module-id="${quest.uuid}">
+          <h5 class="module-title" id="module-name-${quest.uuid}">${quest.title}</h5>
+        </div>
+
+        <div class="module-actions">
+          <button class="icon-btn toggle-subquests" data-module-id="${quest.uuid}">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+              <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" fill="none"
+                stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+
+          <button class="icon-btn add-quest">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+              <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" fill="none"
+                stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+
+          <button class="icon-btn menu-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+              <circle cx="5" cy="12" r="1.5"/>
+              <circle cx="12" cy="12" r="1.5"/>
+              <circle cx="19" cy="12" r="1.5"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="subquests-list">
+        ${quest.subquests.map(subquest => `
+          <div class="quest-item"
+              id="subquests-${quest.uuid}"
+              data-module-id="${quest.uuid}"
+              style="display:${is_open ? "flex" : "none"};"
+              data-url="${subquest.url}"
+              data-draft="${subquest.is_draft}"
+              data-subquest-uuid="${subquest.uuid}" 
+              data-archive="${subquest.is_archive}"
+              data-active="${!subquest.is_draft && !subquest.is_archive}">
+
+            <div class="diver-quest-123321">
+
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="17" height="17" fill="currentColor">
+                <path d="M6.5 11a1.5 1.5 0 1 1-3 0
+                         1.5 1.5 0 0 1 3 0z
+                         M5 3.5A1.5 1.5 0 1 0 6.5 5
+                         1.5 1.5 0 0 0 5 3.5z
+                         M12.5 11a1.5 1.5 0 1 1-3 0
+                         1.5 1.5 0 0 1 3 0z
+                         M11 3.5A1.5 1.5 0 1 0 12.5 5
+                         1.5 1.5 0 0 0 11 3.5z"/>
+              </svg>
+
+              <div class="quest-link" style="user-select:none !important;">
+                ${subquest.name}
+              </div>
+              ${renderStatusBadge(!!subquest.is_draft)}
+
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 17px">
+              ${renderTaskTypeIcons(subquest.task_types)}
+
+              ${renderRewardsContainer(subquest.rewards)}
+            </div>
+
+          </div>
+        `).join("")}
+      </div>
+
+    </div>
+  `;
+
+  return module;
+}
+
 function createQuestModule(quests, communitySlug, isMobile = false, subquestStates = {}) {
   const app = document.getElementById("app");
   if (!app) return;
@@ -1004,96 +1101,8 @@ function createQuestModule(quests, communitySlug, isMobile = false, subquestStat
   scrollContainer.appendChild(AllInitQconatin);
 
   quests.forEach(quest => {
-    const is_open = quest.is_open === true;
-
-    const module = document.createElement("div");
-    module.className = "content-init-q scrollable";
-    module.id = `module-${quest.uuid}`;
-    module.dataset.community = communitySlug;
-
-    module.innerHTML = `
-      <div class="cardin">
-
-        <div class="module-header">
-          <div class="module-title-wrapper" data-module-id="${quest.uuid}">
-            <h5 class="module-title" id="module-name-${quest.uuid}">${quest.title}</h5>
-          </div>
-
-          <div class="module-actions">
-            <button class="icon-btn toggle-subquests" data-module-id="${quest.uuid}">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" fill="none"
-                  stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </button>
-
-            <button class="icon-btn add-quest">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" fill="none"
-                  stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </button>
-
-            <button class="icon-btn menu-btn">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                <circle cx="5" cy="12" r="1.5"/>
-                <circle cx="12" cy="12" r="1.5"/>
-                <circle cx="19" cy="12" r="1.5"/>
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        <div class="subquests-list">
-          ${quest.subquests.map(subquest => `
-            <div class="quest-item"
-                id="subquests-${quest.uuid}"
-                data-module-id="${quest.uuid}"
-                style="display:${is_open ? "flex" : "none"};"
-                data-url="${subquest.url}"
-                data-draft="${subquest.is_draft}"
-                data-subquest-uuid="${subquest.uuid}" 
-                data-archive="${subquest.is_archive}"
-                data-active="${!subquest.is_draft && !subquest.is_archive}">
-
-              <div class="diver-quest-123321">
-
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="17" height="17" fill="currentColor">
-                  <path d="M6.5 11a1.5 1.5 0 1 1-3 0
-                           1.5 1.5 0 0 1 3 0z
-                           M5 3.5A1.5 1.5 0 1 0 6.5 5
-                           1.5 1.5 0 0 0 5 3.5z
-                           M12.5 11a1.5 1.5 0 1 1-3 0
-                           1.5 1.5 0 0 1 3 0z
-                           M11 3.5A1.5 1.5 0 1 0 12.5 5
-                           1.5 1.5 0 0 0 11 3.5z"/>
-                </svg>
-
-
-                <div class="quest-link" style="user-select:none !important;">
-                  ${subquest.name}
-                </div>
-                ${renderStatusBadge(!!subquest.is_draft)}
-
-              </div>
-
-              <div style="display: flex; align-items: center; gap: 17px">
-                ${renderTaskTypeIcons(subquest.task_types)}
-
-                ${renderRewardsContainer(subquest.rewards)}
-              </div>
-
-            </div>
-          `).join("")}
-        </div>
-
-      </div>
-    `;
-
-    AllInitQconatin.appendChild(module);
+    AllInitQconatin.appendChild(buildModuleElement(quest, communitySlug));
     syncInitialToggleState();
-
-
   });
 }
 
@@ -2123,8 +2132,10 @@ function highlightQuest(node, delay = 250) {
 }
 
 
-function initAddSubquestHandlers() {
-  const modules = document.querySelectorAll('.content-init-q.scrollable');
+function initAddSubquestHandlers(scope = null) {
+  const modules = scope
+    ? [scope]
+    : document.querySelectorAll('.content-init-q.scrollable');
   if (!modules.length) return;
 
   modules.forEach(module => {
@@ -2142,8 +2153,6 @@ function initAddSubquestHandlers() {
       const originalHTML = addQuestBtn.innerHTML;
       addQuestBtn.innerHTML = IsloadingInit;
 
-      console.log(`🟢 Adding subquest to module ${moduleId}...`);
-
       try {
         const res = await fetch(`/create_subquest/${moduleId}`, {
           method: 'POST',
@@ -2154,15 +2163,14 @@ function initAddSubquestHandlers() {
         });
 
         const data = await res.json();
-        console.log('📦 Response:', data);
 
         if (data.status !== 'success') {
-          console.error('❌ Backend error:', data.message);
+          console.error('Backend error:', data.message);
           return;
         }
 
         if (!subquestContainer) {
-          console.error('❌ Subquest container not found for module', moduleId);
+          console.error('Subquest container not found for module', moduleId);
           return;
         }
 
@@ -2201,7 +2209,6 @@ function initAddSubquestHandlers() {
 
         `;
 
-
         subquestContainer.appendChild(newSubquest);
 
         requestAnimationFrame(() => {
@@ -2230,10 +2237,8 @@ function initAddSubquestHandlers() {
             highlightQuest(newSubquest, 280);
           });
         }
-
-        console.log(`✅ Successfully added subquest to module ${moduleId}`);
       } catch (err) {
-        console.error('💥 JS Fetch error:', err);
+        console.error('JS Fetch error:', err);
       } finally {
         addQuestBtn.innerHTML = originalHTML;
         delete addQuestBtn.dataset.loading;
@@ -2505,8 +2510,9 @@ fetchingSvg= `
 
 
 
+
 function initModuleCRUDHandlers() {
-  document.addEventListener('click', (e) => {
+  bindOnce('moduleCrud', document, 'click', (e) => {
     let target = e.target;
 
     let editBtn = target;
@@ -2514,17 +2520,16 @@ function initModuleCRUDHandlers() {
       editBtn = editBtn.parentElement;
     }
 
-  if (editBtn) {
-    const moduleId = window.activeQuestUUID;
-    if (!moduleId) return;
+    if (editBtn) {
+      const moduleId = window.activeQuestUUID;
+      if (!moduleId) return;
 
-    const path = `/${communitySlug}/module/${moduleId}`;
+      const path = `/${communitySlug}/module/${moduleId}`;
 
-    loadMainSettingsSection(path); 
-    hideMenuModule();
-    return;
-  }
-
+      loadMainSettingsSection(path); 
+      hideMenuModule();
+      return;
+    }
 
     const renameBtn = target.closest('.rename-module');
     if (renameBtn) {
@@ -2619,6 +2624,7 @@ function initModuleCRUDHandlers() {
       hideMenuModule();
       return;
     }
+
     const shareBtn = target.closest('.share-module');
     if (shareBtn) {
       const moduleId = window.activeQuestUUID;
@@ -2643,11 +2649,14 @@ function initModuleCRUDHandlers() {
 
       return;
     }
+
     const duplicateBtn = target.closest('.duplicate-module');
     if (duplicateBtn) {
 
       const moduleId = window.activeQuestUUID;
       if (!moduleId) return;
+
+      hideMenuModule();
 
       fetch(`/duplicate_module/${moduleId}`, {
         method: 'POST',
@@ -2661,18 +2670,28 @@ function initModuleCRUDHandlers() {
         return res.json();
       })
       .then(data => {
-        if (data.status === 'success') {
-          location.reload();
+        if (data.status === 'success' && data.module) {
+          appendDuplicatedModule(data.module);
+          showSuccess(
+            data.skipped_token_reward
+              ? "Module duplicated — token rewards were not copied"
+              : "Module duplicated successfully"
+          );
+        } else {
+          showError(data.message || "Duplicate failed");
         }
       })
-      .catch(err => console.error('Duplicate error:', err));
+      .catch(err => {
+        console.error('Duplicate error:', err);
+        showError("Duplicate failed");
+      });
 
-      hideMenuModule();
       return;
     }
 
   });
 }
+
 
 function initQuestUIBindings() {
   const searchInput = document.getElementById("SearchAdmintquest");
@@ -2744,7 +2763,7 @@ function initQuestUIBindings() {
     }
   });
 
-  document.addEventListener('click', (e) => {
+  bindOnce('uiClick', document, 'click', (e) => {
     if (
       !e.target.closest('.dropdown') &&
       !e.target.closest('.menu-btn') &&
@@ -2754,7 +2773,7 @@ function initQuestUIBindings() {
     }
   });
 
-  document.addEventListener('contextmenu', (e) => {
+  bindOnce('uiContext', document, 'contextmenu', (e) => {
     if (
       !e.target.closest('.dropdown') &&
       !e.target.closest('.menu-btn') &&
@@ -2768,13 +2787,16 @@ function initQuestUIBindings() {
 }
 
 
-function initSubquestToggles(communityId) {
-  document.querySelectorAll(".toggle-subquests").forEach(btn => {
+function initSubquestToggles(communityId, scope = null) {
+  const buttons = scope
+    ? scope.querySelectorAll(".toggle-subquests")
+    : document.querySelectorAll(".toggle-subquests");
+
+  buttons.forEach(btn => {
 
     btn.addEventListener("click", e => {
       e.stopPropagation();
 
-      // close every open menu/dropdown first
       hideAllDropdowns();
       hideAllMenus(e);
 
@@ -2782,7 +2804,6 @@ function initSubquestToggles(communityId) {
 
       const icon = btn.querySelector("svg");
       const subquests = getModuleItems(moduleId);
-      console.log("subquest lendth", subquests.length)
 
       if (!subquests.length) {
         showError(`
@@ -2832,6 +2853,40 @@ function initSubquestToggles(communityId) {
       }).catch(console.error);
     });
   });
+}
+
+function appendDuplicatedModule(moduleData) {
+  const container = document.querySelector('.allinit-conatin');
+  if (!container) return;
+
+  const module = buildModuleElement(moduleData, communitySlug);
+  container.appendChild(module);
+
+  bindModuleActions(module);
+  initSubquestToggles(communityId, module);
+  initAddSubquestHandlers(module);
+
+  module.querySelectorAll('.quest-item').forEach(item => {
+    attachContextMenuEvents(item);
+  });
+
+  const icon = module.querySelector('.toggle-subquests svg');
+  if (icon && moduleData.subquests.length) {
+    icon.style.transform = "rotate(180deg)";
+  }
+
+  persistModuleOpen(moduleData.uuid);
+
+  const scrollContainer = module.closest('.scroll-container');
+  if (scrollContainer) {
+    requestAnimationFrame(() => {
+      scrollContainer.scrollTo({
+        top: scrollContainer.scrollHeight,
+        behavior: 'smooth'
+      });
+      highlightQuest(module, 280);
+    });
+  }
 }
 
 

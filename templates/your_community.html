@@ -1732,9 +1732,11 @@ function showNoResults() {
 
 
 
-  const overlaySidebar = document.querySelector('.overlay-475342312136245');
+  const overlaySidebar = document.getElementById("inject-main-card");
+    overlaySidebar?.addEventListener('click', (e) => {
 
-
+  closeSidebar();
+});
 function waitNextFrame() {
   return new Promise(resolve => requestAnimationFrame(resolve));
 }
@@ -1750,13 +1752,7 @@ async function CloseWhenClicked() {
 
 
 
-overlaySidebar?.addEventListener('click', (e) => {
-  if (e.target !== overlaySidebar) return;
 
-
-  document.body.classList.remove('sidebar-open');
-  document.documentElement.classList.remove('sidebar-open');
-});
 
 function restoreBodyScroll() {
   document.body.style.position = '';
@@ -1767,46 +1763,33 @@ function restoreBodyScroll() {
   document.body.style.width = '';
   window.scrollTo(0, scrollPosition);
 }
-
 function closeSidebar() {
   const sidebar = document.getElementById('sidebar');
   const overlay = document.getElementById('overlay');
   const ham = document.getElementById('hamburger');
 
+  // This is what the topbar toggle actually opens with
+  document.body.classList.remove('sidebar-open');
+  document.documentElement.classList.remove('sidebar-open');
+
   // Block clicks temporarily
   isBlockingClick = true;
   document.body.style.pointerEvents = 'none';
 
-  sidebar.classList.remove('active');
-  overlay.classList.remove('show');
-  ham.classList.remove('open');
+  sidebar?.classList.remove('active');
+  overlay?.classList.remove('show');
+  ham?.classList.remove('open');
 
-  sidebar.setAttribute('aria-hidden', 'true');
-  ham.setAttribute('aria-expanded', 'false');
+  sidebar?.setAttribute('aria-hidden', 'true');
+  ham?.setAttribute('aria-expanded', 'false');
 
   restoreBodyScroll();
 
-  // Re-enable pointer events after animation (~300ms)
   setTimeout(() => {
     document.body.style.pointerEvents = '';
     isBlockingClick = false;
-  }, 300); // adjust if your sidebar animation is longer
+  }, 300);
 }
-
-
-document.addEventListener("click", function (e) {
-  const sidebar = document.getElementById('sidebar');
-  const ham = document.getElementById('hamburger');
-
-  if (!sidebar.classList.contains("active")) return;
-  if (sidebar.contains(e.target) || ham.contains(e.target)) return;
-
-  if (!isBlockingClick) {
-    e.stopPropagation();
-    e.preventDefault();
-    closeSidebar();
-  }
-});
 </script>
 
 
@@ -3916,28 +3899,79 @@ function hideAllTaskErrors() {
 }
 
 
+const STORE_PREFIX = "pquest_task_state:";
+
+function getTaskStoreKey(){
+  const match = window.location.pathname.replace(/\/+$/, "").match(/\/quest\/([^/]+)\/([^/]+)$/);
+  if(!match) return null;
+  const user = (typeof currentUserId !== "undefined" && currentUserId) ? currentUserId : "anon";
+  return STORE_PREFIX + user + ":" + match[2];
+}
+
+function readTaskStore(){
+  const key = getTaskStoreKey();
+  if(!key) return {};
+  try{
+    return JSON.parse(localStorage.getItem(key) || "{}") || {};
+  }catch(err){
+    return {};
+  }
+}
+
+function saveTaskState(card, patch){
+  if(!card) return;
+  const taskId = card.dataset.taskId;
+  const key = getTaskStoreKey();
+  if(!taskId || !key) return;
+
+  const store = readTaskStore();
+  store[taskId] = Object.assign({}, store[taskId], patch);
+
+  try{
+    localStorage.setItem(key, JSON.stringify(store));
+  }catch(err){}
+}
+
+window.clearQuestTaskState = function(){
+  const key = getTaskStoreKey();
+  if(!key) return;
+  try{
+    localStorage.removeItem(key);
+  }catch(err){}
+};
+
+function restoreTaskState(){
+  const store = readTaskStore();
+  if(!store || !Object.keys(store).length) return;
+
+  getValidTaskCards(".card-container-quest[data-task-id]").forEach(card=>{
+    const saved = store[card.dataset.taskId];
+    if(!saved) return;
+
+    if(saved.clicked) card.dataset.clicked = "true";
+    if(saved.engaged) card.dataset.engaged = "true";
+
+    if(saved.reply){
+      const replyInput = card.querySelector(".js-engage-reply-input");
+      if(replyInput) replyInput.value = saved.reply;
+    }
+  });
+}
+
 function validateAll(){
   let allValid = true;
 
   const claimBtn = document.querySelector("#claim-task");
   if(!claimBtn) return false;
 
-  /* ============================
-     🔒 HARD SOCIAL LOCK (TOP PRIORITY)
-     ============================ */
   if(claimBtn.classList.contains("disabled-task")){
     claimBtn.classList.remove("enabled");
     claimBtn.classList.add("disable");
     claimBtn.style.cursor = "not-allowed";
     claimBtn.setAttribute("disabled", "true");
-
-    // ⛔ nothing else is allowed to unlock it
     return false;
   }
 
-  /* ============================
-     NORMAL VALIDATION PIPELINE
-     ============================ */
   for(const checker of __VALIDATORS__){
     if(checker() === false){
       allValid = false;
@@ -3945,9 +3979,6 @@ function validateAll(){
     }
   }
 
-  /* ============================
-     BUTTON STATE
-     ============================ */
   if(allValid){
     claimBtn.classList.remove("disable");
     claimBtn.classList.add("enabled");
@@ -3960,7 +3991,6 @@ function validateAll(){
     claimBtn.classList.add("disable");
     claimBtn.style.cursor = "not-allowed";
     claimBtn.setAttribute("disabled", "true");
-    
   }
 
   return allValid;
@@ -3986,7 +4016,6 @@ function registerValidator(fn){
 
 function getValidTaskCards(selector){
   return Array.from(document.querySelectorAll(selector)).filter(el=>{
-    // ❌ exclude anything inside #uniqueItems
     return !el.closest("#uniqueItems");
   });
 }
@@ -4078,7 +4107,6 @@ function initSubquestTasks() {
         const replyRow = card.querySelector(".js-engage-reply-row");
 
         if(replyRow){
-          // reply enabled: need a click AND a valid x.com status link
           const replyInput = replyRow.querySelector(".js-engage-reply-input");
           const replyVal    = replyInput ? replyInput.value.trim() : "";
 
@@ -4121,10 +4149,6 @@ function initSubquestTasks() {
     return valid;
   });
 
-
-  /* =========================
-    🧩 PUZZLE VALIDATION
-  ========================= */
   registerValidator(function(){
     let valid = true;
 
@@ -4137,7 +4161,6 @@ function initSubquestTasks() {
 
       const val = input.value.trim();
 
-      // simple rule: must not be empty
       if(val.length === 0){
         valid = false;
       }
@@ -4146,10 +4169,6 @@ function initSubquestTasks() {
     return valid;
   });
 
-
-  /* =========================
-     ⭐ STAR OPTIONSCALE
-  ========================= */
   registerValidator(function(){
     let valid = true;
 
@@ -4173,9 +4192,7 @@ function initSubquestTasks() {
 
     return valid;
   });
-    /* =========================
-     🔢 NUMBER OPTIONSCALE
-  ========================= */
+
   registerValidator(function(){
     let valid = true;
     getValidTaskCards(".js-number-container").forEach(container=>{
@@ -4186,9 +4203,6 @@ function initSubquestTasks() {
     return valid;
   });
 
-  /* =========================
-     🔗 PLATFORM CTA
-  ========================= */
   registerValidator(function(){
     let valid = true;
   getValidTaskCards(
@@ -4206,9 +4220,6 @@ function initSubquestTasks() {
     return valid;
   });
 
-  /* =========================
-     🧾 INPUT TASKS
-  ========================= */
   registerValidator(function(){
     let valid = true;
 
@@ -4234,9 +4245,6 @@ function initSubquestTasks() {
     return valid;
   });
 
-  /* =========================
-     🧠 QUIZ
-  ========================= */
   registerValidator(function(){
     let valid = true;
 
@@ -4249,10 +4257,6 @@ function initSubquestTasks() {
     return valid;
   });
 
-
-  /* =========================
-    ✉️ INVITE VALIDATION (100%)
-  ========================= */
   registerValidator(function(){
     let valid = true;
 
@@ -4265,7 +4269,6 @@ function initSubquestTasks() {
 
       const width = parseFloat(bar.style.width || "0");
 
-      // must be 100%
       if(width < 100){
         valid = false;
       }
@@ -4274,10 +4277,6 @@ function initSubquestTasks() {
     return valid;
   });
 
-
-  /* =========================
-     📊 POLL (STRICT + OTHER)
-  ========================= */
   registerValidator(function(){
     let valid = true;
 
@@ -4299,13 +4298,11 @@ function initSubquestTasks() {
       const otherChecked  = !!(otherRadio && otherRadio.checked);
       const otherText     = otherInput ? otherInput.value.trim() : "";
 
-      // ❌ nothing selected
       if(!normalChecked && !otherChecked){
         valid = false;
         return;
       }
 
-      // ❌ other checked but empty
       if(otherChecked && otherText === ""){
         valid = false;
         return;
@@ -4316,9 +4313,6 @@ function initSubquestTasks() {
     return valid;
   });
 
-  /* =====================================================
-     🔥 EVENT DELEGATION (SINGLE SOURCE OF TRUTH)
-  ===================================================== */
 document.addEventListener("click", (e)=>{
   if(e.target.closest("#uniqueItems")) return;
   const quizOrPollInput = e.target.closest(
@@ -4337,19 +4331,16 @@ document.addEventListener("click", (e)=>{
     const badge  = e.target.closest(".badge-quest");
     const addBtn = fileTask.querySelector(".add-more-files");
 
-    /* ❌ badge click → nothing */
     if(badge){
       e.preventDefault();
       e.stopPropagation();
       return;
     }
 
-    /* ❌ add-more button exists → card click DISABLED */
     if(addBtn){
       return;
     }
 
-    /* ✅ no add button → card is clickable */
     if(input){
       input.click();
     }
@@ -4357,11 +4348,6 @@ document.addEventListener("click", (e)=>{
     return;
   }
 
-
-
-  /* =========================
-     ⭐ STAR
-  ========================= */
   const star = e.target.closest(".js-stars-container svg");
   if(star){
     const container = star.closest(".js-stars-container");
@@ -4379,9 +4365,6 @@ document.addEventListener("click", (e)=>{
     return;
   }
 
-  /* =========================
-     🔢 NUMBER SCALE
-  ========================= */
   const numBox = e.target.closest(".number-box");
   if(numBox){
     const container = numBox.closest(".js-number-container");
@@ -4397,37 +4380,30 @@ document.addEventListener("click", (e)=>{
     return;
   }
 
-  /* =========================
-     🔗 VISIT LINK CONTROL
-  ========================= */
     const visitLink = e.target.closest(".card-container-quest.visit-link");
     if(visitLink){
 
       const isBadge   = e.target.closest(".badge-quest");
 
-      // ❌ clicking badge or preview = no redirect, no validation
       if(isBadge){
         e.preventDefault();
         e.stopPropagation();
         return;
       }
 
-      // ✅ clicking card body = validate + redirect
       visitLink.dataset.clicked = "true";
+      saveTaskState(visitLink, { clicked: true });
       validateAll();
 
-      // DO NOT preventDefault → allow <a href>
       return;
     }
 
-    /* =========================
-      🔗 PLATFORM CTA
-    ========================= */
     const cta = e.target.closest(".cta-quest");
     if(cta){
       const card = cta.closest(".card-container-quest");
       if(card){
         card.dataset.clicked = "true";
+        saveTaskState(card, { clicked: true });
         validateAll();
       }
       return;
@@ -4439,7 +4415,6 @@ document.addEventListener("click", (e)=>{
   document.addEventListener("input", (e)=>{
     if(e.target.closest("#uniqueItems")) return;
 
-    /* INPUT TASKS */
     if(e.target.closest('.card-container-quest.input-task input')){
       validateAll();
       return;
@@ -4450,6 +4425,8 @@ document.addEventListener("click", (e)=>{
       }
 
       if(e.target.classList.contains("js-engage-reply-input")){
+        const replyCard = e.target.closest(".card-container-quest.twitter");
+        saveTaskState(replyCard, { reply: e.target.value.trim() });
         validateAll();
         return;
       }
@@ -4483,23 +4460,14 @@ document.addEventListener("click", (e)=>{
     const prompt       = card.querySelector(".dragPrompt");
     const uploaderRoot = card.querySelector(".uploader-root");
 
-    /* =========================
-      📦 GLOBAL FILE STORE
-    ========================= */
     if(!card.__files){
       card.__files = [];
     }
 
     const newFiles = Array.from(input.files);
 
-    /* =========================
-      🔢 MAX FILE COUNT
-    ========================= */
     const maxCount = parseInt(uploaderRoot?.dataset.fileCount || "1");
 
-    /* =========================
-      ➕ APPEND FILES (WITH HARD LIMIT)
-    ========================= */
     const acceptedFiles = [];
 
     for(const file of newFiles){
@@ -4509,20 +4477,10 @@ document.addEventListener("click", (e)=>{
       }
     }
 
-    /* =========================
-      🔁 REBUILD INPUT FILES
-    ========================= */
     const dt = new DataTransfer();
     card.__files.forEach(f => dt.items.add(f));
     input.files = dt.files;
 
-    /* =========================
-      🧼 CLEAR INPUT BUFFER
-    ========================= */
-
-    /* =========================
-      🖼 RENDER PREVIEWS
-    ========================= */
     acceptedFiles.forEach(file=>{
       if(!file.type.startsWith("image/")) return;
 
@@ -4541,32 +4499,22 @@ document.addEventListener("click", (e)=>{
         </svg>
       `;
 
-      /* ❌ REMOVE SINGLE FILE */
       btn.onclick = ()=>{
         const index = card.__files.indexOf(file);
         if(index > -1) card.__files.splice(index, 1);
 
-        // rebuild input
         const newDT = new DataTransfer();
         card.__files.forEach(f => newDT.items.add(f));
         input.files = newDT.files;
 
-        // remove preview
         wrap.remove();
         syncPreviewDisplay(card);
 
-
-        /* =========================
-          🧠 UI RESET
-        ========================= */
         if(card.__files.length === 0){
           uploadBox.classList.remove("has-file");
           if(prompt) prompt.style.display = "flex";
         }
 
-        /* =========================
-          ➕ ADD BUTTON STATE (SMART)
-        ========================= */
         const allowMultiple = input.hasAttribute("multiple");
         let addBtn = card.querySelector(".add-more-files");
 
@@ -4612,9 +4560,7 @@ document.addEventListener("click", (e)=>{
           if(addBtn) addBtn.remove();
         }
 
-
         syncPreviewDisplay(card);
-
 
         validateAll();
       };
@@ -4626,17 +4572,11 @@ document.addEventListener("click", (e)=>{
 
     });
 
-    /* =========================
-      🧠 UI STATE
-    ========================= */
     if(card.__files.length > 0){
       if(prompt) prompt.style.display = "none";
       if(uploadBox) uploadBox.classList.add("has-file");
     }
 
-    /* =========================
-      ➕ ADD MORE BUTTON (GLOBAL LOGIC)
-    ========================= */
     const allowMultiple = input.hasAttribute("multiple");
     let addBtn = card.querySelector(".add-more-files");
 
@@ -4708,7 +4648,6 @@ document.addEventListener("click", (e)=>{
 
     if(!card.__files) card.__files = [];
 
-    // ❌ max reached → no glow
     if(card.__files.length >= maxCount){
       if(__ACTIVE_DROP_CARD__){
         setUploadAccent(__ACTIVE_DROP_CARD__, "normal");
@@ -4753,7 +4692,6 @@ document.addEventListener("click", (e)=>{
 
     const droppedFiles = Array.from(e.dataTransfer.files);
 
-    // rebuild input only
     const dt = new DataTransfer();
     droppedFiles.forEach(f => dt.items.add(f));
     input.files = dt.files;
@@ -4772,17 +4710,18 @@ document.addEventListener("click", (e) => {
     const card = engageChip.closest(".card-container-quest.twitter");
     if(card){
       card.dataset.engaged = "true";
+      saveTaskState(card, { engaged: true });
       validateAll();
     }
     return;
   }
 
-  /* 🐦 TWITTER ENGAGE (tweet preview click) */
   const tweetPreviewLink = e.target.closest("a.tweet-preview-mini");
   if(tweetPreviewLink){
     const card = tweetPreviewLink.closest(".card-container-quest.twitter");
     if(card){
       card.dataset.engaged = "true";
+      saveTaskState(card, { engaged: true });
       validateAll();
     }
     return;
@@ -4797,7 +4736,6 @@ document.addEventListener("click", (e) => {
 
     root.dataset.verified = "false";
 
-    // lock claim
     claimBtn.classList.remove("enabled");
     claimBtn.style.cursor = "not-allowed";
     claimBtn.setAttribute("disabled", "true");
@@ -4805,10 +4743,8 @@ document.addEventListener("click", (e) => {
     pohBtn.addEventListener("click", async (e) => {
       e.preventDefault();
 
-      // reset
       pohBtn.classList.remove("poh-success","poh-error");
 
-      // loading state
       pohBtn.textContent = "Checking...";
       pohBtn.style.pointerEvents = "none";
 
@@ -4821,7 +4757,6 @@ document.addEventListener("click", (e) => {
 
         if (data.success) {
 
-          /* ✅ SUCCESS UI */
           pohBtn.classList.add("poh-success");
           pohBtn.innerHTML = `
             <span class="poh-label">Passed</span>
@@ -4831,12 +4766,10 @@ document.addEventListener("click", (e) => {
 
           root.dataset.verified = "true";
 
-          // unlock claim
           validateAll();
 
         } else {
 
-          /* ❌ FAIL UI */
           pohBtn.classList.add("poh-error");
           pohBtn.textContent = "Failed ✗";
 
@@ -4850,7 +4783,6 @@ document.addEventListener("click", (e) => {
 
       } catch (err) {
 
-        /* ❌ ERROR UI */
         pohBtn.classList.add("poh-error");
         pohBtn.textContent = "Error ✗";
 
@@ -4862,19 +4794,15 @@ document.addEventListener("click", (e) => {
         validateAll();
       }
 
-      // re-enable click
       pohBtn.style.pointerEvents = "auto";
     });
   });
 
 });
-  /* =========================
-     FINAL RUN
-  ========================= */
+
+  restoreTaskState();
   validateAll();
 }
-
-
 
 </script>
 

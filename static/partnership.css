@@ -65,9 +65,9 @@ body.lock{
 
 @media (max-width: 767px) {
   .partnerss#app {
-    height: calc(100dvh - 85px);
-    min-height: calc(100dvh - 85px);
-    max-height: calc(100dvh - 85px);
+    height: calc(100dvh - 95px);
+    min-height: calc(100dvh - 95px);
+    max-height: calc(100dvh - 95px);
   }
   .content {
     padding: 12px 15px !important;

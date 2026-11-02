@@ -1,9 +1,16 @@
 """
-User-balance deposit verification — same Nozy/Defuse mechanics as
-backend/utils/nozy_client.py and the EVM payment verifier, but targeting
-UserTransaction / UserBalance instead of Payment / CommunityWallet.
+User-balance deposit verification.
+
+Native ZEC deposits are matched by MEMO (the user's Gleyo username) against the
+Nozy wallet's transaction history. No balance-delta logic: create just saves the
+row, verify syncs the wallet, reads /api/transaction/history and matches.
+EVM deposits (USDT/USDC) still settle through Defuse.
 """
 import os
+import re
+import time
+import logging
+import threading
 from decimal import Decimal
 import requests
 from datetime import datetime, timedelta, timezone
@@ -11,45 +18,37 @@ from datetime import datetime, timedelta, timezone
 from backend.utils.instance import db
 from backend.models.models import UserTransaction, UserBalance
 
-from backend.utils.nozy_client import NOZY_API_URL, NOZY_API_KEY, NOZY_WALLET_PASSWORD, fetch_nozy_balance
+from backend.utils.nozy_client import NOZY_API_URL, NOZY_API_KEY, NOZY_WALLET_PASSWORD
+
+logger = logging.getLogger(__name__)
 
 DEFUSE_API_BASE = "https://1click.chaindefuser.com/v0"
 DEFUSE_JWT_TOKEN = os.getenv("DEFUSE_JWT_TOKEN")
 
-# Native ZEC deposits: same env var pay.py's save_payment() uses for the
-# is_zec branch (payment_address = os.getenv("WALLET")) — the wallet
-# users send ZEC to directly. No Defuse call involved for this path.
 NOZY_ZEC_DEPOSIT_ADDRESS = os.getenv("WALLET")
-
-# EVM->ZEC swap settlement: same address nozy_client's Defuse recipient
-# uses (ZCASHD_FROM_ADDRESS) — NOT the same as NOZY_ZEC_DEPOSIT_ADDRESS.
 ZCASHD_SHIELDED_ADDRESS = os.getenv("ZCASHD_FROM_ADDRESS")
-
 EVM_WALLET_REFUND = os.getenv("EVM_WALLET")
 
 SUCCESS_STATUSES = {"SUCCESS"}
 FAILURE_STATUSES = {"REFUNDED", "FAILED", "INCOMPLETE_DEPOSIT"}
 LOCKING_STATUSES = {"KNOWN_DEPOSIT_TX", "PROCESSING"}
 
-DEPOSIT_WINDOW_SECONDS = 1800  # 30 min, matches pay.js's assumed expiry
+DEPOSIT_WINDOW_SECONDS = 1800  # 30 min
+MIN_ZEC_DEPOSIT = Decimal("0.0001")
 
-# Copied directly from the working community-payment module (create_near_intent_deposit)
-# so this file has no fragile cross-module import for the Defuse asset lookup.
+ZAT = Decimal(10 ** 8)
+ZEC_CLOCK_SKEW = timedelta(seconds=120)
+NOZY_SYNC_EVERY_SECONDS = 5
+
 CHAIN_ALIASES = {
-    "polygon": "pol",
-    "polygon mainnet": "pol",
-    "matic": "pol",
-
+    "polygon": "pol", "polygon mainnet": "pol", "matic": "pol",
     "ethereum": "eth",
-
-    "binance": "bsc",
-    "binance smart chain": "bsc",
-
-    "base": "base",
-    "bsc": "bsc",
-    "zec": "zec",
+    "binance": "bsc", "binance smart chain": "bsc",
+    "base": "base", "bsc": "bsc", "zec": "zec",
 }
 
+
+# ══════════════════════════ HELPERS ══════════════════════════
 
 def get_asset_id(blockchain, contract_address=None):
     response = requests.get(f"{DEFUSE_API_BASE}/tokens", timeout=20)
@@ -57,16 +56,13 @@ def get_asset_id(blockchain, contract_address=None):
     tokens = response.json()
 
     blockchain = CHAIN_ALIASES.get(blockchain.lower(), blockchain.lower())
-
     if contract_address:
         contract_address = contract_address.lower()
 
     for token in tokens:
         if token.get("blockchain", "").lower() != blockchain:
             continue
-
         token_contract = token.get("contractAddress")
-
         if contract_address is None:
             if token_contract is None:
                 return token["assetId"]
@@ -91,7 +87,7 @@ def _wake_poller_safe():
         from app import wake_evm_poller
         wake_evm_poller()
     except Exception as e:
-        print(f"⚠️ Could not wake poller from user_deposit_service: {e}")
+        logger.warning("Could not wake poller from user_deposit_service: %s", e)
 
 
 def _extract_tx_hash(tx_list):
@@ -105,18 +101,135 @@ def _extract_tx_hash(tx_list):
     return None
 
 
+def _username_for(user_id):
+    """Memo = the user's Gleyo username. Change the import if your User model lives elsewhere."""
+    from backend.models.models import Users
+    user = db.session.get(Users, user_id)
+    if not user or not getattr(user, "username", None):
+        raise RuntimeError("User has no username to use as memo")
+    return user.username
+
+
+def _memo_matches(tx_memo, username):
+    """True if the username appears in the memo as a whole word (so 'bob' does not match 'bobby')."""
+    if not tx_memo or not username:
+        return False
+    pattern = r"(?<![A-Za-z0-9_])" + re.escape(username.strip()) + r"(?![A-Za-z0-9_])"
+    return re.search(pattern, tx_memo, re.IGNORECASE) is not None
+
+
+# ══════════════════════════ NOZY HISTORY ══════════════════════════
+
+_nozy = {"at": 0.0, "txs": None}
+_nozy_lock = threading.Lock()
+_FRAC_RE = re.compile(r"\.(\d+)")
+
+
+def _nozy_headers():
+    return {"X-API-Key": NOZY_API_KEY}
+
+
+def _parse_ts(s):
+    if not s:
+        return None
+    try:
+        s = str(s).strip().replace("Z", "+00:00")
+        s = _FRAC_RE.sub(lambda m: "." + (m.group(1) + "000000")[:6], s, count=1)
+        dt = datetime.fromisoformat(s)
+        if dt.tzinfo is not None:
+            dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+        return dt
+    except Exception:
+        logger.warning("[deposit] could not parse timestamp %r", s)
+        return None
+
+
+def _nozy_history(force=False):
+    """Sync the wallet, then read history. Cached for a few seconds, one refresh at a time."""
+    with _nozy_lock:
+        if (not force and _nozy["txs"] is not None
+                and time.time() - _nozy["at"] < NOZY_SYNC_EVERY_SECONDS):
+            return _nozy["txs"]
+
+        t0 = time.time()
+        try:
+            sr = requests.post(f"{NOZY_API_URL}/api/sync",
+                               json={"password": NOZY_WALLET_PASSWORD},
+                               headers=_nozy_headers(), timeout=120)
+            logger.info("[deposit] nozy sync -> HTTP %s in %.1fs", sr.status_code, time.time() - t0)
+            if sr.status_code != 200:
+                logger.warning("[deposit] nozy sync not OK (HTTP %s), still reading history", sr.status_code)
+        except Exception as e:
+            logger.warning("[deposit] nozy sync failed: %s (still reading history)", e)
+
+        try:
+            hr = requests.get(f"{NOZY_API_URL}/api/transaction/history",
+                              headers=_nozy_headers(), timeout=30)
+        except Exception as e:
+            raise RuntimeError(f"Nozy history failed: {e}")
+        if hr.status_code != 200:
+            raise RuntimeError(f"Nozy history failed: HTTP {hr.status_code} {(hr.text or '')[:200]}")
+        try:
+            raw = hr.json().get("transactions") or []
+        except Exception:
+            raise RuntimeError("Nozy history returned invalid JSON")
+
+        txs = []
+        for t in raw:
+            try:
+                zat = int(t.get("amount_zatoshis") or 0)
+            except Exception:
+                zat = 0
+            ttype = str(t.get("type") or t.get("transaction_type") or "").lower()
+            try:
+                confs = int(t.get("confirmations") or 0)
+            except Exception:
+                confs = 0
+            status = str(t.get("status") or "").lower()
+            txs.append({
+                "txid": t.get("txid"),
+                "type": ttype,
+                "zat": zat,
+                "amount": Decimal(zat) / ZAT,
+                "is_change": bool(t.get("is_change")),
+                "memo": (t.get("memo") or "") or "",
+                "status": status,
+                "confirmations": confs,
+                "confirmed": status == "confirmed" or confs >= 1,
+                "created": _parse_ts(t.get("created_at")),
+            })
+
+        _nozy["txs"] = txs
+        _nozy["at"] = time.time()
+        return txs
+
+
+def _claimed_txids(exclude_id):
+    """txids already used by another user deposit or by a community crypto checkout."""
+    used = {r[0] for r in db.session.query(UserTransaction.tx_hash)
+            .filter(UserTransaction.tx_hash.isnot(None), UserTransaction.id != exclude_id).all()}
+    try:
+        from backend.billing.crypto_models import CryptoCheckout
+        used |= {r[0] for r in db.session.query(CryptoCheckout.tx_ref)
+                 .filter(CryptoCheckout.tx_ref.isnot(None)).all()}
+    except Exception as e:
+        logger.warning("[deposit] could not read CryptoCheckout claims: %s", e)
+    return used
+
+
 # ══════════════════════════ CREATE ══════════════════════════
 
 def create_zec_deposit(user_id, amount):
-    """Native ZEC deposit — user sends ZEC directly to our Nozy wallet address.
+    """Native ZEC deposit. User sends ZEC to our wallet WITH their username as memo.
 
-    Mirrors save_payment's is_zec branch exactly: no Defuse call, address
-    comes straight from the WALLET env var.
+    No balance snapshot, no sync. Just save the row and return.
     """
     if not NOZY_ZEC_DEPOSIT_ADDRESS:
         raise RuntimeError("WALLET env var missing")
+    if Decimal(str(amount)) < MIN_ZEC_DEPOSIT:
+        raise ValueError(f"Minimum deposit is {MIN_ZEC_DEPOSIT} ZEC")
 
-    balance_before = fetch_nozy_balance()
+    memo = _username_for(user_id)
 
     now = datetime.utcnow()
     tx = UserTransaction(
@@ -127,24 +240,21 @@ def create_zec_deposit(user_id, amount):
         token='ZEC',
         network='Zcash',
         to_address=NOZY_ZEC_DEPOSIT_ADDRESS,
-        balance_before=balance_before,
         created_at=now,
         expires_at=now + timedelta(seconds=DEPOSIT_WINDOW_SECONDS),
         remark='Deposit · ZEC',
     )
+    # Stored only if you add a `memo` column to UserTransaction; otherwise looked up at verify time.
+    if hasattr(UserTransaction, "memo"):
+        tx.memo = memo
     db.session.add(tx)
     db.session.commit()
     return tx
 
 
 def create_evm_deposit(user_id, token, network, amount, refund_address=None,
-                        token_contract=None, token_decimals=None):
-    """USDT/USDC deposit — get a Defuse quote + deposit address, settles as ZEC.
-
-    token_contract / token_decimals must be resolved by the caller (route)
-    the same way save_payment resolves them via its TOKENS config lookup —
-    this function doesn't guess at that mapping.
-    """
+                       token_contract=None, token_decimals=None):
+    """USDT/USDC deposit: Defuse quote + deposit address, settles as ZEC."""
     if not DEFUSE_JWT_TOKEN:
         raise RuntimeError("DEFUSE_JWT_TOKEN missing")
     if not ZCASHD_SHIELDED_ADDRESS:
@@ -165,36 +275,26 @@ def create_evm_deposit(user_id, token, network, amount, refund_address=None,
         "dry": False,
         "swapType": "EXACT_INPUT",
         "slippageTolerance": 100,
-
         "originAsset": origin_asset,
         "destinationAsset": destination_asset,
-
         "amount": amount_smallest,
-
         "depositType": "ORIGIN_CHAIN",
-
         "refundTo": refund_address or EVM_WALLET_REFUND,
         "refundType": "ORIGIN_CHAIN",
-
         "recipient": ZCASHD_SHIELDED_ADDRESS,
         "recipientType": "DESTINATION_CHAIN",
-
         "deadline": deadline,
     }
 
     quote_resp = requests.post(
         f"{DEFUSE_API_BASE}/quote",
         json=payload,
-        headers={
-            "Authorization": f"Bearer {DEFUSE_JWT_TOKEN}",
-            "Content-Type": "application/json",
-        },
+        headers={"Authorization": f"Bearer {DEFUSE_JWT_TOKEN}",
+                 "Content-Type": "application/json"},
         timeout=20,
     )
     if not quote_resp.ok:
-        raise RuntimeError(
-            f"Defuse quote failed ({quote_resp.status_code}): {quote_resp.text}"
-        )
+        raise RuntimeError(f"Defuse quote failed ({quote_resp.status_code}): {quote_resp.text}")
     data = quote_resp.json()
     quote = data.get("quote", {})
 
@@ -209,7 +309,7 @@ def create_evm_deposit(user_id, token, network, amount, refund_address=None,
         type='in',
         status='pending',
         amount=amount,          # origin amount, in origin token, as typed
-        token=token,            # origin token — overwritten to 'ZEC' on success
+        token=token,            # origin token, overwritten to 'ZEC' on success
         network=network,
         to_address=deposit_address,
         swap_status='pending',
@@ -227,47 +327,80 @@ def create_evm_deposit(user_id, token, network, amount, refund_address=None,
 # ══════════════════════════ VERIFY ══════════════════════════
 
 def verify_user_zec_deposit(tx):
-    """Mirrors nozy_client.verify_zec_payment, targeting UserTransaction/UserBalance."""
+    """Sync wallet, read history, match an incoming tx by memo (username) + time."""
+    if tx.status == 'confirmed':
+        return {'status': 'paid'}
+
     try:
-        sync_resp = requests.post(
-            f"{NOZY_API_URL}/api/sync",
-            json={"password": NOZY_WALLET_PASSWORD},
-            headers={"X-API-Key": NOZY_API_KEY},
-            timeout=120,
-        )
-        current_balance = float(sync_resp.json().get('balance_zec', 0))
+        username = getattr(tx, "memo", None) or _username_for(tx.user_id)
+        history = _nozy_history()
     except Exception as e:
-        return {'status': 'pending', 'error': f'Sync failed: {str(e)}'}
+        logger.warning("[deposit] zec deposit %s: %s", tx.id, e)
+        return {'status': 'pending', 'error': str(e)}
 
-    balance_increase = round(current_balance - float(tx.balance_before or 0), 8)
+    since = tx.created_at - ZEC_CLOCK_SKEW
+    claimed = _claimed_txids(tx.id)
 
-    FEE_TOLERANCE = min(float(tx.amount) * 0.05, 0.0001)
-    required_minimum = max(float(tx.amount) - FEE_TOLERANCE, 0.00000001)
+    candidates = []
+    for t in history:
+        if t["type"] != "received" or t["is_change"] or t["zat"] <= 0:
+            continue
+        if not t["txid"] or t["txid"] in claimed:
+            continue
+        if t["created"] is None or t["created"] < since:
+            continue
+        if not _memo_matches(t["memo"], username):
+            continue
+        candidates.append(t)
 
-    if balance_increase < required_minimum:
-        print(f"⏳ User deposit {tx.id} pending — increase: {balance_increase:.8f}, "
-              f"required: {required_minimum:.8f}")
+    if not candidates:
         return {'status': 'pending'}
 
-    tx.status = 'confirmed'
-    tx.paid_at = datetime.utcnow()
-    tx.tx_hash = f"nozy-balance-delta-{current_balance}"
+    candidates.sort(key=lambda x: x["created"])
 
-    bal = _get_or_create_balance(tx.user_id)
-    bal.balance = float(bal.balance or 0) + balance_increase
-    bal.total_earned = float(bal.total_earned or 0) + balance_increase
+    confirmed = [x for x in candidates if x["confirmed"]]
+    if not confirmed:
+        # payment seen on chain but not confirmed yet
+        return {'status': 'pending', 'stage': 'seen', 'tx': candidates[0]["txid"]}
+
+    match = confirmed[0]
+    received = match["amount"]
+    if received < MIN_ZEC_DEPOSIT:
+        logger.warning("[deposit] zec deposit %s: tx %s below minimum (%s)", tx.id, match["txid"], received)
+        return {'status': 'pending', 'stage': 'below_minimum'}
+
+    # Lock the row so two verify calls cannot credit the same deposit twice.
+    locked = (UserTransaction.query.filter_by(id=tx.id).with_for_update().first())
+    if not locked or locked.status == 'confirmed':
+        db.session.rollback()
+        return {'status': 'paid'}
+
+    # Re-check the txid claim inside the lock.
+    clash = UserTransaction.query.filter(
+        UserTransaction.id != locked.id, UserTransaction.tx_hash == match["txid"]).first()
+    if clash:
+        db.session.rollback()
+        return {'status': 'pending'}
+
+    credited = float(received)
+    locked.status = 'confirmed'
+    locked.paid_at = datetime.utcnow()
+    locked.tx_hash = match["txid"]
+    locked.amount = credited        # credit what actually arrived
+
+    bal = _get_or_create_balance(locked.user_id)
+    bal.balance = float(bal.balance or 0) + credited
+    bal.total_earned = float(bal.total_earned or 0) + credited
     bal.updated_at = datetime.utcnow()
 
     db.session.commit()
-    print(f"✅ User deposit {tx.id} confirmed — credited {balance_increase:.8f} ZEC "
-          f"to user {tx.user_id}")
+    logger.info("[deposit] zec deposit %s confirmed: %.8f ZEC, tx %s, memo %s",
+                locked.id, credited, match["txid"], username)
 
     return {'status': 'paid', 'new_balance': float(bal.balance)}
 
 
 def verify_user_evm_deposit(tx):
-    """Mirrors evm_payment_verifier.verify_evm_payment, targeting UserTransaction/UserBalance."""
-
     if tx.status == 'confirmed':
         return {'status': 'paid'}
     if tx.status == 'failed':
@@ -288,7 +421,7 @@ def verify_user_evm_deposit(tx):
         tx.status = 'failed'
         tx.swap_status = (defuse_status or 'failed').lower()
         db.session.commit()
-        print(f"❌ User deposit {tx.id} failed — Defuse status: {defuse_status}")
+        logger.warning("[deposit] evm deposit %s failed, Defuse status: %s", tx.id, defuse_status)
         return {'status': 'failed'}
 
     if result.get('status') != 'match':
@@ -298,21 +431,26 @@ def verify_user_evm_deposit(tx):
     if zec_amount is None:
         return {'status': 'pending', 'error': 'SUCCESS but no amountOutFormatted'}
 
-    tx.status = 'confirmed'
-    tx.paid_at = datetime.utcnow()
-    tx.tx_hash = result['tx_hash']
-    tx.swap_status = 'completed'
-    tx.swap_zec_amount = zec_amount
-    tx.token = 'ZEC'
-    tx.amount = zec_amount
+    locked = (UserTransaction.query.filter_by(id=tx.id).with_for_update().first())
+    if not locked or locked.status == 'confirmed':
+        db.session.rollback()
+        return {'status': 'paid'}
 
-    bal = _get_or_create_balance(tx.user_id)
+    locked.status = 'confirmed'
+    locked.paid_at = datetime.utcnow()
+    locked.tx_hash = result['tx_hash']
+    locked.swap_status = 'completed'
+    locked.swap_zec_amount = zec_amount
+    locked.token = 'ZEC'
+    locked.amount = zec_amount
+
+    bal = _get_or_create_balance(locked.user_id)
     bal.balance = float(bal.balance or 0) + zec_amount
     bal.total_earned = float(bal.total_earned or 0) + zec_amount
     bal.updated_at = datetime.utcnow()
 
     db.session.commit()
-    print(f"✅ User deposit {tx.id} confirmed — tx: {result['tx_hash']}, ZEC: {zec_amount}")
+    logger.info("[deposit] evm deposit %s confirmed, tx %s, ZEC %s", locked.id, result['tx_hash'], zec_amount)
 
     return {'status': 'paid', 'new_balance': float(bal.balance)}
 

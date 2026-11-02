@@ -35,6 +35,7 @@ async function LetsitQuestUp() {
 
   // ✅ now DOM exists
   setSprintModeUI(mode);
+  startLockWatcher();  
 }
 
 function getSubquestRank(sq){
@@ -1052,6 +1053,202 @@ function utcHumanToLocalHuman(utcHumanStr){
 }
  
 
+// instant, targeted: only quests wey depend on the one you just completed
+function markQuestConditionDone(subUUID){
+  let changed = false;
+
+  (window.__QUEST_CACHE__ || []).forEach(q =>
+    (q.subquests || []).forEach(sq =>
+      (sq.conditions || []).forEach(c => {
+        if (c.type === "Quest" && c.subquest_uuid === subUUID && !c.is_completed) {
+          c.is_completed = true;
+          changed = true;
+        }
+      })
+    )
+  );
+
+  if (changed) evaluateLocks();   // only unlocks the matching boxes
+}
+
+// small call, and only when some quest still dey wait for a level
+async function unlockLevelConditions(){
+  const cache = window.__QUEST_CACHE__ || [];
+
+  const hasPendingLevel = cache.some(q =>
+    (q.subquests || []).some(sq =>
+      (sq.conditions || []).some(c => c.type === "Level" && !c.is_completed)
+    )
+  );
+  if (!hasPendingLevel) return;   // nothing to check, no network call
+
+  try {
+    const res = await fetch(`/api/${communityId}/level`);
+    if (!res.ok) return;
+
+    const { level } = await res.json();
+    let changed = false;
+
+    cache.forEach(q =>
+      (q.subquests || []).forEach(sq =>
+        (sq.conditions || []).forEach(c => {
+          if (c.type === "Level" && !c.is_completed && Number(c.value) <= Number(level)) {
+            c.is_completed = true;
+            changed = true;
+          }
+        })
+      )
+    );
+
+    if (changed) evaluateLocks();
+  } catch (err) {
+    console.warn("level check failed:", err);
+  }
+}
+
+function onQuestCompletedUnlock(){
+  const sub = window.__ACTIVE_SUBQUEST__?.subUUID;
+  if (sub) markQuestConditionDone(sub);
+  unlockLevelConditions();
+}
+
+function startLockWatcher(){
+  // local only, no network: opens date-locked quests when the time reach
+  const timer = setInterval(() => {
+    if (!document.hidden) evaluateLocks();
+  }, 3000);
+
+  controller?.signal.addEventListener("abort", () => clearInterval(timer));
+
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) evaluateLocks();
+  }, { signal: controller.signal });
+}
+
+
+function unlockSubquestBoxes(questUUID, sq){
+  const olds = document.querySelectorAll(
+    `.preview-box.locked[data-quest="${questUUID}"][data-subquest="${sq.uuid}"]`
+  );
+  const fresh = [];
+
+  olds.forEach(old => {
+    const el = renderSubquest(sq, questUUID);   // lock state is false now, so e render as open
+    ["sprint-hidden", "hidden", "hiding", "active"].forEach(c => {
+      if (old.classList.contains(c)) el.classList.add(c);
+    });
+    old.replaceWith(el);
+    fresh.push(el);
+  });
+
+  return fresh;
+}
+
+function rerenderSubquestBoxes(questUUID, subUUID){
+  const quest = window.__QUEST_CACHE__?.find(q => q.uuid === questUUID);
+  const sq = quest?.subquests.find(s => s.uuid === subUUID);
+  if (!sq) return;
+
+  document.querySelectorAll(
+    `.preview-box[data-quest="${questUUID}"][data-subquest="${subUUID}"]`
+  ).forEach(old => {
+    const el = renderSubquest(sq, questUUID);
+    ["sprint-hidden", "hidden", "hiding", "active"].forEach(c => {
+      if (old.classList.contains(c)) el.classList.add(c);
+    });
+    old.replaceWith(el);
+  });
+
+  syncArrowButtons();
+}
+
+function updateQuestProgressAfterClaim() {
+  if (!window.__ACTIVE_SUBQUEST__) return;
+
+  const { questUUID, subUUID } = window.__ACTIVE_SUBQUEST__;
+  const quest = window.__QUEST_CACHE__?.find(q => q.uuid === questUUID);
+  if (!quest) return;
+
+  const sq = quest.subquests.find(s => s.uuid === subUUID);
+  if (!sq || sq.is_completed) return;
+
+  sq.is_completed = true;
+  const newDone = Math.min((quest.completed || 0) + 1, quest.total);
+  const percent = Math.round((newDone / quest.total) * 100);
+  quest.completed = newDone;
+  quest.progress = percent;
+
+  document.querySelectorAll(`.all-content[data-quest-uuid="${questUUID}"]`).forEach(root => {
+    const countEl = root.querySelector(".counting-subquest");
+    const fill = root.querySelector(".progress-fillstatic");
+    if (countEl) countEl.textContent = `${newDone}/${quest.total}`;
+    if (fill) fill.style.width = percent + "%";
+  });
+
+  rerenderSubquestBoxes(questUUID, subUUID);
+  refreshModuleState(questUUID);
+}
+
+function refreshModuleState(questUUID){
+  const q = window.__QUEST_CACHE__?.find(x => x.uuid === questUUID);
+  if (!q) return;
+
+  const state = getModuleState(q.subquests);
+
+  document.querySelectorAll(`.all-content[data-quest-uuid="${questUUID}"]`).forEach(root => {
+    const infoBox = root.querySelector(".info-box");
+    const old = root.querySelector(":scope > .module-state");
+    const isFirst = old
+      ? old.classList.contains("module-state-first")
+      : window.innerWidth > 767 && root === root.parentElement.querySelector(":scope > .all-content");
+
+    if (old) old.remove();
+    if (infoBox) infoBox.classList.remove("completed", "task-locked");
+    if (!state) return;
+
+    const badge = document.createElement("div");
+    badge.className =
+      "module-state " +
+      (state === "completed" ? "module-completed" : "module-locked") +
+      (isFirst ? " module-state-first" : "");
+    badge.innerText = state === "completed" ? "Module Completed" : "Module Locked";
+
+    if (infoBox) infoBox.classList.add(state === "completed" ? "completed" : "task-locked");
+    root.insertBefore(badge, root.firstChild);
+  });
+}
+
+function evaluateLocks(){
+  const cache = window.__QUEST_CACHE__;
+  if (!Array.isArray(cache)) return;
+
+  const touched = new Set();
+  let needTimers = false;
+
+  cache.forEach(q => {
+    (q.subquests || []).forEach(sq => {
+      if (computeLockState(sq)) return;          // still locked, skip
+      const fresh = unlockSubquestBoxes(q.uuid, sq);
+      if (!fresh.length) return;
+
+      touched.add(q.uuid);
+      if (fresh.some(el => el.querySelector(".vote-countdown-chip, .cooldown-retry"))) {
+        needTimers = true;
+      }
+    });
+  });
+
+  if (!touched.size) return;
+
+  touched.forEach(uuid => {
+    refreshModuleState(uuid);
+    const f = window.__QUEST_FILTER_STATE__[uuid];
+    if (f && f.length) applyQuestFilters(uuid, f);
+  });
+
+  if (needTimers) { initCooldownTimers(); initVoteCountdownChips(); }
+  syncArrowButtons();
+}
 
 function createConditionList(subquest) {
   const wrap = document.createElement("div");
@@ -5810,90 +6007,34 @@ async function routeToSubquest(box){
  
 
 function updateActivePreviewBoxState(state, options = {}) {
-  updateActivePreviewBoxStateCore(state, options);
+  const activeBox = document.querySelector(".preview-box.active");
+  const questUUID = activeBox?.dataset.quest || window.__ACTIVE_SUBQUEST__?.questUUID;
+  const subUUID = activeBox?.dataset.subquest || window.__ACTIVE_SUBQUEST__?.subUUID;
+
+  const quest = window.__QUEST_CACHE__?.find(q => q.uuid === questUUID);
+  const sq = quest?.subquests.find(s => s.uuid === subUUID);
+
+  if (sq && state !== "completed") {
+    if (state === "cooldown" && options.cooldown_until) {
+      const d = parseUtc(String(options.cooldown_until));
+      sq.cooldown_until = d && !isNaN(d) ? d.toISOString() : options.cooldown_until;
+    } else if (state === "no_retry") {
+      sq.no_retry = true;
+    } else if (state === "pending") {
+      sq.is_pending = true;
+    }
+
+    if (state === "cooldown" || state === "no_retry" || state === "pending") {
+      rerenderSubquestBoxes(questUUID, subUUID);
+      if (state === "no_retry") initNoRetryPreviewBoxes();
+    }
+  }
+
   syncArrowButtons();
 }
 
 
 
-function updateQuestProgressAfterClaim() {
-  if (!window.__ACTIVE_SUBQUEST__) return;
-
-  const { questUUID, subUUID } = window.__ACTIVE_SUBQUEST__;
-
-  /* =========================
-     🔎 Find active preview-box
-  ========================= */
-  const box = document.querySelector(
-    `.preview-box[data-quest="${questUUID}"][data-subquest="${subUUID}"]`
-  );
-  if (!box) return;
-
-  /* =========================
-     🧮 Find quest root
-  ========================= */
-  const questRoot = document.querySelector(
-    `.all-content[data-quest-uuid="${questUUID}"]`
-  );
-  if (!questRoot) return;
-
-  /* =========================
-     📦 HEADER ELEMENTS
-  ========================= */
-  const countEl = questRoot.querySelector(".counting-subquest");
-  const progressFill = questRoot.querySelector(".progress-fillstatic");
-  const infoBox = questRoot.querySelector(".info-box");
-
-  if (!countEl || !progressFill || !infoBox) return;
-
-  /* =========================
-     📊 Parse current values
-  ========================= */
-  const [done, total] = countEl.textContent
-    .split("/")
-    .map(n => parseInt(n.trim()));
-
-  let newDone = done + 1;
-
-  if (newDone > total) newDone = total;
-
-  const percent = Math.round((newDone / total) * 100);
-
-  /* =========================
-     🎯 Update UI
-  ========================= */
-  countEl.textContent = `${newDone}/${total}`;
-  progressFill.style.width = percent + "%";
-
-  /* =========================
-     🧠 Update cache model
-  ========================= */
-  if (window.__QUEST_CACHE__) {
-    const quest = window.__QUEST_CACHE__.find(q => q.uuid === questUUID);
-    if (quest) {
-      quest.completed = newDone;
-      quest.progress = percent;
-
-      const sq = quest.subquests.find(s => s.uuid === subUUID);
-      if (sq) sq.is_completed = true;
-    }
-  }
-
-  /* =========================
-     🏁 Module completed
-  ========================= */
-  if (newDone === total) {
-    infoBox.classList.add("completed");
-
-    // prevent duplicates
-    if (!questRoot.querySelector(".module-completed")) {
-      const badge = document.createElement("div");
-      badge.className = "module-state module-completed";
-      badge.innerText = "Module Completed";
-      questRoot.appendChild(badge);
-    }
-  }
-}
 
 
 async function updateXpUI(communityId) {
@@ -6416,9 +6557,10 @@ async function handleClaim(subquestId, claimBtn){
       }
 
       if (data?.error_code === "RECURRENCE_BLOCKED") {
-        
+        window.clearQuestTaskState?.();
         // preview box
         updateActivePreviewBoxState("completed");
+        onQuestCompletedUnlock();
 
         // claim button section
         const claimBtn = document.querySelector("#claim-task");
@@ -6445,6 +6587,7 @@ async function handleClaim(subquestId, claimBtn){
 
       // 📘 PENDING REVIEW
       if (data.success && data.pending_review) {
+        window.clearQuestTaskState?.();
         setQuestState("pending");
         updateActivePreviewBoxState("pending");
         updateReviewBadgeDelta(+1);
@@ -6455,14 +6598,16 @@ async function handleClaim(subquestId, claimBtn){
 
       // ✅ SUCCESS
       if (data.success) {
-          window.updateXpUI(communityId);
-          setQuestState("completed", {
-            text: isCoinHolderVote ? "Vote casted" : "Quest Completed"
-          });
-          updateActivePreviewBoxState("completed");
-          updateQuestProgressAfterClaim();
-          disableClaimButton();
-          return; 
+        window.clearQuestTaskState?.();
+        window.updateXpUI(communityId);
+        setQuestState("completed", {
+          text: isCoinHolderVote ? "Vote casted" : "Quest Completed"
+        });
+        updateActivePreviewBoxState("completed");
+        updateQuestProgressAfterClaim();
+        onQuestCompletedUnlock();
+        disableClaimButton();
+        return; 
       }
 
 

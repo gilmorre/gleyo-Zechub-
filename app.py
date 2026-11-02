@@ -22730,6 +22730,44 @@ def check_telegram_task_for_user(user, task):
 
 CLAIM_LIMIT_MESSAGE = "This community has used all of its claims for now. Please check back later."
 
+X_CREDIT_COSTS = {
+    "follow": 1,
+    "space": 1,
+    "tweet": 1,
+    "quote": 1,
+    "reply": 1,
+    "retweet": 2,
+    "like": 3,
+}
+
+
+def x_task_extra_cost(task):
+    if task.type != "twitter":
+        return 0
+
+    config = task.config or {}
+    mode = config.get("mode")
+
+    if mode in ("follow", "space", "tweet", "quote"):
+        return X_CREDIT_COSTS[mode]
+
+    if mode == "engage":
+        total = 0
+        if config.get("like") is True:
+            total += X_CREDIT_COSTS["like"]
+        if config.get("retweet") is True:
+            total += X_CREDIT_COSTS["retweet"]
+        if config.get("reply") is True:
+            total += X_CREDIT_COSTS["reply"]
+        return total
+
+    return 0
+
+
+def compute_claim_cost(tasks):
+    return 1 + sum(x_task_extra_cost(t) for t in tasks)
+
+
 @app.route("/claim/<int:subquest_id>", methods=["POST"])
 @login_required
 @csrf.exempt
@@ -22758,9 +22796,6 @@ def claim_subquest(subquest_id):
             "message": "This community no longer exists."
         }), 404
 
-    # ==============================
-    # 3) Membership check
-    # ==============================
     if not has_role(user.id, community.id, "member"):
         return jsonify({
             "success": False,
@@ -22768,21 +22803,12 @@ def claim_subquest(subquest_id):
             "toast": f"Join the {community.name} community to claim this quest."
         }), 403
 
-    # ==============================
-    # 4) Ban check
-    # ==============================
     if check_banned(user.id, community_id):
         return jsonify({
             "success": False,
             "error_code": "MAX_CLAIM_REACHED",
             "toast": "You are banned from this community and cannot claim Quests."
         }), 403
-
-    # ==============================
-    # 4b) 🔒 COMMUNITY CLAIM LIMIT (fast guard)
-    # locked community = plan quota + extra claims all used up
-    # enterprise is never locked
-    # ==============================
 
     if not claims_open(community):
         return jsonify({
@@ -22791,9 +22817,6 @@ def claim_subquest(subquest_id):
             "toast": CLAIM_LIMIT_MESSAGE
         }), 403
 
-    # ==============================
-    # 5) Recurrence check
-    # ==============================
     can_claim = can_claim_recurrence(user.id, subquest)
 
     if not can_claim:
@@ -22803,13 +22826,8 @@ def claim_subquest(subquest_id):
             "toast": f"You have already claimed this {subquest.recurrence.lower()} subquest"
         }), 400
 
-    # ==============================
-    # 6) 🔒 ATOMIC RESERVATION (DB LEVEL)
-    # ==============================
-
     cd = get_active_cooldown(user.id, subquest)
 
-    # 🔒 permanent lock
     if cd and cd.is_no_retry:
         return jsonify({
             "success": False,
@@ -22817,11 +22835,9 @@ def claim_subquest(subquest_id):
             "message": "You cannot retry this subquest again."
         }), 400
 
-    # ⏳ timed cooldown
     if cd and cd.cooldown_until:
         cooldown = cd.cooldown_until
 
-        # normalize to aware UTC
         if cooldown.tzinfo is None:
             cooldown = cooldown.replace(tzinfo=timezone.utc)
 
@@ -22845,7 +22861,6 @@ def claim_subquest(subquest_id):
         now = utcnow()
         vote_end = subquest.vote_end_date
 
-        # normalize to aware UTC for comparison, same pattern used elsewhere in this file
         if vote_end and vote_end.tzinfo is None:
             vote_end = vote_end.replace(tzinfo=timezone.utc)
 
@@ -22858,16 +22873,10 @@ def claim_subquest(subquest_id):
                 "toast": "Voting has ended for this quest."
             }), 400
 
-    # ==============================
-    # 6b) 💳 SPEND ONE COMMUNITY CLAIM (plan quota -> extra claims)
-    # Done BEFORE anything is written so a rejected claim leaves no trace.
-    # Not committed here: it commits together with the rest at the end,
-    # and rolls back with everything else if something crashes.
-    # Enterprise = unlimited, nothing is counted.
-    # When the last claim is spent, extra is wiped and the community locks.
-    # ==============================
+    claim_cost = compute_claim_cost(tasks)
+
     try:
-        consume_claim(community, 1, commit=False)
+        consume_claim(community, claim_cost, commit=False)
     except BillingError as e:
         return jsonify({
             "success": False,
@@ -22944,7 +22953,6 @@ def claim_subquest(subquest_id):
         poll_answer = poll_answers.get(str(task.id))
         other_answer = poll_other_answers.get(str(task.id))
 
-        # --- VALIDATION ---
         if task.type == "quiz":
             is_valid, failed_input = check_quiz_answer(user, task, quiz_answer)
             if not is_valid:
@@ -23038,8 +23046,6 @@ def claim_subquest(subquest_id):
                         is_valid = False
                         errors[task.id] = "This link must be a Twitter/X post to track invites."
                     else:
-
-                        # 1) must have a connected X account
                         user_tw = UserTwitter.query.filter_by(
                             user_id=user.id,
                             action="connected"
@@ -23049,7 +23055,6 @@ def claim_subquest(subquest_id):
                             is_valid = False
                             errors[task.id] = "Connect your X account before submitting this task."
                         else:
-                            # 2) the posted link's handle must be THIS user's connected handle
                             posted_handle = extract_handle_from_any_url(task_answer)
 
                             if not posted_handle or posted_handle.lower() != (user_tw.xusername or "").lower():
@@ -23101,7 +23106,6 @@ def claim_subquest(subquest_id):
             poll_selected_texts = poll_data.get("selected_text", [])
             other_answer = poll_other_answers.get(str(task.id), "")
 
-            # Poll is NON-FAILABLE by design
             is_valid = True
 
             cleaned_input["poll"] = {
@@ -23178,7 +23182,7 @@ def claim_subquest(subquest_id):
                 cleaned_input["partnership"] = {
                     "status": "joined",
                     "community_id": task.config.get("community_id"),
-                    "community_name": community_name  # ✅ Save name!
+                    "community_name": community_name
                 }
             else:
                 errors[task.id] = error_message or "Join the community to claim this task"
@@ -23294,9 +23298,7 @@ def claim_subquest(subquest_id):
                         "amount": str(vote_amount),
                     }
 
-        # inside for task in tasks loop
         elif task.type == "p.o.h":
-            # Re-run validation before allowing claim
             res = validate_poh_internal(user)
             is_valid = res.get("success", False)
             if not is_valid:
@@ -23334,7 +23336,6 @@ def claim_subquest(subquest_id):
             user_input = (puzzle_answers.get(str(task.id)) or "").strip()
             correct_answer = (task.config or {}).get("answer", "").strip()
 
-            # Case-insensitive compare
             is_valid = user_input.lower() == correct_answer.lower()
 
             if not is_valid:
@@ -23388,13 +23389,8 @@ def claim_subquest(subquest_id):
                 all_success = False
                 continue
 
-            # ✅ Always valid if files exist
             is_valid = True
 
-            # ✅ behave like other tasks → NO manual attempt creation here
-            # we will use the generic TaskAttemptHistory below
-
-            # placeholder so frontend knows upload is happening
             cleaned_input["files"] = []
 
             uploaded_file_refs = []
@@ -23407,8 +23403,6 @@ def claim_subquest(subquest_id):
                 ext = original_name.rsplit(".", 1)[-1].lower()
                 file_uuid = str(uuid.uuid4())
 
-                # ⚠️ IMPORTANT: we don't have attempt_id yet
-                # so we temporarily store under "temp"
                 storage_name = f"subquests/temp/{file_uuid}.{ext}"
 
                 file_bytes = f.read()
@@ -23443,10 +23437,8 @@ def claim_subquest(subquest_id):
                     "status": "uploading"
                 })
 
-            # ✅ store placeholder
             cleaned_input["files"] = uploaded_file_refs
 
-        # --- Cleanup inputs ---
         for k, v in {
             "task_answer": task_answer,
             "quiz_answer": quiz_answer,
@@ -23457,7 +23449,6 @@ def claim_subquest(subquest_id):
             if v not in (None, "", [], {}):
                 cleaned_input[k] = v
 
-        # --- Store attempt history ---
         instant_success_types = [
             "discord", "youtube", "quiz", "twitter", "partnership_quest", "partnership", "Visit link", "p.o.h", "github",
             "invite", "poll", "Optionscale(numbers)", "Optionscale(star)", "coin_holder_vote", "puzzle"
@@ -23466,14 +23457,11 @@ def claim_subquest(subquest_id):
         if not is_valid:
             attempt_status = "failed"
         else:
-            # If it's one of the instant-success types → always success
             if task.type in instant_success_types:
                 attempt_status = "success"
             else:
-                # For all other tasks → depends on autovalidation
                 attempt_status = "success" if subquest.autovalidation else "pending"
 
-        # --- Save the attempt ---
         db.session.add(TaskAttemptHistory(
             task_id=task.id,
             user_id=user.id,
@@ -23481,8 +23469,6 @@ def claim_subquest(subquest_id):
             status=attempt_status,
             user_input=cleaned_input,
         ))
-
-        # --- Add persistent cooldown for failed tasks ---
 
         if is_valid:
             reward_json = None
@@ -23507,11 +23493,9 @@ def claim_subquest(subquest_id):
     if not all_success:
         cooldown_delta = Subquest.parse_cooldown(subquest.cooldown)
 
-        # ❌ No cooldown defined → do nothing
         if cooldown_delta is None:
-            pass   # no cooldown applied
+            pass
 
-        # 🔒 PERMANENT NO RETRY
         elif cooldown_delta == "no_retry":
             db.session.add(SubquestCooldown(
                 user_id=user.id,
@@ -23523,7 +23507,6 @@ def claim_subquest(subquest_id):
             ))
             print("🔒 NO_RETRY cooldown applied")
 
-        # ⏳ TIMED COOLDOWN (minutes / hours / weeks / months)
         elif isinstance(cooldown_delta, timedelta):
             cooldown_until = utcnow() + cooldown_delta
 
@@ -23540,7 +23523,6 @@ def claim_subquest(subquest_id):
 
     assigned_rewards = []
 
-    # --- Determine SubquestCompletion status and assign rewards ---
     if all_success:
         reserved = reserve_subquest_claim(session, subquest_id)
         assigned_rewards = assign_fcfs_rewards_atomic(session, subquest_rewards)
@@ -23553,12 +23535,9 @@ def claim_subquest(subquest_id):
 
             if run and not run.finished_at:
                 run.finished_at = utcnow()
-            # ✅ Assign rewards for successful completion
             subquest_completion.assigned_rewards = assigned_rewards
             print(f"Assigned rewards: {assigned_rewards}")
-            # ==============================
-            # 💾 COMMIT XP TO UserXP (LEDGER)
-            # ==============================
+
             for reward in assigned_rewards:
                 if reward.get("reward_type") != "xp":
                     continue
@@ -23569,7 +23548,6 @@ def claim_subquest(subquest_id):
                 if not xp_amount or xp_amount <= 0:
                     continue
 
-                # 🛡️ Anti-duplicate protection
                 existing_xp = UserXP.query.filter_by(
                     user_id=user.id,
                     completion_id=subquest_completion.id
@@ -23586,9 +23564,6 @@ def claim_subquest(subquest_id):
                     base_xp_amount=int(xp_amount)
                 )
 
-            # ==============================
-            # 💰 COMMIT ZEC TO UserBalance
-            # ==============================
             for reward in assigned_rewards:
                 if reward.get("reward_type") not in ("token", "Token"):
                     continue
@@ -23607,7 +23582,6 @@ def claim_subquest(subquest_id):
                 if amount <= 0:
                     continue
 
-                # 🛡️ Anti-duplicate protection
                 existing_tx = UserTransaction.query.filter_by(
                     user_id=user.id,
                     community_id=subquest.quest.community_id,
@@ -23617,7 +23591,6 @@ def claim_subquest(subquest_id):
                     print(f"⚠️ ZEC already credited for completion {subquest_completion.id}, skipping")
                     continue
 
-                # ── Credit UserBalance ────────────────────────────────────────────────
                 user_bal = UserBalance.query.filter_by(user_id=user.id).with_for_update().first()
                 if not user_bal:
                     user_bal = UserBalance(
@@ -23633,10 +23606,6 @@ def claim_subquest(subquest_id):
                 user_bal.total_earned  = (user_bal.total_earned  or Decimal("0")) + amount
                 user_bal.updated_at    = datetime.utcnow()
 
-                # ── 🔓 RELEASE FROM COMMUNITY WALLET LOCKED BALANCE ──────────────────
-                # This ZEC was pre-locked at publish time. Now that it's actually
-                # paid out to a winner, it must leave locked_balance permanently —
-                # it does NOT go back to available_balance, it's spent.
                 amount_zatoshi = int(round(amount * Decimal("100000000")))
 
                 wallet = CommunityWallet.query.filter_by(
@@ -23649,15 +23618,10 @@ def claim_subquest(subquest_id):
                 else:
                     print(f"⚠️ No CommunityWallet found for community {subquest.quest.community_id} — cannot release locked funds")
 
-                # Keep the subquest's own locked tracker in sync too, so that if this
-                # subquest gets edited/republished later, publish_subquest's
-                # "release previous_locked" step doesn't over-release funds that
-                # were already paid out via claims.
                 subquest.locked_zec_zatoshi = max(
                     0, (subquest.locked_zec_zatoshi or 0) - amount_zatoshi
                 )
 
-                # ── Log the transaction ───────────────────────────────────────────────
                 db.session.add(UserTransaction(
                     user_id      = user.id,
                     type         = "in",
@@ -23677,7 +23641,7 @@ def claim_subquest(subquest_id):
 
     else:
         subquest_completion.status = "failed"
-        subquest_completion.assigned_rewards = []  # no rewards for failed
+        subquest_completion.assigned_rewards = []
         print("Not all tasks succeeded → SubquestCompletion marked FAILED")
 
     existing_review = TaskReview.query.filter_by(
@@ -23691,11 +23655,9 @@ def claim_subquest(subquest_id):
         review_status = subquest_completion.status
 
         if review_status == "success":
-            # already JSON
             pending_reward = deepcopy(subquest_completion.assigned_rewards) or []
 
         elif review_status == "pending":
-            # convert ORM → JSON
             pending_reward = [
                 reward_to_json(r) for r in subquest.rewards
             ]
@@ -23718,10 +23680,6 @@ def claim_subquest(subquest_id):
         db.session.add(review)
         print(f"Created single TaskReview with status {review_status} for user {user.id}")
 
-    # ❌ REMOVED: increment_community_claim_usage(...)
-    # The claim is now spent (and limit-checked) earlier by consume_claim().
-
-    # --- Finalize ---
     db.session.commit()
     if newly_tracked_handles:
         spawn_mention_match_for_new_tags(newly_tracked_handles)
@@ -23738,7 +23696,7 @@ def claim_subquest(subquest_id):
 
         for single_role in reward_data_list:
             role_name = single_role.get("role")
-            role_id = single_role.get("role_id")  # might be None
+            role_id = single_role.get("role_id")
             if not role_name and not role_id:
                 print(f"❌ Skipping invalid role reward: {single_role}")
                 continue
@@ -23758,7 +23716,6 @@ def claim_subquest(subquest_id):
 
     updated_max_claimed_count = get_max_claim_count(subquest_id)
 
-    # ✅ Determine response based on actual completion status
     if subquest_completion.status == "pending":
         return jsonify({
             "success": True,
@@ -23810,7 +23767,6 @@ def claim_subquest(subquest_id):
         }
 
         return jsonify(response_payload)
-
 
 @app.route("/validate_poh", methods=["GET"])
 @login_required
@@ -24424,6 +24380,13 @@ def verify_payment(community_slug, payment_id):
         return jsonify({'error': f'Server error: {str(e)}', 'status': 'pending'}), 200
 
 
+def _deposit_memo(tx):
+    """Memo users must put when sending native ZEC. None for EVM deposits."""
+    if tx.token == 'ZEC' and tx.network == 'Zcash':
+        return getattr(tx, 'memo', None) or current_user.username
+    return None
+
+
 @app.route('/api/wallet/zec/deposit/create', methods=['POST'])
 @csrf.exempt
 @login_required
@@ -24460,6 +24423,7 @@ def create_deposit():
             'network': existing.network,
             'amount': float(existing.amount),
             'address': existing.to_address,
+            'memo': _deposit_memo(existing),
             'expires_at': int(existing.expires_at.timestamp()),
             'server_time': int(datetime.utcnow().timestamp()),
         }), 409
@@ -24482,18 +24446,21 @@ def create_deposit():
                 token_contract=token_info["address"],
                 token_decimals=token_info["decimals"],
             )
+    except ValueError as e:
+        # e.g. "Minimum deposit is 0.0001 ZEC"
+        return jsonify({'error': str(e)}), 400
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
     return jsonify({
         'id': tx.id,
         'address': tx.to_address,
+        'memo': _deposit_memo(tx),
         'amount': float(tx.swap_zec_amount) if tx.swap_zec_amount else float(tx.amount),
         'created_at': int(tx.created_at.timestamp()),
         'server_time': int(datetime.utcnow().timestamp()),
         'expires_at': int(tx.expires_at.timestamp()),
     })
-
 
 
 @app.route('/api/wallet/zec/deposit/verify/<int:deposit_id>', methods=['POST'])
@@ -24520,7 +24487,6 @@ def verify_deposit(deposit_id):
         result = verify_user_evm_deposit(tx)
 
     return jsonify(result)
-
 
 @app.route('/<community_slug>/leaderboard')
 @community_not_deleted()
@@ -30984,33 +30950,28 @@ def debug_keyboard_height():
 @app.route('/delete_sprint/<int:sprint_id>', methods=['POST'])
 @login_required
 def delete_sprint(sprint_id):
-    user_id = current_user.id 
+    user_id = current_user.id
 
     sprint = Sprint.query.get(sprint_id)
     if not sprint:
         return jsonify({'success': False, 'message': 'Sprint not found'}), 404
 
-    # ✅ Permission check
     is_sprint_creator = sprint.created_by_id == user_id
     is_community_creator = sprint.community.created_by_id == user_id
 
     if not (is_sprint_creator or is_community_creator):
         return jsonify({'success': False, 'message': 'Unauthorized'}), 403
 
-    # ✅ Prevent delete if community already paid
-    if sprint.community and sprint.community.is_paid:
+    if sprint.distribution != 'self_distribute':
         return jsonify({
             'success': False,
-            'message': 'Cannot delete sprint after payment'
+            'message': 'Only self-distributed sprints can be deleted'
         }), 403
 
-    # ✅ Delete
     db.session.delete(sprint)
     db.session.commit()
 
     return jsonify({'success': True}), 200
-
-
 
 
 @app.route('/update_sprint/<sprint_uuid>', methods=['POST'])
@@ -31103,9 +31064,6 @@ def rename_module(uuid_value):
 def duplicate_module(uuid_value):
     quest = Quest.query.filter_by(uuid=uuid_value).first_or_404()
 
-    # ============================
-    # 1. Generate unique title
-    # ============================
     existing_titles = [
         q.title for q in Quest.query.filter_by(community_id=quest.community_id).all()
     ]
@@ -31118,9 +31076,6 @@ def duplicate_module(uuid_value):
         new_title = f"{base_title} (Copy {count})"
         count += 1
 
-    # ============================
-    # 2. Clone Quest (Module)
-    # ============================
     new_quest = Quest(
         uuid=str(uuid.uuid4()),
         title=new_title,
@@ -31128,100 +31083,99 @@ def duplicate_module(uuid_value):
         color=quest.color,
         cover_url=quest.cover_url,
         community_id=quest.community_id,
-
-        # 🔥 IMPORTANT:
-        creator_id=current_user.id,   # ✅ new owner
-
+        creator_id=current_user.id,
         sprint_id=quest.sprint_id
     )
 
     db.session.add(new_quest)
-    db.session.flush()   # get new_quest.id
+    db.session.flush()
 
-    # ============================
-    # 3. Clone Subquests
-    # ============================
     skipped_token_reward = False
+    new_subquests = []
 
     for subquest in quest.subquests:
-
         duplicated_subquest = Subquest(
             quest_id=new_quest.id,
-
             uuid=str(uuid.uuid4()),
             public_id=Subquest.generate_public_id(),
-
             name=f"{subquest.name} Copy",
             description=subquest.description,
-
             sprint_id=subquest.sprint_id,
             sprint_name=subquest.sprint_name,
-
             recurrence=subquest.recurrence,
             cooldown=subquest.cooldown,
             max_claim=subquest.max_claim,
             autovalidation=subquest.autovalidation,
             add_to_sprint=subquest.add_to_sprint,
-
             image_url=subquest.image_url,
-            is_draft=subquest.is_draft,
-            is_archive=subquest.is_archive,
-            has_rewards_before=subquest.has_rewards_before,
+            is_draft=True,
+            locked_zec_zatoshi=0,
         )
 
         db.session.add(duplicated_subquest)
-        db.session.flush()   # get duplicated_subquest.id
+        db.session.flush()
 
-        # ============================
-        # 4. Clone Tasks
-        # ============================
+        task_types = []
         for task in subquest.tasks:
-            new_task = Task(
+            db.session.add(Task(
                 type=task.type,
-                config=task.config, 
+                config=task.config,
                 subquest_id=duplicated_subquest.id
-            )
-            db.session.add(new_task)
+            ))
+            task_types.append(task.type)
 
-        # ============================
-        # 5. Clone Conditions
-        # ============================
         for cond in subquest.conditions:
-            new_cond = SubquestCondition(
+            db.session.add(SubquestCondition(
                 subquest_id=duplicated_subquest.id,
                 subquest_uuid=duplicated_subquest.uuid,
                 condition_type=cond.condition_type,
                 condition_value=cond.condition_value,
                 operator=cond.operator
-            )
-            db.session.add(new_cond)
+            ))
 
-        # ============================
-        # 6. Clone Rewards — SKIP TOKEN REWARDS ENTIRELY
-        # ============================
+        rewards_payload = []
         for reward in subquest.rewards:
             if reward.reward_type == "token":
                 skipped_token_reward = True
-                continue  # 🚫 never duplicate token rewards
+                continue
 
-            new_reward = SubquestReward(
+            db.session.add(SubquestReward(
                 subquest_id=duplicated_subquest.id,
                 reward_type=reward.reward_type,
                 distribution_type=reward.distribution_type,
-                reward_data=reward.reward_data
-            )
-            db.session.add(new_reward)
+                reward_data=reward.reward_data,
+                claim_count=None,
+            ))
+            rewards_payload.append({
+                'reward_type': reward.reward_type,
+                'distribution_type': reward.distribution_type,
+                'reward_data': json.loads(reward.reward_data) if reward.reward_data else {}
+            })
 
-   
+        new_subquests.append({
+            'uuid': duplicated_subquest.uuid,
+            'name': duplicated_subquest.name,
+            'url': f"/{quest.community.slug}/quest/admin/{new_quest.uuid}/{duplicated_subquest.uuid}",
+            'is_draft': True,
+            'is_archive': False,
+            'task_types': task_types,
+            'rewards': rewards_payload
+        })
+
     db.session.commit()
 
     return jsonify({
         'status': 'success',
         'new_quest_uuid': new_quest.uuid,
         'title': new_quest.title,
-        'skipped_token_reward': skipped_token_reward
+        'skipped_token_reward': skipped_token_reward,
+        'module': {
+            'uuid': new_quest.uuid,
+            'title': new_quest.title,
+            'is_open': True,
+            'subquests': new_subquests
+        }
     })
-
 
 @app.route('/check_uuid/<uuid_value>')
 def check_uuid(uuid_value):
@@ -34951,6 +34905,7 @@ class UserTransactionAdmin(BaseAdmin):
         'type',
         'amount',
         'token',
+        'balance_before',
         'status',
         'tx_hash',
         'block_number',
@@ -34966,6 +34921,7 @@ class UserTransactionAdmin(BaseAdmin):
         'type': 'Type',
         'amount': 'Amount',
         'token': 'Token',
+        'balance_before': 'Balance before',
         'status': 'Status',
         'tx_hash': 'TX Hash',
         'block_number': 'Block',
